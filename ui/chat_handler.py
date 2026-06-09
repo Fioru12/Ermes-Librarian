@@ -358,20 +358,31 @@ def _render_fallback_response(full_response, fallback_text, low_conf, fallback,
 def _retry_fix_formula(original_prompt, code, errors, model_id):
     """Richiama il LLM per correggere errori di validazione. Max 2 tentativi."""
     import httpx
-
     from core.rag_engine import _ollama_url
     from modules.winsarp import parse_response
+    from core.formula_builder import FormulaBuilder
+    from core.knowledge_graph import KnowledgeGraph
+    
+    kg = KnowledgeGraph()
+    builder = FormulaBuilder(kg)
+    
     url = _ollama_url() + "/api/generate"
+    # Prompt migliorato con la grammatica
     fix_prompt = (
+        "{grammar}\n\n"
         "L'utente ha chiesto: \"{prompt}\"\n\n"
-        "Hai generato questo codice WinSarp:\n```\n{code}\n```\n\n"
+        "Hai generato questo codice WinSarp con errori:\n```\n{code}\n```\n\n"
         "ERRORI DI VALIDAZIONE:\n{errors}\n\n"
-        "Correggi il codice per risolvere TUTTI gli errori sopra.\n"
-        "Ritorna SOLO il codice corretto, senza spiegazioni, dentro un blocco ```."
+        "Correggi il codice per risolvere TUTTI gli errori sopra, rispettando RIGOROSAMENTE "
+        "la sintassi WinSarp sopra descritta.\n"
+        "Ritorna SOLO il codice corretto in formato [formula]...[/formula] e [spiegazione]...[/spiegazione]."
     )
+    
+    grammar = builder.get_contextual_prompt(original_prompt)
+    
     for attempt in range(2):
         err_text = "\n".join(f"- {e}" for e in errors)
-        prompt = fix_prompt.format(prompt=original_prompt, code=code, errors=err_text)
+        prompt = fix_prompt.format(grammar=grammar, prompt=original_prompt, code=code, errors=err_text)
         payload = {
             "model": model_id,
             "prompt": prompt,
@@ -379,7 +390,7 @@ def _retry_fix_formula(original_prompt, code, errors, model_id):
             "options": {"temperature": 0.0, "num_predict": 1024},
         }
         try:
-            resp = httpx.post(url, json=payload, timeout=120)
+            resp = httpx.post(url, json=payload, timeout=300) # Timeout più lungo
             resp.raise_for_status()
             new_answer = resp.json().get("response", "")
             if not new_answer:
