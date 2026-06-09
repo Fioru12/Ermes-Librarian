@@ -1,0 +1,75 @@
+# ============================================================
+# WINSARP - DATASET DI ESEMPI PRATICI (FEW-SHOT)
+# Basato sul Manuale Operativo Data Services v.2.23.1 - 20221212
+# Questo file istruisce l'IA sui casi d'uso reali con sintassi verificata.
+# ============================================================
+
+[ESEMPIO 1: RESET REGISTRI DI APPOGGIO]
+Domanda: Azzera i registri di appoggio 800, 801, 802, 803, 804 a inizio formula.
+Risposta: (!800!801!802!803!804);
+Logica: Il comando ! azzera (imposta a zero) i campi indicati. Piu campi possono essere azzerati nella stessa parentesi. Questa operazione va sempre eseguita per prima per evitare che valori residui da calcoli precedenti inquinino i risultati.
+
+[ESEMPIO 2: ARROTONDAMENTO ENTRATA A QUARTI D'ORA]
+Domanda: Arrotonda l'entrata effettiva del primo intervallo a quarti d'ora, con offset 10 minuti e bonus 5 minuti.
+Risposta: (!71!72!73!74)(71=251)(72='15')(73='10')(74='5')(70='20');
+Logica: Azzero prima i campi di lavoro 71-74. Il campo 251 contiene la prima entrata calcolata. Carico in 71 l'entrata, in 72 l'approssimazione (15 min = quarti d'ora), in 73 l'offset di riferimento (10 min), in 74 il bonus in ingresso (5 min). Il campo 70='20' esegue l'arrotondamento entrata e restituisce il risultato in 71.
+
+[ESEMPIO 3: ARROTONDAMENTO USCITA A QUARTI D'ORA]
+Domanda: Arrotonda l'uscita effettiva del primo intervallo a quarti d'ora, con offset 10 minuti e bonus 5 minuti.
+Risposta: (!71!72!73!74)(71=271)(72='15')(73='10')(74='5')(70='21');
+Logica: Come l'esempio precedente ma per l'uscita. Il campo 271 e' la prima uscita calcolata. Il campo 70='21' esegue l'arrotondamento uscita.
+
+[ESEMPIO 4: GESTIONE PASSAGGIO MEZZANOTTE]
+Domanda: Gestisci un turno notturno che attraversa la mezzanotte: se l'uscita e' numericamente inferiore all'entrata, aggiusta l'orario.
+Risposta: {83}<{82}({83}A'1440'={83});
+Logica: Il campo 83 e' l'uscita effettiva, il campo 82 e' l'entrata effettiva. Se l'uscita e' minore dell'entrata (es: entrata 22.30, uscita 06.00), aggiungo 1440 minuti (24 ore) all'uscita per ottenere il valore corretto (es: 06.00 diventa 30.00 in notazione sessagesimale). Uso l'operatore A (addizione su sessagesimi).
+
+[ESEMPIO 5: CALCOLO DURATA INTERVALLO]
+Domanda: Calcola la durata in minuti del primo intervallo di lavoro (entrata 251, uscita 271) e salvala nel campo 800.
+Risposta: (!71!72!73)(71=251)(72=271)(70='11')(800=73);
+Logica: Azzero i campi di lavoro. Carico in 71 l'entrata calcolata (251) e in 72 l'uscita calcolata (271). Il campo 70='11' calcola la durata dell'intervallo gestendo automaticamente il passaggio mezzanotte e restituisce il risultato in 73. Salvo il risultato nel registro di appoggio 800.
+
+[ESEMPIO 6: CALCOLO STRAORDINARIO OLTRE 8 ORE]
+Domanda: Se il totale ore lavorate (campo 350) supera le 8 ore (480 minuti), calcola lo straordinario e salvalo nel campo 800.
+Risposta: {350}>'480'(!71!72!73)(71={350})(72='480')(70='2')(800=73);
+Logica: Verifico se il campo 350 (totale ore lavorate) supera 480. In caso affermativo, uso il campo 70='2' (differenza ore) per sottrarre 480 dal totale. Il risultato in 73 rappresenta lo straordinario, che salvo nel campo di appoggio 800.
+
+[ESEMPIO 7: ASSEGNAZIONE CAUSALE AUTOMATICA]
+Domanda: Se nel campo di appoggio 800 c'e' uno straordinario maggiore di zero, assegna la causale automatica "ST".
+Risposta: {800}>'0'({800}="ST");
+Logica: Verifico che il campo 800 contenga un valore positivo. In caso affermativo, assegno la stringa "ST" allo stesso campo. Le stringhe in WinSarp si delimitano con i doppi apici ". Questa causale verra' poi letta e salvata dal sistema nelle causali automatiche.
+
+[ESEMPIO 8: VERIFICA GIORNO FESTIVO E USCITA FORMULA]
+Domanda: Se oggi e' un giorno festivo, termina immediatamente la formula senza fare nulla.
+Risposta: {55}U'1'(VF);
+Logica: Il campo 55 vale 1 se il giorno in elaborazione e' festivo. L'operatore U e' "uguale". Se la condizione e' vera, eseguo VF (Vai Fuori) che termina immediatamente l'esecuzione della formula.
+
+[ESEMPIO 9: VERIFICA SABATO O DOMENICA CON OR]
+Domanda: Se il giorno e' sabato (7) oppure domenica (1), termina la formula.
+Risposta: {50}U'7'O{50}U'1'(VF);
+Logica: Il campo 50 contiene il giorno della settimana (1=dom, 2=lun, ..., 7=sab). Uso l'operatore O (OR) per verificare entrambe le condizioni. Se una delle due e' vera, eseguo VF per uscire dalla formula.
+
+[ESEMPIO 10: PERFORM DI SUBROUTINE]
+Domanda: Esegui la subroutine 101 per aggiungere 30 minuti alle entrate effettive, poi continua la formula.
+Risposta: (!71!72!73)(71="E")(72="+")(73='30')(70='101');
+Logica: La subroutine BG 101 (Toglie/Aggiunge ore alle timbrature) richiede: 71=priorita' (E=solo entrate), 72=segno (+/-), 73=ore da aggiungere (30 minuti). Il campo 70='101' esegue la subroutine. Diversamente da R (salto), qui dopo la subroutine si continua con l'istruzione successiva.
+
+[ESEMPIO 11: SEPARAZIONE ORE NOTTURNE DA DIURNE]
+Domanda: Separa le ore notturne da quelle diurne nel primo intervallo, usando la fascia per turno, e salva il risultato.
+Risposta: (!71!72!73)(71=251)(72=271)(70='22')(800=71)(801=72)(802=73);
+Logica: Carico in 71 l'entrata calcolata (251) e in 72 l'uscita calcolata (271). Il campo 70='22' separa notturno da diurno usando la fascia notturna per turno. Il risultato e': 71=diurno prima del notturno, 72=notturno, 73=diurno dopo del notturno. Salvo i tre valori nei registri di appoggio 800, 801, 802.
+
+[ESEMPIO 12: LETTURA STATISTICA CAUSALE SU PERIODO]
+Domanda: Calcola il totale delle ore di ferie (causale "FE") del dipendente nel mese corrente.
+Risposta: (!71!72!73!74)(71={303})(72={304})(73="FE")(74="M")(70='50')(800=71);
+Logica: I campi 303 e 304 contengono rispettivamente il primo e l'ultimo giorno del mese in elaborazione. Carico in 71 la data inizio, in 72 la data fine, in 73 la causale da cercare, in 74 il tipo M=Solo Manuali. Il campo 70='50' esegue la statistica e restituisce la somma in 71. Salvo il totale nel registro 800.
+
+[ESEMPIO 13: INCREMENTO PROGRESSIVO CON K]
+Domanda: Aggiungi 30 minuti al contatore progressivo di straordinario nel campo 801.
+Risposta: (K801+'30');
+Logica: L'operatore K prima del campo indica che il valore del campo verra' incrementato. K801+'30' equivale a scrivere 801 = 801 + '30'. E' un modo compatto per incrementare un accumulatore senza dover usare il campo 70.
+
+[ESEMPIO 14: RESET E CALCOLO COMPLETO FORMULA FINE GIORNATA]
+Domanda: Esegui una formula completa di fine giornata: gestisci mezzanotte, calcola lo straordinario oltre 8 ore e assegna la causale ST.
+Risposta: (!800!801!802);{83}<{82}({83}A'1440'={83});{350}>'480'(!71!72!73)(71={350})(72='480')(70='2')(800=73);{800}>'0'({800}="ST");
+Logica: Step 1 - Azzero i registri di appoggio 800-802. Step 2 - Gestisco il passaggio mezzanotte sull'uscita effettiva (83). Step 3 - Se le ore lavorate (350) superano 480 minuti, calcolo la differenza con 70='2' e salvo lo straordinario in 800. Step 4 - Se il campo 800 e' positivo, assegno la causale "ST".

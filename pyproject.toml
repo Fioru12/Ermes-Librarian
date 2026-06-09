@@ -1,0 +1,57 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "ermes"
+version = "2.0.0"
+description = "Enterprise Knowledge Hub — RAG locale per documentazione aziendale"
+requires-python = ">=3.11"
+dependencies = [
+    "streamlit>=1.35",
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "pydantic>=2.0",
+    "llama-index-core>=0.11",
+    "llama-index-llms-ollama>=0.4",
+    "llama-index-embeddings-ollama>=0.4",
+    "llama-index-vector-stores-chroma>=0.3",
+    "llama-index-readers-file>=0.3",
+    "chromadb>=1.5",
+    "ollama>=0.4",
+    "python-docx>=1.1",
+    "pypdf>=5",
+    "python-dotenv>=1.0",
+    "filelock>=3.0",
+]
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP", "SIM"]
+ignore = [
+    "E501",     # line too long — handled by formatter
+    "SIM117",   # multiple with statements — readability preference
+    "SIM108",   # ternary instead of if-else — not always clearer
+    "SIM114",   # combine if-conditions — not always clearer
+    "SIM115",   # open instead of Path.open — context-specific
+    "N812",     # lowercase imported as non-lowercase — common pattern with st
+    "N999",     # module name invalid — not applicable
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*.py" = ["S101", "S311"]
+"config.py" = ["N802"]
+"app.py" = ["E402"]
+"*.pyi" = ["N"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+asyncio_mode = "auto"

@@ -1,0 +1,71 @@
+services:
+  ermes-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ermes-ai-hub
+    ports:
+      - "8502:8502"
+    volumes:
+      # Mount directory documenti per persistenza
+      - ./documenti:/app/documenti
+      # Mount ChromaDB per persistenza embeddings
+      - ./chroma_db:/app/chroma_db
+      # Mount logs per persistenza log
+      - ./logs:/app/logs
+      # Mount security per persistenza utenti
+      - ./security:/app/security
+      # Mount backups
+      - ./backups:/app/backups
+    environment:
+      - ERMES_HOST=0.0.0.0
+      - ERMES_PORT=8502
+      - ERMES_MODEL=qwen2.5:7b
+      - ERMES_EMBED_MODEL=nomic-embed-text
+      - OLLAMA_HOST=http://host.docker.internal:11434
+      - ERMES_SCORE_LOW=0.35
+      - ERMES_SCORE_MED=0.55
+      - ERMES_PROMPT_MAX_CHARS=2000
+      - ERMES_LOG_RETENTION_DAYS=30
+      - ENABLE_FORMULA_GENERATION=1
+      # Configura API key per abilitare API REST
+      - ERMES_API_KEY=${ERMES_API_KEY:-}
+      # Configura admin password (opzionale)
+      - ERMES_ADMIN_USERNAME=${ERMES_ADMIN_USERNAME:-admin}
+      - ERMES_ADMIN_PASSWORD=${ERMES_ADMIN_PASSWORD:-}
+      - ERMES_ADMIN_MAX_UPLOAD_MB=50
+      # Secret per audit logs HMAC (genera con: python -c "import secrets; print(secrets.token_hex(32))")
+      - ERMES_AUDIT_SECRET=${ERMES_AUDIT_SECRET:-}
+    restart: unless-stopped
+    networks:
+      - ermes-network
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+        reservations:
+          memory: 2G
+    # Health check definito nel Dockerfile
+    # Dipende da Ollama se usato nello stesso compose
+    # depends_on:
+    #   - ollama
+
+  # Servizio Ollama opzionale (se vuoi eseguire Ollama in Docker)
+  # ollama:
+  #   image: ollama/ollama:latest
+  #   container_name: ollama
+  #   ports:
+  #     - "11434:11434"
+  #   volumes:
+  #     - ollama_data:/root/.ollama
+  #   restart: unless-stopped
+  #   networks:
+  #     - ermes-network
+
+networks:
+  ermes-network:
+    driver: bridge
+
+# Volume persistente per Ollama (se usato)
+# volumes:
+#   ollama_data:

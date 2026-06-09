@@ -1,0 +1,685 @@
+/* Header */
+.ws-header {
+    border-radius: 12px;
+    padding: 1.1rem 1.5rem;
+    margin-bottom: 0.8rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    background: ${bg2};
+    border: 1px solid ${border};
+    box-shadow: ${shadow};
+}
+.ws-header-left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+.ws-header-icon {
+    width: 46px;
+    height: 46px;
+    border-radius: 10px;
+    flex-shrink: 0;
+    background: linear-gradient(135deg, ${blue}, ${violet});
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+}
+.ws-header-title {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: ${text} !important;
+    margin: 0;
+    line-height: 1.2;
+}
+.ws-header-sub {
+    font-size: 0.78rem;
+    color: ${text2} !important;
+    margin: 2px 0 0 0;
+}
+.ws-header-right {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.ws-hbadge {
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-family: 'JetBrains Mono', monospace;
+    background: ${blue_bg};
+    color: ${blue};
+    border: 1px solid ${blue_border};
+}
+.ws-hbadge.violet {
+    background: ${violet_bg};
+    color: ${violet};
+    border-color: ${violet_border};
+}
+.ws-hbadge.green {
+    background: ${green_bg};
+    color: ${green};
+    border-color: ${green_border};
+}
+
+.ws-local-badge {
+    border-radius: 6px;
+    padding: 7px 14px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    margin-bottom: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: ${green_bg};
+    border: 1px solid ${green_border};
+    color: ${green} !important;
+}
+
+.ws-overview-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    margin: 0.2rem 0 1rem 0;
+}
+.ws-overview-card {
+    background: linear-gradient(180deg, ${bg2}, ${bg3});
+    border: 1px solid ${border};
+    border-radius: 10px;
+    padding: 0.95rem 1rem;
+    box-shadow: ${shadow};
+    min-height: 110px;
+}
+.ws-overview-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: ${text3};
+    margin-bottom: 8px;
+}
+.ws-overview-value {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: ${text};
+    line-height: 1.2;
+    margin-bottom: 6px;
+}
+.ws-overview-text {
+    font-size: 0.78rem;
+    color: ${text2};
+    line-height: 1.5;
+}
+
+.ws-sidebar-snapshot {
+    background: ${bg2};
+    border: 1px solid ${border};
+    border-radius: 10px;
+    padding: 0.9rem 1rem;
+    margin: 0.2rem 0 0.9rem 0;
+}
+.ws-sidebar-snapshot-title {
+    font-size: 0.74rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: ${text3};
+    margin-bottom: 8px;
+    font-weight: 700;
+}
+.ws-sidebar-snapshot-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+}
+.ws-sidebar-snapshot-item {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 6px 0;
+    border-bottom: 1px solid ${border};
+    font-size: 0.78rem;
+}
+.ws-sidebar-snapshot-item:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+.ws-sidebar-snapshot-item span {
+    color: ${text3};
+}
+.ws-sidebar-snapshot-item strong {
+    color: ${text};
+    text-align: right;
+}
+
+.ws-suggestions-label {
+    font-size: 0.74rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    margin-bottom: 8px;
+    color: ${text3};
+}
+
+.ws-prompt-counter {
+    font-size: 0.7rem;
+    font-family: 'JetBrains Mono', monospace;
+    text-align: right;
+    margin-top: 3px;
+}
+.ws-prompt-counter.ok {
+    color: ${green};
+}
+.ws-prompt-counter.warn {
+    color: ${yellow};
+}
+.ws-prompt-counter.danger {
+    color: ${red};
+}
+
+/* Generating indicator */
+.ws-generating {
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin: 8px 0;
+    background: ${bg2};
+    border: 1px solid ${blue_border};
+    box-shadow: 0 0 0 3px ${blue_bg};
+}
+.ws-generating-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+.ws-generating-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: ${blue};
+    flex-shrink: 0;
+    animation: ws-pulse 1s infinite ease-in-out;
+}
+@keyframes ws-pulse {
+    0%, 100% {
+        opacity: 0.3;
+        transform: scale(0.85);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.15);
+    }
+}
+.ws-generating-label {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: ${blue};
+}
+.ws-generating-model {
+    font-size: 0.72rem;
+    font-family: 'JetBrains Mono', monospace;
+    color: ${text3};
+    margin-left: auto;
+}
+.ws-progress-bar {
+    height: 3px;
+    border-radius: 2px;
+    background: ${bg3};
+    overflow: hidden;
+    margin-bottom: 8px;
+}
+.ws-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, ${blue}, ${green});
+    animation: ws-progress 2s infinite ease-in-out;
+}
+@keyframes ws-progress {
+    0% {
+        width: 5%;
+        margin-left: 0;
+    }
+    50% {
+        width: 60%;
+        margin-left: 20%;
+    }
+    100% {
+        width: 5%;
+        margin-left: 90%;
+    }
+}
+.ws-generating-stats {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+    font-size: 0.74rem;
+    font-family: 'JetBrains Mono', monospace;
+    color: ${text3};
+}
+.ws-generating-preview {
+    margin-top: 10px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    background: ${bg3};
+    border: 1px solid ${border2};
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    color: ${text2};
+    max-height: 100px;
+    overflow: hidden;
+}
+.ws-timeout-warn {
+    margin-top: 8px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 0.78rem;
+    background: ${yellow_bg};
+    border: 1px solid ${yellow_border};
+    color: ${yellow};
+}
+
+/* Response */
+.ws-resp-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+    flex-wrap: wrap;
+}
+.ws-resp-num {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: ${blue};
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 2px 8px;
+    border-radius: 20px;
+    background: ${blue_bg};
+    border: 1px solid ${blue_border};
+}
+.ws-timer {
+    font-size: 0.72rem;
+    font-family: 'JetBrains Mono', monospace;
+    color: ${text3};
+    margin-left: auto;
+}
+
+.ws-confidence-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0 0 8px 0;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 0.74rem;
+    font-weight: 600;
+    font-family: 'JetBrains Mono', monospace;
+}
+.ws-confidence-badge.alta {
+    background: ${green_bg};
+    border: 1px solid ${green_border};
+    color: ${green};
+}
+.ws-confidence-badge.media {
+    background: ${yellow_bg};
+    border: 1px solid ${yellow_border};
+    color: ${yellow};
+}
+.ws-confidence-badge.bassa {
+    background: ${red_bg};
+    border: 1px solid ${red_border};
+    color: ${red};
+}
+
+.ws-feedback-up {
+    color: ${green} !important;
+    font-size: 0.8rem;
+}
+.ws-feedback-down {
+    color: ${red} !important;
+    font-size: 0.8rem;
+}
+
+.ws-response-summary {
+    border-radius: 10px;
+    padding: 0.85rem 1rem;
+    margin: 0 0 0.75rem 0;
+    border: 1px solid ${border};
+    background: ${bg2};
+}
+.ws-response-summary.ok {
+    box-shadow: 0 0 0 2px ${green_bg};
+}
+.ws-response-summary.warn {
+    box-shadow: 0 0 0 2px ${yellow_bg};
+}
+.ws-response-summary-top {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+.ws-response-chip {
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: ${bg3};
+    border: 1px solid ${border2};
+    color: ${text2};
+    font-family: 'JetBrains Mono', monospace;
+}
+.ws-response-summary-text {
+    font-size: 0.8rem;
+    line-height: 1.55;
+    color: ${text2};
+}
+
+/* Formula block */
+.ws-formula-block {
+    border-radius: 8px;
+    margin: 8px 0 4px 0;
+    overflow: hidden;
+    border: 1px solid ${blue_border};
+    box-shadow: 0 0 0 2px ${blue_bg};
+}
+.ws-formula-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 12px;
+    background: ${blue_bg};
+    border-bottom: 1px solid ${blue_border};
+}
+.ws-formula-name {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: ${blue};
+    font-family: 'JetBrains Mono', monospace;
+}
+.ws-formula-code {
+    padding: 10px 14px;
+    overflow-x: auto;
+    background: ${bg3};
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+    color: ${text} !important;
+    white-space: pre-wrap;
+    word-break: break-all;
+    line-height: 1.6;
+}
+
+/* Copy button */
+.ws-copy-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.78rem;
+    font-weight: 600;
+    background: ${bg3};
+    border: 1px solid ${border2};
+    color: ${text2};
+    transition: all 0.15s;
+    font-family: 'Inter', sans-serif;
+    margin-top: 6px;
+}
+.ws-copy-btn:hover {
+    background: ${blue_bg};
+    border-color: ${blue_border};
+    color: ${blue};
+}
+.ws-copy-btn.copied {
+    background: ${green_bg};
+    border-color: ${green_border};
+    color: ${green};
+}
+
+/* Source node */
+.ws-source-node {
+    border-radius: 6px;
+    padding: 8px 12px;
+    margin-bottom: 6px;
+    background: ${bg3};
+    border: 1px solid ${border2};
+    font-size: 0.78rem;
+}
+.ws-source-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+    flex-wrap: wrap;
+}
+.ws-source-file {
+    font-weight: 600;
+    color: ${blue};
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.74rem;
+}
+.ws-source-score {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    padding: 1px 6px;
+    border-radius: 10px;
+    background: ${green_bg};
+    color: ${green};
+    border: 1px solid ${green_border};
+    margin-left: auto;
+    white-space: nowrap;
+}
+.ws-source-text {
+    color: ${text2};
+    line-height: 1.5;
+}
+
+/* Error/Warning */
+.ws-err {
+    border-radius: 6px;
+    padding: 8px 12px;
+    margin: 4px 0;
+    font-size: 0.82rem;
+    font-weight: 500;
+    background: ${red_bg};
+    border: 1px solid ${red_border};
+    color: ${red};
+}
+.ws-warn {
+    border-radius: 6px;
+    padding: 8px 12px;
+    margin: 4px 0;
+    font-size: 0.82rem;
+    background: ${yellow_bg};
+    border: 1px solid ${yellow_border};
+    color: ${yellow};
+}
+
+/* Ollama card */
+.ws-ollama-card {
+    max-width: 540px;
+    margin: 4rem auto;
+    padding: 2rem 2.4rem;
+    border-radius: 14px;
+    text-align: center;
+    background: ${bg2};
+    border: 1px solid ${border};
+    box-shadow: ${shadow_md};
+}
+.ws-ollama-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+.ws-ollama-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: ${text};
+    margin-bottom: 0.4rem;
+}
+.ws-ollama-sub {
+    font-size: 0.85rem;
+    color: ${text2};
+    margin-bottom: 0.6rem;
+}
+.ws-ollama-msg {
+    font-size: 0.82rem;
+    font-weight: 500;
+    padding: 8px 12px;
+    background: ${red_bg};
+    border: 1px solid ${red_border};
+    border-radius: 8px;
+    color: ${red};
+    margin-bottom: 0.8rem;
+}
+.ws-ollama-steps {
+    text-align: left;
+    font-size: 0.82rem;
+    color: ${text2};
+}
+.ws-ollama-steps p {
+    margin: 4px 0;
+}
+.ws-ollama-steps code {
+    background: ${bg3};
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-family: 'JetBrains Mono', monospace;
+    color: ${text};
+}
+
+/* Welcome screen */
+.ws-welcome {
+    max-width: 720px;
+    margin: 1.5rem auto;
+    padding: 0 1rem;
+}
+.ws-welcome-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 1.5rem;
+}
+.ws-welcome-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, ${blue}, ${violet});
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+    flex-shrink: 0;
+}
+.ws-welcome-title {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: ${text};
+    margin: 0;
+}
+.ws-welcome-sub {
+    font-size: 0.85rem;
+    color: ${text2};
+    margin: 2px 0 0 0;
+}
+.ws-welcome-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 1.5rem;
+}
+.ws-welcome-band {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 1rem;
+}
+.ws-welcome-band-item {
+    background: linear-gradient(180deg, ${bg2}, ${bg3});
+    border: 1px solid ${border};
+    border-radius: 10px;
+    padding: 0.9rem 1rem;
+}
+.ws-welcome-band-label {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: ${blue};
+    font-weight: 700;
+    margin-bottom: 6px;
+}
+.ws-welcome-band-text {
+    font-size: 0.8rem;
+    line-height: 1.5;
+    color: ${text2};
+}
+.ws-welcome-card {
+    background: ${bg2};
+    border: 1px solid ${border};
+    border-radius: 10px;
+    padding: 1rem 1.1rem;
+}
+.ws-welcome-card-icon {
+    font-size: 0.82rem;
+    font-weight: 800;
+    color: ${blue};
+    margin-bottom: 6px;
+}
+.ws-welcome-card-title {
+    font-weight: 600;
+    font-size: 0.88rem;
+    color: ${text};
+    margin-bottom: 4px;
+}
+.ws-welcome-card-text {
+    font-size: 0.78rem;
+    color: ${text2};
+    line-height: 1.5;
+}
+.ws-welcome-tips {
+    background: ${blue_bg};
+    border: 1px solid ${blue_border};
+    border-radius: 10px;
+    padding: 1rem 1.2rem;
+}
+.ws-welcome-tips-title {
+    font-weight: 600;
+    font-size: 0.82rem;
+    color: ${blue};
+    margin-bottom: 8px;
+}
+.ws-welcome-tips-list {
+    margin: 0;
+    padding-left: 1.2rem;
+    font-size: 0.78rem;
+    color: ${text2};
+    line-height: 1.8;
+}
+
+@media (max-width: 1100px) {
+    .ws-overview-grid,
+    .ws-welcome-band {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (max-width: 780px) {
+    .ws-overview-grid,
+    .ws-welcome-grid,
+    .ws-welcome-band {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Footer */
+.ws-footer {
+    text-align: center;
+    padding: 1.5rem;
+    font-size: 0.75rem;
+    color: ${text3};
+}
+

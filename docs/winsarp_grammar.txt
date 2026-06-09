@@ -1,0 +1,269 @@
+# ============================================================
+# WINSARP - PROTOCOLLO TECNICO DI COMPILAZIONE V6.0
+# Basato sul Manuale Operativo Data Services v.2.23.1 - 20221212
+# ============================================================
+
+# 1. MAPPATURA CAMPI PRINCIPALI (DAL MANUALE UFFICIALE)
+# ------------------------------------------------------------
+# TOTALI GIORNALIERI (calcolati automaticamente dal programma)
+{1}   = Ore Previsionali (target giornaliero)
+{2}   = Ore Effettive (differenza algebrica orario effettivo)
+{3}   = Ore Calcolate (normalmente le ore Ordinarie)
+{4}   = Ore Straordinarie
+{5}   = Ore Assenza
+{6}   = Ore Assenza per controllo straordinario
+# ATTENZIONE: campi 7-9 e 10-19 = NON USARE
+
+# NOTTURNO (per turno)
+{20}  = Fascia diurna prima del notturno
+{21}  = Fascia notturna
+{22}  = Fascia diurna dopo del notturno
+
+# CONSIDERAZIONI SUL GIORNO
+{50}  = Giorno della settimana (1=dom, 2=lun, 3=mar, ...)
+{51}  = Giorno in elaborazione (GG)
+{52}  = Mese in elaborazione (MM)
+{53}  = Anno in elaborazione (AAAA)
+{54}  = Vale 1 se giorno successivo a giorno festivo
+{55}  = Vale 1 se giorno festivo
+{56}  = Vale 1 se giorno precedente a giorno festivo
+{57}  = Causale di festivita
+{58}  = Tipo Orario (preso da Turni Dipendenti)
+
+# OPERAZIONI PER CALCOLO (Campo 70 = definisce tipo operazione)
+{70}  = Definisce il tipo di operazione (vedi sezione 5)
+{71} a {78} = Campi di Input/Output per il campo 70
+{79}  = RISERVATO (memoria punto formula)
+
+# FORMULA DI GIORNATA
+{80}  = Entrata Previsionale
+{81}  = Uscita Previsionale
+{82}  = Entrata Effettiva
+{83}  = Uscita Effettiva
+{84}  = Entrata Calcolata
+{85}  = Uscita Calcolata
+{86}  = Bonus arrotondamento generale ENTRATA
+{87}  = Frazione arrotondamento (minuti) generale ENTRATA
+{88}  = Bonus arrotondamento generale USCITA
+{89}  = Frazione arrotondamento (minuti) generale USCITA
+# ATTENZIONE: campi 90-99 = NON USARE
+
+# ORARIO - PREVISIONALE
+{100} = Intervalli di lavoro Previsionali
+{101-110} = DALLE entrata | {111-120} = ENTRATA
+{121-130} = ALLE entrata  | {131-140} = DALLE uscita
+{141-150} = USCITA        | {151-160} = ALLE uscita
+
+# ORARIO - EFFETTIVO
+{200} = Intervalli di lavoro effettivi
+{201-220} = Entrate Effettive
+{221-240} = Uscite Effettive
+
+# ORARIO - CALCOLATO
+{250} = Intervalli di lavoro calcolati
+{251-270} = Entrate Calcolate
+{271-290} = Uscite Calcolate
+
+# TOTALI GIORNALIERI E PROGRESSIVI
+{350} = Totale Ore Lavorate
+{351} = Differenza tra Ore Lavorate e Ore Previsionali
+{360} = Totale Ore Lavorate dopo arrotondamento
+{361} = Differenza tra Ore Lavorate e Ore Previsionali (arrot.)
+
+# CAUSALI MANUALI (prime 10, campi 400-499)
+{400} = Numero di causali manuali imputate
+{401-410} = Codice causale
+{411-420} = Orario di Inizio della causale
+{421-430} = Orario di Fine delle causale
+{431-440} = Durata della causale
+{441-450} = Vale A=ASSENZA, P=PRESENZA
+
+# TOTALI GIORNALIERI/PROGRESSIVI
+{600}     = Numero del primo totale progressivo
+{601-799} = Totali giornalieri e progressivi (Da 1 a 199)
+
+# CAMPI DI APPOGGIO (LIBERI PER CALCOLI CUSTOM)
+{800-999} = Campi di appoggio per il calcolo - DISPONIBILI
+# Usali liberamente per valori temporanei, straordinari, reperibilita, ecc.
+
+
+# 2. REGOLE SINTATTICHE RIGIDE (ERRORE ZERO)
+# ------------------------------------------------------------
+
+# PARENTESI:
+# - GRAFFE {} = riferimento a un campo/registro del Tabellone
+# - TONDE ()  = raggruppamento di comandi o argomenti di funzione
+# Esempio corretto:  {804}>'480'({805}={804}S'480');
+# Esempio ERRATO:    (804)>'480'[805=804-480];
+
+# COSTANTI NUMERICHE - tre tipi, non intercambiabili:
+# - Apice singolo '  = costante numerica semplice (es: '480', '15', '1')
+#   ATTENZIONE: NON puoi mettere testo tra apici singoli
+# - Doppi apici "   = costante numerica O alfanumerica
+#   Se contiene solo cifre -> numero diviso 100 (es: "815" = 8.15)
+#   Se contiene lettere   -> stringa (es: "ST" = stringa ST)
+# - Cappelletto ^   = costante orario in sessagesimi hh.mm
+#   Esempio: ^8.15^ = 8 ore e 15 minuti (i decimali sono MINUTI, max 59)
+#   ATTENZIONE: ^8.61^ da ERRORE (61 minuti non esiste)
+
+# SEPARATORE:
+# Ogni istruzione o blocco logico DEVE terminare con ";"
+
+# UNITA DI MISURA:
+# Il tempo nei campi standard e in sessagesimi (hh.mm)
+# Nelle costanti con apice singolo i minuti sono interi:
+# 30 min = '30' | 1h = '60' | 7h30 = '450' | 8h = '480' | 9h = '540'
+
+# OPERATORI ARITMETICI (su orari in sessagesimi):
+# A = Addizione    (controlla che i decimali non superino 59)
+# S = Sottrazione  (controlla che i decimali non superino 59)
+# Esempio: (440=100A^2.15^);  -> somma al campo 100 2 ore e 15 minuti
+
+# OPERATORI DI CONFRONTO:
+# >   = Maggiore         |  <   = Minore
+# >U  = Maggiore o uguale|  <U  = Minore o uguale
+# U   = Uguale           |  #   = Diverso
+# E   = AND (piu condizioni in AND, non mischiare con O)
+# O   = OR  (piu condizioni in OR,  non mischiare con E)
+
+# OPERATORI SPECIALI:
+# !   = Reset (azzera il campo che segue, es: !800 azzera il campo 800)
+#       Piu reset nella stessa parentesi: (!800!801!802)
+# K   = Incremento/Decremento prima del campo
+#       K200+300 equivale a: 200 = 200 + 300
+#       K200-300 equivale a: 200 = 200 - 300
+# [   = Incrementa di 1 il campo che segue
+# ]   = Decrementa di 1 il campo che segue
+# P   = Perform - esegue una formula e poi torna a continuare
+#       P101 esegue la formula 101 e poi continua
+# R   = Erre - salta all'esecuzione di un'altra formula (senza tornare)
+#       R101 salta alla formula 101
+# V   = Vu - salta al punto e virgola indicato
+#       Vxxx salta alla virgola xxx
+#       VU   salta alla penultima virgola (ultimo periodo logico)
+#       VF   salta fuori dalla formula (termina immediatamente)
+
+
+# 3. UTILIZZO DEL CAMPO 70 (FUNZIONI INTEGRATE)
+# ------------------------------------------------------------
+# Il campo 70 definisce quale operazione eseguire.
+# I campi 71-78 sono gli INPUT/OUTPUT dell'operazione.
+# IMPORTANTE: azzerare sempre 71-78 prima di usarli con il campo 70.
+
+# FUNZIONI ORARIE:
+# (70='1')  Somma ore:       71+72 -> 73
+# (70='2')  Differenza ore:  71-72 -> 73
+# (70='3')  Separa ore da minuti: 71 -> 72=ore, 73=minuti
+# (70='4')  Trasforma orario (hh.mm) in minuti: 71 -> 73=minuti
+# (70='5')  Trasforma minuti in orario (hh.mm): 71=minuti -> 73=orario
+# (70='8')  Da centesimi a sessagesimi: 71(hh.cc) -> 73(hh.mm)
+# (70='9')  Da sessagesimi a centesimi: 71(hh.mm) -> 73(hh.cc)
+# (70='11') Durata intervallo timbrature (gestisce mezzanotte): 71=Ent, 72=Usc -> 73=durata
+
+# ARROTONDAMENTO ENTRATA/USCITA:
+# (70='20') Arrotonda orario di ENTRATA
+#   INPUT:  71=Orario entrata, 72=Approssimazione, 73=Offset, 74=Bonus ingresso
+#   OUTPUT: 71=Orario arrotondato
+#   Esempio: (71=251)(72='15')(73='10')(74='5')(70='20');
+#
+# (70='21') Arrotonda orario di USCITA
+#   INPUT:  71=Orario uscita, 72=Approssimazione, 73=Offset, 74=Bonus uscita
+#   OUTPUT: 71=Orario arrotondato
+#   Esempio: (71=271)(72='15')(73='10')(74='5')(70='21');
+
+# SEPARAZIONE NOTTURNO/DIURNO:
+# (70='22') Separa notturno dal diurno con fascia per TURNO
+#   INPUT:  71=Entrata, 72=Uscita
+#   OUTPUT: 71=Diurno prima notturno, 72=Notturno, 73=Diurno dopo notturno
+#
+# (70='23') Separa notturno dal diurno con fascia per STRAORDINARIO
+#   Stessi input/output di 70='22'
+
+# FUNZIONI SU STRINGHE:
+# (70='30') Concatena due stringhe: 71=str1, 72=str2 -> 71=risultato
+# (70='31') Estrae sottostringa (Mid): 71=stringa, 72=carattere inizio, 73=num caratteri -> 71
+# (70='32') Rimuove spazi (Trim/LTrim/RTrim): 71=stringa, 72="R"/"L"/altro -> 71
+
+# FUNZIONI SU DATE:
+# (70='41') Scomponi data: 71=data -> 72=giorno settimana, 73=giorno, 74=mese, 75=anno
+# (70='42') Differenza tra date: 71=dataDA, 72=dataA, 73=tipo ('yyyy'/'m'/'d'/'ww') -> 71=risultato
+# (70='43') Somma giorni a data: 71=data, 72=offset giorni -> 71=nuova data
+# (70='45') Giorno della settimana: 71=data -> 71 (1=dom,2=lun,...,7=sab)
+# (70='48') Primo e ultimo giorno del mese: 71=data -> 71=primo, 72=ultimo
+
+# STATISTICHE CAUSALI:
+# (70='50') Somma durata causale in un periodo:
+#   INPUT: 71=DataInizio, 72=DataFine, 73=Causale, 74=Tipo(T/A/M)
+#   OUTPUT: 71=Sommatoria durata
+
+# DEBUG:
+# (70='99')     Mostra a video i campi 71-78
+# (70='900'-'999') Mostra sezione del Tabellone (900=tutto il tabellone)
+
+
+# 4. TEMPLATE OPERATIVI (PRONTI ALL'USO)
+# ------------------------------------------------------------
+
+# RESET REGISTRI DI APPOGGIO (inizio formula):
+(!800!801!802!803!804!805);
+
+# GESTIONE PASSAGGIO MEZZANOTTE:
+# Se l'uscita calcolata e' inferiore all'entrata calcolata, aggiungi 24 ore
+{83}<{82}({83}A'1440'={83});
+
+# CALCOLO STRAORDINARIO GIORNALIERO (oltre 8 ore):
+# Se il totale lavorato (campo 350) supera 480 minuti, calcola l'eccedenza
+{350}>'480'(!71!72!73)(71={350})(72='480')(70='2')(73={71}S72={800});
+
+# ARROTONDAMENTO ENTRATA A QUARTI D'ORA:
+# Arrotonda l'entrata effettiva (campo 251, primo intervallo calcolato)
+(!71!72!73!74)(71=251)(72='15')(73='10')(74='5')(70='20');
+
+# ARROTONDAMENTO USCITA A QUARTI D'ORA:
+# Arrotonda l'uscita effettiva (campo 271, primo intervallo calcolato)
+(!71!72!73!74)(71=271)(72='15')(73='10')(74='5')(70='21');
+
+# ASSEGNAZIONE CAUSALE STRAORDINARIO:
+# Se il campo 800 (appoggio straordinario) e' maggiore di zero, assegna causale "ST"
+{800}>'0'({800}="ST");
+
+# PERFORM DI UNA SUBROUTINE (es. toglie/aggiunge ore timbrature):
+# P101 esegue la subroutine BG 101 e poi continua la formula
+(71="E")(72="+")(73='30')(70='101');
+
+# VERIFICA GIORNO FESTIVO E USCITA DALLA FORMULA:
+# Se oggi e' festivo (campo 55 = 1), termina subito la formula
+{55}U'1'(VF);
+
+
+# 5. COMMENTI NELLE FORMULE
+# ------------------------------------------------------------
+# I commenti si inseriscono con il punto interrogativo ?
+# NON usare caratteri accentati nei commenti (e' vietato, causa errori)
+# Esempio corretto:  ?Calcolo straordinario notturno
+# Esempio ERRATO:    ?Càlcolo straordinàrio nottùrno
+
+
+# 6. ORDINE DI ESECUZIONE RACCOMANDATO NELLE FORMULE
+# ------------------------------------------------------------
+# 1. Reset dei registri di appoggio (se necessario)
+# 2. Verifica giorni speciali (festivo, sabato, domenica) ed eventuale VF
+# 3. Gestione passaggio mezzanotte (se turni notturni)
+# 4. Arrotondamenti entrata/uscita
+# 5. Calcolo ore ordinarie e straordinarie
+# 6. Separazione notturno/diurno (se richiesto)
+# 7. Assegnazione causali automatiche
+# 8. Salvataggio in campi di appoggio per usi successivi
+
+
+# 7. REGOLE DI RISPOSTA PER L'IA (SYSTEM INSTRUCTIONS)
+# ------------------------------------------------------------
+# MISSIONE: Sei un compilatore puro WinSarp. Genera SOLO sintassi WinSarp valida.
+# OUTPUT: Restituisci ESCLUSIVAMENTE il codice, poi il tag [SPIEGAZIONE] e la logica.
+# VIETATO: Aggiungere commenti in italiano dentro il codice, saluti, introduzioni.
+# ORDINE: Segui sempre l'ordine di esecuzione della sezione 6.
+# COSTANTI: Usa sempre apici singoli ' per numeri interi, doppi apici " per stringhe.
+# ARROTONDAMENTO: Se non specificato, usa sempre quarti d'ora (72='15').
+# INTEGRITA: Ogni parentesi aperta ( o { deve avere la sua chiusura ) o }.
+# SEPARATORI: Ogni blocco logico termina con ;
+# CAMPI VIETATI: Non usare mai campi marcati come NON USARE nel manuale.

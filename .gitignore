@@ -1,0 +1,51 @@
+# ============================================================
+# .gitignore — Ermes - Enterprise Knowledge Hub
+# ============================================================
+
+# ── Dati generati a runtime (non versionare mai) ────────────
+chroma_db/
+logs/
+backups/
+security/
+*.bak
+
+# ── Documenti utente (dati aziendali, non nel repo) ─────────
+documenti/
+
+# ── Ambiente virtuale Python ────────────────────────────────
+venv/
+.venv/
+env/
+
+# ── Cache Python ────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+
+# ── Streamlit ───────────────────────────────────────────────
+.streamlit/
+# Ma versiona la configurazione del tema (dark mode, porta, etc.)
+!.streamlit/config.toml
+
+# ── Variabili d'ambiente e segreti ──────────────────────────
+.env
+.env.local
+.env.development
+.env.production
+*.env
+
+# ── Editor e OS ─────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*~
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# ── File temporanei e di build ───────────────────────────────
+*.tmp
+*.log
+dist/
+build/
+*.egg-info/

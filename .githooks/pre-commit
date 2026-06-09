@@ -1,0 +1,22 @@
+#!/bin/sh
+# Pre-commit hook: esegue ruff check su file staged
+# Attiva con: git config core.hooksPath .githooks
+
+echo "🔄 Running ruff check..."
+STAGED_PY=$(git diff --cached --name-only --diff-filter=ACM | grep '\.py$')
+if [ -z "$STAGED_PY" ]; then
+    echo "✅ No Python files staged, skipping."
+    exit 0
+fi
+
+ruff check $STAGED_PY
+EXIT_CODE=$?
+
+if [ $EXIT_CODE -ne 0 ]; then
+    echo "❌ Ruff check failed on staged files."
+    echo "   Run: ruff check --fix $STAGED_PY"
+    exit $EXIT_CODE
+fi
+
+echo "✅ Ruff check passed."
+exit 0

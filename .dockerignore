@@ -1,0 +1,83 @@
+# .dockerignore per Ermes - Enterprise Knowledge Hub
+# Ottimizza l'immagine escludendo file non necessari
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info
+*.egg
+dist
+build
+.eggs
+
+# Virtual Environment
+.venv
+venv
+ENV
+
+# Test
+tests/
+*_test.py
+test_*.py
+pytest.ini
+.pytest_cache
+
+# Documentazione
+*.md
+!README.md
+docs/
+*.pdf
+*.docx
+
+# Backup e logs
+backups/
+logs/
+*.log
+
+# Database (sarà mountato come volume)
+chroma_db/
+
+# Documenti (saranno mountati come volume)
+documenti/
+
+# Configurazioni locali
+.env
+.env.*
+!.env.example
+*.local
+
+# Script di sistema
+*.bat
+*.ps1
+*.vbs
+*.sh
+
+# Security (sarà mountato come volume)
+security/
+*.lock
+
+# Icone e immagini
+*.ico
+*.svg
+*.png
+*.jpg
+
+# File di sistema
+.DS_Store
+Thumbs.db
+desktop.ini

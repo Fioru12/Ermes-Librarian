@@ -1,0 +1,286 @@
+/* ============================================================
+   DIVIDER / HR - globale per main content
+   ============================================================ */
+hr {
+    border-color: ${border} !important;
+    border-top: 1px solid ${border} !important;
+    margin: 1rem 0 !important;
+}
+
+/* ============================================================
+   EXPANDER
+   ============================================================ */
+.stExpander {
+    background: ${bg2} !important;
+    border: 1px solid ${border} !important;
+    border-radius: 8px !important;
+    margin: 4px 0;
+}
+.stExpander > div > div > div {
+    background: ${bg2} !important;
+    color: ${text} !important;
+}
+
+/* ============================================================
+   BUTTON — selettori specifici e sicuri
+   ============================================================ */
+.stButton > button {
+    width: 100%;
+    background: ${btn_bg} !important;
+    border: 1px solid ${btn_border} !important;
+    color: ${btn_text} !important;
+    border-radius: 8px !important;
+    font-size: 0.82rem !important;
+    padding: 8px 12px !important;
+    transition: all 0.2s ease !important;
+    box-shadow: ${shadow} !important;
+    font-weight: 500 !important;
+}
+.stButton > button:hover {
+    background: ${btn_hover_bg} !important;
+    border-color: ${btn_hover_border} !important;
+    color: ${btn_hover_text} !important;
+    box-shadow: ${shadow_md} !important;
+    transform: translateY(-1px) !important;
+}
+
+/* Pulsanti base Streamlit */
+button[data-testid$="Button-primary"],
+button[data-testid$="Button-secondary"] {
+    background: ${btn_bg} !important;
+    border: 1px solid ${btn_border} !important;
+    color: ${btn_text} !important;
+    border-radius: 8px !important;
+    font-weight: 500 !important;
+    transition: all 0.2s ease !important;
+}
+button[data-testid$="Button-primary"]:hover,
+button[data-testid$="Button-secondary"]:hover {
+    background: ${btn_hover_bg} !important;
+    border-color: ${btn_hover_border} !important;
+    color: ${btn_hover_text} !important;
+}
+
+/* ============================================================
+   CHAT MESSAGES
+   ============================================================ */
+.stChatMessage {
+    background: ${bg3} !important;
+    border: 1px solid ${border2} !important;
+    border-radius: 12px !important;
+    box-shadow: ${shadow} !important;
+    padding: 1.2rem !important;
+    margin-bottom: 1rem !important;
+}
+.stChatMessage p,
+.stChatMessage div,
+.stChatMessage pre {
+    color: ${text} !important;
+    white-space: pre-wrap !important;
+    word-break: break-word !important;
+    overflow-wrap: break-word !important;
+    max-width: 100% !important;
+}
+
+/* ============================================================
+   RADIO BUTTONS (modalità operativa)
+   ============================================================ */
+.stRadio > div {
+    background: ${bg2} !important;
+    border: 1px solid ${border} !important;
+    border-radius: 8px !important;
+    padding: 6px 10px !important;
+}
+.stRadio label {
+    color: ${text} !important;
+    font-weight: 500 !important;
+    font-size: 0.85rem !important;
+}
+.stRadio div[data-testid="stMarkdownContainer"] p {
+    color: ${text} !important;
+}
+/* Radio button cerchio */
+.stRadio [role="radio"] {
+    accent-color: ${blue} !important;
+}
+
+/* ============================================================
+   CHAT INPUT
+   ============================================================ */
+.stChatInputContainer {
+    background: ${bg} !important;
+    border: 1px solid ${border} !important;
+    color: ${text} !important;
+    border-radius: 8px !important;
+}
+.stChatInputContainer textarea {
+    background: ${bg} !important;
+    color: ${text} !important;
+    border: none !important;
+}
+.stChatInputContainer textarea::placeholder {
+    color: ${text2} !important;
+}
+/* Fix per elementi interni del chat input che potrebbero essere neri */
+.stChatInputContainer *,
+.stChatInputContainer > div > div > div {
+    background: ${bg} !important;
+    color: ${text} !important;
+}
+
+/* ============================================================
+   CODE BLOCK
+   ============================================================ */
+.stCodeBlock,
+.stCodeBlock * {
+    background: ${bg3} !important;
+    border: 1px solid ${border2} !important;
+    border-radius: 6px !important;
+    font-family: 'JetBrains Mono', monospace !important;
+}
+
+/* ============================================================
+   CLASSI CUSTOM ERMES
+   ============================================================ */
+
+/* Logo */
+.ws-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 4px 0 12px 0;
+}
+.ws-theme-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: ${text} !important;
+    line-height: 2.4;
+}
+.ws-logo-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    flex-shrink: 0;
+    background: linear-gradient(135deg, ${blue}, ${violet});
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+}
+.ws-logo-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: ${text} !important;
+    line-height: 1.2;
+}
+.ws-logo-sub {
+    font-size: 0.7rem;
+    color: ${text3} !important;
+}
+
+/* Badge row */
+.ws-badge-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin: 4px 0 10px 0;
+}
+.ws-badge {
+    font-size: 0.68rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-family: 'JetBrains Mono', monospace;
+    background: ${blue_bg};
+    color: ${blue};
+    border: 1px solid ${blue_border};
+}
+.ws-badge.green {
+    background: ${green_bg};
+    color: ${green};
+    border-color: ${green_border};
+}
+.ws-badge.yellow {
+    background: ${yellow_bg};
+    color: ${yellow};
+    border-color: ${yellow_border};
+}
+
+/* Health row */
+.ws-health-row {
+    display: grid;
+    grid-template-columns: auto auto 1fr;
+    gap: 8px;
+    align-items: start;
+    padding: 6px 0;
+    border-bottom: 1px solid ${border};
+    font-size: 0.78rem;
+}
+.ws-health-row:last-child {
+    border-bottom: none;
+}
+.ws-health-icon {
+    line-height: 1.2;
+}
+.ws-health-label {
+    font-weight: 600;
+    color: ${text};
+}
+.ws-health-detail {
+    color: ${text2};
+    word-break: break-word;
+}
+
+/* Document item */
+.ws-doc-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 5px 8px;
+    border-radius: 6px;
+    margin-bottom: 3px;
+    background: ${bg3};
+    border: 1px solid ${border2};
+    font-size: 0.75rem;
+}
+.ws-doc-name {
+    color: ${text} !important;
+    font-weight: 500;
+}
+.ws-doc-size {
+    color: ${text3} !important;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+/* Alert */
+.ws-alert {
+    border-radius: 6px;
+    padding: 7px 10px;
+    font-size: 0.75rem;
+    margin: 5px 0;
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+}
+.ws-alert.yellow {
+    background: ${yellow_bg};
+    border: 1px solid ${yellow_border};
+    color: ${yellow} !important;
+}
+.ws-alert.blue {
+    background: ${blue_bg};
+    border: 1px solid ${blue_border};
+    color: ${blue} !important;
+}
+.ws-alert.red {
+    background: ${red_bg};
+    border: 1px solid ${red_border};
+    color: ${red} !important;
+}
+.ws-alert.green {
+    background: ${green_bg};
+    border: 1px solid ${green_border};
+    color: ${green} !important;
+}
+
+
