@@ -241,7 +241,7 @@ def check_ollama(model_id: str = DEFAULT_MODEL_ID) -> tuple[bool, str]:
 def fetch_ollama_models() -> list[str]:
     """
     Recupera la lista dei modelli LLM disponibili su Ollama.
-    Filtra modelli di embedding (contengono 'embed').
+    Filtra modelli di embedding (contengono 'embed' o coincidono con EMBED_MODEL_ID).
     """
     try:
         req = urllib.request.Request(
@@ -251,11 +251,14 @@ def fetch_ollama_models() -> list[str]:
         )
         with urllib.request.urlopen(req, timeout=5) as resp:
             data = json.loads(resp.read().decode())
+        embed_lower = EMBED_MODEL_ID.lower()
         models = []
         for m in data.get("models", []):
             name = m.get("name", "")
-            if "embed" not in name.lower():
-                models.append(name)
+            name_lower = name.lower()
+            if "embed" in name_lower or name_lower.startswith(embed_lower):
+                continue
+            models.append(name)
         return sorted(models)
     except Exception as e:
         _logger.warning("fetch_ollama_models: %s", e)

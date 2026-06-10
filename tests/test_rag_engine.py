@@ -24,6 +24,7 @@ class TestFetchOllamaModels:
             "models": [
                 {"name": "qwen2.5:7b"},
                 {"name": "qwen2.5-coder:7b"},
+                {"name": "nomic-embed-text"},
                 {"name": cfg.EMBED_MODEL_ID},
             ]
         }).encode()
@@ -34,6 +35,8 @@ class TestFetchOllamaModels:
 
         assert "qwen2.5:7b" in models
         assert "qwen2.5-coder:7b" in models
+        # Embedding models are filtered out
+        assert "nomic-embed-text" not in models
         assert cfg.EMBED_MODEL_ID not in models
         assert models == sorted(models)
 
