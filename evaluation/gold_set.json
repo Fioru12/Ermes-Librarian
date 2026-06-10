@@ -1,0 +1,367 @@
+[
+  {
+    "id": "G01",
+    "query": "Qual è la formula 120?",
+    "category": "retrieval_by_id",
+    "expected_formula_id": 120,
+    "expected_keywords": ["Principale"],
+    "expected_behavior": "Must return formula #120 with its code and explanation"
+  },
+  {
+    "id": "G02",
+    "query": "Mostrami la formula Principale",
+    "category": "retrieval_by_name",
+    "expected_formula_id": 120,
+    "expected_keywords": ["Principale", "120"],
+    "expected_behavior": "Must identify formula #120 by name"
+  },
+  {
+    "id": "G03",
+    "query": "Quali formule ci sono per Fine Giornata?",
+    "category": "retrieval_by_type",
+    "expected_formula_ids": [100, 110, 120, 130, 140, 200, 210, 1100, 1120, 2000],
+    "expected_keywords": ["Fine Giornata"],
+    "expected_behavior": "Must list all Fine Giornata formulas"
+  },
+  {
+    "id": "G04",
+    "query": "Spiega la formula 200",
+    "category": "retrieval_by_id",
+    "expected_formula_id": 200,
+    "expected_keywords": ["Formula Finale"],
+    "expected_behavior": "Must return formula #200 explanation"
+  },
+  {
+    "id": "G05",
+    "query": "Che cosa fa la formula 130?",
+    "category": "retrieval_by_id",
+    "expected_formula_id": 130,
+    "expected_keywords": ["Straordinario Festivo"],
+    "expected_behavior": "Must explain formula #130 purpose"
+  },
+  {
+    "id": "G06",
+    "query": "Quali formule usano il campo 561?",
+    "category": "field_lookup",
+    "expected_behavior": "Must find formulas referencing field 561"
+  },
+  {
+    "id": "G07",
+    "query": "Quali formule usano il campo 564?",
+    "category": "field_lookup",
+    "expected_behavior": "Must find formulas referencing field 564"
+  },
+  {
+    "id": "G08",
+    "query": "La formula 120 chiama quali altre formule?",
+    "category": "relationship_calls",
+    "expected_formula_id": 120,
+    "expected_call_ids": [130, 140, 200],
+    "expected_behavior": "Must list formulas called by #120"
+  },
+  {
+    "id": "G09",
+    "query": "Chi chiama la formula 200?",
+    "category": "relationship_callers",
+    "expected_formula_id": 200,
+    "expected_caller_ids": [120, 130, 140],
+    "expected_behavior": "Must list formulas that call #200"
+  },
+  {
+    "id": "G10",
+    "query": "La formula 100 chiama altre formule?",
+    "category": "relationship_calls",
+    "expected_formula_id": 100,
+    "expected_call_ids": [110],
+    "expected_behavior": "Must show #100 calls #110"
+  },
+  {
+    "id": "G11",
+    "query": "Qual è la differenza tra formula 130 e 140?",
+    "category": "comparison",
+    "expected_formula_ids": [130, 140],
+    "expected_keywords": ["Festivo", "Diurno", "Notturno"],
+    "expected_behavior": "Must compare formulas #130 and #140"
+  },
+  {
+    "id": "G12",
+    "query": "Confronta le formule 100 e 110",
+    "category": "comparison",
+    "expected_formula_ids": [100, 110],
+    "expected_behavior": "Must compare formulas #100 and #110"
+  },
+  {
+    "id": "G13",
+    "query": "Quali sono le Inizio Giornata?",
+    "category": "retrieval_by_type",
+    "expected_formula_ids": [1, 5, 10, 1000, 1010, 1020, 2050, 2051, 2060, 9001, 9002],
+    "expected_keywords": ["Inizio Giornata"],
+    "expected_behavior": "Must list all Inizio Giornata formulas"
+  },
+  {
+    "id": "G14",
+    "query": "Formule che chiamano la 210",
+    "category": "relationship_callers",
+    "expected_formula_id": 210,
+    "expected_caller_ids": [200],
+    "expected_behavior": "Must show #200 calls #210"
+  },
+  {
+    "id": "G15",
+    "query": "Quali subroutine esistono?",
+    "category": "retrieval_by_type",
+    "expected_formula_ids": [2114, 2130, 2140, 3003, 3004, 3017],
+    "expected_keywords": ["Subroutine"],
+    "expected_behavior": "Must list all Subroutine formulas"
+  },
+  {
+    "id": "G16",
+    "query": "Come si calcola lo straordinario notturno?",
+    "category": "semantic_search",
+    "expected_keywords": ["Straordinario", "Notturno"],
+    "expected_behavior": "Must find relevant formula(s) for night overtime"
+  },
+  {
+    "id": "G17",
+    "query": "Come funziona l'arrotondamento ore?",
+    "category": "semantic_search",
+    "expected_keywords": ["Arrotondamento"],
+    "expected_behavior": "Must find rounding-related formulas"
+  },
+  {
+    "id": "G18",
+    "query": "Qual è la formula per le ferie?",
+    "category": "semantic_search",
+    "expected_keywords": ["Ferie"],
+    "expected_behavior": "Must find vacation-related formula or indicate absence"
+  },
+  {
+    "id": "G19",
+    "query": "Spiegami la catena dalla formula 100 alla fine",
+    "category": "chain_analysis",
+    "expected_chain": [100, 110, 120, 130, 140, 200, 210],
+    "expected_behavior": "Must trace the full execution chain from #100"
+  },
+  {
+    "id": "G20",
+    "query": "Valida la catena di chiamate della formula 120",
+    "category": "chain_validation",
+    "expected_formula_id": 120,
+    "expected_behavior": "Must validate chain coherence of #120"
+  },
+  {
+    "id": "G21",
+    "query": "Quali formule usano il campo 21?",
+    "category": "field_lookup",
+    "expected_behavior": "Must find formulas referencing field 21"
+  },
+  {
+    "id": "G22",
+    "query": "Quali formule hanno un confronto con campo 564 uguale a 4?",
+    "category": "comparison_lookup",
+    "expected_behavior": "Must find formulas with (564=4) or similar"
+  },
+  {
+    "id": "G23",
+    "query": "Le formule Dirigenti e Quadri come funzionano?",
+    "category": "semantic_search",
+    "expected_formula_ids": [1000, 1010, 1100],
+    "expected_keywords": ["Dirigenti", "Quadri"],
+    "expected_behavior": "Must find formulas for managers and executives"
+  },
+  {
+    "id": "G24",
+    "query": "Quali sono le formule per dipendenti che timbrano una volta?",
+    "category": "semantic_search",
+    "expected_formula_ids": [1020, 1120],
+    "expected_keywords": ["timbrano una volta"],
+    "expected_behavior": "Must find single-punch formulas"
+  },
+  {
+    "id": "G25",
+    "query": "Cos'è la formula 2050?",
+    "category": "retrieval_by_id",
+    "expected_formula_id": 2050,
+    "expected_keywords": ["Conad Gubbio", "Arrotondamento"],
+    "expected_behavior": "Must explain formula #2050"
+  },
+  {
+    "id": "G26",
+    "query": "Qual è la catena completa della formula 9001?",
+    "category": "chain_analysis",
+    "expected_chain": [9001, 9002],
+    "expected_behavior": "Must trace chain from #9001"
+  },
+  {
+    "id": "G27",
+    "query": "Quali formule sono legate a Conad Gubbio?",
+    "category": "semantic_search",
+    "expected_formula_ids": [2050, 2051, 2060],
+    "expected_keywords": ["Conad", "Gubbio"],
+    "expected_behavior": "Must find Conad Gubbio formulas"
+  },
+  {
+    "id": "G28",
+    "query": "La formula 200 chiama P 210. Cosa fa?",
+    "category": "relationship_calls",
+    "expected_formula_id": 200,
+    "expected_call_ids": [210],
+    "expected_behavior": "Must explain #200 calling #210"
+  },
+  {
+    "id": "G29",
+    "query": "Quali sono le formule di tipo Alert?",
+    "category": "retrieval_by_type",
+    "expected_behavior": "Must find Alert-type formulas (e.g., #2130)"
+  },
+  {
+    "id": "G30",
+    "query": "Come si gestisce l'autorizzazione straordinario?",
+    "category": "semantic_search",
+    "expected_keywords": ["Autorizzazione", "Straordinario", "AUTS"],
+    "expected_behavior": "Must find formula #3017"
+  },
+  {
+    "id": "G31",
+    "query": "Qual è la formula 110?",
+    "category": "retrieval_by_id",
+    "expected_formula_id": 110,
+    "expected_keywords": ["Riproporziono"],
+    "expected_behavior": "Must return formula #110"
+  },
+  {
+    "id": "G32",
+    "query": "Spiega la formula 2114",
+    "category": "retrieval_by_id",
+    "expected_formula_id": 2114,
+    "expected_keywords": ["Ritocco", "SA", "SB"],
+    "expected_behavior": "Must explain formula #2114"
+  },
+  {
+    "id": "G33",
+    "query": "Quali formule hanno maggiorazioni?",
+    "category": "semantic_search",
+    "expected_keywords": ["Maggiorazioni"],
+    "expected_behavior": "Must find formulas with majorations (#210)"
+  },
+  {
+    "id": "G34",
+    "query": "La formula 3003 che fa?",
+    "category": "retrieval_by_id",
+    "expected_formula_id": 3003,
+    "expected_keywords": ["Arrotondamento ore"],
+    "expected_behavior": "Must explain formula #3003"
+  },
+  {
+    "id": "G35",
+    "query": "Quali formule chiamano subroutine?",
+    "category": "relationship_calls",
+    "expected_behavior": "Must find formulas that call P (subroutines)"
+  },
+  {
+    "id": "G36",
+    "query": "Dimmi tutto sulla formula 5",
+    "category": "retrieval_by_id",
+    "expected_formula_id": 5,
+    "expected_keywords": ["Riconoscimento Turno"],
+    "expected_behavior": "Must return formula #5 details"
+  },
+  {
+    "id": "G37",
+    "query": "Qual è la differenza tra Inizio Giornata e Fine Giornata?",
+    "category": "type_comparison",
+    "expected_behavior": "Must explain the difference between the two types"
+  },
+  {
+    "id": "G38",
+    "query": "Quali formule riguardano il turno di notte?",
+    "category": "semantic_search",
+    "expected_keywords": ["Notturno", "Turno"],
+    "expected_behavior": "Must find night shift formulas"
+  },
+  {
+    "id": "G39",
+    "query": "La formula 9002 chiama quali subroutine?",
+    "category": "relationship_calls",
+    "expected_formula_id": 9002,
+    "expected_behavior": "Must list all P calls from #9002"
+  },
+  {
+    "id": "G40",
+    "query": "Come si calcola il premio produzione?",
+    "category": "semantic_search",
+    "expected_keywords": ["Premio"],
+    "expected_behavior": "Must address production bonus query"
+  },
+  {
+    "id": "G41",
+    "query": "Qual è la formula 1?",
+    "category": "retrieval_by_id",
+    "expected_formula_id": 1,
+    "expected_keywords": ["Azzeramenti"],
+    "expected_behavior": "Must return formula #1"
+  },
+  {
+    "id": "G42",
+    "query": "Quali formule usano K21S4?",
+    "category": "key_sum_lookup",
+    "expected_behavior": "Must find formulas with K21S4 pattern"
+  },
+  {
+    "id": "G43",
+    "query": "Spiega la formula 3004",
+    "category": "retrieval_by_id",
+    "expected_formula_id": 3004,
+    "expected_keywords": ["Straordinario Festivo"],
+    "expected_behavior": "Must explain formula #3004"
+  },
+  {
+    "id": "G44",
+    "query": "Quali sono le formule per dipendenti a chiamata?",
+    "category": "semantic_search",
+    "expected_formula_ids": [2000],
+    "expected_keywords": ["chiamata"],
+    "expected_behavior": "Must find on-call formulas"
+  },
+  {
+    "id": "G45",
+    "query": "La catena 2050 → 2051 → 2060 è valida?",
+    "category": "chain_validation",
+    "expected_chain": [2050, 2051, 2060],
+    "expected_behavior": "Must validate the Conad chain"
+  },
+  {
+    "id": "G46",
+    "query": "Quali formule hanno il campo 564 uguale a qualcosa?",
+    "category": "field_lookup",
+    "expected_behavior": "Must find formulas with field 564 comparisons"
+  },
+  {
+    "id": "G47",
+    "query": "Come gestisce WinSarp gli arrotondamenti?",
+    "category": "semantic_search",
+    "expected_keywords": ["Arrotondamento"],
+    "expected_behavior": "Must address rounding system"
+  },
+  {
+    "id": "G48",
+    "query": "Qual è la formula 10?",
+    "category": "retrieval_by_id",
+    "expected_formula_id": 10,
+    "expected_keywords": ["Determinazione del turno"],
+    "expected_behavior": "Must return formula #10"
+  },
+  {
+    "id": "G49",
+    "query": "Quali formule chiamano R120?",
+    "category": "relationship_callers",
+    "expected_caller_ids": [110],
+    "expected_behavior": "Must find formulas calling R120"
+  },
+  {
+    "id": "G50",
+    "query": "Riepilogo di tutte le formule del catalogo",
+    "category": "catalog_overview",
+    "expected_behavior": "Must provide overview of all 27 formulas"
+  }
+]
