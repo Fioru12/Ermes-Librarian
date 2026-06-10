@@ -359,6 +359,78 @@ async def list_modules(token: str = Depends(verify_auth)):
     return {"modules": _list_available_modules()}
 
 
+# ============================================================
+# BACKUP ENDPOINTS
+# ============================================================
+
+class BackupResponse(BaseModel):
+    """Response model per operazioni backup."""
+    success: bool
+    message: str
+    data: dict | None = None
+
+
+@app.post("/backup/create", response_model=BackupResponse, tags=["Backup"],
+          summary="Crea un backup del sistema",
+          description=(
+              "Crea un backup completo di KG, ChromaDB, logs e configurazioni.\n\n"
+              "**Include:**\n"
+              "- Knowledge Graph (data/winsarp_graph.json)\n"
+              "- ChromaDB collections\n"
+              "- Ultimi 100 log sessioni\n"
+              "- Configurazioni (.env, config.py, requirements.txt)\n"
+              "- Evaluation gold set\n\n"
+              "**Limite:** Mantiene gli ultimi 10 backup."
+          ))
+async def create_backup(token: str = Depends(verify_auth)):
+    from core.backup_manager import create_backup
+    try:
+        result = create_backup(label="api")
+        return BackupResponse(success=True, message="Backup creato", data=result)
+    except Exception as e:
+        _logger.error("Backup fallito: %s", e)
+        raise HTTPException(status_code=500, detail=f"Backup fallito: {e}")
+
+
+@app.get("/backup/list", tags=["Backup"],
+         summary="Elenca backup disponibili",
+         description="Restituisce l'elenco di tutti i backup disponibili con dimensione e data.")
+async def list_backups(token: str = Depends(verify_auth)):
+    from core.backup_manager import list_backups
+    return {"backups": list_backups()}
+
+
+@app.post("/backup/restore/{backup_name}", response_model=BackupResponse, tags=["Backup"],
+          summary="Ripristina un backup",
+          description=(
+              "Ripristina un backup specifico.\n\n"
+              "**Attenzione:** Sovrascrive i dati correnti.\n"
+              "Usare `dry_run=true` per verificare prima di ripristinare."
+          ))
+async def restore_backup(backup_name: str, dry_run: bool = False, token: str = Depends(verify_auth)):
+    from core.backup_manager import restore_backup
+    try:
+        result = restore_backup(backup_name, dry_run=dry_run)
+        return BackupResponse(
+            success=True,
+            message=f"{'Preview' if dry_run else 'Ripristino'} completato",
+            data=result,
+        )
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        _logger.error("Restore fallito: %s", e)
+        raise HTTPException(status_code=500, detail=f"Restore fallito: {e}")
+
+
+@app.get("/backup/status", tags=["Backup"],
+         summary="Stato sistema backup",
+         description="Restituisce statistiche sui backup: totale, ultimo backup, spazio utilizzato.")
+async def backup_status(token: str = Depends(verify_auth)):
+    from core.backup_manager import get_backup_status
+    return get_backup_status()
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host=cfg.HOST, port=cfg.PORT + 1)  # Porta diversa da Streamlit

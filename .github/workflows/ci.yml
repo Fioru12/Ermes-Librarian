@@ -1,27 +1,49 @@
-name: CI
+name: CI/CD
 
 on:
   push:
     branches: [main, develop]
   pull_request:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      deploy:
+        description: 'Deploy to production'
+        required: false
+        default: 'false'
+        type: boolean
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
+  # ============================================================
+  # LINT + TEST
+  # ============================================================
   lint-and-test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.14"
           cache: pip
-      - run: pip install -r requirements.txt
-      - name: Lint
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Lint (ruff)
         run: ruff check .
+
+      - name: Type check
+        run: ruff check --select=E,F --output-format=concise .
+        continue-on-error: true
+
       - name: Test
         run: pytest tests/ -v --tb=short -x
 
-      - name: Security Audit (pip-audit)
+      - name: Security Audit
         run: |
           pip install pip-audit
           pip-audit -r requirements.txt --desc --format=json --output=audit-report.json || true
@@ -35,3 +57,145 @@ jobs:
           path: audit-report.json
           retention-days: 7
 
+  # ============================================================
+  # EVALUATION (solo su push a main)
+  # ============================================================
+  evaluation:
+    needs: lint-and-test
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    services:
+      ollama:
+        image: ollama/ollama:latest
+        ports:
+          - 11434:11434
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Pull models
+        run: |
+          sleep 10
+          curl -s http://localhost:11434/api/pull -d '{"name": "qwen3.5:4b"}'
+          curl -s http://localhost:11434/api/pull -d '{"name": "bge-m3"}'
+        timeout: 600
+
+      - name: Run Evaluation (subset)
+        run: |
+          .venv/bin/python evaluation/run_eval.py --limit 10 --output evaluation/ci_results.json
+        timeout: 1800
+        env:
+          OLLAMA_HOST: http://localhost:11434
+
+      - name: Check evaluation threshold
+        run: |
+          python -c "
+          import json
+          with open('evaluation/ci_results.json') as f:
+              data = json.load(f)
+          rate = data['summary']['pass_rate_pct']
+          print(f'Pass rate: {rate}%')
+          if rate < 80:
+              print(f'FAIL: Pass rate {rate}% < 80% threshold')
+              exit(1)
+          print('PASS: Evaluation threshold met')
+          "
+
+      - name: Upload Evaluation Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: evaluation-results
+          path: evaluation/ci_results.json
+          retention-days: 30
+
+  # ============================================================
+  # DOCKER BUILD
+  # ============================================================
+  docker-build:
+    needs: lint-and-test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,prefix=
+            type=raw,value=latest
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ============================================================
+  # BACKUP BEFORE DEPLOY
+  # ============================================================
+  pre-deploy-backup:
+    needs: [evaluation, docker-build]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create backup artifact
+        run: |
+          mkdir -p backup-staging
+          cp data/winsarp_graph.json backup-staging/ 2>/dev/null || true
+          cp .env backup-staging/ 2>/dev/null || true
+          cp config.py backup-staging/ 2>/dev/null || true
+          tar -czf backup-pre-deploy.tar.gz -C backup-staging .
+
+      - name: Upload backup
+        uses: actions/upload-artifact@v4
+        with:
+          name: pre-deploy-backup
+          path: backup-pre-deploy.tar.gz
+          retention-days: 30
+
+  # ============================================================
+  # DEPLOY (placeholder - personalizzare per ambiente)
+  # ============================================================
+  deploy:
+    needs: [evaluation, docker-build, pre-deploy-backup]
+    if: github.ref == 'refs/heads/main' && (github.event.inputs.deploy == 'true' || github.event_name == 'push')
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Deploy notification
+        run: |
+          echo "🚀 Deploy ready!"
+          echo "Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"
+          echo "Backup: available in pre-deploy-backup artifact"
+          echo ""
+          echo "To deploy manually:"
+          echo "  docker compose pull"
+          echo "  docker compose up -d"

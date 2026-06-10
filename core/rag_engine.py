@@ -19,6 +19,7 @@ from llama_index.core import (
     StorageContext,
     VectorStoreIndex,
 )
+from llama_index.core.schema import TextNode, NodeWithScore, QueryBundle
 from llama_index.core.memory import ChatMemoryBuffer
 from llama_index.core.node_parser import MarkdownNodeParser
 from llama_index.embeddings.ollama import OllamaEmbedding
@@ -57,13 +58,13 @@ MODULE_CONFIG = {
     "WinSarp": {
         "temperature": 0,
         "chat_history": 50,
-        "num_ctx": 4096,
+        "num_ctx": 16384,
         "top_k": 4,
     },
     "__default__": {
         "temperature": 0.3,
         "chat_history": 10,
-        "num_ctx": 2048,
+        "num_ctx": 4096,
         "top_k": 3,
     },
 }
@@ -427,6 +428,93 @@ def _resolve_prompt(modulo: str, use_generation_prompt: bool = False, formula_on
     return base
 
 
+class HybridRetriever:
+    """Combines KG exact lookup (by formula ID or name) with vector search.
+    Priority: KG nodes appear first, then vector results (deduplicated)."""
+
+    def __init__(self, vector_retriever, kg=None):
+        self.vector_retriever = vector_retriever
+        self._kg = kg
+
+    def _get_kg(self):
+        if self._kg is None:
+            from core.knowledge_graph import KnowledgeGraph
+            self._kg = KnowledgeGraph()
+        return self._kg
+
+    def _parse_formula_ids(self, query):
+        ids = set()
+        for m in re.finditer(r"formula\s+(\d{1,4})", query, re.IGNORECASE):
+            ids.add(int(m.group(1)))
+        for m in re.finditer(r"(?:^|\s)(\d{2,4})(?:\s|$|[?.!,])", query):
+            ids.add(int(m.group(1)))
+        return ids
+
+    def _parse_formula_names(self, query):
+        name_map = {
+            "principale": 120,
+            "prima formula": 100,
+            "straordinario festivo": 130,
+            "straordinario diurno": 140,
+            "formula finale": 200,
+        }
+        q_lower = query.lower()
+        return [(n, fid) for n, fid in name_map.items() if n in q_lower]
+
+    def _kg_node_to_text(self, node):
+        lines = [
+            f"### Formula {node['id']} - {node['name']}",
+            f"**Tipo:** {node.get('tipo', 'N/A')}",
+            f"**Categoria:** {node.get('tipo_cat', 'N/A')}",
+        ]
+        if node.get("scopo"):
+            lines.append(f"**Scopo:** {node['scopo']}")
+        if node.get("code"):
+            lines.append(f"**Codice:** `{node['code']}`")
+        if node.get("all_calls"):
+            lines.append(f"**Chiama:** {', '.join(str(c) for c in node['all_calls'])}")
+        if node.get("called_by"):
+            lines.append(f"**Chiamata da:** {', '.join(str(c) for c in node['called_by'])}")
+        return "\n".join(lines)
+
+    def retrieve(self, query_or_bundle):
+        query = getattr(query_or_bundle, "query_str", str(query_or_bundle))
+        kg = self._get_kg()
+        hybrid_nodes = []
+
+        for fid in self._parse_formula_ids(query):
+            node = kg.get_formula(fid)
+            if node:
+                text = self._kg_node_to_text(node)
+                tn = TextNode(text=text, id_=f"kg_{fid}", metadata={"source": "kg", "formula_id": fid})
+                hybrid_nodes.append(NodeWithScore(node=tn, score=1.0))
+
+        for name, fid in self._parse_formula_names(query):
+            if not any(getattr(n.node, "metadata", {}).get("formula_id") == fid for n in hybrid_nodes):
+                node = kg.get_formula(fid)
+                if node:
+                    text = self._kg_node_to_text(node)
+                    tn = TextNode(text=text, id_=f"kg_{fid}", metadata={"source": "kg", "formula_id": fid})
+                    hybrid_nodes.append(NodeWithScore(node=tn, score=0.95))
+
+        try:
+            vector_nodes = self.vector_retriever.retrieve(query_or_bundle)
+        except Exception:
+            vector_nodes = []
+
+        seen = {n.node.id_ for n in hybrid_nodes}
+        max_total = len(hybrid_nodes) + 4
+        result = list(hybrid_nodes)
+        for vn in vector_nodes:
+            if vn.node.id_ not in seen:
+                result.append(vn)
+                seen.add(vn.node.id_)
+            if len(result) >= max_total:
+                break
+
+        return result
+
+
 def build_chat_engine(modulo: str, model_id: str, index, use_generation_prompt: bool = False, formula_only: bool = False, modules: dict | None = None):
     """
     Costruisce il chat engine LlamaIndex con memoria e system prompt.
@@ -450,7 +538,8 @@ def build_chat_engine(modulo: str, model_id: str, index, use_generation_prompt: 
         token_limit=mcfg["chat_history"] * 600
     )
 
-    retriever = index.as_retriever(similarity_top_k=mcfg["top_k"])
+    vector_retriever = index.as_retriever(similarity_top_k=mcfg["top_k"])
+    retriever = HybridRetriever(vector_retriever)
 
     return CondensePlusContextChatEngine.from_defaults(
         retriever=retriever,
@@ -470,17 +559,14 @@ def get_source_nodes(modulo: str, model_id: str, index,
     """
     Esegue una query di retrieval puro sull'indice e restituisce
     i chunk usati con il loro score di similarita'.
-    Usata da chat_handler come fonte primaria di chunk retrieval.
-    source_nodes nello streaming_response.
-
-    Ritorna:
-        [{"text": str, "score": float, "source": str}, ...]
+    Usa HybridRetriever per cercare prima nel KG, poi vettorialmente.
     """
     _ = model_id
     mcfg = get_module_config(modulo)
-    retriever = index.as_retriever(similarity_top_k=mcfg["top_k"])
+    vector_retriever = index.as_retriever(similarity_top_k=mcfg["top_k"])
+    retriever = HybridRetriever(vector_retriever)
     try:
-        nodes = retriever.retrieve(query)
+        nodes = retriever.retrieve(QueryBundle(query))
         return [_node_to_source_dict(node, max_chars=400) for node in nodes]
     except Exception as ex:
         _logger.warning("get_source_nodes: retrieval fallito per %s: %s", modulo, ex)

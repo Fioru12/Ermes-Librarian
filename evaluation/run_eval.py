@@ -111,8 +111,15 @@ def run_single_query(
     sources = get_source_nodes(modulo, model_id, index, query)
     source_ids = []
     for s in sources:
+        text = s.get("text", "")
         # Try to extract formula ID from source text
-        m = re.search(r"###\s*<a\s+name=\"(\d+)\"", s.get("text", ""))
+        # Format 1: ### <a name="120">...
+        m = re.search(r"###\s*<a\s+name=\"(\d+)\"", text)
+        if m:
+            source_ids.append(int(m.group(1)))
+            continue
+        # Format 2: ### Formula 120 - ... (KG node from HybridRetriever)
+        m = re.search(r"###\s*Formula\s+(\d+)", text)
         if m:
             source_ids.append(int(m.group(1)))
 

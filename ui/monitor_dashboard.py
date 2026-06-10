@@ -335,6 +335,114 @@ def export_report_to_json(report: dict, filepath: str = "logs/dashboard_report.j
         json.dump(report, f, indent=2, ensure_ascii=False)
 
 
+def get_daily_trends(logs_dir: str, days: int = 7) -> list[dict]:
+    """
+    Restituisce trend giornalieri di query e sessioni.
+    
+    Returns:
+        List di dict: [{"date": "2026-06-10", "queries": 15, "sessions": 3, "avg_latency": 12.5}, ...]
+    """
+    from collections import defaultdict
+    
+    if not os.path.exists(logs_dir):
+        return []
+
+    daily = defaultdict(lambda: {"queries": 0, "sessions": 0, "latencies": []})
+    
+    for fname in os.listdir(logs_dir):
+        if not fname.endswith(".jsonl") or not fname.startswith("session_"):
+            continue
+        try:
+            date_str = fname.replace("session_", "").replace(".jsonl", "")
+            file_date = datetime.strptime(date_str[:8], "%Y%m%d").date()
+        except (ValueError, IndexError):
+            continue
+
+        fpath = os.path.join(logs_dir, fname)
+        try:
+            daily[str(file_date)]["sessions"] += 1
+            with open(fpath, encoding="utf-8") as f:
+                for line in f:
+                    entry = json.loads(line)
+                    if entry.get("role") == "user":
+                        daily[str(file_date)]["queries"] += 1
+                    elapsed = entry.get("elapsed_sec")
+                    if elapsed is not None:
+                        daily[str(file_date)]["latencies"].append(elapsed)
+        except (json.JSONDecodeError, OSError):
+            pass
+
+    result = []
+    for date_str in sorted(daily.keys()):
+        d = daily[date_str]
+        latencies = d["latencies"]
+        result.append({
+            "date": date_str,
+            "queries": d["queries"],
+            "sessions": d["sessions"],
+            "avg_latency": round(sum(latencies) / len(latencies), 2) if latencies else 0,
+        })
+    return result[-days:]
+
+
+def check_alerts(cfg) -> list[dict]:
+    """
+    Controlla soglie di alerting e restituisce alert attivi.
+    
+    Returns:
+        List di dict: [{"level": "warning", "message": "...", "metric": "..."}, ...]
+    """
+    alerts = []
+    
+    # 1. Ollama status
+    try:
+        from core.rag_engine import check_ollama_uncached as check_ollama
+        ok, msg = check_ollama(cfg.DEFAULT_MODEL_ID)
+        if not ok:
+            alerts.append({
+                "level": "critical",
+                "message": f"Ollama non disponibile: {msg}",
+                "metric": "ollama",
+            })
+    except Exception:
+        pass
+
+    # 2. Disk space
+    import shutil
+    disk = shutil.disk_usage(cfg.BASE_DIR)
+    free_gb = disk.free / (1024**3)
+    if free_gb < 1.0:
+        alerts.append({
+            "level": "critical",
+            "message": f"Spazio disco basso: {free_gb:.1f}GB libero",
+            "metric": "disk",
+        })
+    elif free_gb < 5.0:
+        alerts.append({
+            "level": "warning",
+            "message": f"Spazio disco in esaurimento: {free_gb:.1f}GB libero",
+            "metric": "disk",
+        })
+
+    # 3. ChromaDB
+    if not os.path.exists(cfg.CHROMA_DIR):
+        alerts.append({
+            "level": "warning",
+            "message": "ChromaDB directory non trovata",
+            "metric": "chroma",
+        })
+
+    # 4. Log directory
+    if not os.path.exists(cfg.LOGS_DIR):
+        alerts.append({
+            "level": "info",
+            "message": "Directory logs non esistente",
+            "metric": "logs",
+        })
+
+    return alerts
+
+
 def render_dashboard_in_sidebar(cfg, session_state, modulo_scelto: str = None):
     """
     Renderizza un mini-dashboard KPI nella sidebar.
@@ -343,6 +451,17 @@ def render_dashboard_in_sidebar(cfg, session_state, modulo_scelto: str = None):
     import streamlit as st
 
     with st.expander("📊 Dashboard KPI", expanded=False):
+        # Alert banner
+        alerts = check_alerts(cfg)
+        critical = [a for a in alerts if a["level"] == "critical"]
+        warnings = [a for a in alerts if a["level"] == "warning"]
+        if critical:
+            for a in critical:
+                st.error(f"🚨 {a['message']}")
+        if warnings:
+            for a in warnings:
+                st.warning(f"⚠️ {a['message']}")
+
         # Metriche veloci
         sess = count_sessions(cfg.LOGS_DIR)
         qry = count_queries(cfg.LOGS_DIR)
@@ -368,6 +487,35 @@ def render_dashboard_in_sidebar(cfg, session_state, modulo_scelto: str = None):
         else:
             st.caption("Nessun feedback ancora registrato")
 
+        # Knowledge Graph stats
+        try:
+            from core.knowledge_graph import KnowledgeGraph
+            kg = KnowledgeGraph()
+            n_formule = len(kg._nodes)
+            n_tipi = len(set(n.get("tipo", "") for n in kg._nodes.values() if n.get("tipo")))
+            st.caption(f"🔗 Knowledge Graph: {n_formule} formule, {n_tipi} tipi")
+        except Exception:
+            pass
+
+        # Evaluation scores (if available)
+        eval_path = os.path.join(cfg.BASE_DIR, "evaluation", "results_hybrid.json")
+        if os.path.exists(eval_path):
+            try:
+                with open(eval_path, encoding="utf-8") as f:
+                    eval_data = json.load(f)
+                summary = eval_data.get("summary", {})
+                pass_rate = summary.get("pass_rate_pct", 0)
+                avg_kw = summary.get("avg_keyword_score", 0)
+                total_eval = summary.get("total_queries", 0)
+                if total_eval > 0:
+                    st.caption(f"📈 Eval: {pass_rate:.0f}% pass ({total_eval} query, kw={avg_kw:.2f})")
+            except (json.JSONDecodeError, OSError):
+                pass
+
+        # Current model
+        model_id = session_state.get("model_id", cfg.DEFAULT_MODEL_ID)
+        st.caption(f"🤖 Modello: {model_id}")
+
         # Stato infratruttura
         infra = check_infrastructure_status(cfg)
         st.caption(
@@ -375,6 +523,24 @@ def render_dashboard_in_sidebar(cfg, session_state, modulo_scelto: str = None):
             f"{infra['documents']['modules']} moduli"
         )
         st.caption(f"💾 {infra['disk_usage_mb']} MB su disco")
+
+        # Daily trend mini-chart
+        trends = get_daily_trends(cfg.LOGS_DIR, days=7)
+        if trends:
+            with st.container():
+                st.caption("📉 Trend 7 giorni")
+                dates = [t["date"][-5:] for t in trends]  # MM-DD
+                queries = [t["queries"] for t in trends]
+                # Mini sparkline using bar chart
+                chart_data = dict(zip(dates, queries))
+                st.bar_chart(chart_data, height=100)
+
+        # Alert summary
+        if alerts:
+            n_critical = len([a for a in alerts if a["level"] == "critical"])
+            n_warn = len([a for a in alerts if a["level"] == "warning"])
+            if n_critical or n_warn:
+                st.caption(f"🚨 {n_critical} critici, ⚠️ {n_warn} warning")
 
         # Link a report completo
         if st.button("📊 Report completo", use_container_width=True):
