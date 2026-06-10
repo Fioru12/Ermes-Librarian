@@ -1,4 +1,4 @@
-/* Header */
+﻿/* Header */
 .ws-header {
     border-radius: 12px;
     padding: 1.1rem 1.5rem;
@@ -683,3 +683,41 @@
     color: ${text3};
 }
 
+/* Fix Chat Input Container - Override Streamlit default dark styles */
+.stChatInputContainer,
+div[data-testid="stChatInputContainer"],
+div.stChatInputContainer,
+section.main > div:last-child > div[data-testid="stChatInputContainer"] {
+    background-color: ${bg} !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+div[data-testid="stChatInput"],
+.stChatInput,
+div.stChatInput {
+    background-color: ${bg2} !important;
+    border: 1px solid ${border} !important;
+    border-radius: 8px !important;
+    box-shadow: none !important;
+}
+
+div[data-testid="stChatInput"] textarea,
+.stChatInput textarea,
+div.stChatInput textarea {
+    background-color: ${bg2} !important;
+    color: ${text} !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+/* Nascondi eventuali bordi/scure residue */
+div[data-testid="stChatInputContainer"] > div,
+.stChatInputContainer > div {
+    background-color: transparent !important;
+}
+
+/* Forza anche il wrapper interno di Streamlit */
+section.main div[data-testid="stVerticalBlock"]:last-child > div:last-child {
+    background-color: ${bg} !important;
+}

@@ -20,3 +20,18 @@ jobs:
         run: ruff check .
       - name: Test
         run: pytest tests/ -v --tb=short -x
+
+      - name: Security Audit (pip-audit)
+        run: |
+          pip install pip-audit
+          pip-audit -r requirements.txt --desc --format=json --output=audit-report.json || true
+        continue-on-error: true
+
+      - name: Upload Audit Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pip-audit-report
+          path: audit-report.json
+          retention-days: 7
+

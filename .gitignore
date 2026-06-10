@@ -49,3 +49,8 @@ desktop.ini
 dist/
 build/
 *.egg-info/
+
+# ── Script di debug temporanei ──────────────────────────────
+fix_*.py
+check_*.py
+debug_*.py

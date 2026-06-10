@@ -123,6 +123,8 @@ def apply_theme(dark: bool = True):
     Il CSS vive in ui/theme.css — 32 variabili colore sostituite a runtime.
     Chiamare una volta per rerun, prima di qualsiasi st.markdown().
     """
+    global _CSS_TEMPLATE
+    _CSS_TEMPLATE = None  # Forza ricaricamento template per includere le nuove righe CSS
     c = _DARK if dark else _LIGHT
     template = _load_css()
     css = string.Template(template).safe_substitute(c)

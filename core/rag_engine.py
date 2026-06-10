@@ -56,7 +56,7 @@ AVAILABLE_MODELS = {
 MODULE_CONFIG = {
     "WinSarp": {
         "temperature": 0,
-        "chat_history": 4,
+        "chat_history": 50,
         "num_ctx": 4096,
         "top_k": 4,
     },

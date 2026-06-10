@@ -82,9 +82,19 @@ class HealthResponse(BaseModel):
 # Lifespan context manager
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Inizializza LlamaIndex all'avvio."""
+    """
+    Gestisce il ciclo di vita dell'applicazione FastAPI.
+    
+    **Startup:**
+    - Inizializza impostazioni globali LlamaIndex (embed model, node parser)
+    - Pre-carica modelli se configurato
+    
+    **Shutdown:**
+    - Cleanup risorse (chiusura pool DB, cache, etc.)
+    """
     init_llama_settings()
     yield
+
 
 
 # FastAPI app
@@ -159,16 +169,23 @@ def verify_auth(credentials: HTTPAuthorizationCredentials = Depends(security)) -
     return provided_key
 
 
-@app.get("/health", response_model=HealthResponse, tags=["Health"])
+@app.get("/health", response_model=HealthResponse, tags=["Health"],
+         summary="Health check completo del sistema",
+         description=(
+             "Esegue un controllo completo dello stato di salute del sistema.\n\n"
+             "**Verifiche eseguite:**\n"
+             "- **Ollama**: Connessione e disponibilità modelli (LLM + Embeddings)\n"
+             "- **ChromaDB**: Esistenza directory + funzionalità lettura/scrittura collezioni\n"
+             "- **Disco**: Spazio libero su disco (GB)\n"
+             "- **Moduli**: Elenco moduli documentali disponibili\n\n"
+             "**Stati possibili:**\n"
+             "- `healthy`: Tutti i sistemi operativi\n"
+             "- `degraded`: Alcuni componenti degradati (es. Ollama lento, ChromaDB read-only)\n\n"
+             "**Utilizzo monitoring:** Questo endpoint è progettato per essere chiamato da sistemi "
+             "di monitoring (Prometheus, Datadog, etc.) ogni 30-60 secondi."
+         )
+        )
 async def health_check():
-    """
-    Health check endpoint migliorato.
-    Fornisce stato completo del sistema per monitoring.
-    Verifica reale funzionamento di Ollama e ChromaDB.
-
-    Returns:
-        HealthResponse: Stato del sistema (healthy/degraded)
-    """
     ollama_ok, ollama_msg = check_ollama(cfg.DEFAULT_MODEL_ID)
 
     # Lista moduli disponibili
@@ -182,21 +199,18 @@ async def health_check():
     if chroma_ok:
         try:
             import chromadb
-            # Tenta di creare un client temporaneo per verificare funzionamento
             test_client = chromadb.PersistentClient(path=cfg.CHROMA_DIR)
-            # Lista collezioni per verificare accesso
             test_client.list_collections()
             chroma_functional = True
         except Exception as e:
             _logger.warning("Health check: ChromaDB esiste ma non funziona: %s", e)
             chroma_ok = False
 
-    # Spazio disco disponibile
+    # Verifica spazio disco
     import shutil
     disk_usage = shutil.disk_usage(cfg.BASE_DIR)
     disk_free_gb = disk_usage.free / (1024**3)
 
-    # Stato complessivo
     overall_status = "healthy" if ollama_ok and chroma_functional else "degraded"
 
     return HealthResponse(
@@ -208,27 +222,32 @@ async def health_check():
         disk_free_gb=round(disk_free_gb, 2),
     )
 
-
-@app.post("/query", response_model=QueryResponse, tags=["Query"])
-async def query_rag(
-    request: QueryRequest,
-    token: str = Depends(verify_auth)
-):
-    """
-    Endpoint principale per query RAG.
-
-    Esegue una query sul modulo specificato e restituisce risposta + fonti.
-
-    Args:
-        request: QueryRequest con module, query, e model opzionale
-        token: API key per autenticazione
-
-    Returns:
-        QueryResponse: Risposta con answer, sources, confidence, e metadata
-
-    Raises:
-        HTTPException: 401 se autenticazione fallita, 429 se rate limit, 503 se Ollama non disponibile
-    """
+@app.post("/query", response_model=QueryResponse, tags=["Query"],
+         summary="Esegue una query RAG sul modulo specificato",
+         description=(
+             "Esegue una query Retrieval-Augmented Generation (RAG) sul modulo documentale specificato.\n\n"
+             "**Flusso elaborazione:**\n"
+             "1. **Autenticazione**: Verifica API key via Bearer token\n"
+             "2. **Rate limiting**: Controllo rate limit per identificatore (default: 30 req/min)\n"
+             "3. **Validazione modulo**: Verifica esistenza modulo e accesso documenti\n"
+             "4. **Retrieval**: Recupera chunk pertinenti dall'indice vettoriale (top_k=4)\n"
+             "5. **Generazione**: LLM genera risposta basata su contesto recuperato\n"
+             "6. **Validazione formula** (se formula_only=true): Estrae solo codice WinSarp valido\n\n"
+             "**Parametri query:**\n"
+             "- module: Nome modulo (es. WinSarp, HR, Finance)\n"
+             "- query: Domanda in linguaggio naturale (max 2000 char)\n"
+             "- model (opzionale): Override modello LLM (default: qwen3:8b)\n"
+             "- formula_only: Se true, restituisce solo codice formula WinSarp (solo moduli compatibili)\n\n"
+             "**Codici risposta:**\n"
+             "- 200: Successo\n"
+             "- 401: API key mancante/non valida\n"
+             "- 404: Modulo non trovato o nessun documento indicizzato\n"
+             "- 429: Rate limit superato\n"
+             "- 503: Ollama non disponibile\n"
+             "- 500: Errore interno"
+         ),
+         )
+async def query(request: QueryRequest, token: str = Depends(verify_auth)):
     start_time = time.time()
 
     try:
@@ -239,7 +258,7 @@ async def query_rag(
             raise HTTPException(status_code=429, detail=reason)
 
         # Verifica Ollama
-        ollama_ok, ollama_msg = check_ollama(cfg.DEFAULT_MODEL_ID)
+        ollama_ok, ollama_message = check_ollama(cfg.DEFAULT_MODEL_ID)
         if not ollama_ok:
             log_error("API: Ollama non disponibile", level=ErrorLevel.ERROR, context={"detail": ollama_msg})
             raise HTTPException(status_code=503, detail=f"Ollama non disponibile: {ollama_msg}")
@@ -326,14 +345,17 @@ async def query_rag(
         raise HTTPException(status_code=500, detail="Errore interno del server")
 
 
-@app.get("/modules", tags=["Modules"])
+@app.get("/modules", tags=["Modules"],
+         summary="Elenco moduli documentali disponibili",
+         description=(
+             "Restituisce l'elenco di tutti i moduli documentali configurati.\n\n"
+             "**Criteri inclusione:**\n"
+             "- Directory esistente in documenti/\n"
+             "- Contiene almeno un file indicizzabile (.txt, .pdf, .docx)\n\n"
+             "**Risposta:** Elenco nomi moduli disponibili."
+         ),
+         )
 async def list_modules(token: str = Depends(verify_auth)):
-    """
-    Lista tutti i moduli disponibili.
-
-    Returns:
-        Dict con lista dei nomi dei moduli disponibili
-    """
     return {"modules": _list_available_modules()}
 
 
