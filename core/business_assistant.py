@@ -52,7 +52,7 @@ class BusinessAssistant:
         try:
             url = f"{_ollama_url()}/api/generate"
             payload = {
-                "model": model_id or self.model_id or "qwen2.5:3b",
+                "model": model_id or self.model_id or "qwen3:4b",
                 "prompt": prompt,
                 "stream": False,
                 "format": "json",

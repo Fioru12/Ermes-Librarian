@@ -49,8 +49,8 @@ DEFAULT_MODEL_ID = cfg.DEFAULT_MODEL_ID
 EMBED_MODEL_ID = cfg.EMBED_MODEL_ID
 
 AVAILABLE_MODELS = {
-    "Qwen 2.5 3B (veloce, ~30s)": "qwen2.5:3b",
-    "Qwen 3 8B (qualita, ~3min)": "qwen3:8b",
+    "Qwen3 4B (veloce, ~15s)": "qwen3:4b",
+    "Qwen3 8B (qualita, ~3min)": "qwen3:8b",
 }
 
 MODULE_CONFIG = {

@@ -81,7 +81,7 @@ class Config:
     # MODELLI
     # --------------------------------------------------------
     # Modello LLM per la generazione delle risposte
-    DEFAULT_MODEL_ID: str = field(default_factory=lambda: os.environ.get("ERMES_MODEL", "qwen2.5:3b"))
+    DEFAULT_MODEL_ID: str = field(default_factory=lambda: os.environ.get("ERMES_MODEL", "qwen3:4b"))
     # Modello per embeddings (conversione documenti in vettori)
     EMBED_MODEL_ID:   str = field(default_factory=lambda: os.environ.get("ERMES_EMBED_MODEL", "bge-m3"))
 
