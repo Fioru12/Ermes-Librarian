@@ -121,7 +121,7 @@ class AgentRunner:
             lines.append(f"#{n['id']:>4} {n['name'][:45]:45s} [{tipo}]")
         return "\n".join(lines)
 
-    def analyze(self, query: str, model_id: str = "qwen3:4b") -> dict[str, Any]:
+    def analyze(self, query: str, model_id: str = "qwen3.5:4b") -> dict[str, Any]:
         """
         Analisi in due fasi:
         1. LLM pianifica fino a 6 strumenti, esegue tutto
@@ -369,7 +369,7 @@ class AgentRunner:
         except Exception as e:
             return f"Errore nell'esecuzione di {name}({input_val}): {e}"
 
-    def direct_query(self, query: str, model_id: str = "qwen3:4b") -> dict[str, Any]:
+    def direct_query(self, query: str, model_id: str = "qwen3.5:4b") -> dict[str, Any]:
         """
         Versione semplificata: LLM + contesto completo del grafo.
         L'agente ha tutto il catalogo in contesto e risponde direttamente.
@@ -384,7 +384,7 @@ class AgentRunner:
         }
 
 
-def run(query: str, model_id: str = "qwen3:4b", use_agent: bool = False) -> dict[str, Any]:
+def run(query: str, model_id: str = "qwen3.5:4b", use_agent: bool = False) -> dict[str, Any]:
     """Entry point per eseguire un'analisi."""
     kg = KnowledgeGraph()
     runner = AgentRunner(kg)
