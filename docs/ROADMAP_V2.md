@@ -44,26 +44,30 @@ Eliminare l'ambiguità vecchio/nuovo prima di costruire sopra.
 - [x] **[sicurezza, basso]** Banner di avviso aggiunto in `api/__init__.py` (lifespan): un `logger.warning` esplicito quando `ENABLE_LEGACY_WINSARP=1`, con link a `legacy_winsarp/README.md` e `docs/AUDIT_2026-08-19.md`.
 - [x] **Consolidati gli script `AVVIA_*`/`SETUP_*`**: in root restano solo 3 utility non-launcher (`crea_config.ps1`, `firewall.bat`, `static_ip.bat`); tutti i launcher/setup Streamlit-era (`AVVIA.ps1`, `AVVIA_DIRETTO.bat`, `AVVIA_FINALE.bat`, `SETUP_INSTALL.bat` root, `CREA_COLLEGAMENTO_DESKTOP.ps1` root — verificato puntava a `AVVIA_FINALE.bat`) spostati in `legacy_winsarp/scripts/`; i duplicati stale del nuovo stack (`AVVIA_PRO.bat` — usava `.venv` invece di `.venv-ermes`; `start_ermes.bat` — path hardcoded errato, già rotto) in `scripts/archive/`; 7 file vuoti (0 byte) cancellati. In `scripts/` stessi, altri 4 launcher Streamlit-era duplicati spostati in `legacy_winsarp/scripts/`. Resta un solo entry point verificato: `scripts/avvia_ermes.ps1` (quello già documentato in README).
 - [x] Rimosso l'endpoint legacy `api/documents.py: GET /content/{filename}` dal path del prodotto (spostato con tutto il file); confermato con l'app avviata: un solo modo di scaricare un documento, `api/libraries.py`.
-- [ ] Spezzare il diff pendente in commit piccoli e revisionabili (lo spostamento WinSarp stesso andrebbe committato come unità coerente separata).
+- [x] Spezzare il diff pendente della Fase A in commit piccoli e revisionabili — fatto (isolamento WinSarp come unità separata dal resto).
 - [x] **`pytest` verificato per davvero**: 182 passati, 2 skippati (richiedono Ollama/Chroma reali, correttamente `skipif`), **1 fallito** — `tests/test_e2e_api.py::test_e2e_rbac_full_flow` (401 invece di 200 su `/api/users`), confermato **preesistente e non collegato** a questo intervento (file mai toccato, già non tracciato da git prima di oggi). `pytest legacy_winsarp/tests` raccoglie 857 test senza errori di import (solo `test_winsarp_robustness.py` resta ignorato, era già rotto/escluso prima dell'isolamento).
-- [ ] **[dev, basso]** Correggere i due bug di codifica testo (mojibake) trovati in `api/libraries.py:225` e `core/document_parser.py:197` ("piÃ¹"/"Ã¨" invece di "più"/"è"); grep del repo su `Ã` per trovare eventuali altri casi.
+- [x] **[dev, basso]** Corretti i due bug di codifica testo (mojibake) in `api/libraries.py` e `core/document_parser.py` — uno era doppiamente corrotto, corretto a livello di byte, non solo di rendering. Grep di conferma su tutto il repo: zero occorrenze residue fuori da `.venv`/backup.
 - [x] **Correzione emersa durante lo spostamento**: `evaluation/run_eval.py`/`gold_set.json`/`results_*.json` (i "50 query") appartenevano al motore formule WinSarp, non al bibliotecario — spostati con tutto il resto. Vedi nota nella sezione "Stato reale verificato" e Fase B corretta di conseguenza.
 
 **Uscita**: un solo entry point, un solo path di download, test eseguiti con esito noto, nessun import legacy fuori dal suo perimetro.
 
-### Fase A2 — Chiudere il diff DevOps/governance pendente (~2-3 giorni)
+### Fase A2 — Chiudere il diff DevOps/governance pendente (fatta, 20 agosto 2026)
 
-Obiettivo: prima di costruire altro sopra, capire e chiudere il blocco di 14 file lasciato volutamente da parte durante il commit della Fase A — non è rumore, è lavoro reale su CI/CD, container e governance già iniziato in una sessione precedente e mai committato: `.github/workflows/ci.yml`, `Dockerfile`, `docker-compose.yml`, `.dockerignore`, `.env.example`, `.gitignore`, `requirements.txt`, `api.py` (root, -452 righe: sembra lo svuotamento del vecchio monolite a favore del pacchetto `api/`), `core/backup_manager.py`, `core/governance.py`, `core/input_validator.py`, `core/rate_limiter.py`, `README.md`, `DEVELOPER.md`.
+Stima iniziale sbagliata: non erano 14 file modificati, ma **quasi l'intero prodotto Ermes Knowledge mai committato** — l'intero pacchetto `api/`, i moduli nuovi di `core/` (evidence_assistant, ingestion_service, library_store, library_embeddings, pii_filter, `core/ai/`), tutto `frontend/`, gran parte di `tests/`, e i documenti di strategia in `docs/` erano ancora "untracked" da sessioni precedenti. `git diff --stat` mostrava solo i file *modificati* tracciati, non i file *nuovi* — da qui la sottostima iniziale.
 
-- [ ] **[architect]** Leggere il diff di `api.py` per capire se le 452 righe rimosse sono davvero superate dal pacchetto `api/` modulare o se qualcosa di attivo dipende ancora dal monolite.
-- [ ] **[devops]** Verificato: `Dockerfile` e `.github/workflows/ci.yml` **non referenziano** i path spostati con l'isolamento WinSarp (`app.py`, `ui/`, `core/rag_engine`) — non sono rotti dal refactor di oggi. Da fare comunque: rileggere `Dockerfile`/`docker-compose.yml` per confermare che copino/montino solo il path del prodotto nuovo, non `legacy_winsarp/` (a meno che non sia una scelta esplicita per poter comunque testare il flag legacy in CI).
-- [ ] **[devops]** `.github/workflows/ci.yml` usa `pytest tests/ --timeout=30`, ma `pytest-timeout` non è in `requirements.txt` — verificare se CI lo installa a parte o se la CI è già rossa per questo.
-- [ ] **[qa]** Rivedere `core/rate_limiter.py` e `core/input_validator.py` (diff piccoli, 6 e 14 righe) — capire se sono fix di edge case già pronti da mergiare o modifiche a metà.
-- [ ] **[architect/qa]** `core/governance.py` ha +142/-0 righe circa — probabile estensione sostanziale (audit trail?); leggere per capire se è completa o a metà, e se ha test.
-- [ ] Aggiornare `README.md`/`DEVELOPER.md` (già in diff, -299/+summarizzato) per riflettere lo stato dopo l'isolamento WinSarp, invece di editarli due volte.
-- [ ] Una volta capito cosa contiene, spezzare in commit coerenti (probabilmente: uno per CI/Docker/config, uno per `core/governance.py`+`backup_manager.py`, uno per README/DEVELOPER) invece di un commit unico da 14 file eterogenei.
+Fatto, file per file, non con un commit unico cieco:
+- [x] **[devops]** CI: separati i job lint/test/frontend; **corretto un bug che avrebbe fatto fallire subito la CI** — `pytest --timeout=30` senza `pytest-timeout` in `requirements.txt` (aggiunto); bandit scansionava solo `api.py`, non il pacchetto `api/` (corretto); riferimento a `data/winsarp_graph.json` nel backup pre-deploy, non più lì (aggiornato a `data/ermes_knowledge.sqlite3`).
+- [x] **[devops]** Dockerfile: **trovato e corretto un bug reale introdotto dallo spostamento WinSarp** — `COPY modules/ ./modules/` puntava a una cartella che non esiste più in root (spostata in `legacy_winsarp/`); il build sarebbe fallito. Aggiunta build del frontend, healthcheck su `/health`, CMD `uvicorn` invece di `streamlit`.
+- [x] **[architect]** `api.py` (root, -452 righe): confermato un vero shim di compatibilità che re-esporta `app` dal pacchetto `api/`, non codice morto o migrazione a metà — verificato che nessun import vivo dipenda dal vecchio monolite.
+- [x] **[architect/qa]** `core/governance.py`: estensione RBAC per-utente (API key hashate, scritture atomiche, file lock) — verificata **collegata davvero** a `api/auth.py`/`api/users.py` (non codice orfano) e coperta da `tests/test_enterprise.py`/`test_api_user_rotation.py`, entrambi verdi. Trovato e corretto un bug minore collegato: lo scheduler di backup in `api/__init__.py` loggava `result.get("file", ...)` ma `create_backup()` ritorna `"name"` — il log stampava sempre "?".
+- [x] **[qa]** `core/backup_manager.py`: lock a thread + scrittura atomica sul restore, verificato collegato a endpoint admin-only e a uno scheduler in background. **Lacuna segnalata, non chiusa ora**: `tests/test_backup_manager.py` non copre il nuovo percorso di restore atomico/locking — serve una sessione QA dedicata.
+- [x] Durante la revisione, trovati e spostati in `legacy_winsarp/` altri contenuti WinSarp mal etichettati sotto `core/`: `core/evaluation/` (formula_validator.py, semantic_evaluator.py) e `core/templates/` (master_patterns.json, few_shot_examples.json) — 26 test in `tests/test_evaluation.py` spostati con loro; import della copia spostata corretto dopo un giro di verifica con `pytest --collect-only`.
+- [x] Trovati ed eliminati 7 file duplicati morti in root (nessun importatore): `governance.py`, `rate_limiter.py`, `theme.py`, `sidebar_ui.py`, `welcome_ui.py`, `monitor_dashboard.py`, `chat_ui.py`; più `frontend/src/App.jsx`/`main.jsx` (prototipo JS pre-TypeScript, `index.html` carica già `main.tsx`) e un `package.json`/`package-lock.json` orfano in root (dipendenza Monaco Editor del vecchio FormulaEditor).
+- [x] Committato tutto in 8 commit coerenti per area (CI/Docker/setup, backend, frontend, test, doc di strategia) invece di un commit monolitico.
 
-**Uscita**: nessun diff pendente sconosciuto nella working directory; CI, Docker e governance in uno stato compreso e committato, non solo "lasciato lì".
+**Non chiuso, segnalato per una sessione dedicata**: `tests/test_e2e_api.py::test_e2e_rbac_full_flow` passa da solo ma fallisce nella suite completa — un problema di isolamento tra test (probabile stato globale di `config`/env condiviso tra moduli di test), non un bug di prodotto. `legacy_winsarp/tests/test_composer.py` ha un `KeyError` preesistente non collegato allo spostamento di oggi (dati di pattern già vuoti prima).
+
+**Uscita**: raggiunta — nessun diff pendente sconosciuto; CI, Docker e governance committati e verificati, non solo "lasciati lì".
 
 ### Fase B — Retrieval onesto e misurato (~1-1.5 settimane)
 
@@ -126,7 +130,7 @@ L'audit di team conferma questo ordine dall'esterno: i problemi più seri trovat
 ## Verifica per fase
 
 - **A**: `pytest` gira e riporta pass/fail chiaro; un solo script avvia l'app; nessun modulo del prodotto importa `core.winsarp`/`modules.winsarp` fuori dal flag legacy. *(fatto e committato, 20 agosto 2026)*
-- **A2**: i 14 file del diff pendente sono compresi, testati e committati in blocchi coerenti; CI verificata verde (o il motivo del rosso è noto e tracciato).
+- **A2**: fatta — l'intero prodotto (non solo 14 file) è compreso, testato e committato in blocchi coerenti; due bug reali (Dockerfile, CI) trovati e corretti nel processo, non solo assunti funzionanti.
 - **B**: numero di recall/precision/citation-coverage pubblicato e riproducibile.
 - **C**: test di permessi sul download passa; prova manuale nel browser del percorso cerca → scarica, incluso da dentro la chat.
 - **D**: demo eseguita end-to-end senza intervento manuale nascosto.
@@ -138,7 +142,7 @@ Il progetto è pronto per essere mostrato (colloquio, demo a un'azienda, reposit
 
 - [x] Nessun codice del prodotto importa WinSarp fuori dal modulo isolato.
 - [x] Un solo entry point per avviare l'app, un solo path per scaricare un documento.
-- [ ] CI, Dockerfile e docker-compose verificati contro lo stato attuale del codice, non solo presunti funzionanti (Fase A2).
+- [x] CI, Dockerfile e docker-compose verificati contro lo stato attuale del codice, non solo presunti funzionanti (Fase A2) — due bug reali trovati e corretti.
 - [ ] `pytest` verde, incluse le nuove suite su download e ingestion.
 - [ ] Retrieval con numero di qualità reale e riproducibile (recall/precision/citation-coverage), non cherry-picked.
 - [ ] Il recupero del documento originale è raggiungibile da chat, ricerca e tab documenti, tutti e tre testati.
