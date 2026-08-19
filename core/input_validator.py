@@ -54,7 +54,7 @@ def is_safe_string(text: str, max_len: int = 1000, allow_special: bool = False) 
 def is_safe_module_name(module_name: str) -> bool:
     """
     Valida nome modulo (directory name).
-    Allineato con app.py (_is_valid_module_name) e api.py (_resolve_module_name).
+    Allineato con api.py (_resolve_module_name).
     Permette lettere, numeri, underscore, trattini — max 80 caratteri.
 
     Args:
@@ -66,7 +66,6 @@ def is_safe_module_name(module_name: str) -> bool:
     if not module_name or len(module_name) > MAX_MODULE_NAME_LENGTH:
         return False
 
-    # Allineato con app.py _is_valid_module_name (riga 258 di app.py)
     if not re.match(r'^[A-Za-z0-9_-]{1,80}$', module_name):
         return False
 
@@ -284,6 +283,11 @@ def validate_user_input(username: str, password: str, role: str) -> tuple[bool, 
     return True, ""
 
 
+def sanitize_username(username: str) -> str:
+    sanitized = re.sub(r"[^a-z0-9._-]", "", (username or "").strip().lower())
+    return sanitized[:50]
+
+
 def sanitize_upload_name(name: str) -> str | None:
     safe_name = os.path.basename((name or "").strip()).replace("\x00", "")
     if not safe_name or safe_name in {".", ".."}:
@@ -291,7 +295,7 @@ def sanitize_upload_name(name: str) -> str | None:
     if not re.fullmatch(r"[A-Za-z0-9._ -]{1,120}", safe_name):
         return None
     ext = os.path.splitext(safe_name)[1].lower()
-    if ext not in {".txt", ".pdf", ".docx"}:
+    if ext not in {".txt", ".md", ".pdf", ".docx", ".xlsx"}:
         return None
     return safe_name
 
@@ -301,8 +305,8 @@ def matches_expected_file_signature(uploaded_file, safe_name: str) -> bool:
     ext = os.path.splitext(safe_name)[1].lower()
     if ext == ".pdf":
         return header.startswith(b"%PDF-")
-    if ext == ".docx":
+    if ext in {".docx", ".xlsx"}:
         return header.startswith(b"PK\x03\x04")
-    if ext == ".txt":
+    if ext in {".txt", ".md"}:
         return b"\x00" not in bytes(uploaded_file.getbuffer()[:1024])
     return False

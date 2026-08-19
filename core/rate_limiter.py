@@ -13,9 +13,9 @@ from dataclasses import dataclass
 @dataclass
 class RateLimitConfig:
     """Configurazione limiti rate."""
-    max_requests_per_minute: int = 60
-    max_uploads_per_hour: int = 20
-    max_upload_mb_per_hour: int = 500
+    max_requests_per_minute: int = 300
+    max_uploads_per_hour: int = 100
+    max_upload_mb_per_hour: int = 2000
     cleanup_interval_seconds: int = 3600  # Pulizia ogni ora
 
 

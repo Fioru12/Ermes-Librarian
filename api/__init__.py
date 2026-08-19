@@ -136,8 +136,8 @@ async def lifespan(app: FastAPI):
                 await asyncio.sleep(interval_hours * 3600)
                 from core.backup_manager import create_backup
                 result = create_backup(label="scheduled")
-                _logger.info("Backup schedulato completato: %s", result.get("file", "?"))
-                append_audit(cfg.AUDIT_FILE, "backup_scheduled", "system", {"file": result.get("file", "")})
+                _logger.info("Backup schedulato completato: %s", result.get("name", "?"))
+                append_audit(cfg.AUDIT_FILE, "backup_scheduled", "system", {"name": result.get("name", "")})
             except asyncio.CancelledError:
                 break
             except Exception as e:

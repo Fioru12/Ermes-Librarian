@@ -6,8 +6,8 @@ Esegue backup incrementali di KG, ChromaDB, logs, e configurazioni.
 import json
 import logging
 import os
-import shutil
 import tarfile
+import threading
 from datetime import datetime
 from pathlib import Path
 
@@ -17,6 +17,8 @@ _logger = logging.getLogger(__name__)
 
 BACKUP_DIR = os.path.join(cfg.BASE_DIR, "backups")
 MAX_BACKUPS = 10  # Mantieni ultimi N backup
+
+_backup_lock = threading.Lock()
 
 
 def _get_backup_path() -> str:
@@ -36,90 +38,85 @@ def _cleanup_old_backups(keep: int = MAX_BACKUPS):
 
 def create_backup(label: str = "") -> dict:
     """
-    Crea un backup completo del sistema.
-    
+    Crea un backup completo del sistema (thread-safe).
+
     Include:
     - Knowledge Graph (data/winsarp_graph.json)
     - ChromaDB (chroma_db/)
     - Logs (logs/)
     - Configurazioni (.env, config.py)
     - Gold set (evaluation/)
-    
+
     Returns:
         dict con path, dimensione, timestamp.
     """
-    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-    backup_name = f"ermes_backup_{ts}{('_' + label) if label else ''}"
-    backup_path = os.path.join(_get_backup_path(), f"{backup_name}.tar.gz")
+    with _backup_lock:
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        backup_name = f"ermes_backup_{ts}{('_' + label) if label else ''}"
+        backup_path = os.path.join(_get_backup_path(), f"{backup_name}.tar.gz")
 
-    _logger.info("Creazione backup: %s", backup_name)
+        _logger.info("Creazione backup: %s", backup_name)
 
-    items_backed_up = []
+        items_backed_up = []
 
-    with tarfile.open(backup_path, "w:gz") as tar:
-        # 1. Knowledge Graph
-        kg_path = os.path.join(cfg.BASE_DIR, "data", "winsarp_graph.json")
-        if os.path.exists(kg_path):
-            tar.add(kg_path, arcname="data/winsarp_graph.json")
-            items_backed_up.append("knowledge_graph")
+        with tarfile.open(backup_path, "w:gz") as tar:
+            kg_path = os.path.join(cfg.BASE_DIR, "data", "winsarp_graph.json")
+            if os.path.exists(kg_path):
+                tar.add(kg_path, arcname="data/winsarp_graph.json")
+                items_backed_up.append("knowledge_graph")
 
-        # 2. ChromaDB
-        chroma_path = cfg.CHROMA_DIR
-        if os.path.exists(chroma_path):
-            tar.add(chroma_path, arcname="chroma_db")
-            items_backed_up.append("chroma_db")
+            chroma_path = cfg.CHROMA_DIR
+            if os.path.exists(chroma_path):
+                tar.add(chroma_path, arcname="chroma_db")
+                items_backed_up.append("chroma_db")
 
-        # 3. Logs (ultimi 100 file)
-        logs_path = cfg.LOGS_DIR
-        if os.path.exists(logs_path):
-            log_files = sorted(
-                Path(logs_path).glob("*.jsonl"),
-                key=lambda f: f.stat().st_mtime,
-                reverse=True,
-            )[:100]
-            for lf in log_files:
-                tar.add(str(lf), arcname=f"logs/{lf.name}")
-            items_backed_up.append(f"logs ({len(log_files)} files)")
+            logs_path = cfg.LOGS_DIR
+            if os.path.exists(logs_path):
+                log_files = sorted(
+                    Path(logs_path).glob("*.jsonl"),
+                    key=lambda f: f.stat().st_mtime,
+                    reverse=True,
+                )[:100]
+                for lf in log_files:
+                    tar.add(str(lf), arcname=f"logs/{lf.name}")
+                items_backed_up.append(f"logs ({len(log_files)} files)")
 
-        # 4. Configurazioni
-        for cfg_file in [".env", "config.py", "requirements.txt"]:
-            cfg_path = os.path.join(cfg.BASE_DIR, cfg_file)
-            if os.path.exists(cfg_path):
-                tar.add(cfg_path, arcname=cfg_file)
-                items_backed_up.append(cfg_file)
+            for cfg_file in [".env", "config.py", "requirements.txt"]:
+                cfg_path = os.path.join(cfg.BASE_DIR, cfg_file)
+                if os.path.exists(cfg_path):
+                    tar.add(cfg_path, arcname=cfg_file)
+                    items_backed_up.append(cfg_file)
 
-        # 5. Evaluation gold set
-        eval_path = os.path.join(cfg.BASE_DIR, "evaluation", "gold_set.json")
-        if os.path.exists(eval_path):
-            tar.add(eval_path, arcname="evaluation/gold_set.json")
-            items_backed_up.append("gold_set")
+            eval_path = os.path.join(cfg.BASE_DIR, "evaluation", "gold_set.json")
+            if os.path.exists(eval_path):
+                tar.add(eval_path, arcname="evaluation/gold_set.json")
+                items_backed_up.append("gold_set")
 
-        # 6. Metadata
-        metadata = {
-            "timestamp": datetime.now().isoformat(),
-            "label": label,
+            metadata = {
+                "timestamp": datetime.now().isoformat(),
+                "label": label,
+                "items": items_backed_up,
+                "version": "1.0.0",
+            }
+            meta_json = json.dumps(metadata, indent=2)
+            import io
+            meta_bytes = meta_json.encode("utf-8")
+            info = tarfile.TarInfo(name="backup_metadata.json")
+            info.size = len(meta_bytes)
+            tar.addfile(info, io.BytesIO(meta_bytes))
+
+        size_mb = os.path.getsize(backup_path) / (1024 * 1024)
+        _cleanup_old_backups()
+
+        result = {
+            "path": backup_path,
+            "name": backup_name,
+            "size_mb": round(size_mb, 2),
             "items": items_backed_up,
-            "version": "1.0.0",
+            "timestamp": datetime.now().isoformat(),
         }
-        meta_json = json.dumps(metadata, indent=2)
-        import io
-        meta_bytes = meta_json.encode("utf-8")
-        info = tarfile.TarInfo(name="backup_metadata.json")
-        info.size = len(meta_bytes)
-        tar.addfile(info, io.BytesIO(meta_bytes))
-
-    size_mb = os.path.getsize(backup_path) / (1024 * 1024)
-    _cleanup_old_backups()
-
-    result = {
-        "path": backup_path,
-        "name": backup_name,
-        "size_mb": round(size_mb, 2),
-        "items": items_backed_up,
-        "timestamp": datetime.now().isoformat(),
-    }
-    _logger.info("Backup completato: %s (%.2f MB)", backup_name, size_mb)
-    return result
+        _logger.info("Backup completato: %s (%.2f MB)", backup_name, size_mb)
+        return result
 
 
 def list_backups() -> list[dict]:
@@ -138,44 +135,54 @@ def list_backups() -> list[dict]:
 
 def restore_backup(backup_name: str, dry_run: bool = False) -> dict:
     """
-    Ripristina un backup.
-    
+    Ripristina un backup (thread-safe, atomic writes).
+
     Args:
         backup_name: Nome del backup (senza .tar.gz)
         dry_run: Se True, mostra solo cosa verrebbe ripristinato
-    
+
     Returns:
         dict con items ripristinati.
     """
-    backup_path = os.path.join(BACKUP_DIR, f"{backup_name}.tar.gz")
-    if not os.path.exists(backup_path):
-        raise FileNotFoundError(f"Backup non trovato: {backup_name}")
+    with _backup_lock:
+        backup_path = os.path.join(BACKUP_DIR, f"{backup_name}.tar.gz")
+        if not os.path.exists(backup_path):
+            raise FileNotFoundError(f"Backup non trovato: {backup_name}")
 
-    _logger.info("Restore backup: %s (dry_run=%s)", backup_name, dry_run)
+        _logger.info("Restore backup: %s (dry_run=%s)", backup_name, dry_run)
 
-    restored = []
-    with tarfile.open(backup_path, "r:gz") as tar:
-        for member in tar.getmembers():
-            if member.name == "backup_metadata.json":
-                continue
+        restored = []
+        with tarfile.open(backup_path, "r:gz") as tar:
+            for member in tar.getmembers():
+                if member.name == "backup_metadata.json":
+                    continue
 
-            target = os.path.join(cfg.BASE_DIR, member.name)
+                target = os.path.join(cfg.BASE_DIR, member.name)
 
-            if dry_run:
+                if dry_run:
+                    restored.append(member.name)
+                    continue
+
+                if member.isdir():
+                    os.makedirs(target, exist_ok=True)
+                else:
+                    import tempfile
+                    os.makedirs(os.path.dirname(target), exist_ok=True)
+                    with tar.extractfile(member) as src:
+                        data = src.read()
+                    tmp = tempfile.NamedTemporaryFile(dir=os.path.dirname(target), delete=False, suffix=".tmp")
+                    try:
+                        tmp.write(data)
+                        tmp.close()
+                        os.replace(tmp.name, target)
+                    except Exception:
+                        if os.path.exists(tmp.name):
+                            os.unlink(tmp.name)
+                        raise
                 restored.append(member.name)
-                continue
 
-            if member.isdir():
-                os.makedirs(target, exist_ok=True)
-            else:
-                os.makedirs(os.path.dirname(target), exist_ok=True)
-                with tar.extractfile(member) as src:
-                    with open(target, "wb") as dst:
-                        dst.write(src.read())
-            restored.append(member.name)
-
-    _logger.info("Restore completato: %d items", len(restored))
-    return {"restored": restored, "dry_run": dry_run, "backup": backup_name}
+        _logger.info("Restore completato: %d items", len(restored))
+        return {"restored": restored, "dry_run": dry_run, "backup": backup_name}
 
 
 def get_backup_status() -> dict:

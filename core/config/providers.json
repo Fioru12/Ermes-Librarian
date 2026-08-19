@@ -1,0 +1,18 @@
+{
+  "providers": [
+    {
+      "name": "test-openai",
+      "type": "openai",
+      "api_key": "sk-test",
+      "base_url": "https://api.openai.com/v1",
+      "default_model": "gpt-4o",
+      "models": [
+        "gpt-4o",
+        "gpt-4.1"
+      ],
+      "enabled": true,
+      "extra": {}
+    }
+  ],
+  "active": null
+}

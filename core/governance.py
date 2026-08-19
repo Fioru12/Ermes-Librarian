@@ -17,6 +17,137 @@ from filelock import FileLock
 _logger = logging.getLogger(__name__)
 
 # ============================================================
+# RBAC — Per-user API Keys
+# ============================================================
+# Formato: security/api_keys.json
+# {"keys": [{"key_hash": "...", "username": "...", "role": "admin|editor|viewer", "created_at": "..."}]}
+
+def _get_api_keys_file() -> str:
+    from config import cfg
+    return os.path.join(cfg.SECURITY_DIR, "api_keys.json")
+
+
+def _hash_api_key(api_key: str) -> str:
+    return hashlib.sha256(api_key.encode("utf-8")).hexdigest()
+
+
+_api_keys_lock = FileLock(os.path.join(os.path.dirname(__file__), ".apikeys_lock"), timeout=10)
+
+
+def _load_api_keys() -> dict:
+    path = _get_api_keys_file()
+    if os.path.exists(path):
+        try:
+            with open(path, encoding="utf-8") as f:
+                data = json.load(f)
+                if isinstance(data, dict) and isinstance(data.get("keys"), list):
+                    return data
+        except Exception as ex:
+            _logger.warning("Errore lettura api_keys: %s", ex)
+    return {"keys": []}
+
+
+def _save_api_keys(data: dict) -> None:
+    path = _get_api_keys_file()
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    try:
+        with tempfile.NamedTemporaryFile(mode="w", dir=os.path.dirname(path), delete=False, encoding="utf-8", suffix=".tmp") as tmp:
+            tmp_path = tmp.name
+            json.dump(data, tmp, ensure_ascii=False, indent=2)
+            tmp.flush()
+        if os.path.exists(path):
+            os.replace(path, path + ".bak")
+        os.replace(tmp_path, path)
+        if os.path.exists(path + ".bak"):
+            with contextlib.suppress(BaseException):
+                os.remove(path + ".bak")
+    except Exception as e:
+        if os.path.exists(tmp_path):
+            with contextlib.suppress(BaseException):
+                os.unlink(tmp_path)
+        raise
+
+
+def generate_api_key() -> str:
+    """Genera una nuova API key casuale."""
+    return "ermes_" + secrets.token_urlsafe(32)
+
+
+def set_user_api_key(username: str, role: str = "viewer", api_key: str | None = None) -> str:
+    """Crea o aggiorna una API key per un utente. Restituisce la key (mostrala una volta sola)."""
+    if role not in {"admin", "editor", "viewer"}:
+        raise ValueError(f"Ruolo non valido: {role}. Usa admin, editor o viewer.")
+
+    key = api_key or generate_api_key()
+    key_hash = _hash_api_key(key)
+
+    with _api_keys_lock:
+        data = _load_api_keys()
+        existing = next((k for k in data["keys"] if k.get("username") == username), None)
+        if existing:
+            existing["key_hash"] = key_hash
+            existing["role"] = role
+            existing["updated_at"] = datetime.now().isoformat()
+        else:
+            data["keys"].append({
+                "key_hash": key_hash,
+                "username": username,
+                "role": role,
+                "created_at": datetime.now().isoformat(),
+            })
+        _save_api_keys(data)
+
+    return key
+
+
+def revoke_user_api_key(username: str) -> bool:
+    """Rimuove la API key di un utente. Restituisce True se trovata."""
+    with _api_keys_lock:
+        data = _load_api_keys()
+        before = len(data["keys"])
+        data["keys"] = [k for k in data["keys"] if k.get("username") != username]
+        if len(data["keys"]) < before:
+            _save_api_keys(data)
+            return True
+        return False
+
+
+def list_api_keys() -> list[dict]:
+    """Restituisce lista utenti con API key (senza hash)."""
+    data = _load_api_keys()
+    return [
+        {
+            "username": k.get("username", ""),
+            "role": k.get("role", "viewer"),
+            "created_at": k.get("created_at", ""),
+            "updated_at": k.get("updated_at", ""),
+        }
+        for k in data["keys"]
+    ]
+
+
+def authenticate_by_api_key(api_key: str) -> dict | None:
+    """Autentica tramite API key. Restituisce {username, role} o None."""
+    if not api_key:
+        return None
+    key_hash = _hash_api_key(api_key)
+    data = _load_api_keys()
+    for k in data.get("keys", []):
+        if hmac.compare_digest(k.get("key_hash", ""), key_hash):
+            return {"username": k.get("username", ""), "role": k.get("role", "viewer")}
+    return None
+
+
+# Gerarchia ruoli
+ROLE_HIERARCHY = {"viewer": 0, "editor": 1, "admin": 2}
+
+
+def has_min_role(user_role: str, min_role: str) -> bool:
+    """Verifica che user_role sia >= min_role nella gerarchia."""
+    return ROLE_HIERARCHY.get(user_role, -1) >= ROLE_HIERARCHY.get(min_role, 99)
+
+
+# ============================================================
 # AUDIT SECURITY - HMAC per integrità log
 # ============================================================
 _audit_secret = os.environ.get("ERMES_AUDIT_SECRET", "")
@@ -103,7 +234,7 @@ def _hash_password(password: str, salt: str) -> str:
 
 
 def ensure_default_admin(users_file: str, username: str, password: str) -> None:
-    """Se ADMIN_PASSWORD è impostata, garantisce che esista l'utente admin."""
+    """Se ADMIN_PASSWORD è impostata, garantisce che esista l'utente admin con password aggiornata."""
     if not password:
         return
 
@@ -122,7 +253,14 @@ def ensure_default_admin(users_file: str, username: str, password: str) -> None:
                     "created_at": datetime.now().isoformat(),
                 }
             )
-            _save_users(users_file, data)
+        else:
+            salt = secrets.token_hex(16)
+            user["salt"] = salt
+            user["password_hash"] = _hash_password(password, salt)
+            user["role"] = "admin"
+            user["active"] = True
+            user["updated_at"] = datetime.now().isoformat()
+        _save_users(users_file, data)
 
 
 def authenticate_user(users_file: str, username: str, password: str) -> dict | None:
