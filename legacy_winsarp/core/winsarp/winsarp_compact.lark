@@ -1,0 +1,36 @@
+?start: formula
+
+// Token-soup grammar for WinSarp compact syntax validation.
+// Paren balance is checked separately — this grammar just validates tokens.
+formula: item*
+
+item: NUMBER | STRING | TIME_VALUE | FIELD_REF
+    | FLAG | LABEL | CALL_R | CALL_P | KOP | LOGIC_OP | COMPARATOR
+    | RESET_OP | ASSIGN_OP | KW_K | KW_VF | KW_VU | KW_Z | KW_I
+    | LPAREN | RPAREN | PTR_OPEN | PTR_CLOSE
+
+LPAREN: "("
+RPAREN: ")"
+RESET_OP: "!"
+ASSIGN_OP: "="
+KW_K: "K"
+KW_VF: "VF"
+KW_VU: "VU"
+CALL_R: /R[0-9]+/
+CALL_P: /P[0-9]+/
+PTR_OPEN: /\[[0-9]+/
+PTR_CLOSE: /\][0-9]+/
+NUMBER: /[0-9]+/
+KOP: "A" | "S"
+LOGIC_OP: "E" | "O"
+COMPARATOR: ">" | "<" | ">=" | "<=" | ">U" | "<U" | "#" | "U"
+STRING: /"[^"]*"/ | /'[^']*'/
+TIME_VALUE: /\^[0-9]+\.[0-9]+\^/
+FIELD_REF: /\{[0-9]+\}/
+FLAG: "I" | "Z"
+LABEL: /V[0-9]+/
+KW_Z: "Z"
+KW_I: "I"
+
+%import common.WS
+%ignore WS

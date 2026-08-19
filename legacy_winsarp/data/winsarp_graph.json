@@ -1,0 +1,1393 @@
+{
+  "nodes": {
+    "1": {
+      "id": 1,
+      "name": "I.G: Azzeramenti di inizio giornata",
+      "tipo": "Inizio Giornata",
+      "tipo_cat": "inizio",
+      "tipo_order": 1,
+      "scopo": "Azzeramento minimo di inizio giornata. Resetta il campo 900, utilizzato come flag anti-loop e indicatore di turno in tutte le formule successive. **Formula compressa:**",
+      "code": "(!900);",
+      "reset_fields": [
+        900
+      ],
+      "k_fields": [],
+      "braced_refs": [],
+      "numeric_refs": [
+        900
+      ],
+      "calls_r": [],
+      "calls_p": [],
+      "return_codes": [],
+      "operators": [],
+      "comparisons": {},
+      "bracket_refs": [],
+      "key_sum": [],
+      "all_calls": [],
+      "called_by": []
+    },
+    "5": {
+      "id": 5,
+      "name": "I.G: Riconoscimento Turno e cambio del previsionale",
+      "tipo": "Inizio Giornata",
+      "tipo_cat": "inizio",
+      "tipo_order": 1,
+      "scopo": "Analizza le timbrature effettive per determinare il turno (MATT/POME/NOTT) e aggiorna automaticamente l'orario previsionale del dipendente in base al turno riconosciuto. **Formula compressa:**",
+      "code": "(!900);(!800!801!802!803!804);200UZO58U\"RIPO\"(VF;\n(801='200')(802='220');([800[801[802);(803={802}S{801});\n803<Z((K803A'24');803<804((803=804)V11;\n{801}>U'04.00'E{801}<U'09.00'((58=\"MATT\")(111='06')(141='14')(!112!142)(100=I)(900='1')V11;\n{801}>U'12.00'E{801}<U'17.00'((58=\"POME\")(111='14')(141='22')(!112!142)(100=I)(900='2')V11;\n{801}>U'20.00'E{801}<U'23.59'((58=\"NOTT\")(111='22')(141='06')(!112!142)(100=I)(900='3')V11;\n800U200(VF;(804=803)V04;",
+      "reset_fields": [
+        112,
+        142,
+        800,
+        801,
+        802,
+        803,
+        804,
+        900
+      ],
+      "k_fields": [
+        803
+      ],
+      "braced_refs": [
+        801,
+        802
+      ],
+      "numeric_refs": [
+        1,
+        2,
+        3,
+        4,
+        6,
+        9,
+        12,
+        14,
+        17,
+        20,
+        22,
+        23,
+        24,
+        58,
+        59,
+        100,
+        111,
+        112,
+        141,
+        142,
+        200,
+        220,
+        800,
+        801,
+        802,
+        803,
+        804,
+        900
+      ],
+      "calls_r": [],
+      "calls_p": [],
+      "return_codes": [
+        "V04",
+        "V11",
+        "VF"
+      ],
+      "operators": [
+        "Z"
+      ],
+      "comparisons": {},
+      "bracket_refs": [
+        800,
+        801,
+        802
+      ],
+      "key_sum": [],
+      "all_calls": [],
+      "called_by": []
+    },
+    "10": {
+      "id": 10,
+      "name": "D.G: Determinazione del turno e cambio del previsionale",
+      "tipo": "Di Giornata",
+      "tipo_cat": "giornata",
+      "tipo_order": 3,
+      "scopo": "Variante della formula 5, eseguita **durante** la giornata (Formula Di Giornata). Analizza l'orario calcolato effettivo (campo 85 = uscita calcolata) per classificare il turno invece di usare le timbrature grezze. **Formula compressa:**",
+      "code": "1UZO58U\"RIPO\"(VF;(802=85);802<84((K802A'24');(801=802S84);\n801<'7'((58=\"OPE\")(111='8')(141='12')(112='13')(142='17')(100='2')VF;\n84<'7'E84>'5'((900=I)(58=\"MATT\")(111='6')(141='14')(!112!142)(100=I)VF;\n84<'15'E84>U'13'((900='2')(58=\"POME\")(111='14')(141='22')(!112!142)(100=I)VF;\n(900='3')(58=\"NOTT\")(111='22')(141='6')(!112!142)(100=I);",
+      "reset_fields": [
+        112,
+        142
+      ],
+      "k_fields": [
+        802
+      ],
+      "braced_refs": [],
+      "numeric_refs": [
+        2,
+        3,
+        5,
+        6,
+        7,
+        8,
+        12,
+        13,
+        14,
+        15,
+        17,
+        22,
+        24,
+        58,
+        84,
+        85,
+        100,
+        111,
+        112,
+        141,
+        142,
+        801,
+        802,
+        900
+      ],
+      "calls_r": [],
+      "calls_p": [],
+      "return_codes": [
+        "VF"
+      ],
+      "operators": [],
+      "comparisons": {},
+      "bracket_refs": [],
+      "key_sum": [],
+      "all_calls": [],
+      "called_by": []
+    },
+    "100": {
+      "id": 100,
+      "name": "F.G: PRIMA FORMULA – Azzeramenti",
+      "tipo": "Fine Giornata",
+      "tipo_cat": "fine",
+      "tipo_order": 2,
+      "scopo": "Prima operazione della sequenza di Fine Giornata. Imposta la modalità di calcolo totali su DURATA e azzera i campi delle causali automatiche 561–570. **Formula compressa:**",
+      "code": "(500=\"DURATA\")(!561!562!563!564!565!566!567!568!569!570);R110;",
+      "reset_fields": [
+        561,
+        562,
+        563,
+        564,
+        565,
+        566,
+        567,
+        568,
+        569,
+        570
+      ],
+      "k_fields": [],
+      "braced_refs": [],
+      "numeric_refs": [
+        500,
+        561,
+        562,
+        563,
+        564,
+        565,
+        566,
+        567,
+        568,
+        569,
+        570
+      ],
+      "calls_r": [
+        110
+      ],
+      "calls_p": [],
+      "return_codes": [],
+      "operators": [],
+      "comparisons": {},
+      "bracket_refs": [],
+      "key_sum": [],
+      "all_calls": [
+        110
+      ],
+      "called_by": []
+    },
+    "110": {
+      "id": 110,
+      "name": "F.G: Riproporziono 3, 4 e 5 in base alle assenze",
+      "tipo": "Fine Giornata",
+      "tipo_cat": "fine",
+      "tipo_order": 2,
+      "scopo": "Gestisce i casi in cui le ore lavorate (campo 3) sommate alle assenze (608+609) eccedono o non raggiungono il previsionale (campo 1). Riproporziona ordinario, straordinario e assenza per coerenza. **Formula compressa:**",
+      "code": "(800=3A4);1UZ((!3!5)(4=800)VU;(K800A608A609);\n800>1((4=800S1)(3=1S608S609)(!5)VU;\n(3=800S608S609)(!4)(5=1S800);R120;",
+      "reset_fields": [
+        3,
+        4,
+        5
+      ],
+      "k_fields": [
+        800
+      ],
+      "braced_refs": [],
+      "numeric_refs": [
+        1,
+        3,
+        4,
+        5,
+        800
+      ],
+      "calls_r": [
+        120
+      ],
+      "calls_p": [],
+      "return_codes": [
+        "VU"
+      ],
+      "operators": [
+        "U",
+        "UZ"
+      ],
+      "comparisons": {},
+      "bracket_refs": [],
+      "key_sum": [],
+      "all_calls": [
+        120
+      ],
+      "called_by": [
+        100
+      ]
+    },
+    "120": {
+      "id": 120,
+      "name": "F.G: Principale",
+      "tipo": "Fine Giornata",
+      "tipo_cat": "fine",
+      "tipo_order": 2,
+      "scopo": "Smistatore centrale della Fine Giornata. Verifica se ci sono ore straordinarie (campo 4) e instrada verso le formule specifiche per tipo di straordinario, distinguendo i giorni festivi/domenicali dai giorni ordinari. **Formula compressa:**",
+      "code": "4UZ(VU;1121U\"N\"((!4)VU;55UIO50UI(R130;R140;R200;",
+      "reset_fields": [
+        4
+      ],
+      "k_fields": [],
+      "braced_refs": [],
+      "numeric_refs": [
+        4
+      ],
+      "calls_r": [
+        130,
+        140,
+        200
+      ],
+      "calls_p": [],
+      "return_codes": [
+        "VU"
+      ],
+      "operators": [
+        "U",
+        "UZ"
+      ],
+      "comparisons": {},
+      "bracket_refs": [],
+      "key_sum": [],
+      "all_calls": [
+        130,
+        140,
+        200
+      ],
+      "called_by": [
+        110
+      ]
+    },
+    "130": {
+      "id": 130,
+      "name": "F.G: Straordinario Festivo e Festivo Notturno",
+      "tipo": "Fine Giornata",
+      "tipo_cat": "fine",
+      "tipo_order": 2,
+      "scopo": "Classifica le ore straordinarie maturate in un giorno **festivo** distinguendo la componente notturna (campo 21) da quella diurna (campo 4), assegnando le causali SFN (Straord. Festivo Notturno) e SF (Straord. Festivo Diurno) e aggiornando i progressivi. **Formula compressa:**",
+      "code": "21UZ(V04;(504=\"SFN\");21>4((564=4)(K21S4)(!4)V05;\n(564=21)(K4S21)(!21);(503=\"SF\")(563=4)(!4);\n(K601A563A564)(K604A563A564)(K615A563)(K616A564);R200;",
+      "reset_fields": [
+        4,
+        21
+      ],
+      "k_fields": [
+        4,
+        21,
+        601,
+        604,
+        615,
+        616
+      ],
+      "braced_refs": [],
+      "numeric_refs": [
+        4,
+        21,
+        503,
+        504,
+        563,
+        564
+      ],
+      "calls_r": [
+        200
+      ],
+      "calls_p": [],
+      "return_codes": [
+        "V04",
+        "V05"
+      ],
+      "operators": [
+        "UZ"
+      ],
+      "comparisons": {},
+      "bracket_refs": [],
+      "key_sum": [
+        {
+          "key": 21,
+          "sum": 4
+        },
+        {
+          "key": 4,
+          "sum": 21
+        }
+      ],
+      "all_calls": [
+        200
+      ],
+      "called_by": [
+        120
+      ]
+    },
+    "140": {
+      "id": 140,
+      "name": "F.G: Straordinario Diurno e Notturno",
+      "tipo": "Fine Giornata",
+      "tipo_cat": "fine",
+      "tipo_order": 2,
+      "scopo": "Come la 130 ma per giornate ordinarie (non festive). Gestisce la suddivisione tra ore straordinarie notturne (campo 21) e diurne (campo 4), assegnando causali SN (Straord. Notturno) e S (Straord. Diurno). **Formula compressa:**",
+      "code": "21UZO900U'3'(V04;(502=\"SN\");21>4((562=4)(K21S4)(!4)V05;\n(562=21)(K4S21)(!21);(501=\"S\")(561=4)(!4);\n(K601A561A562)(K604A561A562)(K611A561)(K614A562);R200;",
+      "reset_fields": [
+        4,
+        21
+      ],
+      "k_fields": [
+        4,
+        21,
+        601,
+        604,
+        611,
+        614
+      ],
+      "braced_refs": [],
+      "numeric_refs": [
+        3,
+        4,
+        21,
+        501,
+        502,
+        561,
+        562
+      ],
+      "calls_r": [
+        200
+      ],
+      "calls_p": [],
+      "return_codes": [
+        "V04",
+        "V05"
+      ],
+      "operators": [],
+      "comparisons": {},
+      "bracket_refs": [],
+      "key_sum": [
+        {
+          "key": 21,
+          "sum": 4
+        },
+        {
+          "key": 4,
+          "sum": 21
+        }
+      ],
+      "all_calls": [
+        200
+      ],
+      "called_by": [
+        120
+      ]
+    },
+    "200": {
+      "id": 200,
+      "name": "F.G: Formula Finale",
+      "tipo": "Fine Giornata",
+      "tipo_cat": "fine",
+      "tipo_order": 2,
+      "scopo": "Accumula le ore ordinarie nel progressivo K601 (ore lavorate) e K602 (ore ordinarie), poi richiama la gestione maggiorazioni per i turnisti. **Formula compressa:**",
+      "code": "(K601A3)(K602A3);900>Z(P210;",
+      "reset_fields": [],
+      "k_fields": [
+        601,
+        602
+      ],
+      "braced_refs": [],
+      "numeric_refs": [
+        900
+      ],
+      "calls_r": [],
+      "calls_p": [
+        210
+      ],
+      "return_codes": [],
+      "operators": [
+        "Z"
+      ],
+      "comparisons": {},
+      "bracket_refs": [],
+      "key_sum": [],
+      "all_calls": [
+        210
+      ],
+      "called_by": [
+        120,
+        130,
+        140
+      ]
+    },
+    "210": {
+      "id": 210,
+      "name": "F.G: Maggiorazioni per Turnisti",
+      "tipo": "Fine Giornata",
+      "tipo_cat": "fine",
+      "tipo_order": 2,
+      "scopo": "Calcola le maggiorazioni spettanti ai turnisti: notturno (campo 21) e maggiorazione turno diurno (890 = ore diurne al di sopra del normale). **Formula compressa:**",
+      "code": "21>Z((505=\"N\")(565=21);(890=3S21);890>Z((506=\"T\")(566=890);\n(K626A565)(K625A566);",
+      "reset_fields": [],
+      "k_fields": [
+        625,
+        626
+      ],
+      "braced_refs": [],
+      "numeric_refs": [
+        21,
+        505,
+        506,
+        565,
+        566,
+        890
+      ],
+      "calls_r": [],
+      "calls_p": [],
+      "return_codes": [],
+      "operators": [
+        "Z"
+      ],
+      "comparisons": {},
+      "bracket_refs": [],
+      "key_sum": [],
+      "all_calls": [],
+      "called_by": [
+        200
+      ]
+    },
+    "1000": {
+      "id": 1000,
+      "name": "I.G: Dirigenti",
+      "tipo": "Inizio Giornata",
+      "tipo_cat": "inizio",
+      "tipo_order": 1,
+      "scopo": "Per i dirigenti (non timbratori), imposta le timbrature calcolate uguali all'orario previsionale, gestendo fino a 4 intervalli giornalieri. **Formula compressa:**",
+      "code": "390#Z(VF;(251=111)(271=141);112>Z((252=112)(272=142);\n113>Z((253=113)(273=143);114>Z((254=114)(274=144);",
+      "reset_fields": [],
+      "k_fields": [],
+      "braced_refs": [],
+      "numeric_refs": [
+        111,
+        112,
+        113,
+        114,
+        141,
+        142,
+        143,
+        144,
+        251,
+        252,
+        253,
+        254,
+        271,
+        272,
+        273,
+        274,
+        390
+      ],
+      "calls_r": [],
+      "calls_p": [],
+      "return_codes": [
+        "VF"
+      ],
+      "operators": [
+        "Z"
+      ],
+      "comparisons": {},
+      "bracket_refs": [],
+      "key_sum": [],
+      "all_calls": [],
+      "called_by": []
+    },
+    "1010": {
+      "id": 1010,
+      "name": "I.G: Quadri",
+      "tipo": "Inizio Giornata",
+      "tipo_cat": "inizio",
+      "tipo_order": 1,
+      "scopo": "Come la 1000 (Dirigenti), ma con un controllo aggiuntivo: verifica che non ci siano timbrature effettive prima di sovrascrivere con il previsionale. Se il quadro ha già timbrato, non sovrascrive. **Formula compressa:**",
+      "code": "390#Z(VF;201UZE221UZ(VF;(251=111)(271=141);\n112>Z((252=112)(272=142);113>Z((253=113)(273=143);114>Z((254=114)(274=144);",
+      "reset_fields": [],
+      "k_fields": [],
+      "braced_refs": [],
+      "numeric_refs": [
+        111,
+        112,
+        113,
+        114,
+        141,
+        142,
+        143,
+        144,
+        251,
+        252,
+        253,
+        254,
+        271,
+        272,
+        273,
+        274,
+        390
+      ],
+      "calls_r": [],
+      "calls_p": [],
+      "return_codes": [
+        "VF"
+      ],
+      "operators": [
+        "UZ",
+        "Z"
+      ],
+      "comparisons": {},
+      "bracket_refs": [],
+      "key_sum": [],
+      "all_calls": [],
+      "called_by": []
+    },
+    "1020": {
+      "id": 1020,
+      "name": "I.G: Dipendenti che timbrano una volta per intervallo",
+      "tipo": "Inizio Giornata",
+      "tipo_cat": "inizio",
+      "tipo_order": 1,
+      "scopo": "Gestisce i dipendenti che timbrano una sola volta per ogni intervallo (non entrata+uscita separata). La singola timbratura viene interpretata come entrata o uscita in base alla sua posizione rispetto all'orario previsionale. **Formula compressa:**",
+      "code": "390#Z(VF;100UZ((!251!271!252!272)VF;(!800!801);(!802!803!804);\n(802='200')(803='220');([802[803[804);{802}UZE{803}UZ(V12;\n{802}#ZE{802}<U141((800=141S111);{802}#ZE{802}>141((801=142S112);\n{803}#ZE{803}<U141((800=141S111);{803}#ZE{803}>141((801=142S112);\n804#200(V05;800>Z((251=111)(271=141)(!252!272);\n801>Z((252=112)(272=142);800UZE801#Z((251=112)(271=142)(!252!272);",
+      "reset_fields": [
+        251,
+        252,
+        271,
+        272,
+        800,
+        801,
+        802,
+        803,
+        804
+      ],
+      "k_fields": [],
+      "braced_refs": [
+        802,
+        803
+      ],
+      "numeric_refs": [
+        111,
+        112,
+        141,
+        142,
+        200,
+        220,
+        251,
+        252,
+        271,
+        272,
+        390,
+        800,
+        801,
+        802,
+        803,
+        804
+      ],
+      "calls_r": [],
+      "calls_p": [],
+      "return_codes": [
+        "V05",
+        "VF"
+      ],
+      "operators": [
+        "UZ",
+        "Z"
+      ],
+      "comparisons": {},
+      "bracket_refs": [
+        802,
+        803,
+        804
+      ],
+      "key_sum": [],
+      "all_calls": [],
+      "called_by": []
+    },
+    "1100": {
+      "id": 1100,
+      "name": "F.G: PRIMA FORMULA x Dirigenti e Quadri",
+      "tipo": "Fine Giornata",
+      "tipo_cat": "fine",
+      "tipo_order": 2,
+      "scopo": "Prima Formula di Fine Giornata per dirigenti/quadri. Gestisce il caso in cui le assenze (608+609) siano maggiori o uguali al previsionale, annullando tutte le timbrature calcolate. **Formula compressa:**",
+      "code": "(800=608A609);1UZO800UZ(VU;800>U1((!251!271!252!272!3)VF;\n(801=142S112);(K3S800);800<801((K272S800)VU;\n800U801((!252!272)VU;800>801((271=251A3)(!252!272)VU;(K601A3)(K602A3);",
+      "reset_fields": [
+        3,
+        251,
+        252,
+        271,
+        272
+      ],
+      "k_fields": [
+        3,
+        272,
+        601,
+        602
+      ],
+      "braced_refs": [],
+      "numeric_refs": [
+        3,
+        251,
+        252,
+        271,
+        272,
+        800,
+        801
+      ],
+      "calls_r": [],
+      "calls_p": [],
+      "return_codes": [
+        "VF",
+        "VU"
+      ],
+      "operators": [
+        "U",
+        "UZ"
+      ],
+      "comparisons": {},
+      "bracket_refs": [],
+      "key_sum": [
+        {
+          "key": 3,
+          "sum": 800
+        },
+        {
+          "key": 272,
+          "sum": 800
+        }
+      ],
+      "all_calls": [],
+      "called_by": []
+    },
+    "1120": {
+      "id": 1120,
+      "name": "F.G: PRIMA FORMULA x dip. che timbrano una volta",
+      "tipo": "Fine Giornata",
+      "tipo_cat": "fine",
+      "tipo_order": 2,
+      "scopo": "Come la 1100 ma pensata per i dipendenti a timbratura singola. Gestisce assenze parziali distribuendole tra mattino (800) e pomeriggio (801). **Formula compressa:**",
+      "code": "(800=800);(801=801);(805=608A609);(806=1S3);1UZO805UZ(VF;\n805>U1((!251!271!252!272!3!4!5)VF;(807=805S806);\n800>ZE801>ZE805>ZE801>805((K272S805)VU;\n800>ZE801UZE805>ZE800<U805((K271S807)VU;\n800UZE801>ZE805>ZE801<U805((K251A807)VU;(3=1S805)(5=1S3S805);",
+      "reset_fields": [
+        3,
+        4,
+        5,
+        251,
+        252,
+        271,
+        272
+      ],
+      "k_fields": [
+        251,
+        271,
+        272
+      ],
+      "braced_refs": [],
+      "numeric_refs": [
+        3,
+        4,
+        5,
+        251,
+        252,
+        271,
+        272,
+        800,
+        801,
+        805,
+        806,
+        807
+      ],
+      "calls_r": [],
+      "calls_p": [],
+      "return_codes": [
+        "VF",
+        "VU"
+      ],
+      "operators": [
+        "U",
+        "UZ"
+      ],
+      "comparisons": {},
+      "bracket_refs": [],
+      "key_sum": [
+        {
+          "key": 272,
+          "sum": 805
+        },
+        {
+          "key": 271,
+          "sum": 807
+        }
+      ],
+      "all_calls": [],
+      "called_by": []
+    },
+    "2000": {
+      "id": 2000,
+      "name": "F.G: PRIMA FORMULA x dipendenti a chiamata",
+      "tipo": "Fine Giornata",
+      "tipo_cat": "fine",
+      "tipo_order": 2,
+      "scopo": "Gestisce i dipendenti \"a chiamata\" (tipo turno CHIA): se il giorno non è lavorabile (data fuori range) esce, se non ha timbrato imposta il giorno come riposo, altrimenti copia le timbrature calcolate come previsionali e chiude il calcolo. **Formula compressa:**",
+      "code": "300>305(VF;200UZ((!111!112!113!141!142!143)(58=\"RIPO\")VU;\n(111=251)(141=271);(112=252)(142=272);(113=253)(143=273);(114=254)(144=274);\n58U\"CHIA\"((58=\"CHI\")VU;(58=\"CHIA\");\n(K3A4)(!4!5)(100=250)(1=3)(K601A3)(K602A3);",
+      "reset_fields": [
+        4,
+        5,
+        111,
+        112,
+        113,
+        141,
+        142,
+        143
+      ],
+      "k_fields": [
+        3,
+        601,
+        602
+      ],
+      "braced_refs": [],
+      "numeric_refs": [
+        1,
+        3,
+        4,
+        5,
+        58,
+        100,
+        111,
+        112,
+        113,
+        114,
+        141,
+        142,
+        143,
+        144,
+        250,
+        251,
+        252,
+        253,
+        254,
+        271,
+        272,
+        273,
+        274,
+        300,
+        305
+      ],
+      "calls_r": [],
+      "calls_p": [],
+      "return_codes": [
+        "VF",
+        "VU"
+      ],
+      "operators": [
+        "U",
+        "UZ"
+      ],
+      "comparisons": {},
+      "bracket_refs": [],
+      "key_sum": [],
+      "all_calls": [],
+      "called_by": []
+    },
+    "2050": {
+      "id": 2050,
+      "name": "I.G: Conad Gubbio – Arrotondamento entrate",
+      "tipo": "Inizio Giornata",
+      "tipo_cat": "inizio",
+      "tipo_order": 1,
+      "scopo": "Arrotonda la timbratura di entrata effettiva alla mezz'ora o all'ora successiva, salvando il risultato nell'entrata calcolata. Dal 01/06/2023 delega alla formula 2060. **Formula compressa:**",
+      "code": "300>U'20230601'(R2060;201UZ(VU;(71=201)(70='3');(251=72);\n73<U'30.00'E73>Z((K251A'0.30')V06;73<U'59.00'E73>Z((K251A'1.00');R2051;",
+      "reset_fields": [],
+      "k_fields": [
+        251
+      ],
+      "braced_refs": [],
+      "numeric_refs": [
+        1,
+        3,
+        30,
+        59,
+        70,
+        71,
+        72,
+        73,
+        201,
+        251,
+        300
+      ],
+      "calls_r": [
+        2051,
+        2060
+      ],
+      "calls_p": [],
+      "return_codes": [
+        "V06",
+        "VU"
+      ],
+      "operators": [
+        "U",
+        "UZ",
+        "Z"
+      ],
+      "comparisons": {},
+      "bracket_refs": [],
+      "key_sum": [],
+      "all_calls": [
+        2051,
+        2060
+      ],
+      "called_by": []
+    },
+    "2051": {
+      "id": 2051,
+      "name": "I.G: Conad Gubbio – Arrotondamento uscite",
+      "tipo": "Inizio Giornata (subroutine di 2050)",
+      "tipo_cat": "altro",
+      "tipo_order": 99,
+      "scopo": "Arrotonda le uscite effettive (2° e 1° intervallo) dei dipendenti Conad Gubbio alla mezz'ora successiva, salvando nei campi calcolati 272 e 271. **Formula compressa:**",
+      "code": "200U'2'E222>Z(V02;V05;(71=222)(70='3');(272=72);\n73>U'30.00'E73>Z((K272A'0.30')V05;200U'1'E221>Z(V07;V10;\n(71=221)(70='3');(271=72);73>U'30.00'E73>Z((K271A'0.30')V10;",
+      "reset_fields": [],
+      "k_fields": [
+        271,
+        272
+      ],
+      "braced_refs": [],
+      "numeric_refs": [
+        1,
+        2,
+        3,
+        30,
+        70,
+        71,
+        72,
+        73,
+        221,
+        222,
+        271,
+        272
+      ],
+      "calls_r": [],
+      "calls_p": [],
+      "return_codes": [
+        "V02",
+        "V05",
+        "V07",
+        "V10"
+      ],
+      "operators": [
+        "Z"
+      ],
+      "comparisons": {},
+      "bracket_refs": [],
+      "key_sum": [],
+      "all_calls": [],
+      "called_by": [
+        2050
+      ]
+    },
+    "2060": {
+      "id": 2060,
+      "name": "Cap uscite a 20:05 (dal 01/06/2023)",
+      "tipo": "Inizio Giornata",
+      "tipo_cat": "inizio",
+      "tipo_order": 1,
+      "scopo": "Dal 1° giugno 2023, sostituisce l'arrotondamento con un vincolo fisso: nessun dipendente Conad Gubbio può avere uscita calcolata oltre le **20:05**, per tutti i 7 intervalli possibili. **Formula compressa:**",
+      "code": "VF;221>'20.05'((271='20.05');222>'20.05'((272='20.05');\n223>'20.05'((273='20.05');224>'20.05'((274='20.05');\n225>'20.05'((275='20.05');226>'20.05'((276='20.05');227>'20.05'((277='20.05');",
+      "reset_fields": [],
+      "k_fields": [],
+      "braced_refs": [],
+      "numeric_refs": [
+        5,
+        20,
+        221,
+        222,
+        223,
+        224,
+        225,
+        226,
+        227,
+        271,
+        272,
+        273,
+        274,
+        275,
+        276,
+        277
+      ],
+      "calls_r": [],
+      "calls_p": [],
+      "return_codes": [
+        "VF"
+      ],
+      "operators": [],
+      "comparisons": {},
+      "bracket_refs": [],
+      "key_sum": [],
+      "all_calls": [],
+      "called_by": [
+        2050
+      ]
+    },
+    "2114": {
+      "id": 2114,
+      "name": "Ritocco SA/SB (cap 8 ore straordinario)",
+      "tipo": "Subroutine",
+      "tipo_cat": "sub",
+      "tipo_order": 4,
+      "scopo": "Verifica che le ore di straordinario diurno (campo 907) non superino la soglia massima consentita rispetto al totale settimanale (774). Se le superano, scorpora l'eccesso nel campo 915 (SB – seconda fascia straordinario). **Formula compressa:**",
+      "code": "774<U'08.00'(VF;(800=774S907);774>'8.00'E800<'08.00'((915=907S'08.00')(K907S915);(915=907)(!907);",
+      "reset_fields": [
+        907
+      ],
+      "k_fields": [
+        907
+      ],
+      "braced_refs": [],
+      "numeric_refs": [
+        8,
+        774,
+        800,
+        907,
+        915
+      ],
+      "calls_r": [],
+      "calls_p": [],
+      "return_codes": [
+        "VF"
+      ],
+      "operators": [],
+      "comparisons": {},
+      "bracket_refs": [],
+      "key_sum": [
+        {
+          "key": 907,
+          "sum": 915
+        }
+      ],
+      "all_calls": [],
+      "called_by": []
+    },
+    "2130": {
+      "id": 2130,
+      "name": "Warning ore carenti / soglia 250h annuali (variante A)",
+      "tipo": "Subroutine – Alert",
+      "tipo_cat": "altro",
+      "tipo_order": 99,
+      "scopo": "Genera messaggi di avviso via Campo70=99 in due situazioni: settimana con ore carenti (campo 5 > 0) e avvicinamento alla soglia annuale di 250 ore straordinarie (campo 783 tra 220h e 250h). **Formula compressa:**",
+      "code": "5>Z(V02;V06;(71=\"ATTENZIONE SETTIMANA CON ORE CARENTI\");\n(72=\"Cod.Azienda e Cod.dipendente\")(73=1000)(74=1100);\n(75=\"Giorno e Ore carenti\")(76=300)(77=5)(!78);(70='99');\n783>U'220.00'E783<U'250.00'(V08;V12;\n(71=\"ATTENZIONE Potenziale avvicinamento alle 250 ore annuali\");\n(72=\"Cod.Azienda e Cod.dipendente\")(73=1000)(74=1100);\n(75=\"Ore raggiunte annuali\")(76=783)(77=\"al giorno\")(78=300);(70='99');",
+      "reset_fields": [
+        78
+      ],
+      "k_fields": [],
+      "braced_refs": [],
+      "numeric_refs": [
+        5,
+        70,
+        71,
+        72,
+        73,
+        74,
+        75,
+        76,
+        77,
+        78,
+        99,
+        220,
+        250,
+        300,
+        783,
+        1000,
+        1100
+      ],
+      "calls_r": [],
+      "calls_p": [],
+      "return_codes": [
+        "V02",
+        "V06"
+      ],
+      "operators": [
+        "Z"
+      ],
+      "comparisons": {},
+      "bracket_refs": [],
+      "key_sum": [],
+      "all_calls": [],
+      "called_by": []
+    },
+    "2140": {
+      "id": 2140,
+      "name": "Arrotondamento base",
+      "tipo": "Subroutine",
+      "tipo_cat": "sub",
+      "tipo_order": 4,
+      "scopo": "Formula minimalista: somma ordinario (3) + straordinario (4) in campo 71, per uso come input in ulteriori calcoli. Spesso usata come test di totale. **Formula compressa:**",
+      "code": "(71=3A4);",
+      "reset_fields": [],
+      "k_fields": [],
+      "braced_refs": [],
+      "numeric_refs": [
+        71
+      ],
+      "calls_r": [],
+      "calls_p": [],
+      "return_codes": [],
+      "operators": [],
+      "comparisons": {},
+      "bracket_refs": [],
+      "key_sum": [],
+      "all_calls": [],
+      "called_by": []
+    },
+    "3003": {
+      "id": 3003,
+      "name": "FG 2 NEW – Arrotondamento ore (dal 01/06/2023)",
+      "tipo": "Subroutine",
+      "tipo_cat": "sub",
+      "tipo_order": 4,
+      "scopo": "Versione semplificata dell'arrotondamento post 01/06/2023: arrotonda le ore ordinarie (3) alla mezz'ora (se minuti ≥ 30 → aggiunge 30 min). Non ha più la logica di doppio livello della 3002. **Formula compressa:**",
+      "code": "(71=3)(!800)(70='3');(3=72);73<'30.00'(VF;73<U'59.00'((K800A'0.30')VU;(K3A800);",
+      "reset_fields": [
+        800
+      ],
+      "k_fields": [
+        3,
+        800
+      ],
+      "braced_refs": [],
+      "numeric_refs": [
+        3,
+        30,
+        59,
+        70,
+        71,
+        72,
+        73,
+        800
+      ],
+      "calls_r": [],
+      "calls_p": [],
+      "return_codes": [
+        "VF",
+        "VU"
+      ],
+      "operators": [
+        "U"
+      ],
+      "comparisons": {},
+      "bracket_refs": [],
+      "key_sum": [],
+      "all_calls": [],
+      "called_by": []
+    },
+    "3004": {
+      "id": 3004,
+      "name": "Straordinario Festivo",
+      "tipo": "Subroutine",
+      "tipo_cat": "sub",
+      "tipo_order": 4,
+      "scopo": "Riclassifica le ore straordinarie nei giorni festivi/domenicali: sposta tutto lo straordinario diurno (907) nel festivo (914), aggiungendo eventualmente l'eccedenza da 915. **Formula compressa:**",
+      "code": "50UIO55UI(V02;VF;907>Z((914=907)(!907);915>Z((K914A915)(!915);3>Z((904=3);",
+      "reset_fields": [
+        907,
+        915
+      ],
+      "k_fields": [
+        914
+      ],
+      "braced_refs": [],
+      "numeric_refs": [
+        3,
+        904,
+        907,
+        914,
+        915
+      ],
+      "calls_r": [],
+      "calls_p": [],
+      "return_codes": [
+        "V02",
+        "VF"
+      ],
+      "operators": [
+        "Z"
+      ],
+      "comparisons": {},
+      "bracket_refs": [],
+      "key_sum": [],
+      "all_calls": [],
+      "called_by": []
+    },
+    "3017": {
+      "id": 3017,
+      "name": "Gestione autorizzazioni straordinario (AUTS)",
+      "tipo": "Subroutine",
+      "tipo_cat": "sub",
+      "tipo_order": 4,
+      "scopo": "Legge le causali manuali 401–404. Se una di esse è impostata su \"AUTS\" (Autorizzazione Straordinario), salva il valore autorizzato nei campi 820 (numero intervallo autorizzato) e 821 (ore autorizzate dal campo 431–434). **Formula compressa:**",
+      "code": "(!820)(!821);\n401U\"AUTS\"((820='1')(821=431);402U\"AUTS\"((820='2')(821=432);\n403U\"AUTS\"((820='3')(821=433);404U\"AUTS\"((820='4')(821=434);",
+      "reset_fields": [
+        820,
+        821
+      ],
+      "k_fields": [],
+      "braced_refs": [],
+      "numeric_refs": [
+        1,
+        2,
+        3,
+        4,
+        431,
+        432,
+        433,
+        434,
+        820,
+        821
+      ],
+      "calls_r": [],
+      "calls_p": [],
+      "return_codes": [],
+      "operators": [],
+      "comparisons": {},
+      "bracket_refs": [],
+      "key_sum": [],
+      "all_calls": [],
+      "called_by": []
+    },
+    "9001": {
+      "id": 9001,
+      "name": "I.G: Arrotondamento Impiegati (I)",
+      "tipo": "Inizio Giornata",
+      "tipo_cat": "inizio",
+      "tipo_order": 1,
+      "scopo": "Arrotonda il totale delle ore calcolate dell'impiegato al quarto d'ora (15 minuti), poi riproporziona **tutte** le timbrature calcolate tranne l'ultima in modo che la loro somma corrisponda al totale arrotondato. **Formula compressa:**",
+      "code": "(800='250')(801='270')(!802);200UZ(VF;([800[801);(K802A{801}S{800});\n{801}<{800}((K802A'24');{800}UZE{801}UZ(V07;800<'257'(V02;\n(71=802)(72='15')(!73!74)(70='21');\n(800='250')(801='270')(802=71)(!803!804);([800[801[803);803U200(R9002;\n(71={800})(72='15')(!73!74)(70='20');({800}=71);\n(71={801})(72='15')(!73!74)(70='21');({801}=71);\n(K804A{801}S{800});{801}<{800}((K804A'24');803<U200(V09;",
+      "reset_fields": [
+        73,
+        74,
+        802,
+        803,
+        804
+      ],
+      "k_fields": [
+        802,
+        804
+      ],
+      "braced_refs": [
+        800,
+        801
+      ],
+      "numeric_refs": [
+        15,
+        20,
+        21,
+        24,
+        70,
+        71,
+        72,
+        73,
+        74,
+        250,
+        257,
+        270,
+        800,
+        801,
+        802,
+        803,
+        804
+      ],
+      "calls_r": [
+        9002
+      ],
+      "calls_p": [],
+      "return_codes": [
+        "V02",
+        "V07",
+        "VF"
+      ],
+      "operators": [
+        "UZ"
+      ],
+      "comparisons": {},
+      "bracket_refs": [
+        800,
+        801,
+        803
+      ],
+      "key_sum": [],
+      "all_calls": [
+        9002
+      ],
+      "called_by": []
+    },
+    "9002": {
+      "id": 9002,
+      "name": "I.G: Arrotondamento Impiegati (II)",
+      "tipo": "Inizio Giornata (chiamata da 9001)",
+      "tipo_cat": "altro",
+      "tipo_order": 99,
+      "scopo": "Aggiusta l'**ultimo intervallo** in modo che il totale delle ore calcolate corrisponda esattamente al totale arrotondato. Usa Campo70=20 (arrotonda entrata) e calcola l'uscita come `{800} + 802 - 804`. **Formula compressa:**",
+      "code": "(71={800})(72='15')(!73!74)(70='20');({800}=71);\n({801}={800}A802S804);(!800!801!802!803!804);",
+      "reset_fields": [
+        73,
+        74,
+        800,
+        801,
+        802,
+        803,
+        804
+      ],
+      "k_fields": [],
+      "braced_refs": [
+        800,
+        801
+      ],
+      "numeric_refs": [
+        15,
+        20,
+        70,
+        71,
+        72,
+        73,
+        74,
+        800,
+        801,
+        802,
+        803,
+        804
+      ],
+      "calls_r": [],
+      "calls_p": [],
+      "return_codes": [],
+      "operators": [],
+      "comparisons": {},
+      "bracket_refs": [],
+      "key_sum": [],
+      "all_calls": [],
+      "called_by": [
+        9001
+      ]
+    }
+  },
+  "edges": [
+    {
+      "source": 100,
+      "target": 110,
+      "type": "calls_r"
+    },
+    {
+      "source": 110,
+      "target": 120,
+      "type": "calls_r"
+    },
+    {
+      "source": 120,
+      "target": 130,
+      "type": "calls_r"
+    },
+    {
+      "source": 120,
+      "target": 140,
+      "type": "calls_r"
+    },
+    {
+      "source": 120,
+      "target": 200,
+      "type": "calls_r"
+    },
+    {
+      "source": 130,
+      "target": 200,
+      "type": "calls_r"
+    },
+    {
+      "source": 140,
+      "target": 200,
+      "type": "calls_r"
+    },
+    {
+      "source": 200,
+      "target": 210,
+      "type": "calls_p"
+    },
+    {
+      "source": 2050,
+      "target": 2051,
+      "type": "calls_r"
+    },
+    {
+      "source": 2050,
+      "target": 2060,
+      "type": "calls_r"
+    },
+    {
+      "source": 9001,
+      "target": 9002,
+      "type": "calls_r"
+    }
+  ],
+  "formula_ids": [
+    1,
+    5,
+    10,
+    100,
+    110,
+    120,
+    130,
+    140,
+    200,
+    210,
+    1000,
+    1010,
+    1020,
+    1100,
+    1120,
+    2000,
+    2050,
+    2051,
+    2060,
+    2114,
+    2130,
+    2140,
+    3003,
+    3004,
+    3017,
+    9001,
+    9002
+  ],
+  "types": [
+    "Di Giornata",
+    "Fine Giornata",
+    "Inizio Giornata",
+    "Inizio Giornata (chiamata da 9001)",
+    "Inizio Giornata (subroutine di 2050)",
+    "Subroutine",
+    "Subroutine – Alert"
+  ]
+}

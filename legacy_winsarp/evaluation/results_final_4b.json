@@ -1,0 +1,332 @@
+{
+  "summary": {
+    "total_queries": 10,
+    "passed": 8,
+    "failed": 2,
+    "pass_rate_pct": 80.0,
+    "avg_keyword_score": 1.0,
+    "avg_latency_sec": 237.7,
+    "model": "qwen3.5:4b",
+    "module": "WinSarp",
+    "categories": {
+      "field_lookup": {
+        "total": 2,
+        "passed": 2,
+        "pass_rate_pct": 100.0
+      },
+      "relationship_callers": {
+        "total": 1,
+        "passed": 1,
+        "pass_rate_pct": 100.0
+      },
+      "relationship_calls": {
+        "total": 2,
+        "passed": 2,
+        "pass_rate_pct": 100.0
+      },
+      "retrieval_by_id": {
+        "total": 3,
+        "passed": 2,
+        "pass_rate_pct": 66.7
+      },
+      "retrieval_by_name": {
+        "total": 1,
+        "passed": 0,
+        "pass_rate_pct": 0.0
+      },
+      "retrieval_by_type": {
+        "total": 1,
+        "passed": 1,
+        "pass_rate_pct": 100.0
+      }
+    }
+  },
+  "results": [
+    {
+      "gold": {
+        "id": "G01",
+        "query": "Qual è la formula 120?",
+        "category": "retrieval_by_id",
+        "expected_formula_id": 120,
+        "expected_keywords": [
+          "Principale"
+        ],
+        "expected_behavior": "Must return formula #120 with its code and explanation"
+      },
+      "result": {
+        "answer_preview": "🔢 Formula #120 — F.G: Principale\n```\n4UZ(VU;1121U\"N\"((!4)VU;55UIO50UI(R130;R140;R200;\n```\n📝 **Spiegazione:**  \nQuesta formula funge da smistatore centrale per la Fine Giornata. Il suo scopo è verifica",
+        "source_ids": [
+          120,
+          140,
+          2100,
+          2060
+        ],
+        "elapsed_sec": 157.51
+      },
+      "evaluation": {
+        "keyword_score": 1.0,
+        "formula_id_found": true,
+        "recall": 1.0,
+        "precision": 0.25,
+        "passed": true
+      }
+    },
+    {
+      "gold": {
+        "id": "G02",
+        "query": "Mostrami la formula Principale",
+        "category": "retrieval_by_name",
+        "expected_formula_id": 120,
+        "expected_keywords": [
+          "Principale",
+          "120"
+        ],
+        "expected_behavior": "Must identify formula #120 by name"
+      },
+      "result": {
+        "answer_preview": "🔢 Formula #120 — F.G: Principale\n```\nCodice: 4UZ(VU;1121U\"N\"((!4)VU;55UIO50UI(R130;R140;R200;\n```\n📝 **Spiegazione:**  \nQuesta formula è classificata come \"Fine Giornata\" e appartiene alla categoria `f",
+        "source_ids": [
+          100
+        ],
+        "elapsed_sec": 371.78
+      },
+      "evaluation": {
+        "keyword_score": 1.0,
+        "formula_id_found": true,
+        "recall": 0.0,
+        "precision": 0.0,
+        "passed": false
+      }
+    },
+    {
+      "gold": {
+        "id": "G03",
+        "query": "Quali formule ci sono per Fine Giornata?",
+        "category": "retrieval_by_type",
+        "expected_formula_ids": [
+          100,
+          110,
+          120,
+          130,
+          140,
+          200,
+          210,
+          1100,
+          1120,
+          2000
+        ],
+        "expected_keywords": [
+          "Fine Giornata"
+        ],
+        "expected_behavior": "Must list all Fine Giornata formulas"
+      },
+      "result": {
+        "answer_preview": "# 📋 Formule disponibili per **Fine Giornata**\n\nEcco tutte le formule presenti nel catalogo ufficiale WinSarp (Workbook Formule v1.0) che rientrano nella categoria **\"Fine Giornata\"**:\n\n---\n\n## 🔢 Formu",
+        "source_ids": [
+          120,
+          100,
+          200
+        ],
+        "elapsed_sec": 199.48
+      },
+      "evaluation": {
+        "keyword_score": 1.0,
+        "formula_id_found": null,
+        "recall": 0.3,
+        "precision": 0.75,
+        "passed": true
+      }
+    },
+    {
+      "gold": {
+        "id": "G04",
+        "query": "Spiega la formula 200",
+        "category": "retrieval_by_id",
+        "expected_formula_id": 200,
+        "expected_keywords": [
+          "Formula Finale"
+        ],
+        "expected_behavior": "Must return formula #200 explanation"
+      },
+      "result": {
+        "answer_preview": "🔢 Formula #200 — F.G: Formula Finale\n```\n(K601A3)(K602A3);900>Z(P210;\n```\n📝 **Spiegazione:**  \nQuesta formula è classificata come \"Fine Giornata\" e appartiene alla categoria `fine`. Il suo codice inte",
+        "source_ids": [
+          2105,
+          1120
+        ],
+        "elapsed_sec": 167.24
+      },
+      "evaluation": {
+        "keyword_score": 1.0,
+        "formula_id_found": true,
+        "recall": 0.0,
+        "precision": 0.0,
+        "passed": false
+      }
+    },
+    {
+      "gold": {
+        "id": "G05",
+        "query": "Che cosa fa la formula 130?",
+        "category": "retrieval_by_id",
+        "expected_formula_id": 130,
+        "expected_keywords": [
+          "Straordinario Festivo"
+        ],
+        "expected_behavior": "Must explain formula #130 purpose"
+      },
+      "result": {
+        "answer_preview": "🔢 Formula #130 — F.G: Straordinario Festivo e Festivo Notturno\n```\n21UZ(V04;(504=\"SFN\");21>4((564=4)(K21S4)(!4)V05; (564=21)(K4S21)(!21);(503=\"SF\")(563=4)(!4); (K601A563A564)(K604A563A564)(K615A563)(K",
+        "source_ids": [
+          140,
+          120,
+          130
+        ],
+        "elapsed_sec": 306.17
+      },
+      "evaluation": {
+        "keyword_score": 1.0,
+        "formula_id_found": true,
+        "recall": 1.0,
+        "precision": 0.25,
+        "passed": true
+      }
+    },
+    {
+      "gold": {
+        "id": "G06",
+        "query": "Quali formule usano il campo 561?",
+        "category": "field_lookup",
+        "expected_behavior": "Must find formulas referencing field 561"
+      },
+      "result": {
+        "answer_preview": "🔢 Formula #100 — PRIMA FORMULA – Azzeramenti\n```\n(500=\"DURATA\")(!561!562!563!564!565!566!567!568!569!570);R110;\n```\n\n📝 **Spiegazione:**  \nLa formula #100 è la prima operazione della sequenza di Fine G",
+        "source_ids": [
+          2140,
+          100
+        ],
+        "elapsed_sec": 178.72
+      },
+      "evaluation": {
+        "keyword_score": 1.0,
+        "formula_id_found": null,
+        "recall": null,
+        "precision": null,
+        "passed": true
+      }
+    },
+    {
+      "gold": {
+        "id": "G07",
+        "query": "Quali formule usano il campo 564?",
+        "category": "field_lookup",
+        "expected_behavior": "Must find formulas referencing field 564"
+      },
+      "result": {
+        "answer_preview": "🔢 Formula #10 — D.G: Determinazione del turno e cambio del previsionale\n```\n(900='3')(58=\"NOTT\")(111='22')(141='6')(!112!142)(100=I);\n```\n\n📝 **Spiegazione:** Questa formula non menziona esplicitamente",
+        "source_ids": [
+          10,
+          100,
+          3014
+        ],
+        "elapsed_sec": 155.06
+      },
+      "evaluation": {
+        "keyword_score": 1.0,
+        "formula_id_found": null,
+        "recall": null,
+        "precision": null,
+        "passed": true
+      }
+    },
+    {
+      "gold": {
+        "id": "G08",
+        "query": "La formula 120 chiama quali altre formule?",
+        "category": "relationship_calls",
+        "expected_formula_id": 120,
+        "expected_call_ids": [
+          130,
+          140,
+          200
+        ],
+        "expected_behavior": "Must list formulas called by #120"
+      },
+      "result": {
+        "answer_preview": "🔢 Formula #120 — F.G: Principale\n```\n(4UZ(VU;1121U\"N\"((!4)VU;55UIO50UI(R130;R140;R200;)\n)\n```\n📝 **Spiegazione:**  \nLa formula 120 agisce come smistatore centrale per la Fine Giornata. In base alla log",
+        "source_ids": [
+          120,
+          140,
+          2101,
+          2100
+        ],
+        "elapsed_sec": 333.27
+      },
+      "evaluation": {
+        "keyword_score": 1.0,
+        "formula_id_found": true,
+        "recall": 1.0,
+        "precision": 0.25,
+        "passed": true
+      }
+    },
+    {
+      "gold": {
+        "id": "G09",
+        "query": "Chi chiama la formula 200?",
+        "category": "relationship_callers",
+        "expected_formula_id": 200,
+        "expected_caller_ids": [
+          120,
+          130,
+          140
+        ],
+        "expected_behavior": "Must list formulas that call #200"
+      },
+      "result": {
+        "answer_preview": "🔢 Formula #200 — F.G: Formula Finale\n```\n(K601A3)(K602A3);900>Z(P210;\n```\n📝 **Spiegazione:** La formula 200 è chiamata dalle formule 120, 130 e 140.",
+        "source_ids": [
+          3000,
+          200
+        ],
+        "elapsed_sec": 275.23
+      },
+      "evaluation": {
+        "keyword_score": 1.0,
+        "formula_id_found": true,
+        "recall": 1.0,
+        "precision": 0.25,
+        "passed": true
+      }
+    },
+    {
+      "gold": {
+        "id": "G10",
+        "query": "La formula 100 chiama altre formule?",
+        "category": "relationship_calls",
+        "expected_formula_id": 100,
+        "expected_call_ids": [
+          110
+        ],
+        "expected_behavior": "Must show #100 calls #110"
+      },
+      "result": {
+        "answer_preview": "🔢 Formula #100 — F.G: PRIMA FORMULA – Azzeramenti\n```\n(500=\"DURATA\")(!561!562!563!564!565!566!567!568!569!570);R110;\n```\n\n📝 **Spiegazione:**  \nSì, la formula #100 chiama un'altra formula. Secondo il c",
+        "source_ids": [
+          2100,
+          120,
+          100,
+          140
+        ],
+        "elapsed_sec": 232.58
+      },
+      "evaluation": {
+        "keyword_score": 1.0,
+        "formula_id_found": true,
+        "recall": 1.0,
+        "precision": 0.25,
+        "passed": true
+      }
+    }
+  ]
+}

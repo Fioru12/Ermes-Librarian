@@ -1,0 +1,1522 @@
+{
+  "summary": {
+    "total_queries": 50,
+    "passed": 45,
+    "failed": 5,
+    "pass_rate_pct": 90.0,
+    "avg_keyword_score": 0.933,
+    "avg_latency_sec": 232.68,
+    "model": "qwen3.5:4b",
+    "module": "WinSarp",
+    "categories": {
+      "catalog_overview": {
+        "total": 1,
+        "passed": 1,
+        "pass_rate_pct": 100.0
+      },
+      "chain_analysis": {
+        "total": 2,
+        "passed": 2,
+        "pass_rate_pct": 100.0
+      },
+      "chain_validation": {
+        "total": 2,
+        "passed": 2,
+        "pass_rate_pct": 100.0
+      },
+      "comparison": {
+        "total": 2,
+        "passed": 2,
+        "pass_rate_pct": 100.0
+      },
+      "comparison_lookup": {
+        "total": 1,
+        "passed": 1,
+        "pass_rate_pct": 100.0
+      },
+      "field_lookup": {
+        "total": 4,
+        "passed": 4,
+        "pass_rate_pct": 100.0
+      },
+      "key_sum_lookup": {
+        "total": 1,
+        "passed": 1,
+        "pass_rate_pct": 100.0
+      },
+      "relationship_callers": {
+        "total": 3,
+        "passed": 3,
+        "pass_rate_pct": 100.0
+      },
+      "relationship_calls": {
+        "total": 5,
+        "passed": 5,
+        "pass_rate_pct": 100.0
+      },
+      "retrieval_by_id": {
+        "total": 11,
+        "passed": 10,
+        "pass_rate_pct": 90.9
+      },
+      "retrieval_by_name": {
+        "total": 1,
+        "passed": 1,
+        "pass_rate_pct": 100.0
+      },
+      "retrieval_by_type": {
+        "total": 4,
+        "passed": 2,
+        "pass_rate_pct": 50.0
+      },
+      "semantic_search": {
+        "total": 12,
+        "passed": 10,
+        "pass_rate_pct": 83.3
+      },
+      "type_comparison": {
+        "total": 1,
+        "passed": 1,
+        "pass_rate_pct": 100.0
+      }
+    }
+  },
+  "results": [
+    {
+      "gold": {
+        "id": "G01",
+        "query": "Qual è la formula 120?",
+        "category": "retrieval_by_id",
+        "expected_formula_id": 120,
+        "expected_keywords": [
+          "Principale"
+        ],
+        "expected_behavior": "Must return formula #120 with its code and explanation"
+      },
+      "result": {
+        "answer_preview": "🔢 Formula #120 — F.G: Principale\n```\n4UZ(VU;1121U\"N\"((!4)VU;55UIO50UI(R130;R140;R200;\n```\n📝 **Spiegazione:**  \nQuesta formula funge da smistatore centrale per la Fine Giornata. Il suo scopo è verifica",
+        "source_ids": [
+          120,
+          120,
+          140,
+          2100,
+          2060
+        ],
+        "elapsed_sec": 155.44
+      },
+      "evaluation": {
+        "keyword_score": 1.0,
+        "formula_id_found": true,
+        "recall": 1.0,
+        "precision": 0.25,
+        "passed": true
+      }
+    },
+    {
+      "gold": {
+        "id": "G02",
+        "query": "Mostrami la formula Principale",
+        "category": "retrieval_by_name",
+        "expected_formula_id": 120,
+        "expected_keywords": [
+          "Principale",
+          "120"
+        ],
+        "expected_behavior": "Must identify formula #120 by name"
+      },
+      "result": {
+        "answer_preview": "🔢 Formula #120 — F.G: Principale\n```\nCodice: 4UZ(VU;1121U\"N\"((!4)VU;55UIO50UI(R130;R140;R200;\n```\n📝 **Spiegazione:**  \nQuesta formula è classificata come \"Fine Giornata\" e appartiene alla categoria `f",
+        "source_ids": [
+          120,
+          100
+        ],
+        "elapsed_sec": 368.79
+      },
+      "evaluation": {
+        "keyword_score": 1.0,
+        "formula_id_found": true,
+        "recall": 1.0,
+        "precision": 0.25,
+        "passed": true
+      }
+    },
+    {
+      "gold": {
+        "id": "G03",
+        "query": "Quali formule ci sono per Fine Giornata?",
+        "category": "retrieval_by_type",
+        "expected_formula_ids": [
+          100,
+          110,
+          120,
+          130,
+          140,
+          200,
+          210,
+          1100,
+          1120,
+          2000
+        ],
+        "expected_keywords": [
+          "Fine Giornata"
+        ],
+        "expected_behavior": "Must list all Fine Giornata formulas"
+      },
+      "result": {
+        "answer_preview": "# 📋 Formule disponibili per **Fine Giornata**\n\nEcco tutte le formule presenti nel catalogo ufficiale WinSarp (Workbook Formule v1.0) che rientrano nella categoria **\"Fine Giornata\"**:\n\n---\n\n## 🔢 Formu",
+        "source_ids": [
+          120,
+          100,
+          200
+        ],
+        "elapsed_sec": 188.98
+      },
+      "evaluation": {
+        "keyword_score": 1.0,
+        "formula_id_found": null,
+        "recall": 0.3,
+        "precision": 0.75,
+        "passed": true
+      }
+    },
+    {
+      "gold": {
+        "id": "G04",
+        "query": "Spiega la formula 200",
+        "category": "retrieval_by_id",
+        "expected_formula_id": 200,
+        "expected_keywords": [
+          "Formula Finale"
+        ],
+        "expected_behavior": "Must return formula #200 explanation"
+      },
+      "result": {
+        "answer_preview": "🔢 Formula #200 — F.G: Formula Finale\n```\n(K601A3)(K602A3);900>Z(P210;\n```\n📝 **Spiegazione:**  \nQuesta formula è classificata come \"Fine Giornata\" e appartiene alla categoria `fine`. Il suo codice iden",
+        "source_ids": [
+          200,
+          2105,
+          1120
+        ],
+        "elapsed_sec": 182.14
+      },
+      "evaluation": {
+        "keyword_score": 1.0,
+        "formula_id_found": true,
+        "recall": 1.0,
+        "precision": 0.25,
+        "passed": true
+      }
+    },
+    {
+      "gold": {
+        "id": "G05",
+        "query": "Che cosa fa la formula 130?",
+        "category": "retrieval_by_id",
+        "expected_formula_id": 130,
+        "expected_keywords": [
+          "Straordinario Festivo"
+        ],
+        "expected_behavior": "Must explain formula #130 purpose"
+      },
+      "result": {
+        "answer_preview": "🔢 Formula #130 — F.G: Straordinario Festivo e Festivo Notturno\n```\n21UZ(V04;(504=\"SFN\");21>4((564=4)(K21S4)(!4)V05; (564=21)(K4S21)(!21);(503=\"SF\")(563=4)(!4); (K601A563A564)(K604A563A564)(K615A563)(K",
+        "source_ids": [
+          130,
+          140,
+          120,
+          130
+        ],
+        "elapsed_sec": 354.96
+      },
+      "evaluation": {
+        "keyword_score": 1.0,
+        "formula_id_found": true,
+        "recall": 1.0,
+        "precision": 0.25,
+        "passed": true
+      }
+    },
+    {
+      "gold": {
+        "id": "G06",
+        "query": "Quali formule usano il campo 561?",
+        "category": "field_lookup",
+        "expected_behavior": "Must find formulas referencing field 561"
+      },
+      "result": {
+        "answer_preview": "🔢 Formula #100 — PRIMA FORMULA – Azzeramenti\n```\n(500=\"DURATA\")(!561!562!563!564!565!566!567!568!569!570);R110;\n```\n\n📝 **Spiegazione:**  \nLa formula #100 è la prima operazione della sequenza di Fine G",
+        "source_ids": [
+          2140,
+          100
+        ],
+        "elapsed_sec": 171.8
+      },
+      "evaluation": {
+        "keyword_score": 1.0,
+        "formula_id_found": null,
+        "recall": null,
+        "precision": null,
+        "passed": true
+      }
+    },
+    {
+      "gold": {
+        "id": "G07",
+        "query": "Quali formule usano il campo 564?",
+        "category": "field_lookup",
+        "expected_behavior": "Must find formulas referencing field 564"
+      },
+      "result": {
+        "answer_preview": "🔢 Formula #10 — D.G: Determinazione del turno e cambio del previsionale\n```\n(900='3')(58=\"NOTT\")(111='22')(141='6')(!112!142)(100=I);\n```\n\n📝 **Spiegazione:** Questa formula non menziona esplicitamente",
+        "source_ids": [
+          10,
+          100,
+          3014
+        ],
+        "elapsed_sec": 146.41
+      },
+      "evaluation": {
+        "keyword_score": 1.0,
+        "formula_id_found": null,
+        "recall": null,
+        "precision": null,
+        "passed": true
+      }
+    },
+    {
+      "gold": {
+        "id": "G08",
+        "query": "La formula 120 chiama quali altre formule?",
+        "category": "relationship_calls",
+        "expected_formula_id": 120,
+        "expected_call_ids": [
+          130,
+          140,
+          200
+        ],
+        "expected_behavior": "Must list formulas called by #120"
+      },
+      "result": {
+        "answer_preview": "🔢 Formula #120 — F.G: Principale\n```\n(4UZ(VU;1121U\"N\"((!4)VU;55UIO50UI(R130;R140;R200;)\n)\n```\n📝 **Spiegazione:**  \nLa formula 120 agisce come smistatore centrale per la Fine Giornata. In base alla log",
+        "source_ids": [
+          120,
+          120,
+          140,
+          2101,
+          2100
+        ],
+        "elapsed_sec": 303.71
+      },
+      "evaluation": {
+        "keyword_score": 1.0,
+        "formula_id_found": true,
+        "recall": 1.0,
+        "precision": 0.25,
+        "passed": true
+      }
+    },
+    {
+      "gold": {
+        "id": "G09",
+        "query": "Chi chiama la formula 200?",
+        "category": "relationship_callers",
+        "expected_formula_id": 200,
+        "expected_caller_ids": [
+          120,
+          130,
+          140
+        ],
+        "expected_behavior": "Must list formulas that call #200"
+      },
+      "result": {
+        "answer_preview": "🔢 Formula #200 — F.G: Formula Finale\n```\n(K601A3)(K602A3);900>Z(P210;\n```\n📝 **Spiegazione:** La formula 200 è chiamata dalle formule 120, 130 e 140.",
+        "source_ids": [
+          200,
+          3000,
+          200
+        ],
+        "elapsed_sec": 273.71
+      },
+      "evaluation": {
+        "keyword_score": 1.0,
+        "formula_id_found": true,
+        "recall": 1.0,
+        "precision": 0.25,
+        "passed": true
+      }
+    },
+    {
+      "gold": {
+        "id": "G10",
+        "query": "La formula 100 chiama altre formule?",
+        "category": "relationship_calls",
+        "expected_formula_id": 100,
+        "expected_call_ids": [
+          110
+        ],
+        "expected_behavior": "Must show #100 calls #110"
+      },
+      "result": {
+        "answer_preview": "🔢 Formula #100 — F.G: PRIMA FORMULA – Azzeramenti\n```\n(500=\"DURATA\")(!561!562!563!564!565!566!567!568!569!570);R110;\n```\n\n📝 **Spiegazione:**  \nSì, la formula #100 chiama un'altra formula. Secondo il c",
+        "source_ids": [
+          100,
+          2100,
+          120,
+          100,
+          140
+        ],
+        "elapsed_sec": 215.84
+      },
+      "evaluation": {
+        "keyword_score": 1.0,
+        "formula_id_found": true,
+        "recall": 1.0,
+        "precision": 0.25,
+        "passed": true
+      }
+    },
+    {
+      "gold": {
+        "id": "G11",
+        "query": "Qual è la differenza tra formula 130 e 140?",
+        "category": "comparison",
+        "expected_formula_ids": [
+          130,
+          140
+        ],
+        "expected_keywords": [
+          "Festivo",
+          "Diurno",
+          "Notturno"
+        ],
+        "expected_behavior": "Must compare formulas #130 and #140"
+      },
+      "result": {
+        "answer_preview": "🔢 Formula #130 — F.G: Straordinario Festivo e Festivo Notturno\n```\n21UZ(V04;(504=\"SFN\");21>4((564=4)(K21S4)(!4)V05;\n(564=21)(K4S21)(!21);(503=\"SF\")(563=4)(!4);\n(K601A563A564)(K604A563A564)(K615A563)(K",
+        "source_ids": [
+          130,
+          140,
+          140,
+          120,
+          130
+        ],
+        "elapsed_sec": 186.42
+      },
+      "evaluation": {
+        "keyword_score": 1.0,
+        "formula_id_found": null,
+        "recall": 1.0,
+        "precision": 0.5,
+        "passed": true
+      }
+    },
+    {
+      "gold": {
+        "id": "G12",
+        "query": "Confronta le formule 100 e 110",
+        "category": "comparison",
+        "expected_formula_ids": [
+          100,
+          110
+        ],
+        "expected_behavior": "Must compare formulas #100 and #110"
+      },
+      "result": {
+        "answer_preview": "🔢 Formula #100 — F.G: PRIMA FORMULA – Azzeramenti\n```\n(500=\"DURATA\")(!561!562!563!564!565!566!567!568!569!570);R110;\n```\n\n🔢 Formula #110 — F.G: Riproporziono 3, 4 e 5 in base alle assenze\n```\n(800=3A4",
+        "source_ids": [
+          100,
+          110,
+          140,
+          1010,
+          120,
+          110
+        ],
+        "elapsed_sec": 159.26
+      },
+      "evaluation": {
+        "keyword_score": 1.0,
+        "formula_id_found": null,
+        "recall": 1.0,
+        "precision": 0.5,
+        "passed": true
+      }
+    },
+    {
+      "gold": {
+        "id": "G13",
+        "query": "Quali sono le Inizio Giornata?",
+        "category": "retrieval_by_type",
+        "expected_formula_ids": [
+          1,
+          5,
+          10,
+          1000,
+          1010,
+          1020,
+          2050,
+          2051,
+          2060,
+          9001,
+          9002
+        ],
+        "expected_keywords": [
+          "Inizio Giornata"
+        ],
+        "expected_behavior": "Must list all Inizio Giornata formulas"
+      },
+      "result": {
+        "answer_preview": "🔢 Formula #1 — Azzeramenti di inizio giornata\n```\n(!900);\n```\n📝 **Spiegazione:** Azzera il campo 900, utilizzato come flag anti-loop e indicatore di turno in tutte le formule successive. È la più semp",
+        "source_ids": [
+          1,
+          100,
+          120
+        ],
+        "elapsed_sec": 157.48
+      },
+      "evaluation": {
+        "keyword_score": 1.0,
+        "formula_id_found": null,
+        "recall": 0.091,
+        "precision": 0.25,
+        "passed": false
+      }
+    },
+    {
+      "gold": {
+        "id": "G14",
+        "query": "Formule che chiamano la 210",
+        "category": "relationship_callers",
+        "expected_formula_id": 210,
+        "expected_caller_ids": [
+          200
+        ],
+        "expected_behavior": "Must show #200 calls #210"
+      },
+      "result": {
+        "answer_preview": "🔢 Formula #210 — F.G: Maggiorazioni per Turnisti  \n```\nCodice formula: `21>Z((505=\"N\")(565=21);(890=3S21);890>Z((506=\"T\")(566=890);` (Fonte contesto)\n```\n📝 **Spiegazione:**  \nSecondo il documento `sou",
+        "source_ids": [
+          210,
+          2105,
+          2130,
+          2115
+        ],
+        "elapsed_sec": 585.06
+      },
+      "evaluation": {
+        "keyword_score": 1.0,
+        "formula_id_found": true,
+        "recall": 1.0,
+        "precision": 0.25,
+        "passed": true
+      }
+    },
+    {
+      "gold": {
+        "id": "G15",
+        "query": "Quali subroutine esistono?",
+        "category": "retrieval_by_type",
+        "expected_formula_ids": [
+          2114,
+          2130,
+          2140,
+          3003,
+          3004,
+          3017
+        ],
+        "expected_keywords": [
+          "Subroutine"
+        ],
+        "expected_behavior": "Must list all Subroutine formulas"
+      },
+      "result": {
+        "answer_preview": "🔢 **Subroutine WinSarp** — Elenco completo delle subroutine disponibili nel catalogo ufficiale Data Services (Workbook Formule v1.0)\n\n---\n\n## 📋 Lista completa delle Subroutine\n\n| Codice | Nome Formula",
+        "source_ids": [
+          3009,
+          2109,
+          2101
+        ],
+        "elapsed_sec": 189.73
+      },
+      "evaluation": {
+        "keyword_score": 1.0,
+        "formula_id_found": null,
+        "recall": 0.0,
+        "precision": 0.0,
+        "passed": false
+      }
+    },
+    {
+      "gold": {
+        "id": "G16",
+        "query": "Come si calcola lo straordinario notturno?",
+        "category": "semantic_search",
+        "expected_keywords": [
+          "Straordinario",
+          "Notturno"
+        ],
+        "expected_behavior": "Must find relevant formula(s) for night overtime"
+      },
+      "result": {
+        "answer_preview": "🔢 Formula #130 — F.G: Straordinario Festivo e Festivo Notturno\n```\n21UZ(V04;(504=\"SFN\");21>4((564=4)(K21S4)(!4)V05;\n(564=21)(K4S21)(!21);(503=\"SF\")(563=4)(!4);\n(K601A563A564)(K604A563A564)(K615A563)(K",
+        "source_ids": [
+          130,
+          140,
+          3005
+        ],
+        "elapsed_sec": 120.84
+      },
+      "evaluation": {
+        "keyword_score": 1.0,
+        "formula_id_found": null,
+        "recall": null,
+        "precision": null,
+        "passed": true
+      }
+    },
+    {
+      "gold": {
+        "id": "G17",
+        "query": "Come funziona l'arrotondamento ore?",
+        "category": "semantic_search",
+        "expected_keywords": [
+          "Arrotondamento"
+        ],
+        "expected_behavior": "Must find rounding-related formulas"
+      },
+      "result": {
+        "answer_preview": "# 📋 ARROTONDAMENTO ORE IN WINSARP\n\nEcco le formule disponibili nel catalogo per l'arrotondamento delle ore:\n\n---\n\n## 🔢 Formula #9001 — Arrotondamento Impiegati (I)\n\n```\n(800='250')(801='270')(!802);20",
+        "source_ids": [
+          9001,
+          2123,
+          2107,
+          3003
+        ],
+        "elapsed_sec": 199.22
+      },
+      "evaluation": {
+        "keyword_score": 1.0,
+        "formula_id_found": null,
+        "recall": null,
+        "precision": null,
+        "passed": true
+      }
+    },
+    {
+      "gold": {
+        "id": "G18",
+        "query": "Qual è la formula per le ferie?",
+        "category": "semantic_search",
+        "expected_keywords": [
+          "Ferie"
+        ],
+        "expected_behavior": "Must find vacation-related formula or indicate absence"
+      },
+      "result": {
+        "answer_preview": "Nel catalogo non e' presente una formula per questo caso.",
+        "source_ids": [
+          110,
+          2100
+        ],
+        "elapsed_sec": 463.89
+      },
+      "evaluation": {
+        "keyword_score": 0.0,
+        "formula_id_found": null,
+        "recall": null,
+        "precision": null,
+        "passed": false
+      }
+    },
+    {
+      "gold": {
+        "id": "G19",
+        "query": "Spiegami la catena dalla formula 100 alla fine",
+        "category": "chain_analysis",
+        "expected_chain": [
+          100,
+          110,
+          120,
+          130,
+          140,
+          200,
+          210
+        ],
+        "expected_behavior": "Must trace the full execution chain from #100"
+      },
+      "result": {
+        "answer_preview": "# 📋 Catena di Formule WinSARP: Dalla #100 alla Fine Giornata\n\nEcco la spiegazione dettagliata della sequenza che parte dalla Formula 100 fino al completamento del calcolo fine giornata, basandomi escl",
+        "source_ids": [
+          100,
+          100,
+          120
+        ],
+        "elapsed_sec": 230.46
+      },
+      "evaluation": {
+        "keyword_score": 1.0,
+        "formula_id_found": null,
+        "recall": null,
+        "precision": null,
+        "passed": true
+      }
+    },
+    {
+      "gold": {
+        "id": "G20",
+        "query": "Valida la catena di chiamate della formula 120",
+        "category": "chain_validation",
+        "expected_formula_id": 120,
+        "expected_behavior": "Must validate chain coherence of #120"
+      },
+      "result": {
+        "answer_preview": "🔢 Formula #120 — F.G: Principale\n```\n4UZ(VU;1121U\"N\"((!4)VU;55UIO50UI(R130;R140;R200;\n```\n📝 **Spiegazione:** Formula di tipo \"Fine Giornata\", categoria fine, codice 4UZ. La formula è chiamata dalla #1",
+        "source_ids": [
+          120,
+          2060,
+          120,
+          2000
+        ],
+        "elapsed_sec": 129.12
+      },
+      "evaluation": {
+        "keyword_score": 1.0,
+        "formula_id_found": true,
+        "recall": 1.0,
+        "precision": 0.25,
+        "passed": true
+      }
+    },
+    {
+      "gold": {
+        "id": "G21",
+        "query": "Quali formule usano il campo 21?",
+        "category": "field_lookup",
+        "expected_behavior": "Must find formulas referencing field 21"
+      },
+      "result": {
+        "answer_preview": "",
+        "source_ids": [],
+        "elapsed_sec": 0
+      },
+      "evaluation": {
+        "keyword_score": 1.0,
+        "formula_id_found": null,
+        "recall": null,
+        "precision": null,
+        "passed": true
+      }
+    },
+    {
+      "gold": {
+        "id": "G22",
+        "query": "Quali formule hanno un confronto con campo 564 uguale a 4?",
+        "category": "comparison_lookup",
+        "expected_behavior": "Must find formulas with (564=4) or similar"
+      },
+      "result": {
+        "answer_preview": "Nel catalogo non è presente una formula per questo caso specifico che faccia un confronto con campo 564 uguale a 4.\n\nHo esaminato tutti i documenti forniti (#10, #100, #110, #120) e mentre il document",
+        "source_ids": [
+          120,
+          10,
+          110,
+          100
+        ],
+        "elapsed_sec": 101.58
+      },
+      "evaluation": {
+        "keyword_score": 1.0,
+        "formula_id_found": null,
+        "recall": null,
+        "precision": null,
+        "passed": true
+      }
+    },
+    {
+      "gold": {
+        "id": "G23",
+        "query": "Le formule Dirigenti e Quadri come funzionano?",
+        "category": "semantic_search",
+        "expected_formula_ids": [
+          1000,
+          1010,
+          1100
+        ],
+        "expected_keywords": [
+          "Dirigenti",
+          "Quadri"
+        ],
+        "expected_behavior": "Must find formulas for managers and executives"
+      },
+      "result": {
+        "answer_preview": "🔢 Formula #1000 — I.G: Dirigenti (Inizio Giornata)\n```\n390#Z(VF;(251=111)(271=141);112>Z((252=112)(272=142);\n113>Z((253=113)(273=143);114>Z((254=114)(274=144);\n```\n\n📝 **Spiegazione:** Formula per diri",
+        "source_ids": [
+          1100,
+          1000
+        ],
+        "elapsed_sec": 170.33
+      },
+      "evaluation": {
+        "keyword_score": 1.0,
+        "formula_id_found": null,
+        "recall": 0.667,
+        "precision": 0.5,
+        "passed": true
+      }
+    },
+    {
+      "gold": {
+        "id": "G24",
+        "query": "Quali sono le formule per dipendenti che timbrano una volta?",
+        "category": "semantic_search",
+        "expected_formula_ids": [
+          1020,
+          1120
+        ],
+        "expected_keywords": [
+          "timbrano una volta"
+        ],
+        "expected_behavior": "Must find single-punch formulas"
+      },
+      "result": {
+        "answer_preview": "Ciao! Come **WINSARP ASSISTANT**, ho reperito nel catalogo ufficiale (Workbook Formule v1.0) le formule specifiche per gestire i dipendenti che timbrano una sola volta al giorno. Ecco i dettagli relat",
+        "source_ids": [
+          1020,
+          1000,
+          1120,
+          2000
+        ],
+        "elapsed_sec": 355.23
+      },
+      "evaluation": {
+        "keyword_score": 1.0,
+        "formula_id_found": null,
+        "recall": 1.0,
+        "precision": 0.5,
+        "passed": true
+      }
+    },
+    {
+      "gold": {
+        "id": "G25",
+        "query": "Cos'è la formula 2050?",
+        "category": "retrieval_by_id",
+        "expected_formula_id": 2050,
+        "expected_keywords": [
+          "Conad Gubbio",
+          "Arrotondamento"
+        ],
+        "expected_behavior": "Must explain formula #2050"
+      },
+      "result": {
+        "answer_preview": "🔢 Formula #2050 — I.G: Conad Gubbio – Arrotondamento entrate\n\n```\n300>U'20230601'(R2060;201UZ(VU;(71=201)(70='3');(251=72);73<U'30.00'E73>Z((K251A'0.30')V06;73<U'59.00'E73>Z((K251A'1.00');R2051;\n```\n\n",
+        "source_ids": [
+          2050,
+          2060,
+          2050,
+          2130
+        ],
+        "elapsed_sec": 454.89
+      },
+      "evaluation": {
+        "keyword_score": 1.0,
+        "formula_id_found": true,
+        "recall": 1.0,
+        "precision": 0.25,
+        "passed": true
+      }
+    },
+    {
+      "gold": {
+        "id": "G26",
+        "query": "Qual è la catena completa della formula 9001?",
+        "category": "chain_analysis",
+        "expected_chain": [
+          9001,
+          9002
+        ],
+        "expected_behavior": "Must trace chain from #9001"
+      },
+      "result": {
+        "answer_preview": "🔢 Formula #9001 — I.G: Arrotondamento Impiegati (I)\n```\n(800='250')(801='270')(!802);200UZ(VF;([800[801);(K802A{801}S{800});{801}<{800}((K802A'24');{800}UZE{801}UZ(V07;800<'257'(V02;(71=802)(72='15')(",
+        "source_ids": [
+          9001,
+          9001,
+          1100
+        ],
+        "elapsed_sec": 185.79
+      },
+      "evaluation": {
+        "keyword_score": 1.0,
+        "formula_id_found": null,
+        "recall": null,
+        "precision": null,
+        "passed": true
+      }
+    },
+    {
+      "gold": {
+        "id": "G27",
+        "query": "Quali formule sono legate a Conad Gubbio?",
+        "category": "semantic_search",
+        "expected_formula_ids": [
+          2050,
+          2051,
+          2060
+        ],
+        "expected_keywords": [
+          "Conad",
+          "Gubbio"
+        ],
+        "expected_behavior": "Must find Conad Gubbio formulas"
+      },
+      "result": {
+        "answer_preview": "Nel catalogo WinSarp Formule v1.0 sono presenti tre formule specifiche legate al dipendente **Conad Gubbio**, tutte di tipo \"Inizio Giornata\". Ecco i dettagli estratti dal contesto:\n\n🔢 Formula #2050 —",
+        "source_ids": [
+          2051,
+          2050,
+          2060
+        ],
+        "elapsed_sec": 567.61
+      },
+      "evaluation": {
+        "keyword_score": 1.0,
+        "formula_id_found": null,
+        "recall": 1.0,
+        "precision": 0.75,
+        "passed": true
+      }
+    },
+    {
+      "gold": {
+        "id": "G28",
+        "query": "La formula 200 chiama P 210. Cosa fa?",
+        "category": "relationship_calls",
+        "expected_formula_id": 200,
+        "expected_call_ids": [
+          210
+        ],
+        "expected_behavior": "Must explain #200 calling #210"
+      },
+      "result": {
+        "answer_preview": "🔢 Formula #200 — F.G: Formula Finale\n```\n(K601A3)(K602A3);900>Z(P210;\n```\n**Categoria:** fine  \n**Tipo:** Fine Giornata  \n\n---\n\n## 📝 **Spiegazione:**\n\nLa formula 200 è una formula di tipo \"Fine Giorna",
+        "source_ids": [
+          200,
+          210,
+          140
+        ],
+        "elapsed_sec": 107.09
+      },
+      "evaluation": {
+        "keyword_score": 1.0,
+        "formula_id_found": true,
+        "recall": 1.0,
+        "precision": 0.25,
+        "passed": true
+      }
+    },
+    {
+      "gold": {
+        "id": "G29",
+        "query": "Quali sono le formule di tipo Alert?",
+        "category": "retrieval_by_type",
+        "expected_behavior": "Must find Alert-type formulas (e.g., #2130)"
+      },
+      "result": {
+        "answer_preview": "🔢 Formula #2130 — Warning ore carenti / soglia 250h annuali (variante A)\n```\n(2130)\n```\n📝 **Spiegazione:**  \nQuesta formula è classificata come **\"Subroutine – Alert\"** e ha lo scopo di generare messa",
+        "source_ids": [
+          2130,
+          2115,
+          2107
+        ],
+        "elapsed_sec": 153.12
+      },
+      "evaluation": {
+        "keyword_score": 1.0,
+        "formula_id_found": null,
+        "recall": null,
+        "precision": null,
+        "passed": true
+      }
+    },
+    {
+      "gold": {
+        "id": "G30",
+        "query": "Come si gestisce l'autorizzazione straordinario?",
+        "category": "semantic_search",
+        "expected_keywords": [
+          "Autorizzazione",
+          "Straordinario",
+          "AUTS"
+        ],
+        "expected_behavior": "Must find formula #3017"
+      },
+      "result": {
+        "answer_preview": "🔢 Formula #3017 — Gestione autorizzazioni straordinaria (AUTS)\n```\n(!820)(!821);401U\"AUTS\"((820='1')(821=431);402U\"AUTS\"((820='2')(821=432);403U\"AUTS\"((820='3')(821=433);404U\"AUTS\"((820='4')(821=434))",
+        "source_ids": [
+          3017,
+          2114,
+          3004
+        ],
+        "elapsed_sec": 127.06
+      },
+      "evaluation": {
+        "keyword_score": 0.667,
+        "formula_id_found": null,
+        "recall": null,
+        "precision": null,
+        "passed": true
+      }
+    },
+    {
+      "gold": {
+        "id": "G31",
+        "query": "Qual è la formula 110?",
+        "category": "retrieval_by_id",
+        "expected_formula_id": 110,
+        "expected_keywords": [
+          "Riproporziono"
+        ],
+        "expected_behavior": "Must return formula #110"
+      },
+      "result": {
+        "answer_preview": "🔢 Formula #110 — F.G: Riproporziono 3, 4 e 5 in base alle assenze\n```\n(800=3A4);1UZ((!3!5)(4=800)VU;(K800A608A609);800>1((4=800S1)(3=1S608S609)(!5)VU;(3=800S608S609)(!4)(5=1S800);R120;\n```\n\n📝 **Spiega",
+        "source_ids": [
+          110,
+          140,
+          1010,
+          110,
+          120
+        ],
+        "elapsed_sec": 271.17
+      },
+      "evaluation": {
+        "keyword_score": 1.0,
+        "formula_id_found": true,
+        "recall": 1.0,
+        "precision": 0.25,
+        "passed": true
+      }
+    },
+    {
+      "gold": {
+        "id": "G32",
+        "query": "Spiega la formula 2114",
+        "category": "retrieval_by_id",
+        "expected_formula_id": 2114,
+        "expected_keywords": [
+          "Ritocco",
+          "SA",
+          "SB"
+        ],
+        "expected_behavior": "Must explain formula #2114"
+      },
+      "result": {
+        "answer_preview": "🔢 Formula #2114 — Ritocco SA/SB (cap 8 ore straordinario)\n```\n774<U'08.00'(VF;(800=774S907);774>'8.00'E800<'08.00'((915=907S'08.00')(K907S915);(915=907)(!907);\n```\n\n📝 **Spiegazione:**  \nQuesta formula",
+        "source_ids": [
+          2114,
+          3014,
+          2114,
+          2115,
+          2124
+        ],
+        "elapsed_sec": 234.1
+      },
+      "evaluation": {
+        "keyword_score": 1.0,
+        "formula_id_found": true,
+        "recall": 1.0,
+        "precision": 0.25,
+        "passed": true
+      }
+    },
+    {
+      "gold": {
+        "id": "G33",
+        "query": "Quali formule hanno maggiorazioni?",
+        "category": "semantic_search",
+        "expected_keywords": [
+          "Maggiorazioni"
+        ],
+        "expected_behavior": "Must find formulas with majorations (#210)"
+      },
+      "result": {
+        "answer_preview": "🔢 Formula #210 — Maggiorazioni per Turnisti\n```\n(K625A3)(K626A3);900>Z(P210;\n```\n📝 **Spiegazione:** Questa formula calcola le maggiorazioni (premi turno) spettanti ai dipendenti turnisti. Divide le or",
+        "source_ids": [
+          210,
+          200
+        ],
+        "elapsed_sec": 143.3
+      },
+      "evaluation": {
+        "keyword_score": 1.0,
+        "formula_id_found": null,
+        "recall": null,
+        "precision": null,
+        "passed": true
+      }
+    },
+    {
+      "gold": {
+        "id": "G34",
+        "query": "La formula 3003 che fa?",
+        "category": "retrieval_by_id",
+        "expected_formula_id": 3003,
+        "expected_keywords": [
+          "Arrotondamento ore"
+        ],
+        "expected_behavior": "Must explain formula #3003"
+      },
+      "result": {
+        "answer_preview": "🔢 Formula #3003 — FG 2 NEW – Arrotondamento ore (dal 01/06/2023)\n```\n(71=3)(!800)(70='3');(3=72);73<'30.00'(VF;73<U'59.00'((K800A'0.30')VU;(K3A800)\n```\n📝 **Spiegazione:**  \nQuesta è una Subroutine (Ti",
+        "source_ids": [
+          3003,
+          3000,
+          3001,
+          3003,
+          3030
+        ],
+        "elapsed_sec": 334.42
+      },
+      "evaluation": {
+        "keyword_score": 1.0,
+        "formula_id_found": true,
+        "recall": 1.0,
+        "precision": 0.25,
+        "passed": true
+      }
+    },
+    {
+      "gold": {
+        "id": "G35",
+        "query": "Quali formule chiamano subroutine?",
+        "category": "relationship_calls",
+        "expected_behavior": "Must find formulas that call P (subroutines)"
+      },
+      "result": {
+        "answer_preview": "🔢 Formula #2101 — GUGEST 2 (variante A)\n```\n(2101)\n```\n📝 **Spiegazione:** Questa formula è un \"Fine Giornata – 2° giro\" che chiama esplicitamente diverse subroutine nel suo flusso di calcolo. Nel dett",
+        "source_ids": [
+          2101,
+          3004,
+          3017
+        ],
+        "elapsed_sec": 210.09
+      },
+      "evaluation": {
+        "keyword_score": 1.0,
+        "formula_id_found": null,
+        "recall": null,
+        "precision": null,
+        "passed": true
+      }
+    },
+    {
+      "gold": {
+        "id": "G36",
+        "query": "Dimmi tutto sulla formula 5",
+        "category": "retrieval_by_id",
+        "expected_formula_id": 5,
+        "expected_keywords": [
+          "Riconoscimento Turno"
+        ],
+        "expected_behavior": "Must return formula #5 details"
+      },
+      "result": {
+        "answer_preview": "🔢 Formula #5 — I.G: Riconoscimento Turno e cambio del previsionale\n```\n(!900);(!800!801!802!803!804);200UZO58U\"RIPO\"(VF;(801='200')(802='220');([800[801[802);(803={802}S{801});803<Z((K803A'24');803<80",
+        "source_ids": [
+          5,
+          10,
+          110,
+          100
+        ],
+        "elapsed_sec": 469.7
+      },
+      "evaluation": {
+        "keyword_score": 1.0,
+        "formula_id_found": true,
+        "recall": 1.0,
+        "precision": 0.25,
+        "passed": true
+      }
+    },
+    {
+      "gold": {
+        "id": "G37",
+        "query": "Qual è la differenza tra Inizio Giornata e Fine Giornata?",
+        "category": "type_comparison",
+        "expected_behavior": "Must explain the difference between the two types"
+      },
+      "result": {
+        "answer_preview": "Basandosi sui documenti forniti, la differenza tra **Inizio Giornata** e **Fine Giornata** risiede principalmente nello scopo funzionale (\"Scopo\") delle formule associate a ciascuna categoria all'inte",
+        "source_ids": [
+          100,
+          120,
+          1
+        ],
+        "elapsed_sec": 291.88
+      },
+      "evaluation": {
+        "keyword_score": 1.0,
+        "formula_id_found": null,
+        "recall": null,
+        "precision": null,
+        "passed": true
+      }
+    },
+    {
+      "gold": {
+        "id": "G38",
+        "query": "Quali formule riguardano il turno di notte?",
+        "category": "semantic_search",
+        "expected_keywords": [
+          "Notturno",
+          "Turno"
+        ],
+        "expected_behavior": "Must find night shift formulas"
+      },
+      "result": {
+        "answer_preview": "🔢 **Formula #10** — D.G: Determinazione del turno e cambio del previsionale  \n```\n(84<'7'E84>'5'((900=I)(58=\"MATT\")(111='6')(141='14')(!112!142)(100=I)VF;\n84<'15'E84>U'13'((900='2')(58=\"POME\")(111='14",
+        "source_ids": [
+          210,
+          10,
+          200
+        ],
+        "elapsed_sec": 131.25
+      },
+      "evaluation": {
+        "keyword_score": 1.0,
+        "formula_id_found": null,
+        "recall": null,
+        "precision": null,
+        "passed": true
+      }
+    },
+    {
+      "gold": {
+        "id": "G39",
+        "query": "La formula 9002 chiama quali subroutine?",
+        "category": "relationship_calls",
+        "expected_formula_id": 9002,
+        "expected_behavior": "Must list all P calls from #9002"
+      },
+      "result": {
+        "answer_preview": "🔢 Formula #9002 — I.G: Arrotondamento Impiegati (II)\n```\n9002\n```\n📝 **Spiegazione:** La formula appartiene alla categoria \"Arrotondamento\" e ha il tipo \"Inizio Giornata\". Le subroutine chiamate sono e",
+        "source_ids": [
+          9002,
+          9002,
+          9001,
+          2109
+        ],
+        "elapsed_sec": 408.37
+      },
+      "evaluation": {
+        "keyword_score": 1.0,
+        "formula_id_found": true,
+        "recall": 1.0,
+        "precision": 0.25,
+        "passed": true
+      }
+    },
+    {
+      "gold": {
+        "id": "G40",
+        "query": "Come si calcola il premio produzione?",
+        "category": "semantic_search",
+        "expected_keywords": [
+          "Premio"
+        ],
+        "expected_behavior": "Must address production bonus query"
+      },
+      "result": {
+        "answer_preview": "Nel catalogo non è presente una formula per questo caso.",
+        "source_ids": [
+          210,
+          200,
+          110
+        ],
+        "elapsed_sec": 219.59
+      },
+      "evaluation": {
+        "keyword_score": 0.0,
+        "formula_id_found": null,
+        "recall": null,
+        "precision": null,
+        "passed": false
+      }
+    },
+    {
+      "gold": {
+        "id": "G41",
+        "query": "Qual è la formula 1?",
+        "category": "retrieval_by_id",
+        "expected_formula_id": 1,
+        "expected_keywords": [
+          "Azzeramenti"
+        ],
+        "expected_behavior": "Must return formula #1"
+      },
+      "result": {
+        "answer_preview": "🔢 Formula #1 — Azzeramenti di inizio giornata\n```(!900);```\n📝 **Spiegazione:**  \nQuesta formula rientra nella categoria \"Standard\" e ha il tipo \"Inizio Giornata\". Il suo codice è `(!900);`.",
+        "source_ids": [
+          1,
+          3000,
+          1100,
+          2100
+        ],
+        "elapsed_sec": 210.4
+      },
+      "evaluation": {
+        "keyword_score": 1.0,
+        "formula_id_found": true,
+        "recall": 1.0,
+        "precision": 0.25,
+        "passed": true
+      }
+    },
+    {
+      "gold": {
+        "id": "G42",
+        "query": "Quali formule usano K21S4?",
+        "category": "key_sum_lookup",
+        "expected_behavior": "Must find formulas with K21S4 pattern"
+      },
+      "result": {
+        "answer_preview": "🔢 Formula #N — NOME FORMULA\n\nNel catalogo non è presente una formula per questo caso.",
+        "source_ids": [
+          3014,
+          3001,
+          2114
+        ],
+        "elapsed_sec": 64.33
+      },
+      "evaluation": {
+        "keyword_score": 1.0,
+        "formula_id_found": null,
+        "recall": null,
+        "precision": null,
+        "passed": true
+      }
+    },
+    {
+      "gold": {
+        "id": "G43",
+        "query": "Spiega la formula 3004",
+        "category": "retrieval_by_id",
+        "expected_formula_id": 3004,
+        "expected_keywords": [
+          "Straordinario Festivo"
+        ],
+        "expected_behavior": "Must explain formula #3004"
+      },
+      "result": {
+        "answer_preview": "🔢 Formula #3004 — Straordinario Festivo\n```\n50UIO55UI(V02;VF;907>Z((914=907)(!907);915>Z((K914A915)(!915);3>Z((904=3);\n```\n📝 **Spiegazione:**  \nQuesta formula riclassifica le ore straordinarie nei gio",
+        "source_ids": [
+          3004,
+          3004,
+          3001,
+          3014,
+          3015
+        ],
+        "elapsed_sec": 215.29
+      },
+      "evaluation": {
+        "keyword_score": 1.0,
+        "formula_id_found": true,
+        "recall": 1.0,
+        "precision": 0.25,
+        "passed": true
+      }
+    },
+    {
+      "gold": {
+        "id": "G44",
+        "query": "Quali sono le formule per dipendenti a chiamata?",
+        "category": "semantic_search",
+        "expected_formula_ids": [
+          2000
+        ],
+        "expected_keywords": [
+          "chiamata"
+        ],
+        "expected_behavior": "Must find on-call formulas"
+      },
+      "result": {
+        "answer_preview": "🔢 Formula #200 — PRIMA FORMULA x dipendenti a chiamata (F.G.)\n```\n300>305(VF;200UZ((!111!112!113!141!142!143)(58=\"RIPO\")VU;\n(111=251)(141=271);(112=252)(142=272);(113=253)(143=273);(114=254)(144=274);",
+        "source_ids": [
+          2000,
+          110,
+          1000,
+          200
+        ],
+        "elapsed_sec": 414.2
+      },
+      "evaluation": {
+        "keyword_score": 1.0,
+        "formula_id_found": null,
+        "recall": 1.0,
+        "precision": 0.25,
+        "passed": true
+      }
+    },
+    {
+      "gold": {
+        "id": "G45",
+        "query": "La catena 2050 → 2051 → 2060 è valida?",
+        "category": "chain_validation",
+        "expected_chain": [
+          2050,
+          2051,
+          2060
+        ],
+        "expected_behavior": "Must validate the Conad chain"
+      },
+      "result": {
+        "answer_preview": "🔢 Formula #2050 — I.G: Conad Gubbio – Arrotondamento entrate\n```\n300>U'20230601'(R2060;201UZ(VU;(71=201)(70='3');(251=72);\n73<U'30.00'E73>Z((K251A'0.30')V06;73<U'59.00'E73>Z((K251A'1.00');R2051;\n```\n\n",
+        "source_ids": [
+          2050,
+          2051,
+          2060,
+          2060,
+          2050,
+          2051,
+          2130
+        ],
+        "elapsed_sec": 202.16
+      },
+      "evaluation": {
+        "keyword_score": 1.0,
+        "formula_id_found": null,
+        "recall": null,
+        "precision": null,
+        "passed": true
+      }
+    },
+    {
+      "gold": {
+        "id": "G46",
+        "query": "Quali formule hanno il campo 564 uguale a qualcosa?",
+        "category": "field_lookup",
+        "expected_behavior": "Must find formulas with field 564 comparisons"
+      },
+      "result": {
+        "answer_preview": "🔢 Formula #100 — PRIMA FORMULA – Azzeramenti (F.G.)\n```\n(500=\"DURATA\")(!561!562!563!564!565!566!567!568!569!570);R110;\n```\n\n📝 **Spiegazione:**  \nQuesta è l'unica formula nel contesto che fa riferiment",
+        "source_ids": [
+          100,
+          10,
+          120
+        ],
+        "elapsed_sec": 186.99
+      },
+      "evaluation": {
+        "keyword_score": 1.0,
+        "formula_id_found": null,
+        "recall": null,
+        "precision": null,
+        "passed": true
+      }
+    },
+    {
+      "gold": {
+        "id": "G47",
+        "query": "Come gestisce WinSarp gli arrotondamenti?",
+        "category": "semantic_search",
+        "expected_keywords": [
+          "Arrotondamento"
+        ],
+        "expected_behavior": "Must address rounding system"
+      },
+      "result": {
+        "answer_preview": "# 📊 Come gestisce WinSARP gli arrotondamenti delle ore\n\nBasandomi sui documenti del catalogo ufficiale Data Services (Workbook Formule v1.0), ecco come vengono trattati i diversi tipi di arrotondament",
+        "source_ids": [
+          3002,
+          2107,
+          3003,
+          9001
+        ],
+        "elapsed_sec": 176.67
+      },
+      "evaluation": {
+        "keyword_score": 1.0,
+        "formula_id_found": null,
+        "recall": null,
+        "precision": null,
+        "passed": true
+      }
+    },
+    {
+      "gold": {
+        "id": "G48",
+        "query": "Qual è la formula 10?",
+        "category": "retrieval_by_id",
+        "expected_formula_id": 10,
+        "expected_keywords": [
+          "Determinazione del turno"
+        ],
+        "expected_behavior": "Must return formula #10"
+      },
+      "result": {
+        "answer_preview": "",
+        "source_ids": [],
+        "elapsed_sec": 0
+      },
+      "evaluation": {
+        "keyword_score": 0.0,
+        "formula_id_found": false,
+        "recall": 0.0,
+        "precision": 0.0,
+        "passed": false
+      }
+    },
+    {
+      "gold": {
+        "id": "G49",
+        "query": "Quali formule chiamano R120?",
+        "category": "relationship_callers",
+        "expected_caller_ids": [
+          110
+        ],
+        "expected_behavior": "Must find formulas calling R120"
+      },
+      "result": {
+        "answer_preview": "Nel catalogo non e' presente una formula per questo caso.",
+        "source_ids": [
+          120,
+          2060,
+          140,
+          1120
+        ],
+        "elapsed_sec": 294.75
+      },
+      "evaluation": {
+        "keyword_score": 1.0,
+        "formula_id_found": null,
+        "recall": null,
+        "precision": null,
+        "passed": true
+      }
+    },
+    {
+      "gold": {
+        "id": "G50",
+        "query": "Riepilogo di tutte le formule del catalogo",
+        "category": "catalog_overview",
+        "expected_behavior": "Must provide overview of all 27 formulas"
+      },
+      "result": {
+        "answer_preview": "# Riepilogo Formule WinSarp (Workbook Formule v1.0)\n\nEcco il riepilogo delle formule presenti nel catalogo fornito:\n\n---\n\n## 📋 **Formule Dettagliate**\n\n### 🔢 Formula #100 — PRIMA FORMULA – Azzeramenti",
+        "source_ids": [
+          100,
+          3001,
+          3014
+        ],
+        "elapsed_sec": 149.5
+      },
+      "evaluation": {
+        "keyword_score": 1.0,
+        "formula_id_found": null,
+        "recall": null,
+        "precision": null,
+        "passed": true
+      }
+    }
+  ]
+}

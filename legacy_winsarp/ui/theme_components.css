@@ -1,0 +1,798 @@
+/* Header */
+.ws-header {
+    border-radius: 12px;
+    padding: 1rem 1.5rem;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    background: ${bg2};
+    border: 1px solid ${border};
+    box-shadow: ${shadow};
+}
+.ws-header-left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+.ws-header-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    flex-shrink: 0;
+    background: linear-gradient(135deg, ${blue}, ${violet});
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    color: #ffffff;
+    font-weight: 700;
+}
+.ws-header-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: ${text} !important;
+    margin: 0;
+    line-height: 1.2;
+}
+.ws-header-sub {
+    font-size: 0.78rem;
+    color: ${text2} !important;
+    margin: 2px 0 0 0;
+}
+.ws-header-right {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.ws-hbadge {
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-family: 'JetBrains Mono', monospace;
+    background: ${blue_bg};
+    color: ${blue};
+    border: 1px solid ${blue_border};
+}
+.ws-hbadge.violet {
+    background: ${violet_bg};
+    color: ${violet};
+    border-color: ${violet_border};
+}
+.ws-hbadge.green {
+    background: ${green_bg};
+    color: ${green};
+    border-color: ${green_border};
+}
+
+.ws-local-badge {
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-bottom: 1.2rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: ${green_bg};
+    border: 1px solid ${green_border};
+    color: ${green} !important;
+}
+
+.ws-overview-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+    margin: 0.2rem 0 1.2rem 0;
+}
+.ws-overview-card {
+    background: ${bg2};
+    border: 1px solid ${border};
+    border-radius: 12px;
+    padding: 1.1rem 1.25rem;
+    box-shadow: ${shadow};
+    min-height: 105px;
+    transition: all 0.25s ease;
+}
+.ws-overview-card:hover {
+    border-color: ${border2};
+    box-shadow: ${shadow_md};
+    transform: translateY(-1px);
+}
+.ws-overview-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: ${text3};
+    margin-bottom: 8px;
+}
+.ws-overview-value {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: ${text};
+    line-height: 1.2;
+    margin-bottom: 6px;
+}
+.ws-overview-text {
+    font-size: 0.78rem;
+    color: ${text2};
+    line-height: 1.5;
+}
+
+.ws-sidebar-snapshot {
+    background: ${bg2};
+    border: 1px solid ${border};
+    border-radius: 10px;
+    padding: 0.95rem 1.1rem;
+    margin: 0.2rem 0 0.95rem 0;
+}
+.ws-sidebar-snapshot-title {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: ${text3};
+    margin-bottom: 8px;
+    font-weight: 700;
+}
+.ws-sidebar-snapshot-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+}
+.ws-sidebar-snapshot-item {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 6px 0;
+    border-bottom: 1px solid ${border};
+    font-size: 0.78rem;
+}
+.ws-sidebar-snapshot-item:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+.ws-sidebar-snapshot-item span {
+    color: ${text3};
+}
+.ws-sidebar-snapshot-item strong {
+    color: ${text};
+    text-align: right;
+}
+
+.ws-suggestions-label {
+    font-size: 0.74rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 10px;
+    color: ${text3};
+}
+
+.ws-prompt-counter {
+    font-size: 0.72rem;
+    font-family: 'JetBrains Mono', monospace;
+    text-align: right;
+    margin-top: 4px;
+}
+.ws-prompt-counter.ok {
+    color: ${green};
+}
+.ws-prompt-counter.warn {
+    color: ${yellow};
+}
+.ws-prompt-counter.danger {
+    color: ${red};
+}
+
+/* Generating indicator */
+.ws-generating {
+    border-radius: 12px;
+    padding: 16px;
+    margin: 10px 0;
+    background: ${bg2};
+    border: 1px solid ${blue_border};
+    box-shadow: ${shadow};
+}
+.ws-generating-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+.ws-generating-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: ${blue};
+    flex-shrink: 0;
+    animation: ws-pulse 1.2s infinite ease-in-out;
+}
+@keyframes ws-pulse {
+    0%, 100% {
+        opacity: 0.4;
+        transform: scale(0.85);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.25);
+    }
+}
+.ws-generating-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: ${blue};
+}
+.ws-generating-model {
+    font-size: 0.72rem;
+    font-family: 'JetBrains Mono', monospace;
+    color: ${text3};
+    margin-left: auto;
+}
+.ws-progress-bar {
+    height: 3px;
+    border-radius: 2px;
+    background: ${bg3};
+    overflow: hidden;
+    margin-bottom: 10px;
+}
+.ws-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, ${blue}, ${violet});
+    animation: ws-progress 2s infinite ease-in-out;
+}
+@keyframes ws-progress {
+    0% {
+        width: 5%;
+        margin-left: 0;
+    }
+    50% {
+        width: 60%;
+        margin-left: 20%;
+    }
+    100% {
+        width: 5%;
+        margin-left: 90%;
+    }
+}
+.ws-generating-stats {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+    font-size: 0.74rem;
+    font-family: 'JetBrains Mono', monospace;
+    color: ${text3};
+}
+.ws-generating-preview {
+    margin-top: 10px;
+    padding: 10px;
+    border-radius: 8px;
+    background: ${bg3};
+    border: 1px solid ${border};
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    color: ${text2};
+    max-height: 100px;
+    overflow: hidden;
+}
+.ws-timeout-warn {
+    margin-top: 10px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    background: ${yellow_bg};
+    border: 1px solid ${yellow_border};
+    color: ${yellow};
+}
+
+/* Response */
+.ws-resp-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+}
+.ws-resp-num {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: ${blue};
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 3px 10px;
+    border-radius: 20px;
+    background: ${blue_bg};
+    border: 1px solid ${blue_border};
+}
+.ws-timer {
+    font-size: 0.72rem;
+    font-family: 'JetBrains Mono', monospace;
+    color: ${text3};
+    margin-left: auto;
+}
+
+.ws-confidence-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0 0 10px 0;
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-size: 0.74rem;
+    font-weight: 600;
+    font-family: 'JetBrains Mono', monospace;
+}
+.ws-confidence-badge.alta {
+    background: ${green_bg};
+    border: 1px solid ${green_border};
+    color: ${green};
+}
+.ws-confidence-badge.media {
+    background: ${yellow_bg};
+    border: 1px solid ${yellow_border};
+    color: ${yellow};
+}
+.ws-confidence-badge.bassa {
+    background: ${red_bg};
+    border: 1px solid ${red_border};
+    color: ${red};
+}
+
+.ws-feedback-up {
+    color: ${green} !important;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+.ws-feedback-down {
+    color: ${red} !important;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.ws-response-summary {
+    border-radius: 12px;
+    padding: 1rem;
+    margin: 0 0 1rem 0;
+    border: 1px solid ${border};
+    background: ${bg3};
+}
+.ws-response-summary.ok {
+    box-shadow: 0 0 0 2px ${green_bg};
+}
+.ws-response-summary.warn {
+    box-shadow: 0 0 0 2px ${yellow_bg};
+}
+.ws-response-summary-top {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+.ws-response-chip {
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: ${bg2};
+    border: 1px solid ${border};
+    color: ${text2};
+    font-family: 'JetBrains Mono', monospace;
+}
+.ws-response-summary-text {
+    font-size: 0.8rem;
+    line-height: 1.6;
+    color: ${text2};
+}
+
+/* Formula block */
+.ws-formula-block {
+    border-radius: 10px;
+    margin: 10px 0 6px 0;
+    overflow: hidden;
+    border: 1px solid ${blue_border};
+    box-shadow: ${shadow};
+}
+.ws-formula-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 14px;
+    background: ${blue_bg};
+    border-bottom: 1px solid ${blue_border};
+}
+.ws-formula-name {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: ${blue};
+    font-family: 'JetBrains Mono', monospace;
+}
+.ws-formula-code {
+    padding: 12px 16px;
+    overflow-x: auto;
+    background: ${bg3};
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    color: ${text} !important;
+    white-space: pre-wrap;
+    word-break: break-all;
+    line-height: 1.6;
+}
+
+/* Copy button */
+.ws-copy-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.78rem;
+    font-weight: 600;
+    background: ${bg2};
+    border: 1px solid ${border};
+    color: ${text2};
+    transition: all 0.2s;
+    font-family: 'Inter', sans-serif;
+    margin-top: 8px;
+}
+.ws-copy-btn:hover {
+    background: ${blue_bg};
+    border-color: ${blue_border};
+    color: ${blue};
+}
+.ws-copy-btn.copied {
+    background: ${green_bg};
+    border-color: ${green_border};
+    color: ${green};
+}
+
+/* Source node */
+.ws-source-node {
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-bottom: 8px;
+    background: ${bg2};
+    border: 1px solid ${border};
+    font-size: 0.8rem;
+}
+.ws-source-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+    flex-wrap: wrap;
+}
+.ws-source-file {
+    font-weight: 600;
+    color: ${blue};
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.74rem;
+}
+.ws-source-score {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: ${green_bg};
+    color: ${green};
+    border: 1px solid ${green_border};
+    margin-left: auto;
+    white-space: nowrap;
+}
+.ws-source-text {
+    color: ${text2};
+    line-height: 1.55;
+}
+
+/* Error/Warning */
+.ws-err {
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin: 6px 0;
+    font-size: 0.85rem;
+    font-weight: 500;
+    background: ${red_bg};
+    border: 1px solid ${red_border};
+    color: ${red};
+}
+.ws-warn {
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin: 6px 0;
+    font-size: 0.85rem;
+    background: ${yellow_bg};
+    border: 1px solid ${yellow_border};
+    color: ${yellow};
+}
+
+/* Ollama card */
+.ws-ollama-card {
+    max-width: 500px;
+    margin: 4rem auto;
+    padding: 2.2rem;
+    border-radius: 16px;
+    text-align: center;
+    background: ${bg2};
+    border: 1px solid ${border};
+    box-shadow: ${shadow_md};
+}
+.ws-ollama-icon {
+    font-size: 3rem;
+    margin-bottom: 1.2rem;
+}
+.ws-ollama-title {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: ${text};
+    margin-bottom: 0.5rem;
+}
+.ws-ollama-sub {
+    font-size: 0.85rem;
+    color: ${text2};
+    margin-bottom: 0.8rem;
+}
+.ws-ollama-msg {
+    font-size: 0.82rem;
+    font-weight: 500;
+    padding: 10px 14px;
+    background: ${red_bg};
+    border: 1px solid ${red_border};
+    border-radius: 10px;
+    color: ${red};
+    margin-bottom: 1rem;
+}
+.ws-ollama-steps {
+    text-align: left;
+    font-size: 0.85rem;
+    color: ${text2};
+    background: ${bg3};
+    padding: 14px;
+    border-radius: 10px;
+    border: 1px solid ${border};
+}
+.ws-ollama-steps p {
+    margin: 6px 0;
+}
+.ws-ollama-steps code {
+    background: ${bg2};
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'JetBrains Mono', monospace;
+    color: ${text};
+    border: 1px solid ${border};
+}
+
+/* Welcome screen */
+.ws-welcome {
+    max-width: 760px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+}
+.ws-welcome-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 2rem;
+}
+.ws-welcome-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, ${blue}, ${violet});
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    color: #ffffff;
+    font-weight: 800;
+    flex-shrink: 0;
+}
+.ws-welcome-title {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: ${text};
+    margin: 0;
+    letter-spacing: -0.02em;
+}
+.ws-welcome-sub {
+    font-size: 0.88rem;
+    color: ${text2};
+    margin: 4px 0 0 0;
+}
+.ws-welcome-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 2rem;
+}
+.ws-welcome-band {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 1.5rem;
+}
+.ws-welcome-band-item {
+    background: ${bg2};
+    border: 1px solid ${border};
+    border-radius: 12px;
+    padding: 1.1rem;
+    box-shadow: ${shadow};
+    transition: all 0.25s ease;
+}
+.ws-welcome-band-item:hover {
+    border-color: ${border2};
+    box-shadow: ${shadow_md};
+}
+.ws-welcome-band-label {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: ${blue};
+    font-weight: 700;
+    margin-bottom: 6px;
+}
+.ws-welcome-band-text {
+    font-size: 0.82rem;
+    line-height: 1.55;
+    color: ${text2};
+}
+.ws-welcome-card {
+    background: ${bg2};
+    border: 1px solid ${border};
+    border-radius: 12px;
+    padding: 1.2rem;
+    box-shadow: ${shadow};
+    transition: all 0.25s ease;
+}
+.ws-welcome-card:hover {
+    border-color: ${border2};
+    box-shadow: ${shadow_md};
+}
+.ws-welcome-card-icon {
+    font-size: 0.78rem;
+    font-weight: 800;
+    color: ${blue};
+    margin-bottom: 8px;
+    font-family: 'JetBrains Mono', monospace;
+}
+.ws-welcome-card-title {
+    font-weight: 700;
+    font-size: 0.92rem;
+    color: ${text};
+    margin-bottom: 6px;
+}
+.ws-welcome-card-text {
+    font-size: 0.8rem;
+    color: ${text2};
+    line-height: 1.55;
+}
+.ws-welcome-tips {
+    background: ${blue_bg};
+    border: 1px solid ${blue_border};
+    border-radius: 12px;
+    padding: 1.2rem 1.5rem;
+}
+.ws-welcome-tips-title {
+    font-weight: 700;
+    font-size: 0.88rem;
+    color: ${blue};
+    margin-bottom: 10px;
+}
+.ws-welcome-tips-list {
+    margin: 0;
+    padding-left: 1.2rem;
+    font-size: 0.8rem;
+    color: ${text2};
+    line-height: 1.8;
+}
+
+@media (max-width: 1100px) {
+    .ws-overview-grid,
+    .ws-welcome-band {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (max-width: 780px) {
+    .ws-overview-grid,
+    .ws-welcome-grid,
+    .ws-welcome-band {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Footer */
+.ws-footer {
+    text-align: center;
+    padding: 2rem;
+    font-size: 0.75rem;
+    color: ${text3};
+}
+
+/* Fix Chat Input Container - Override Streamlit default dark styles */
+.stChatInputContainer,
+div[data-testid="stChatInputContainer"],
+div.stChatInputContainer,
+section.main > div:last-child > div[data-testid="stChatInputContainer"] {
+    background-color: ${bg2} !important;
+    border: 1px solid ${border} !important;
+    border-radius: 12px !important;
+    box-shadow: ${shadow} !important;
+}
+
+div[data-testid="stChatInput"],
+.stChatInput,
+div.stChatInput {
+    background-color: ${bg2} !important;
+    border: 1px solid ${border} !important;
+    border-radius: 12px !important;
+    box-shadow: none !important;
+}
+
+div[data-testid="stChatInput"] textarea,
+.stChatInput textarea,
+div.stChatInput textarea {
+    background-color: transparent !important;
+    color: ${text} !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+/* Nascondi eventuali bordi/scure residue */
+div[data-testid="stChatInputContainer"] > div,
+.stChatInputContainer > div {
+    background-color: transparent !important;
+}
+
+/* Forza anche il wrapper interno di Streamlit */
+section.main div[data-testid="stVerticalBlock"]:last-child > div:last-child {
+    background-color: ${bg} !important;
+}
+
+/* Fix per tutti gli sfondi neri di Streamlit */
+div[data-testid="stVerticalBlock"] > div,
+div[data-testid="stHorizontalBlock"] > div {
+    background: transparent !important;
+}
+
+/* Fix per il testo nei selectbox e otros */
+[data-baseweb="select"] > div,
+[data-baseweb="input"] > div {
+    background: ${bg2} !important;
+    color: ${text} !important;
+    border-color: ${border} !important;
+    border-radius: 8px !important;
+}
+
+/* Fix per tooltip e popover */
+[data-baseweb="popover"],
+[data-baseweb="tooltip"] {
+    background: ${bg2} !important;
+    color: ${text} !important;
+    border: 1px solid ${border} !important;
+    border-radius: 8px !important;
+}
+
+/* Fix per tab */
+[data-baseweb="tab-list"] {
+    background: ${bg2} !important;
+    border-bottom: 1px solid ${border} !important;
+}
+[data-baseweb="tab"] {
+    color: ${text2} !important;
+}
+[data-baseweb="tab"][aria-selected="true"] {
+    color: ${blue} !important;
+    border-bottom-color: ${blue} !important;
+}
+
+/* Fix per spinner */
+.stSpinner > div {
+    border-color: ${blue} !important;
+    border-top-color: transparent !important;
+}

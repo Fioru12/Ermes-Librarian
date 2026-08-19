@@ -1,0 +1,56 @@
+[
+  {
+    "id": "G02",
+    "query": "Mostrami la formula Principale",
+    "response": "Nel catalogo non e' presente una formula per questo caso.",
+    "elapsed": 115.0,
+    "keyword_score": 0.0,
+    "formula_id_found": false,
+    "empty": false
+  },
+  {
+    "id": "G04",
+    "query": "Spiega la formula 200",
+    "response": "Nel catalogo non è presente una formula per questo caso.",
+    "elapsed": 141.4,
+    "keyword_score": 0.0,
+    "formula_id_found": false,
+    "empty": false
+  },
+  {
+    "id": "G05",
+    "query": "Che cosa fa la formula 130?",
+    "response": "Empty Response",
+    "elapsed": 202.6,
+    "keyword_score": 0.0,
+    "formula_id_found": false,
+    "empty": false
+  },
+  {
+    "id": "G08",
+    "query": "La formula 120 chiama quali altre formule?",
+    "response": "🔢 Formula #120 — F.G: Principale\n```\n4UZ(VU;1121U\"N\"((!4)VU;55UIO50UI(R130;R140;R200;\n```\n📝 **Spiegazione:** La formula #120 è lo smistatore centrale della Fine Giornata. Chiamata in base al tipo di giorno:\n\n- Se il giorno è festivo o domenica → chiama la **#130** (Straordinario Festivo)\n- Se il giorno è ordinario → chiama la **#140** (Straordinario Diurno/Notturno)\n- In caso di nessun straordinario o flag \"non ammesso\" → esce senza chiamate aggiuntive\n\nLa formula #200 non viene mai raggiunta di",
+    "elapsed": 146.3,
+    "keyword_score": 1.0,
+    "formula_id_found": true,
+    "empty": false
+  },
+  {
+    "id": "G09",
+    "query": "Chi chiama la formula 200?",
+    "response": "🔢 Formula #200 — F.G: Formula Finale\n```\n(K601A3)(K602A3);900>Z(P210;\n```\n📝 **Spiegazione:** La formula 200 è la \"Formula finale del flusso Fine Giornata\". Accumula le ore ordinarie nei progressivi K601 (ore lavorate totali) e K602 (ore ordinarie). Se il dipendente ha un turno attivo (campo 900 maggiore di zero), chiama automaticamente la formula 210 per calcolare i premi turno notturni e diurni.\n\n⚠️ **Nota:** Nel catalogo fornito non è specificato esplicitamente quale processo o formula richiam",
+    "elapsed": 180.6,
+    "keyword_score": 1.0,
+    "formula_id_found": true,
+    "empty": false
+  },
+  {
+    "id": "G10",
+    "query": "La formula 100 chiama altre formule?",
+    "response": "🔢 Formula #100 — F.G: PRIMA FORMULA – Azzeramenti\n```\n(500=\"DURATA\")(!561!562!563!564!565!566!567!568!569!570);R110;\n```\n\n📝 **Spiegazione:** Sì, la formula #100 chiama un'altra formula. Al termine delle sue istruzioni (impostare modalità su DURATA e azzerare i campi 561–570), contiene l'istruzione `R110` che fa saltare immediatamente alla **formula #110**.\n\nQuesta è la prima operazione della sequenza di Fine Giornata, quindi dopo aver preparato il contesto (modalità totali su DURATA e azzerament",
+    "elapsed": 172.1,
+    "keyword_score": 1.0,
+    "formula_id_found": true,
+    "empty": false
+  }
+]

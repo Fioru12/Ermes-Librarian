@@ -126,18 +126,14 @@ if errorlevel 1 (
     exit /b 1
 )
 
-python -c "from core.rag_engine import init_llama_settings; print('✅ core.rag_engine.py OK')" 2>nul
+python -c "from legacy_winsarp.core.rag_engine import init_llama_settings; print('✅ core.rag_engine.py OK')" 2>nul
 if errorlevel 1 (
-    echo ❌ ERRORE: Impossibile importare rag_engine.py
-    pause
-    exit /b 1
+    echo ⚠️  WinSarp legacy non disponibile (normale se non e' stato attivato) - non blocca il setup
 )
 
-python -c "from modules.winsarp import WinSarpModule; print('✅ modules OK')" 2>nul
+python -c "from legacy_winsarp.modules.winsarp import WinSarpModule; print('✅ modules OK')" 2>nul
 if errorlevel 1 (
-    echo ❌ ERRORE: Impossibile importare modules
-    pause
-    exit /b 1
+    echo ⚠️  WinSarp legacy non disponibile (normale se non e' stato attivato) - non blocca il setup
 )
 
 REM ── SETUP COMPLETATO ──────────────────────────────────────

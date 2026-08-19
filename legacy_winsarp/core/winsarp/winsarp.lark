@@ -1,0 +1,89 @@
+?start: compact_statement+
+
+# WinSarp Compact Syntax - Sintassi reale compatta
+# Es: (!900)(801='200')(803={802}S{801})VF
+
+compact_statement: compact_block
+compact_block: "(" compact_inner ")"+
+compact_inner: compact_assignment
+              | compact_reset
+              | compact_conditional
+              | compact_k
+              | compact_call
+              | compact_return
+              | compact_campo70
+              | compact_ptr
+
+# Assegnazione compatta: (campo=valore)
+compact_assignment: FIELD "=" compact_value
+
+# Reset compatto: !campo
+compact_reset: "!" FIELD
+
+# Condizionale compatta: (condizione)codice_se_vero;codice_se_falso;
+compact_conditional: "(" condition ")" compact_code (";" compact_code)? ";"
+
+# K accumulo: Kcampo A valore | Kcampo S valore
+compact_k: "K" FIELD compact_k_op+
+compact_k_op: KOP compact_value
+
+# Chiamate: Rnumero | Pnumero
+compact_call: ("R" | "P") NUMBER
+
+# Return: VF | VU | Vxx
+compact_return: "VF" | "VU" | LABEL
+
+# Campo70: campo70=codice
+compact_campo70: "70=" C70_CODE
+
+# Pointer: [campo | ]campo
+compact_ptr: ("[" FIELD | "]" FIELD)
+
+# Codice compatto (sequenza di statement senza parentesi esterne)
+compact_code: (compact_assignment | compact_reset | compact_k | compact_call | compact_return)+
+
+# Condizione
+condition: comparison (LOGIC_OP comparison)*
+comparison: value COMPARATOR value
+
+# Valori
+compact_value: STRING
+              | TIME_VALUE
+              | NUMBER
+              | FIELD_REF
+              | FLAG
+              | FIELD
+              | "Z"          # zero
+              | "I"          # indefinito
+
+# Operatori
+KOP: "A" | "S"
+LOGIC_OP: "E" | "O" | "AND" | "OR"
+COMPARATOR: "=" | ">" | "<" | ">=" | "<=" | ">U" | "<U" | "#" | "!" | "U"
+
+# Campo70 codes
+C70_CODE: /'[0-9]+'/
+
+# Stringhe
+STRING: /"[^"]*"/ | /'[^']*'/
+
+# Valore temporale: ^8.15^ = 8h15m
+TIME_VALUE: /\^[0-9]+\.[0-9]+\^/
+
+# Field reference: {campo}
+FIELD_REF: /\{[0-9]+\}/
+
+# Flag
+FLAG: "I" | "Z"
+
+# Label Vxx
+LABEL: "V" /[0-9]+/
+
+# Campi
+FIELD: /[0-9]+/
+
+# Numeri
+NUMBER: /[0-9]+/
+
+%import common.WS
+%ignore WS
