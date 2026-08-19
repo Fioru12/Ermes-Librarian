@@ -1,0 +1,46 @@
+FORMULA CORRETTA - GESTIONE PAUSA TRA USCITA 1 ED ENTRATA 2
+=========================================================
+(da inserire DOPO R130 nel flusso FG)
+
+LOGICA:
+  - Se esiste intervallo tra uscita1 (201) e entrata2 (202):
+    - 1-12 min: pausa NON conteggiata (nessuna detrazione)
+    - 13-15 min: tolti 15 minuti dalle ore ordinarie (campo 3)
+
+SINTASSI COMPATTA:
+--------------------------------------------------
+(!800)(!801)
+201 > Z E 202 > Z (
+  (800 = 202 S 201)
+  800 < Z ((K800 A '24.00')
+  (71 = 800)(70 = '3')
+  72 > Z ( VF
+  73 > Z E 73 <U '00.12' ( VF
+  73 >U '00.13' E 73 <U '00.16' (
+    K3 S '00.15'
+    (801 = '00.15')
+  )
+)
+--------------------------------------------------
+
+SPIEGAZIONE RIGA PER RIGA:
+  (!800)(!801)                     Azzera campi di lavoro 800 e 801
+  201 > Z E 202 > Z (              Se uscita1 e entrata2 esistono...
+    (800 = 202 S 201)              Calcola durata = entrata2 - uscita1
+    800 < Z ((K800 A '24.00')      Se negativa (oltre mezzanotte): +24h
+    (71 = 800)(70 = '3')           Separa ore (72) e minuti (73) con Campo70
+    72 > Z ( VF                    Se >= 1 ora: esci (non gestito)
+    73 > Z E 73 <U '00.12' ( VF   1-12 min: pausa breve, niente aggiustamento
+    73 >U '00.13' E 73 <U '00.16' (  13-15 min:
+      K3 S '00.15'                 Sottrai 15 min da ore ordinarie (campo 3)
+      (801 = '00.15')              Flag debug/verifica
+    )
+  )
+
+ERRORI FIXATI RISPETTO ALLA VERSIONE PRECEDENTE:
+  1. Campi: 220/250 -> 201/202 (uscita1 ed entrata2 reali)
+  2. Calcolo: 800 = 250 (copia) -> 800 = 202 S 201 (differenza)
+  3. Mezzanotte: assente -> gestione con K800 A '24.00'
+  4. Confronti: '12'/'13'/'15' -> '00.12'/'00.13'/'00.16' (HH.MM)
+  5. Separazione h/min: assente -> Campo70='3'
+  6. Azione: 3=3 (no-op) -> K3 S '00.15' (detrazione reale)

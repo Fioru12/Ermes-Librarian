@@ -1,0 +1,37 @@
+# Ermes — Caddyfile per reverse proxy in produzione
+#
+# 1. Sostituisci "ermes.azienda.it" con il tuo dominio
+# 2. Avvia con: docker compose up -d
+#    (il servizio caddy è già definito in docker-compose.yml)
+# 3. Caddy ottiene automaticamente certificati SSL da Let's Encrypt
+#
+# Se usi Docker Desktop su Windows, usa invece:
+#   caddy run --config scripts/Caddyfile
+# e configura manualmente DNS + porta 80/443 sul firewall.
+
+ermes.azienda.it {
+    # Espone l'app Ermes
+    reverse_proxy app:8502
+
+    # Header di sicurezza
+    header {
+        X-Content-Type-Options nosniff
+        X-Frame-Options DENY
+        X-XSS-Protection "1; mode=block"
+        Referrer-Policy strict-origin-when-cross-origin
+    }
+
+    # Log degli accessi
+    log {
+        output file /data/logs/access.log
+    }
+
+    # Rate limiting base
+    rate_limit {
+        zone dynamic {
+            key {remote_host}
+            events 100
+            window 1m
+        }
+    }
+}

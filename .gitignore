@@ -11,28 +11,33 @@ security/
 
 # ── Documenti utente (dati aziendali, non nel repo) ─────────
 documenti/
+storage/
+data/ermes_knowledge.sqlite3
 
 # ── Ambiente virtuale Python ────────────────────────────────
 venv/
 .venv/
+.venv-ermes/
 env/
 
 # ── Cache Python ────────────────────────────────────────────
 __pycache__/
 *.py[cod]
 *.pyo
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
 
-# ── Streamlit ───────────────────────────────────────────────
-.streamlit/
-# Ma versiona la configurazione del tema (dark mode, porta, etc.)
-!.streamlit/config.toml
-
+# ── Cache modelli HuggingFace ──────────────────────────────
+.embed_cache/
 # ── Variabili d'ambiente e segreti ──────────────────────────
 .env
 .env.local
 .env.development
 .env.production
 *.env
+LOCAL_LOGIN.txt
+config/providers.json
 
 # ── Editor e OS ─────────────────────────────────────────────
 .vscode/
@@ -49,6 +54,11 @@ desktop.ini
 dist/
 build/
 *.egg-info/
+node_modules/
+frontend/node_modules/
+frontend/dist/
+coverage/
+.coverage
 
 # ── Script di debug temporanei ──────────────────────────────
 fix_*.py

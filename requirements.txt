@@ -1,13 +1,11 @@
 # Ermes - Enterprise Knowledge Hub - Requirements
 # Python 3.11+ required (tested on 3.14)
 
-# Core Framework
-streamlit==1.56.0
-
 # API Framework
 fastapi==0.136.1
 uvicorn[standard]==0.47.0
 pydantic==2.13.4
+python-multipart==0.0.22
 
 # LlamaIndex RAG Framework
 llama-index-core==0.14.20
@@ -29,9 +27,17 @@ pypdf==6.10.2
 # Configuration
 python-dotenv==1.2.2
 
+# HTTP Client (Ollama API calls)
+httpx>=0.28.0
+
 # File Locking (cross-process safe)
 filelock==3.29.0
+lark==1.3.1
+
+# LLM Observability (opzionale — si attiva con env LANGFUSE_*)
+langfuse>=2.60.0
 
 # Testing
 pytest==9.0.3
+pytest-timeout==2.4.0
 pytest-asyncio==1.3.0

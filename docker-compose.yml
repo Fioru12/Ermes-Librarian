@@ -1,34 +1,68 @@
 services:
-  ermes-app:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ermes-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: unless-stopped
+    networks:
+      - ermes-network
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  app:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: ermes-ai-hub
     ports:
-      - "8502:8502"
+      - "${ERMES_HOST_PORT:-8502}:${ERMES_PORT:-8502}"
     volumes:
       - ./documenti:/app/documenti
       - ./chroma_db:/app/chroma_db
       - ./data:/app/data
+      - ./storage:/app/storage
       - ./logs:/app/logs
       - ./security:/app/security
       - ./backups:/app/backups
     environment:
       - ERMES_HOST=0.0.0.0
-      - ERMES_PORT=8502
-      - ERMES_MODEL=qwen3:8b
-      - ERMES_EMBED_MODEL=bge-m3
-      - OLLAMA_HOST=http://host.docker.internal:11434
-      - ERMES_SCORE_LOW=0.60
-      - ERMES_SCORE_MED=0.70
-      - ERMES_PROMPT_MAX_CHARS=2000
-      - ERMES_LOG_RETENTION_DAYS=30
-      - ERMES_ENABLE_FORMULA_GENERATION=1
+      - ERMES_PORT=${ERMES_PORT:-8502}
+      - ERMES_MODEL=${ERMES_MODEL:-qwen3.5:9b}
+      - ERMES_EMBED_MODEL=${ERMES_EMBED_MODEL:-bge-m3}
+      - OLLAMA_HOST=http://ollama:11434
+      - ERMES_SCORE_LOW=${ERMES_SCORE_LOW:-0.60}
+      - ERMES_SCORE_MED=${ERMES_SCORE_MED:-0.70}
+      - ERMES_PROMPT_MAX_CHARS=${ERMES_PROMPT_MAX_CHARS:-2000}
+      - ERMES_LOG_RETENTION_DAYS=${ERMES_LOG_RETENTION_DAYS:-30}
+      - ERMES_ENABLE_FORMULA_GENERATION=${ERMES_ENABLE_FORMULA_GENERATION:-0}
+      - ERMES_ENABLE_LEGACY_WINSARP=${ERMES_ENABLE_LEGACY_WINSARP:-0}
+      - ERMES_LIBRARY_SEMANTIC_SEARCH=${ERMES_LIBRARY_SEMANTIC_SEARCH:-0}
+      - ERMES_LIBRARY_ASSISTANT_MODE=${ERMES_LIBRARY_ASSISTANT_MODE:-evidence_only}
+      - ERMES_LIBRARY_CLOUD_CONSENT=${ERMES_LIBRARY_CLOUD_CONSENT:-0}
+      - ERMES_LIBRARY_ASSISTANT_TIMEOUT=${ERMES_LIBRARY_ASSISTANT_TIMEOUT:-45}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
+      - OPENROUTER_BASE_URL=${OPENROUTER_BASE_URL:-https://openrouter.ai/api/v1}
       - ERMES_API_KEY=${ERMES_API_KEY:-}
       - ERMES_ADMIN_USERNAME=${ERMES_ADMIN_USERNAME:-admin}
       - ERMES_ADMIN_PASSWORD=${ERMES_ADMIN_PASSWORD:-}
-      - ERMES_ADMIN_MAX_UPLOAD_MB=50
-      - ERMES_AUDIT_SECRET=${ERMES_AUDIT_SECRET:-}
+      - ERMES_ADMIN_MAX_UPLOAD_MB=${ERMES_ADMIN_MAX_UPLOAD_MB:-50}
+      - LANGFUSE_PUBLIC_KEY=${LANGFUSE_PUBLIC_KEY:-}
+      - LANGFUSE_SECRET_KEY=${LANGFUSE_SECRET_KEY:-}
+      - LANGFUSE_HOST=${LANGFUSE_HOST:-http://langfuse:3000}
+      - ERMES_TEAMS_WEBHOOK_SECRET=${ERMES_TEAMS_WEBHOOK_SECRET:-}
+      - ERMES_SLACK_SIGNING_SECRET=${ERMES_SLACK_SIGNING_SECRET:-}
+      - ERMES_SLACK_BOT_TOKEN=${ERMES_SLACK_BOT_TOKEN:-}
+      - ERMES_TELEGRAM_BOT_TOKEN=${ERMES_TELEGRAM_BOT_TOKEN:-}
+    depends_on:
+      ollama:
+        condition: service_healthy
     restart: unless-stopped
     networks:
       - ermes-network
@@ -39,6 +73,30 @@ services:
         reservations:
           memory: 2G
 
+  # Reverse proxy per esposizione pubblica (SSL automatico con Let's Encrypt)
+  # Sostituisci il dominio in scripts/Caddyfile prima di avviare
+  caddy:
+    profiles: ["public"]
+    image: caddy:2-alpine
+    container_name: ermes-caddy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./scripts/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+    networks:
+      - ermes-network
+    restart: unless-stopped
+
 networks:
   ermes-network:
     driver: bridge
+
+volumes:
+  ollama_data:
+  caddy_data:
+  caddy_config:

@@ -1,0 +1,44 @@
+# Langfuse self-hosting per tracing LLM.
+# Avvia con: docker compose -f docker-compose.langfuse.yml up -d
+# Poi imposta nel .env:
+#   LANGFUSE_PUBLIC_KEY=pk-lf-...
+#   LANGFUSE_SECRET_KEY=sk-lf-...
+#   LANGFUSE_HOST=http://localhost:3000
+#
+# Le chiavi si generano dopo il primo avvio:
+#  1. Apri http://localhost:3000
+#  2. Crea account admin
+#  3. Vai su Settings → API Keys → Crea nuova chiave
+
+services:
+  langfuse:
+    image: langfuse/langfuse:latest
+    container_name: ermes-langfuse
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - LANGFUSE_ENABLE_EXPERIMENTAL_FEATURES=false
+      # Database SQLite (tutto locale, zero dipendenze)
+      - LANGFUSE_DATABASE_URL=file:./data/langfuse.db
+      - DIRECT_URL=file:./data/langfuse.db
+      # Chiavi di default per primo accesso (cambiarle dopo login)
+      - LANGFUSE_INIT_ORG_ID=ermes
+      - LANGFUSE_INIT_ORG_NAME=Ermes AI
+      - LANGFUSE_INIT_PROJECT_ID=ermes-rag
+      - LANGFUSE_INIT_PROJECT_NAME=Ermes RAG
+      - LANGFUSE_INIT_USER_EMAIL=admin@ermes.local
+      - LANGFUSE_INIT_USER_NAME=Admin
+      - LANGFUSE_INIT_USER_PASSWORD=admin123
+    volumes:
+      - langfuse_data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "http://localhost:3000/api/public/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+volumes:
+  langfuse_data:

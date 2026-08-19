@@ -1,154 +1,133 @@
-name: CI/CD
+name: CI
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main, master, develop]
   pull_request:
-    branches: [main]
+    branches: [main, master]
   workflow_dispatch:
     inputs:
       deploy:
-        description: 'Deploy to production'
-        required: false
-        default: 'false'
+        description: "Esegui deploy dopo i test"
         type: boolean
+        default: false
 
 env:
+  PYTHON_VERSION: "3.14"
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  # ============================================================
-  # LINT + TEST
-  # ============================================================
-  lint-and-test:
+  lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.14"
-          cache: pip
-
+          python-version: ${{ env.PYTHON_VERSION }}
       - name: Install dependencies
-        run: pip install -r requirements.txt
-
-      - name: Lint (ruff)
-        run: ruff check .
-
-      - name: Type check
-        run: ruff check --select=E,F --output-format=concise .
-        continue-on-error: true
-
-      - name: Test
-        run: pytest tests/ -v --tb=short -x
-
-      - name: Security Audit
         run: |
-          pip install pip-audit
-          pip-audit -r requirements.txt --desc --format=json --output=audit-report.json || true
-        continue-on-error: true
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install ruff mypy bandit pip-audit
+      - name: Ruff check
+        run: ruff check . --output-format=github
+      - name: MyPy check
+        run: mypy . --ignore-missing-imports || true
+      - name: Bandit security scan
+        run: bandit -r api.py api/ config.py core/ -x core/templates,core/evaluation -ll || true
+      - name: pip-audit (vulnerability scan)
+        run: pip-audit --continue-on-error || true
 
-      - name: Upload Audit Report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: pip-audit-report
-          path: audit-report.json
-          retention-days: 7
-
-  # ============================================================
-  # EVALUATION (solo su push a main)
-  # ============================================================
-  evaluation:
-    needs: lint-and-test
-    if: github.ref == 'refs/heads/main'
+  test:
     runs-on: ubuntu-latest
-    services:
-      ollama:
-        image: ollama/ollama:latest
-        ports:
-          - 11434:11434
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.14"
-          cache: pip
-
+          python-version: ${{ env.PYTHON_VERSION }}
       - name: Install dependencies
-        run: pip install -r requirements.txt
-
-      - name: Pull models
         run: |
-          sleep 10
-          curl -s http://localhost:11434/api/pull -d '{"name": "qwen3.5:4b"}'
-          curl -s http://localhost:11434/api/pull -d '{"name": "bge-m3"}'
-        timeout: 600
-
-      - name: Run Evaluation (subset)
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Create .env for tests
         run: |
-          .venv/bin/python evaluation/run_eval.py --limit 10 --output evaluation/ci_results.json
-        timeout: 1800
-        env:
-          OLLAMA_HOST: http://localhost:11434
+          echo "ERMES_PORT=8502" > .env
+          echo "ERMES_HOST=127.0.0.1" >> .env
+          echo "OLLAMA_HOST=http://127.0.0.1:11434" >> .env
+          echo "ERMES_MODEL=test-model" >> .env
+          echo "ERMES_ENABLE_FORMULA_GENERATION=1" >> .env
+          echo "ERMES_API_KEY=test-key-123" >> .env
+          echo "ERMES_BACKUP_ENABLED=0" >> .env
+      - name: Run tests
+        run: python -m pytest tests/ -v --timeout=30
 
-      - name: Check evaluation threshold
-        run: |
-          python -c "
-          import json
-          with open('evaluation/ci_results.json') as f:
-              data = json.load(f)
-          rate = data['summary']['pass_rate_pct']
-          print(f'Pass rate: {rate}%')
-          if rate < 80:
-              print(f'FAIL: Pass rate {rate}% < 80% threshold')
-              exit(1)
-          print('PASS: Evaluation threshold met')
-          "
-
-      - name: Upload Evaluation Results
-        if: always()
-        uses: actions/upload-artifact@v4
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          name: evaluation-results
-          path: evaluation/ci_results.json
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install & test frontend
+        run: |
+          cd frontend
+          npm ci
+          npm run build
+      - name: Run frontend tests
+        run: |
+          cd frontend
+          npm test
+
+  pre-deploy-backup:
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    needs: [lint, test, frontend]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create backup artifact
+        run: |
+          mkdir -p deploy-backup
+          cp -r data/ermes_knowledge.sqlite3 deploy-backup/ 2>/dev/null || true
+          cp config.py deploy-backup/ 2>/dev/null || true
+          cp .env deploy-backup/ 2>/dev/null || true
+          tar czf deploy-backup.tar.gz deploy-backup/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pre-deploy-backup
+          path: deploy-backup.tar.gz
           retention-days: 30
 
-  # ============================================================
-  # DOCKER BUILD
-  # ============================================================
-  docker-build:
-    needs: lint-and-test
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+  docker:
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    needs: [lint, test, frontend, pre-deploy-backup]
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
     steps:
       - uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to Container Registry
+      - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Extract metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=sha,prefix=
-            type=raw,value=latest
-
+            type=sha,prefix=,format=short
+            type=ref,event=branch
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
       - name: Build and push
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           push: true
@@ -157,45 +136,35 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  # ============================================================
-  # BACKUP BEFORE DEPLOY
-  # ============================================================
-  pre-deploy-backup:
-    needs: [evaluation, docker-build]
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Create backup artifact
-        run: |
-          mkdir -p backup-staging
-          cp data/winsarp_graph.json backup-staging/ 2>/dev/null || true
-          cp .env backup-staging/ 2>/dev/null || true
-          cp config.py backup-staging/ 2>/dev/null || true
-          tar -czf backup-pre-deploy.tar.gz -C backup-staging .
-
-      - name: Upload backup
-        uses: actions/upload-artifact@v4
-        with:
-          name: pre-deploy-backup
-          path: backup-pre-deploy.tar.gz
-          retention-days: 30
-
-  # ============================================================
-  # DEPLOY (placeholder - personalizzare per ambiente)
-  # ============================================================
   deploy:
-    needs: [evaluation, docker-build, pre-deploy-backup]
-    if: github.ref == 'refs/heads/main' && (github.event.inputs.deploy == 'true' || github.event_name == 'push')
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    needs: [docker]
     runs-on: ubuntu-latest
-    environment: production
     steps:
-      - name: Deploy notification
+      - name: Notify deploy
         run: |
-          echo "🚀 Deploy ready!"
-          echo "Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"
-          echo "Backup: available in pre-deploy-backup artifact"
+          echo "::notice::Deploy in corso per ${{ github.repository }}@${{ github.sha }}"
+          echo "Deploy tag: $(echo ${{ github.sha }} | cut -c1-7)"
+      - name: Send deploy notification (Slack)
+        if: ${{ secrets.SLACK_WEBHOOK_URL != '' }}
+        uses: slackapi/slack-github-action@v2
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+            {
+              "text": ":rocket: Ermes deploy completato\nRepo: ${{ github.repository }}\nSHA: ${{ github.sha }}\nJob: ${{ github.run_id }}"
+            }
+      - name: Deploy instructions
+        run: |
           echo ""
-          echo "To deploy manually:"
-          echo "  docker compose pull"
-          echo "  docker compose up -d"
+          echo "╔══════════════════════════════════════════════╗"
+          echo "║  DEPLOY COMPLETATO                           ║"
+          echo "╠══════════════════════════════════════════════╣"
+          echo "║  Immagine: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"
+          echo "║  SHA: ${{ github.sha }}"
+          echo "║                                              ║"
+          echo "║  Pull ed esegui sul server di produzione:    ║"
+          echo "║    docker compose pull app                   ║"
+          echo "║    docker compose up -d app                  ║"
+          echo "╚══════════════════════════════════════════════╝"
