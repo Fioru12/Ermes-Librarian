@@ -1,0 +1,76 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  color-scheme: light;
+}
+
+.dark {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  text-rendering: optimizeLegibility;
+}
+
+.ermes-app-shell {
+  background-color: #0b0e16;
+  background-image:
+    linear-gradient(115deg, rgba(7, 10, 20, 0.88) 0%, rgba(10, 14, 27, 0.76) 48%, rgba(8, 11, 21, 0.9) 100%),
+    radial-gradient(900px circle at 8% -10%, rgba(37, 99, 235, 0.2), transparent 42%),
+    url('/assets/ermes-knowledge-atmosphere.png');
+  background-position: center;
+  background-size: cover;
+  background-attachment: fixed;
+}
+
+.ermes-grid {
+  background-image: linear-gradient(rgba(148, 163, 184, 0.045) 1px, transparent 1px), linear-gradient(90deg, rgba(148, 163, 184, 0.045) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+.ermes-glass {
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.ermes-surface {
+  box-shadow: 0 20px 60px rgba(2, 6, 23, 0.22);
+}
+
+/* Custom scrollbar - Premium elegant look */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.4);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(156, 163, 175, 0.7);
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Base focus styles for better accessibility without ugly rings */
+*:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
