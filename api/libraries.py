@@ -127,6 +127,10 @@ def download_document(
         raise HTTPException(status_code=409, detail="Percorso originale non valido") from error
     if not source_path.is_file():
         raise HTTPException(status_code=404, detail="Originale non disponibile")
+    append_audit(
+        cfg.AUDIT_FILE, "document_downloaded", _auth["username"],
+        {"library_id": library_id, "document_id": document_id, "filename": document["filename"], "version": document["version"]},
+    )
     return FileResponse(source_path, media_type=document["media_type"], filename=document["filename"])
 
 

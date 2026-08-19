@@ -242,6 +242,81 @@ def test_library_api_creates_and_uploads_a_document(tmp_path: Path):
         app.dependency_overrides.clear()
 
 
+def test_download_is_denied_to_a_non_member_of_a_private_library(tmp_path: Path, monkeypatch):
+    """The download endpoint must check membership before serving the file, not after."""
+    store = LibraryStore(tmp_path / "download_acl.sqlite3")
+    app.dependency_overrides[get_library_store] = lambda: store
+    audit_calls: list[tuple] = []
+    monkeypatch.setattr("api.libraries.append_audit", lambda *args, **kwargs: audit_calls.append((args, kwargs)))
+    try:
+        client = TestClient(app)
+
+        app.dependency_overrides[_verify_api_key] = lambda: {"username": "alice", "role": "admin"}
+        created = client.post("/api/libraries", json={"name": "HR riservato", "visibility": "private"})
+        assert created.status_code == 201
+        library_id = created.json()["id"]
+        uploaded = client.post(
+            f"/api/libraries/{library_id}/documents",
+            files={"file": ("policy.md", b"# Policy interna", "text/markdown")},
+        )
+        assert uploaded.status_code == 201
+        document_id = uploaded.json()["id"]
+
+        as_owner = client.get(f"/api/libraries/{library_id}/documents/{document_id}/download")
+        assert as_owner.status_code == 200
+        assert as_owner.content == b"# Policy interna"
+
+        download_audit_entries = [
+            call for call in audit_calls if len(call[0]) >= 2 and call[0][1] == "document_downloaded"
+        ]
+        assert any(
+            call[0][2] == "alice" and call[0][3].get("document_id") == document_id
+            for call in download_audit_entries
+        )
+
+        # A user with no membership on this library (and no global admin
+        # role, which intentionally bypasses per-library ACL) must not be
+        # able to tell it exists, let alone read its content — 404, not 403.
+        app.dependency_overrides[_verify_api_key] = lambda: {"username": "eve", "role": "viewer"}
+        as_stranger = client.get(f"/api/libraries/{library_id}/documents/{document_id}/download")
+        assert as_stranger.status_code == 404
+
+        # A viewer explicitly added to the (still private) library can read it.
+        app.dependency_overrides[_verify_api_key] = lambda: {"username": "alice", "role": "admin"}
+        member = client.put(f"/api/libraries/{library_id}/members", json={"username": "bob", "role": "viewer"})
+        assert member.status_code == 200
+        app.dependency_overrides[_verify_api_key] = lambda: {"username": "bob", "role": "viewer"}
+        as_member = client.get(f"/api/libraries/{library_id}/documents/{document_id}/download")
+        assert as_member.status_code == 200
+        assert as_member.content == b"# Policy interna"
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_download_of_a_shared_library_is_open_to_any_authenticated_user(tmp_path: Path):
+    store = LibraryStore(tmp_path / "download_shared.sqlite3")
+    app.dependency_overrides[get_library_store] = lambda: store
+    try:
+        client = TestClient(app)
+
+        app.dependency_overrides[_verify_api_key] = lambda: {"username": "alice", "role": "admin"}
+        created = client.post("/api/libraries", json={"name": "Procedure comuni", "visibility": "shared"})
+        assert created.status_code == 201
+        library_id = created.json()["id"]
+        uploaded = client.post(
+            f"/api/libraries/{library_id}/documents",
+            files={"file": ("procedura.md", b"# Procedura comune", "text/markdown")},
+        )
+        document_id = uploaded.json()["id"]
+
+        app.dependency_overrides[_verify_api_key] = lambda: {"username": "carol", "role": "viewer"}
+        as_other_user = client.get(f"/api/libraries/{library_id}/documents/{document_id}/download")
+        assert as_other_user.status_code == 200
+        assert as_other_user.content == b"# Procedura comune"
+    finally:
+        app.dependency_overrides.clear()
+
+
 def test_viewer_cannot_change_a_library(tmp_path: Path):
     app.dependency_overrides[get_library_store] = lambda: LibraryStore(tmp_path / "viewer.sqlite3")
     app.dependency_overrides[_verify_api_key] = lambda: {"username": "viewer", "role": "viewer"}

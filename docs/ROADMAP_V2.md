@@ -83,16 +83,16 @@ Correzione emersa durante l'esplorazione: `core/library_store.py::search_with_pr
 
 **Uscita**: raggiunta — un numero di qualità retrieval reale, misurato in questa sessione, che regge a una domanda diretta in colloquio tecnico ("qual è la differenza tra query dirette e parafrasate?" ha ora una risposta con dati, non una supposizione).
 
-### Fase C — Recupero documento come feature di prima classe (~4-5 giorni)
+### Fase C — Recupero documento come feature di prima classe (fatta, 20 agosto 2026)
 
-- [ ] **[design, medio — priorità alta]** Collegare il download del documento originale nelle citazioni di `ChatArea.tsx`: l'endpoint è già pronto e verificato sicuro, manca solo il pulsante/link. È il differenziatore di prodotto deciso in questa revisione ed è il pezzo più economico da chiudere.
-- [ ] **[dev/sicurezza, medio]** Test di integrazione sul download: accesso negato a non-membri, libreria privata vs condivisa, versione corretta servita — oggi non esiste nessun test a questo livello.
-- [ ] **[dev, medio]** Consolidare l'estrazione testo PDF/DOCX: `api/documents.py` reimplementa l'estrazione invece di riusare `core/document_parser.py` — due implementazioni indipendenti che possono divergere.
-- [ ] **[dev, medio]** Aggiungere test diretti per `core/ingestion_service.py` (`process_ingestion_job`) — unico modulo core nel perimetro esaminato senza copertura, gestisce gli stati di errore che l'utente vede come "documento non indicizzato".
-- [ ] Audit: loggare ogni download riusando il meccanismo di audit esistente (`core/governance.py`).
-- [ ] **[sicurezza, medio]** Aggiungere un controllo/test esplicito che `DOCS_DIR` (legacy) e `LIBRARY_STORAGE_DIR` (nuovo) non si sovrappongano mai — oggi la separazione è per convenzione (`api/__init__.py:70` esclude a mano la cartella "libraries").
+- [x] **[design, medio — priorità alta]** Collegato il download del documento originale nelle citazioni di `ChatArea.tsx` (pulsante "Apri originale" per fonte, stesso pattern già usato in `DocumentsTab.tsx`).
+- [x] **[dev/sicurezza, medio]** Aggiunti test di integrazione sul download in `tests/test_library_store.py`: accesso negato a un non-membro (404, non 403 — coerente con il resto dell'API), accesso concesso a un membro esplicitamente aggiunto, libreria condivisa aperta a qualunque utente autenticato. Scoperto e confermato *by design* (non un bug) che un utente con ruolo globale `admin` bypassa l'ACL di libreria — il test è stato corretto per usare un ruolo non-admin sull'estraneo.
+- [x] **[dev, medio]** Consolidamento estrazione PDF/DOCX **già risolto dalla Fase A**: `api/documents.py` (la duplicazione) è stato isolato in `legacy_winsarp/api/` durante l'isolamento WinSarp — resta un solo percorso di estrazione, `core/document_parser.py`.
+- [x] **[dev, medio]** Aggiunti test diretti per `core/ingestion_service.py::process_ingestion_job` in `tests/test_ingestion_service.py` (nuovo file, 4 test): indicizzazione riuscita, documento senza testo estraibile marcato `failed` (non silenziosamente `ready`), rifiuto di un documento il cui path punta fuori dalla storage root (difesa in profondità contro path traversal, verificata attiva), idempotenza su un job già reclamato.
+- [x] Audit: ogni download ora logga un evento `document_downloaded` via `append_audit` (`api/libraries.py`), verificato con un test che intercetta la chiamata.
+- [x] **[sicurezza, medio]** Aggiunto `tests/test_config.py`: verifica esplicita e permanente che `DOCS_DIR` e `LIBRARY_STORAGE_DIR` non si sovrappongano mai (oggi sono sottoalberi fissi e disgiunti sotto `BASE_DIR` — il test è una guardia contro regressioni future, non solo una convenzione documentata).
 
-**Uscita**: recuperare un documento è affidabile, testato, tracciato e raggiungibile da ogni punto dell'app (non solo dalla tab documenti) quanto rispondere con citazioni.
+**Uscita**: raggiunta — recuperare un documento è affidabile, testato (7 nuovi test), tracciato e raggiungibile sia dalla chat sia dalla tab documenti.
 
 ### Fase D — Demo stretta e corpus fittizio (~1 settimana)
 
