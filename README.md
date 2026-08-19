@@ -1,231 +1,132 @@
-# Ermes - Enterprise Knowledge Hub
+# Ermes Knowledge
 
-Piattaforma RAG aziendale con moduli configurabili per consultare documentazione in linguaggio naturale. Elaborazione
-100% locale, nessun dato cloud.
+Ermes Knowledge is a local-first document library for small and medium businesses. It turns company files into a governed, searchable knowledge base: users upload documents, ask questions in natural language, and receive answers that point back to the supporting source.
 
-## Quick Start
+The product is designed to be useful before any cloud AI is enabled. Its default mode is evidence-only: documents remain local and the application returns the most relevant passages with traceable citations. An administrator may explicitly enable a local Ollama model or an approved OpenRouter provider for a single library.
 
-### Prerequisiti
-- Python 3.11+
-- Ollama 0.21+ con modelli: `qwen2.5:7b`, `bge-m3`
+> Status: active MVP / portfolio project. The current implementation is single-tenant and local-first; it is not yet a complete enterprise SaaS platform.
 
-### Setup
+## Why it exists
 
-```bash
-# 1. Ambiente Python
-python -m venv .venv
-.venv\Scripts\activate
+Teams often have procedures, policies, manuals, contracts and internal know-how spread across folders. Finding the right version is slow and unreliable. Ermes Knowledge provides one controlled entry point where the answer is tied to the source document instead of presented as unexplained AI output.
 
-# 2. Dipendenze
+## Current capabilities
+
+- Separate libraries with private or shared visibility.
+- Upload, parse and index PDF, DOCX, TXT and Markdown documents.
+- Version history, restore and protected download of original files.
+- Chunk-level retrieval scoped to the selected library.
+- Evidence-first answers with citations, document version, locator and excerpt.
+- Clear abstention when the selected library does not contain enough evidence.
+- Local web accounts (viewer, editor or administrator), API keys for integrations, and audit metadata for library operations.
+- Per-library assistant policy:
+  - `evidence_only` — default; no LLM receives document content.
+  - `local_ollama` — sends selected passages only to an Ollama endpoint under your control.
+  - `approved_openrouter` — requires an explicit global consent and an administrator's per-library choice.
+- React interface, FastAPI API, automated backend and frontend tests.
+
+## Product principles
+
+1. **Local first.** A cloud API key alone never enables cloud processing.
+2. **Evidence before generation.** Every substantive answer must cite an accessible document or abstain.
+3. **Library isolation.** Retrieval is constrained to the chosen library before context reaches the assistant.
+4. **Documents are untrusted data.** Retrieved text cannot authorize tools or actions.
+5. **Originals and versions matter.** Citations remain linked to the document version that supported the answer.
+
+## Quick start (Windows)
+
+Prerequisites: Python 3.11+, Node.js 18+ and npm. Ollama is optional unless you select `local_ollama` or local semantic search.
+
+```powershell
+Copy-Item .env.example .env
+py -3.11 -m venv .venv-ermes
+.\.venv-ermes\Scripts\Activate.ps1
 pip install -r requirements.txt
-
-# 3. Configurazione (opzionale)
-copy .env.example .env
-
-# 4. Avvia Ollama (terminale separato)
-ollama serve
-
-# 5. Avvia app
-python -m streamlit run app.py --server.port 8502
+npm.cmd --prefix frontend install
+.\.venv-ermes\Scripts\python.exe scripts\provision_local_demo_auth.py --write
+.\scripts\avvia_ermes.ps1
 ```
 
-🌐 **App:** http://localhost:8502  
-👤 **Login:** admin / CHANGE_ME
+Open [http://127.0.0.1:3000](http://127.0.0.1:3000). The API health endpoint is [http://127.0.0.1:8502/health](http://127.0.0.1:8502/health).
 
-⚠️ Cambia password in `.env` prima di produzione!
+The project desktop shortcut, if created with `scripts/CREA_COLLEGAMENTO_DESKTOP.ps1`, launches the same official script.
+The provisioning command is opt-in and writes first-run credentials only to untracked `.env` and `LOCAL_LOGIN.txt` files.
 
-## Stack
+### Run checks
 
-| Componente | Tecnologia |
-|-----------|-----------|
-| UI | Streamlit |
-| RAG Engine | LlamaIndex |
-| Vector DB | ChromaDB (locale) |
-| LLM | Ollama (qwen2.5:7b) |
-| API | FastAPI |
-| Auth | JWT + bcrypt |
-
-## Funzionalita
-
-### Utenti
-- Chat RAG su documenti
-- Visualizzazione fonti
-- Affidabilita risposta
-- Export conversazione
-
-### Admin
-- Upload documenti (PDF/DOCX/TXT)
-- Gestione utenti (viewer/admin)
-- Reindicizzazione
-- Audit trail
-
-## Configurazione
-
-File `.env` (opzionale):
-
-```env
-ERMES_HOST=127.0.0.1
-ERMES_PORT=8502
-ERMES_ADMIN_USERNAME=admin
-ERMES_ADMIN_PASSWORD=CHANGE_ME
-OLLAMA_HOST=http://127.0.0.1:11434
-ERMES_MODEL=qwen2.5:7b
-ERMES_EMBED_MODEL=bge-m3
-ERMES_API_KEY=
+```powershell
+.\.venv-ermes\Scripts\python.exe -m pytest -q tests/
+npm.cmd --prefix frontend test -- --run
+npm.cmd --prefix frontend run build
 ```
-
-## API REST
-
-Health check:
-```bash
-curl http://localhost:8503/health
-```
-
-Query (richiede `ERMES_API_KEY`):
-```bash
-curl -X POST -H "Authorization: Bearer KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"query":"?", "module":"WinSarp"}' \
-  http://localhost:8503/query
-```
-
-**Nota:** l'API gira sulla porta `8503` (`PORT+1`) se avviata insieme a Streamlit.
 
 ## Docker
 
-```bash
-docker-compose up -d
+```powershell
+docker compose up --build
 ```
 
-## Testing
+Runtime documents and the SQLite library database are mounted in `storage/` and are intentionally ignored by Git. For a corporate TLS-inspection network, pass the internal root certificate as a Docker BuildKit secret rather than copying it into the image:
 
-```bash
-pytest tests/ -v
+```powershell
+docker build --secret id=corporate_ca,src=company-ca.crt -t ermes-knowledge .
 ```
 
-## Troubleshooting
+## Cloud AI policy
 
-| Problema | Soluzione |
-|----------|-----------|
-| Ollama non trovato | ollama.com/download |
-| Port in use | Cambia `ERMES_PORT` in `.env` |
-| Import error | Attiva venv: `.venv\Scripts\activate` |
-| Password sbagliata | Default: admin/CHANGE_ME |
+Cloud AI is optional. Before enabling it, set `ERMES_LIBRARY_CLOUD_CONSENT=1` in the local environment and configure a provider through the admin interface using a secret manager or untracked `.env`. A library owner explicitly selects either the dedicated OpenRouter setup or one enabled approved provider; Ermes sends only the retrieved, authorized excerpts to that exact provider. There is no automatic local-to-cloud or provider-to-provider fallback.
 
-## File Importanti
+Never commit `.env`, document uploads, storage data, API keys or customer content. Rotate any key that may have been exposed in terminal history or source control.
 
-- `config.py` - Configurazione
-- `app.py` - UI Streamlit
-- `api.py` - API FastAPI
-- `core/rag_engine.py` - RAG engine
-- `core/error_handler.py` - Error handling
-- `core/input_validator.py` - Validazione input
-- `core/governance.py` - Utenti + audit
-- `modules/` - Moduli custom
+## Architecture
 
-## Security
-
-- Password hashing
-- Admin lockout
-- Input validation
-- Audit trail
-- Error handling
-- Rate limiting
-
----
-
-**Versione:** 2.0.0 | **Data:** 25 Maggio 2026 | **Status:** Production Ready
-
-## Architettura
-
-Il progetto implementa l'Opzione 3 dal documento di avvio (LLM Locale):
-- 100% locale/on-premise
-- Nessun dato esce dalla macchina aziendale
-- LLM open-source (Qwen2.5) invece di Claude API
-- ChromaDB locale per embeddings
-- Integrazioni possibili via API REST
-
-### Diagramma Architettura
-
-```mermaid
-graph TB
-    subgraph "Frontend"
-        UI[Streamlit UI]
-        API[FastAPI REST]
-    end
-
-    subgraph "Core Engine"
-        RAG[RAG Engine]
-        MOD[Module System]
-        GOV[Governance]
-    end
-
-    subgraph "Data Layer"
-        CHROMA[(ChromaDB)]
-        DOCS[Documenti]
-        LOGS[Logs]
-        SEC[Security]
-    end
-
-    subgraph "AI Layer"
-        OLLAMA[Ollama]
-        LLM[qwen2.5:7b]
-        EMB[bge-m3]
-    end
-
-    UI --> RAG
-    API --> RAG
-    RAG --> MOD
-    RAG --> GOV
-    RAG --> CHROMA
-    CHROMA --> OLLAMA
-    OLLAMA --> LLM
-    OLLAMA --> EMB
-    DOCS --> RAG
-    LOGS --> GOV
-    SEC --> GOV
+```text
+Browser
+  -> React UI
+  -> FastAPI
+       -> Library store (metadata, versions, jobs, audit)
+       -> Local storage (original documents)
+       -> Parser and chunker
+       -> Retrieval limited to the selected library
+       -> Evidence answer / explicit local or approved-cloud LLM
 ```
 
-### Flusso Query RAG
+The target architecture, security principles and planned evolution are documented in [docs/ARCHITECTURE_TARGET.md](docs/ARCHITECTURE_TARGET.md) and [docs/PROJECT_PLAN.md](docs/PROJECT_PLAN.md).
 
-```mermaid
-sequenceDiagram
-    participant U as User
-    participant UI as Streamlit
-    participant RAG as RAG Engine
-    participant CH as ChromaDB
-    participant LLM as Ollama
+## Demo corpus
 
-    U->>UI: Inserisce domanda
-    UI->>RAG: Query + Module
-    RAG->>CH: Retrieval embeddings
-    CH-->>RAG: Top-K chunks
-    RAG->>LLM: Context + Query
-    LLM-->>RAG: Risposta generata
-    RAG-->>UI: Response + Sources
-    UI-->>U: Formula + Spiegazione
+Two fictional demo libraries, safe to upload and screenshot: [Northstar Works](examples/demo-corpus/README.md) (HR/IT/expense policies) and [Meridian Precision Works](examples/demo-corpus-quality/README.md) (manufacturing quality procedures). Loading both and asking a question that only the *other* library can answer is the fastest way to show that retrieval never crosses a library boundary — it is not just a design principle, the demo validation script checks it.
+
+For a short presentation sequence, use the [five-minute demo guide](docs/DEMO_GUIDE.md).
+
+With the local application running and an administrator password or API key configured only in `.env`, validate the complete demo flow:
+
+```powershell
+.\.venv-ermes\Scripts\python.exe scripts\run_demo_validation.py
 ```
 
-### Sicurezza
+## Roadmap
 
-```mermaid
-graph LR
-    subgraph "Autenticazione"
-        AUTH[JWT/bcrypt]
-        RL[Rate Limiter]
-    end
+Done: a safe two-library demo corpus with a live-verified isolation check; local hybrid keyword+embedding search with a measured, published retrieval quality number (see [docs/RETRIEVAL_EVALUATION.md](docs/RETRIEVAL_EVALUATION.md)). See [docs/ROADMAP_V2.md](docs/ROADMAP_V2.md) for the full phase-by-phase log, including what was found and fixed along the way, not just what shipped.
 
-    subgraph "Integrita"
-        HMAC[HMAC-SHA256]
-        AUDIT[Audit Log]
-    end
+Still ahead:
 
-    subgraph "Protezione"
-        VAL[Input Validation]
-        LOCK[File Lock]
-    end
+1. Replace local-only identity with OIDC and propagate ACLs to retrieval.
+2. Add connectors for shared folders, Google Drive and SharePoint behind the same permission model.
+3. Move production metadata/storage to PostgreSQL and object storage for multi-user deployments.
 
-    AUTH --> RL
-    HMAC --> AUDIT
-    VAL --> LOCK
-```
+The legacy WinSarp formula work is personal historical material, physically isolated under `legacy_winsarp/` and gated behind a dev-only flag (`ERMES_ENABLE_LEGACY_WINSARP`). It is not part of the Ermes Knowledge product path and must not be used as a public demo corpus or as a claim about the current product.
+
+## Repository hygiene before publishing
+
+This workspace intentionally contains development history and local artifacts. Before making a public repository, use the release checklist in [docs/GITHUB_RELEASE_PLAN.md](docs/GITHUB_RELEASE_PLAN.md). A full-history secret scan has been run and one sensitive non-public document was found and purged from Git history entirely (not just deleted); re-scan before publishing if the history changes further, and choose a license deliberately.
+
+## Documentation
+
+- [Product strategy](docs/PRODUCT_STRATEGY.md)
+- [Project plan](docs/PROJECT_PLAN.md) (historical) and [Roadmap v2](docs/ROADMAP_V2.md) (current, phase-by-phase log)
+- [Target architecture](docs/ARCHITECTURE_TARGET.md)
+- [Team audit](docs/AUDIT_2026-08-19.md) — architecture, security and design findings with file:line references
+- [RAG retrieval evaluation](docs/RETRIEVAL_EVALUATION.md)
+- [Demo guide](docs/DEMO_GUIDE.md)
+- [GitHub release plan](docs/GITHUB_RELEASE_PLAN.md)

@@ -1,5 +1,7 @@
 # Piano di pubblicazione GitHub
 
+> **Stato (20 agosto 2026)**: la scansione dei segreti sulla history completa richiesta in fondo a questo documento è stata eseguita — nessuna credenziale reale trovata, un documento riservato di terzi trovato e rimosso interamente dalla history (non solo cancellato). La ristrutturazione monorepo proposta qui sotto (`apps/api`, `apps/web`, ecc.) resta un obiettivo aspirazionale per una release pubblica finale, non ancora eseguita — lo scope pragmatico attualmente in corso è quello di `docs/ROADMAP_V2.md` Fase F.
+
 ## Obiettivo
 
 Pubblicare una reference platform local-first, installabile e verificabile. Non pubblicare un prototipo interno come se fosse un prodotto enterprise finito.
