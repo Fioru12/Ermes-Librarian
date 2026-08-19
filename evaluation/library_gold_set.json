@@ -1,0 +1,218 @@
+[
+  {
+    "id": "hr-ferie-preavviso",
+    "library": "HR",
+    "type": "direct",
+    "query": "Con quanto anticipo devo richiedere le ferie?",
+    "expected_filename": "policy-ferie.md",
+    "expected_locator": "Sezione: Richiesta ferie"
+  },
+  {
+    "id": "hr-malattia",
+    "library": "HR",
+    "type": "direct",
+    "query": "A chi devo comunicare l'assenza per malattia?",
+    "expected_filename": "policy-ferie.md",
+    "expected_locator": "Sezione: Assenze"
+  },
+  {
+    "id": "hr-permessi",
+    "library": "HR",
+    "type": "direct",
+    "query": "Come richiedo un permesso orario?",
+    "expected_filename": "policy-ferie.md",
+    "expected_locator": "Sezione: Permessi"
+  },
+  {
+    "id": "hr-onboarding",
+    "library": "HR",
+    "type": "direct",
+    "query": "Quando ricevo le credenziali aziendali al mio ingresso?",
+    "expected_filename": "policy-ferie.md",
+    "expected_locator": "Sezione: Onboarding"
+  },
+  {
+    "id": "it-backup-retention",
+    "library": "IT",
+    "type": "direct",
+    "query": "Per quanto tempo vengono mantenuti i backup giornalieri?",
+    "expected_filename": "runbook-backup.md",
+    "expected_locator": "Sezione: Conservazione"
+  },
+  {
+    "id": "it-ransomware",
+    "library": "IT",
+    "type": "direct",
+    "query": "Cosa faccio se sospetto un ransomware?",
+    "expected_filename": "runbook-backup.md",
+    "expected_locator": "Sezione: Incidente"
+  },
+  {
+    "id": "it-access-review",
+    "library": "IT",
+    "type": "direct",
+    "query": "Ogni quanto vengono controllati gli accessi ai sistemi?",
+    "expected_filename": "runbook-backup.md",
+    "expected_locator": "Sezione: Accessi"
+  },
+  {
+    "id": "it-restore",
+    "library": "IT",
+    "type": "direct",
+    "query": "Come si richiede il ripristino di un file?",
+    "expected_filename": "runbook-backup.md",
+    "expected_locator": "Sezione: Ripristino"
+  },
+  {
+    "id": "quality-nonconformity",
+    "library": "Qualita",
+    "type": "direct",
+    "query": "Entro quando deve essere registrata una non conformita?",
+    "expected_filename": "procedura-qualita.md",
+    "expected_locator": "Sezione: Non conformita"
+  },
+  {
+    "id": "quality-approval",
+    "library": "Qualita",
+    "type": "direct",
+    "query": "Chi approva una revisione della procedura?",
+    "expected_filename": "procedura-qualita.md",
+    "expected_locator": "Sezione: Revisione documenti"
+  },
+  {
+    "id": "quality-training",
+    "library": "Qualita",
+    "type": "direct",
+    "query": "Dove viene registrata la formazione sulla nuova procedura?",
+    "expected_filename": "procedura-qualita.md",
+    "expected_locator": "Sezione: Formazione"
+  },
+  {
+    "id": "quality-record-retention",
+    "library": "Qualita",
+    "type": "direct",
+    "query": "Per quanti anni conserviamo i registri di qualita?",
+    "expected_filename": "procedura-qualita.md",
+    "expected_locator": "Sezione: Conservazione registri"
+  },
+  {
+    "id": "finance-expenses",
+    "library": "Amministrazione",
+    "type": "direct",
+    "query": "Quando devo consegnare la nota spese?",
+    "expected_filename": "nota-spese.md",
+    "expected_locator": "Sezione: Scadenze"
+  },
+  {
+    "id": "finance-receipts",
+    "library": "Amministrazione",
+    "type": "direct",
+    "query": "Quali documenti devo allegare a una spesa?",
+    "expected_filename": "nota-spese.md",
+    "expected_locator": "Sezione: Allegati"
+  },
+  {
+    "id": "finance-advance",
+    "library": "Amministrazione",
+    "type": "direct",
+    "query": "Come posso chiedere un anticipo per una trasferta?",
+    "expected_filename": "nota-spese.md",
+    "expected_locator": "Sezione: Anticipi"
+  },
+  {
+    "id": "finance-approval",
+    "library": "Amministrazione",
+    "type": "direct",
+    "query": "Chi autorizza le spese sopra i cinquecento euro?",
+    "expected_filename": "nota-spese.md",
+    "expected_locator": "Sezione: Approvazioni"
+  },
+  {
+    "id": "hr-ferie-paraphrase",
+    "library": "HR",
+    "type": "paraphrase",
+    "query": "Con quale margine devo pianificare un periodo di riposo dal lavoro?",
+    "expected_filename": "policy-ferie.md",
+    "expected_locator": "Sezione: Richiesta ferie"
+  },
+  {
+    "id": "hr-malattia-paraphrase",
+    "library": "HR",
+    "type": "paraphrase",
+    "query": "Se sto poco bene e non posso venire in ufficio, cosa devo fare per avvertire l'azienda?",
+    "expected_filename": "policy-ferie.md",
+    "expected_locator": "Sezione: Assenze"
+  },
+  {
+    "id": "it-backup-paraphrase",
+    "library": "IT",
+    "type": "paraphrase",
+    "query": "Se devo recuperare una copia di sicurezza di qualche settimana fa, esiste ancora?",
+    "expected_filename": "runbook-backup.md",
+    "expected_locator": "Sezione: Conservazione"
+  },
+  {
+    "id": "it-ransomware-paraphrase",
+    "library": "IT",
+    "type": "paraphrase",
+    "query": "Il mio computer sembra criptato da un virus e chiede un riscatto, come mi comporto subito?",
+    "expected_filename": "runbook-backup.md",
+    "expected_locator": "Sezione: Incidente"
+  },
+  {
+    "id": "quality-nonconformity-paraphrase",
+    "library": "Qualita",
+    "type": "paraphrase",
+    "query": "Ho notato un errore nel processo, entro quanto tempo va segnalato ufficialmente?",
+    "expected_filename": "procedura-qualita.md",
+    "expected_locator": "Sezione: Non conformita"
+  },
+  {
+    "id": "quality-approval-paraphrase",
+    "library": "Qualita",
+    "type": "paraphrase",
+    "query": "Chi deve dare il via libera prima che un documento aggiornato venga reso pubblico?",
+    "expected_filename": "procedura-qualita.md",
+    "expected_locator": "Sezione: Revisione documenti"
+  },
+  {
+    "id": "finance-expenses-paraphrase",
+    "library": "Amministrazione",
+    "type": "paraphrase",
+    "query": "Entro quando devo presentare la rendicontazione economica del mio viaggio di lavoro?",
+    "expected_filename": "nota-spese.md",
+    "expected_locator": "Sezione: Scadenze"
+  },
+  {
+    "id": "finance-approval-paraphrase",
+    "library": "Amministrazione",
+    "type": "paraphrase",
+    "query": "Serve un via libera speciale per importi elevati?",
+    "expected_filename": "nota-spese.md",
+    "expected_locator": "Sezione: Approvazioni"
+  },
+  {
+    "id": "hr-remote-work-abstention",
+    "library": "HR",
+    "type": "abstention",
+    "query": "Che cosa succede se un collega lavora sempre da casa senza mai venire in sede?",
+    "expected_filename": null,
+    "expected_locator": null
+  },
+  {
+    "id": "hr-parental-leave-abstention",
+    "library": "HR",
+    "type": "abstention",
+    "query": "Come funziona il congedo parentale per i neo genitori?",
+    "expected_filename": null,
+    "expected_locator": null
+  },
+  {
+    "id": "quality-disciplinary-abstention",
+    "library": "Qualita",
+    "type": "abstention",
+    "query": "Qual e il processo disciplinare in caso di violazione del codice etico?",
+    "expected_filename": null,
+    "expected_locator": null
+  }
+]

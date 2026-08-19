@@ -69,16 +69,19 @@ Fatto, file per file, non con un commit unico cieco:
 
 **Uscita**: raggiunta — nessun diff pendente sconosciuto; CI, Docker e governance committati e verificati, non solo "lasciati lì".
 
-### Fase B — Retrieval onesto e misurato (~1-1.5 settimane)
+### Fase B — Retrieval onesto e misurato (fatta, 20 agosto 2026)
 
 > Corretta dopo la Fase A: il target è `core/library_store.py` (ricerca del bibliotecario) e `evaluation/run_library_eval.py`, non il vecchio `rag_engine.py`/`run_eval.py` ormai in `legacy_winsarp/`.
 
-- [ ] Pubblicare in `docs/RETRIEVAL_EVALUATION.md` il numero reale e attuale di `run_library_eval.py` (oggi 16 query, `recall_at_3`), non un numero del motore formule legacy.
-- [ ] Valutare se la ricerca di `core/library_store.py` (oggi full-text/morfologica, vedi `search_with_profile`) beneficia di un vero componente vettoriale/ibrido dedicato al bibliotecario — è un lavoro nuovo, non un porting dell'`HybridRetriever` legacy (che resta nel suo perimetro isolato).
-- [ ] Aggiungere la metrica **citation coverage** allo script `run_library_eval.py`.
-- [ ] Espandere il golden set library oltre le attuali 16 query, con casi realistici del corpus demo (Fase D).
+Correzione emersa durante l'esplorazione: `core/library_store.py::search_with_profile` (righe 527-596) era **già** un vero scorer ibrido keyword+semantico locale (coseno-similarità sugli embedding, soglia 0.35), collegato end-to-end da `core/ingestion_service.py` a ogni upload — non serviva costruirlo. Il vero gap era che non veniva mai misurato in modalità semantica, non esisteva citation coverage, e il golden set (16 query, una per chunk) era troppo facile per essere una prova seria.
 
-**Uscita**: un numero di qualità retrieval che regge a una domanda diretta in colloquio tecnico.
+- [x] Pubblicato in `docs/RETRIEVAL_EVALUATION.md` il numero reale e attuale, misurato in questa sessione (modalità keyword, Ollama non disponibile in questo ambiente): `recall_at_3_direct = 1.0`, `recall_at_3_paraphrase = 0.5`, `abstention_accuracy = 0.667`, `citation_coverage = 1.0` — letti onestamente, non solo il migliore.
+- [x] Aggiunto un flag `--semantic` a `run_library_eval.py` che attiva `core/library_embeddings.py` via Ollama e degrada esplicitamente a keyword-only (con avviso, non in silenzio) se Ollama non risponde — la componente ibrida esisteva già, ora è misurabile. **Il numero reale in modalità `--semantic` non è stato misurato qui** (Ollama irraggiungibile in questo ambiente) — da rieseguire in locale.
+- [x] Aggiunta la metrica **citation coverage** a `run_library_eval.py` (% di query con evidenza attesa che trovano almeno una citazione).
+- [x] Golden set espanso da 16 a **27 query**, non solo più query dello stesso tipo: 8 query **parafrasate** (zero sovrapposizione lessicale col testo sorgente, pensate per stressare il limite del keyword matching) e 3 query di **astensione onesta** (argomenti assenti dal corpus, corretto = zero citazioni). Trovato tramite queste ultime un bug reale nello stemmer naive di `core/library_store.py::_search_token`: "lavora"/"lavoro" collassano sulla stessa radice, causando un match spurio su una query di astensione — documentato, non ancora corretto (fuori scope di questa fase, l'algoritmo di retrieval non doveva essere toccato).
+- [x] `tests/test_library_evaluation.py` aggiornato: gate duro su `recall_at_3_direct >= 0.9` e `citation_coverage >= 0.9` (sempre verificabili senza Ollama), soglie morbide su parafrasi/astensione per accorgersi di un collasso a zero senza pretendere che il keyword-only risolva query pensate per non esserlo.
+
+**Uscita**: raggiunta — un numero di qualità retrieval reale, misurato in questa sessione, che regge a una domanda diretta in colloquio tecnico ("qual è la differenza tra query dirette e parafrasate?" ha ora una risposta con dati, non una supposizione).
 
 ### Fase C — Recupero documento come feature di prima classe (~4-5 giorni)
 
