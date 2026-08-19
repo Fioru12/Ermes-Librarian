@@ -117,9 +117,13 @@ Still ahead:
 
 The legacy WinSarp formula work is personal historical material, physically isolated under `legacy_winsarp/` and gated behind a dev-only flag (`ERMES_ENABLE_LEGACY_WINSARP`). It is not part of the Ermes Knowledge product path and must not be used as a public demo corpus or as a claim about the current product.
 
+## License
+
+MIT — see [LICENSE](LICENSE).
+
 ## Repository hygiene before publishing
 
-This workspace intentionally contains development history and local artifacts. Before making a public repository, use the release checklist in [docs/GITHUB_RELEASE_PLAN.md](docs/GITHUB_RELEASE_PLAN.md). A full-history secret scan has been run and one sensitive non-public document was found and purged from Git history entirely (not just deleted); re-scan before publishing if the history changes further, and choose a license deliberately.
+This workspace intentionally contains development history and local artifacts. Before making a public repository, use the release checklist in [docs/GITHUB_RELEASE_PLAN.md](docs/GITHUB_RELEASE_PLAN.md). A full-history secret scan has been run and one sensitive non-public document was found and purged from Git history entirely (not just deleted); re-scan before publishing if the history changes further.
 
 ## Documentation
 
