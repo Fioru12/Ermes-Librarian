@@ -18,6 +18,21 @@
 
 Due agenti indipendenti (architettura, sicurezza) più una review diretta del frontend hanno prodotto il verbale completo: [artifact "Il team ha guardato Ermes Knowledge"](https://claude.ai/code/artifact/9a7ff426-6df8-4b39-be99-6893cd6d255d). I risultati concreti sono integrati nei checklist di fase qui sotto, con riferimento a file e severità.
 
+**Limite di quell'audit**: è stato condotto *prima* dell'isolamento fisico di WinSarp (Fase A, 20 agosto 2026), che ha spostato ~190 file. Il refactor è stato verificato con test automatici (pytest, boot dell'app, build frontend), non con una seconda revisione umana/agente. Vale come nota per chi riprende il lavoro: l'audit descrive l'architettura *prima* del trasloco, non lo stato attuale linea per linea.
+
+## Protocollo di revisione a 4 ruoli
+
+Da qui in avanti, ogni fase (o task consistente al suo interno) va chiusa passando esplicitamente per quattro prospettive, non solo "il codice gira":
+
+| Ruolo | Cosa verifica prima di dire "fatto" |
+|---|---|
+| **Solution Architect** | Il cambiamento rispetta i confini di modulo di `docs/ARCHITECTURE_TARGET.md` (control plane vs data plane, retrieval prima della generazione, nessun'azione di scrittura autonoma)? Introduce un nuovo accoppiamento non voluto? |
+| **Tech Lead / Dev** | Codice tipizzato, niente stub (`# TODO implementare`), niente patch locale a un problema strutturale — vedi i pattern già trovati nell'audit (import ritardati per aggirare circular import, doppie implementazioni). |
+| **QA & Test Engineer** | Edge case enumerati *attivamente*, non solo "i test esistenti passano": input vuoti/malformati, permessi al limite, concorrenza sugli upload/ingestion, cosa succede se Ollama/il provider cloud non risponde. |
+| **DevOps** | Il cambiamento richiede touch a `Dockerfile`, `docker-compose.yml`, `.github/workflows/ci.yml`, variabili in `.env.example`? È stato verificato che CI/Docker non si aspettino path ormai spostati? |
+
+Finora questo protocollo è stato applicato solo in parte: l'audit di team ha coperto Architect/Dev/Security a fondo; QA (enumerazione edge case, non solo "i test passano") e DevOps (Docker/CI/config) non hanno ancora avuto una passata dedicata — da qui la nuova Fase A2.
+
 ## Fasi
 
 ### Fase A — Repo a un solo binario (~3-4 giorni)
@@ -35,6 +50,20 @@ Eliminare l'ambiguità vecchio/nuovo prima di costruire sopra.
 - [x] **Correzione emersa durante lo spostamento**: `evaluation/run_eval.py`/`gold_set.json`/`results_*.json` (i "50 query") appartenevano al motore formule WinSarp, non al bibliotecario — spostati con tutto il resto. Vedi nota nella sezione "Stato reale verificato" e Fase B corretta di conseguenza.
 
 **Uscita**: un solo entry point, un solo path di download, test eseguiti con esito noto, nessun import legacy fuori dal suo perimetro.
+
+### Fase A2 — Chiudere il diff DevOps/governance pendente (~2-3 giorni)
+
+Obiettivo: prima di costruire altro sopra, capire e chiudere il blocco di 14 file lasciato volutamente da parte durante il commit della Fase A — non è rumore, è lavoro reale su CI/CD, container e governance già iniziato in una sessione precedente e mai committato: `.github/workflows/ci.yml`, `Dockerfile`, `docker-compose.yml`, `.dockerignore`, `.env.example`, `.gitignore`, `requirements.txt`, `api.py` (root, -452 righe: sembra lo svuotamento del vecchio monolite a favore del pacchetto `api/`), `core/backup_manager.py`, `core/governance.py`, `core/input_validator.py`, `core/rate_limiter.py`, `README.md`, `DEVELOPER.md`.
+
+- [ ] **[architect]** Leggere il diff di `api.py` per capire se le 452 righe rimosse sono davvero superate dal pacchetto `api/` modulare o se qualcosa di attivo dipende ancora dal monolite.
+- [ ] **[devops]** Verificato: `Dockerfile` e `.github/workflows/ci.yml` **non referenziano** i path spostati con l'isolamento WinSarp (`app.py`, `ui/`, `core/rag_engine`) — non sono rotti dal refactor di oggi. Da fare comunque: rileggere `Dockerfile`/`docker-compose.yml` per confermare che copino/montino solo il path del prodotto nuovo, non `legacy_winsarp/` (a meno che non sia una scelta esplicita per poter comunque testare il flag legacy in CI).
+- [ ] **[devops]** `.github/workflows/ci.yml` usa `pytest tests/ --timeout=30`, ma `pytest-timeout` non è in `requirements.txt` — verificare se CI lo installa a parte o se la CI è già rossa per questo.
+- [ ] **[qa]** Rivedere `core/rate_limiter.py` e `core/input_validator.py` (diff piccoli, 6 e 14 righe) — capire se sono fix di edge case già pronti da mergiare o modifiche a metà.
+- [ ] **[architect/qa]** `core/governance.py` ha +142/-0 righe circa — probabile estensione sostanziale (audit trail?); leggere per capire se è completa o a metà, e se ha test.
+- [ ] Aggiornare `README.md`/`DEVELOPER.md` (già in diff, -299/+summarizzato) per riflettere lo stato dopo l'isolamento WinSarp, invece di editarli due volte.
+- [ ] Una volta capito cosa contiene, spezzare in commit coerenti (probabilmente: uno per CI/Docker/config, uno per `core/governance.py`+`backup_manager.py`, uno per README/DEVELOPER) invece di un commit unico da 14 file eterogenei.
+
+**Uscita**: nessun diff pendente sconosciuto nella working directory; CI, Docker e governance in uno stato compreso e committato, non solo "lasciato lì".
 
 ### Fase B — Retrieval onesto e misurato (~1-1.5 settimane)
 
@@ -90,13 +119,14 @@ Eliminare l'ambiguità vecchio/nuovo prima di costruire sopra.
 
 ## Ordine e motivazione
 
-A → B → C → D → E → F. Prima si elimina l'ambiguità nel repo, poi si rende vero il claim centrale del prodotto (retrieval e recupero documento), solo dopo si costruisce la vetrina. Mostrare una demo prima di aver sistemato retrieval/download rischierebbe di non reggere a domande tecniche di follow-up — il rischio più alto per l'obiettivo di credibilità.
+A → A2 → B → C → D → E → F. Prima si elimina l'ambiguità nel repo (A), poi si chiude il debito noto invece di scavalcarlo (A2 — CI/Docker/governance pendenti), poi si rende vero il claim centrale del prodotto (B, C — retrieval e recupero documento), solo dopo si costruisce la vetrina. Mostrare una demo prima di aver sistemato retrieval/download rischierebbe di non reggere a domande tecniche di follow-up — il rischio più alto per l'obiettivo di credibilità. Costruire la Fase B sopra una CI/Docker non ancora capiti (A2) rischierebbe di scoprire solo più tardi che la pipeline non riflette il codice attuale.
 
 L'audit di team conferma questo ordine dall'esterno: i problemi più seri trovati (il varco di import WinSarp, l'ACL assente in `api/documents.py`) si risolvono entrambi isolando WinSarp — cioè restando in Fase A — mentre il differenziatore di prodotto (download da chat) è già pronto lato backend e richiede solo lavoro di Fase C.
 
 ## Verifica per fase
 
-- **A**: `pytest` gira e riporta pass/fail chiaro; un solo script avvia l'app; nessun modulo del prodotto importa `core.winsarp`/`modules.winsarp` fuori dal flag legacy.
+- **A**: `pytest` gira e riporta pass/fail chiaro; un solo script avvia l'app; nessun modulo del prodotto importa `core.winsarp`/`modules.winsarp` fuori dal flag legacy. *(fatto e committato, 20 agosto 2026)*
+- **A2**: i 14 file del diff pendente sono compresi, testati e committati in blocchi coerenti; CI verificata verde (o il motivo del rosso è noto e tracciato).
 - **B**: numero di recall/precision/citation-coverage pubblicato e riproducibile.
 - **C**: test di permessi sul download passa; prova manuale nel browser del percorso cerca → scarica, incluso da dentro la chat.
 - **D**: demo eseguita end-to-end senza intervento manuale nascosto.
@@ -106,8 +136,9 @@ L'audit di team conferma questo ordine dall'esterno: i problemi più seri trovat
 
 Il progetto è pronto per essere mostrato (colloquio, demo a un'azienda, repository pubblico) quando tutti questi punti sono veri:
 
-- [ ] Nessun codice del prodotto importa WinSarp fuori dal modulo isolato.
-- [ ] Un solo entry point per avviare l'app, un solo path per scaricare un documento.
+- [x] Nessun codice del prodotto importa WinSarp fuori dal modulo isolato.
+- [x] Un solo entry point per avviare l'app, un solo path per scaricare un documento.
+- [ ] CI, Dockerfile e docker-compose verificati contro lo stato attuale del codice, non solo presunti funzionanti (Fase A2).
 - [ ] `pytest` verde, incluse le nuove suite su download e ingestion.
 - [ ] Retrieval con numero di qualità reale e riproducibile (recall/precision/citation-coverage), non cherry-picked.
 - [ ] Il recupero del documento originale è raggiungibile da chat, ricerca e tab documenti, tutti e tre testati.
