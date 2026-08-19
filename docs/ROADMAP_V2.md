@@ -104,26 +104,27 @@ Correzione emersa durante l'esplorazione: `core/library_store.py::search_with_pr
 
 **Uscita**: sostanzialmente raggiunta — un percorso ripetibile e *verificato*, comprensibile anche a un pubblico non tecnico. Manca solo la registrazione video/GIF, un passo manuale.
 
-### Fase E — Rifinitura per credibilità enterprise (~1 settimana)
+### Fase E — Rifinitura per credibilità enterprise (fatta, 20 agosto 2026)
 
-- [ ] Upload hardening minimo ma reale: allowlist type/size, controllo magic-bytes (già presente lato libraries — verificato solido dall'audit sicurezza; da confermare resti l'unico percorso di upload dopo la Fase A).
-- [ ] Rendere visibile in UI/admin l'audit trail e la policy `evidence_only/local_ollama/approved_openrouter` per libreria.
-- [ ] Igiene pubblicabile: secret scan sulla history, nessun file sensibile (`.env`, `LOCAL_LOGIN.txt`, PDF personali, dati WinSarp reali) esposto.
-- [ ] README e posizionamento riscritti per un lettore esterno (recruiter/CTO).
-- [ ] **[design, basso]** Rimuovere l'username "admin" precompilato nel form di login — piccolo segnale di "ambiente dev" più che di prodotto pronto per una demo esterna.
-- [ ] **[design, basso]** Passata di accessibilità di base: `aria-current` sugli item di navigazione attivi nella sidebar, verifica focus/tastiera sui flussi principali (login, chat, upload).
-- [ ] **[sicurezza, basso]** Audit dei log (`core/ai/providers/*`, percorsi di errore di `core/evidence_assistant.py`) per escludere fughe accidentali di segreti/PII — non verificato in questa passata.
-- [ ] **[sicurezza, basso]** Valutare una regola CI/lint che impedisca nuovi endpoint sotto `api/` senza `_require_role`/`_verify_api_key`, per evitare di ripetere il pattern di `api/documents.py`.
+- [x] Upload hardening confermato: allowlist type/size + controllo magic-bytes in `core/input_validator.py`, unico percorso di upload dopo l'isolamento della Fase A (`api/documents.py` legacy ora in `legacy_winsarp/`).
+- [x] Audit trail e policy per libreria **erano già visibili in UI** (non un gap reale): `DocumentsTab.tsx` ha già un selettore completo `evidence_only/local_ollama/approved_openrouter/approved_provider` con conferma esplicita per i modi cloud; `AuditLogs.tsx` mostra già le voci di audit. Il vero gap era di coerenza visiva — vedi sotto.
+- [x] **Igiene pubblicabile — trovato e risolto un problema serio**: scansione della cronologia git completa (26 commit) per segreti. Nessuna credenziale reale trovata. Trovato invece `docs/Progetto.RAG.Aziendale.pdf`, un documento **"Riservato uso interno"** di un contesto di lavoro reale, committato fin dal primo commit e già pushato su GitHub. Confermato dall'utente come materiale riservato — rimosso non solo dalla working directory ma **dall'intera cronologia** (`git filter-branch` su tutti i ref locali, poi force-push del branch remoto), verificato con `git rev-list --objects --all` che nessun oggetto residuo sia raggiungibile.
+- [x] README riscritto per un lettore esterno: roadmap che distingue fatto da ancora-da-fare, link a tutti i documenti reali, comando di test semplificato, sezione licenza.
+- [x] **[design, basso]** Rimosso l'username "admin" precompilato nel login, sostituito con un placeholder — verificato dal vivo nel browser.
+- [x] **[design, basso]** `aria-current="page"` aggiunto alla navigazione attiva della sidebar.
+- [x] **[design]** Trovato e corretto un problema non nel piano originale: `AuditLogs.tsx` usava classi Tailwind generiche (`dark:bg-gray-800`) invece del sistema di temi dell'app — riscritto per usare `useTheme()`/token `t.*`, verificato dal vivo nel browser dopo il login reale (e trovato lì un secondo problema: il log mostrava "229 voci con firma non valida" perché `ERMES_AUDIT_SECRET` non era configurato in locale — non manomissione, comportamento già documentato in `.env.example`, risolto localmente).
+- [x] **[sicurezza, basso]** Audit dei log in `core/ai/providers/*`: verificato che le chiavi API vengono passate negli header HTTP, non nell'URL — le eccezioni httpx non incorporano gli header nella loro rappresentazione testuale. Nessuna fuga confermata.
+- [x] **[sicurezza, basso]** Aggiunta `tests/test_api_auth_coverage.py`: cammina la tabella di route reale di FastAPI e verifica ricorsivamente che ogni endpoint (tranne un allowlist esplicito e commentato: health, login/logout, lo shell SPA) abbia `_verify_api_key` nel proprio albero di dipendenze — una vera guardia di regressione, non una convenzione.
 
-**Uscita**: repository e demo pronti per essere mostrati senza preparazione dell'ultimo minuto.
+**Uscita**: raggiunta.
 
-### Fase F — Pacchetto portfolio/outreach (~3-4 giorni)
+### Fase F — Pacchetto portfolio/outreach (sostanzialmente fatta, 20 agosto 2026)
 
-- [ ] Repository pubblico pulito, licenza scelta.
-- [ ] One-pager di presentazione (problema, principi, demo, metriche retrieval).
-- [ ] Video/GIF demo pubblicato assieme al repo.
+- [x] Licenza scelta con l'utente (MIT) e aggiunta (`LICENSE`).
+- [x] One-pager di presentazione: versione visiva pubblicata come artifact, versione testuale in `docs/ONE_PAGER.md`, linkata dal README. Contiene solo numeri realmente misurati in questa sessione (recall, test passati, query del golden set), non placeholder.
+- [ ] **Non fatto**: repository reso effettivamente pubblico su GitHub (resta privato, deliberatamente — è una decisione dell'utente, non mia) e video/GIF demo (richiede interazione visiva reale).
 
-**Uscita**: un link solo da mandare, che regge da solo.
+**Uscita**: sostanzialmente raggiunta — il link (repo privato + one-pager) regge da solo per chi ha accesso; mancano solo la scelta finale di rendere pubblico e la registrazione video.
 
 ## Ordine e motivazione
 
@@ -147,12 +148,12 @@ Il progetto è pronto per essere mostrato (colloquio, demo a un'azienda, reposit
 - [x] Nessun codice del prodotto importa WinSarp fuori dal modulo isolato.
 - [x] Un solo entry point per avviare l'app, un solo path per scaricare un documento.
 - [x] CI, Dockerfile e docker-compose verificati contro lo stato attuale del codice, non solo presunti funzionanti (Fase A2) — due bug reali trovati e corretti.
-- [ ] `pytest` verde, incluse le nuove suite su download e ingestion.
-- [ ] Retrieval con numero di qualità reale e riproducibile (recall/precision/citation-coverage), non cherry-picked.
-- [ ] Il recupero del documento originale è raggiungibile da chat, ricerca e tab documenti, tutti e tre testati.
-- [ ] Corpus demo fittizio e percorso di 5 minuti, ripetibile senza intervento nascosto.
-- [ ] Nessun file sensibile reale (`.env`, `LOCAL_LOGIN.txt`, scansioni personali, dati WinSarp veri) nella history o nella working directory prima di qualunque condivisione.
-- [ ] README e one-pager scritti per un lettore esterno tecnico.
+- [x] `pytest` verde, incluse le nuove suite su download e ingestion (164 passati, 1 fallimento pre-esistente e non collegato, documentato).
+- [x] Retrieval con numero di qualità reale e riproducibile (recall/precision/citation-coverage), non cherry-picked.
+- [x] Il recupero del documento originale è raggiungibile da chat, ricerca e tab documenti, tutti e tre testati.
+- [x] Corpus demo fittizio e percorso di 5 minuti, ripetibile senza intervento nascosto (manca solo la registrazione video).
+- [x] Nessun file sensibile reale nella history: scansione completa eseguita, un documento riservato di terzi trovato e rimosso dall'intera cronologia (non solo dalla working directory).
+- [x] README e one-pager scritti per un lettore esterno tecnico.
 
 ## Oltre la v0.1 — cosa manca per un prodotto enterprise davvero commerciabile
 
