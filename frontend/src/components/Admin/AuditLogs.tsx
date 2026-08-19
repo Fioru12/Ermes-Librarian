@@ -1,68 +1,79 @@
-import { useState, useEffect } from 'react';
-import { ShieldCheck, ShieldAlert, RefreshCw } from 'lucide-react';
+import { useState, useEffect } from 'react'
+import { ShieldCheck, ShieldAlert, RefreshCw } from 'lucide-react'
+import { useTheme } from '../../hooks/useTheme'
+import { Card, CardTitle } from '../ui'
 
 interface AuditEntry {
-  ts: string;
-  action: string;
-  actor: string;
-  detail: any;
+  ts: string
+  action: string
+  actor: string
+  detail: Record<string, unknown>
 }
 
 export default function AuditLogs({ showNotif }: { showNotif: (m: string, t: 'success' | 'error') => void }) {
-  const [entries, setEntries] = useState<AuditEntry[]>([]);
-  const [integrity, setIntegrity] = useState<{tampered: number, integrity_ok: boolean} | null>(null);
+  const { t } = useTheme()
+  const [entries, setEntries] = useState<AuditEntry[]>([])
+  const [integrity, setIntegrity] = useState<{ tampered: number; integrity_ok: boolean } | null>(null)
+  const [loading, setLoading] = useState(true)
 
   const fetchLogs = async () => {
+    setLoading(true)
     try {
-      const res = await fetch('/api/audit/logs?limit=50');
+      const res = await fetch('/api/audit/logs?limit=50')
       if (res.ok) {
-        const data = await res.json();
-        setEntries(data.entries || []);
+        const data = await res.json()
+        setEntries(data.entries || [])
       }
-      
-      const verRes = await fetch('/api/audit/verify');
-      if (verRes.ok) {
-        setIntegrity(await verRes.json());
-      }
-    } catch (e) { showNotif('Errore caricamento audit', 'error'); }
-  };
+      const verRes = await fetch('/api/audit/verify')
+      if (verRes.ok) setIntegrity(await verRes.json())
+    } catch {
+      showNotif('Errore caricamento audit', 'error')
+    } finally {
+      setLoading(false)
+    }
+  }
 
-  useEffect(() => { fetchLogs(); }, []);
+  useEffect(() => { fetchLogs() }, [])
 
   return (
-    <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow">
-      <div className="flex justify-between mb-4">
-        <h2 className="text-xl font-bold">Audit Log Amministrativo</h2>
-        <button onClick={fetchLogs} className="text-blue-500"><RefreshCw size={20} /></button>
+    <Card>
+      <div className="flex items-center justify-between">
+        <CardTitle><ShieldCheck className="w-4 h-4 text-emerald-400" /> Audit log amministrativo</CardTitle>
+        <button onClick={fetchLogs} title="Aggiorna" className="rounded-lg p-1.5 text-slate-400 transition hover:bg-white/5 hover:text-blue-400">
+          <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+        </button>
       </div>
 
       {integrity && (
-        <div className={`p-3 mb-4 rounded flex items-center gap-2 ${integrity.integrity_ok ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-          {integrity.integrity_ok ? <ShieldCheck /> : <ShieldAlert />}
-          {integrity.integrity_ok ? 'Integrità log verificata' : `ATTENZIONE: ${integrity.tampered} log manomessi!`}
+        <div className={`mt-4 flex items-center gap-2 rounded-lg border px-3 py-2 text-sm ${integrity.integrity_ok ? 'border-emerald-800 bg-emerald-950/40 text-emerald-300' : 'border-rose-800 bg-rose-950/40 text-rose-300'}`}>
+          {integrity.integrity_ok ? <ShieldCheck className="h-4 w-4 shrink-0" /> : <ShieldAlert className="h-4 w-4 shrink-0" />}
+          {integrity.integrity_ok ? 'Integrità del log verificata (firma HMAC valida su ogni voce).' : `Attenzione: ${integrity.tampered} voci con firma non valida.`}
         </div>
       )}
 
-      <div className="max-h-96 overflow-y-auto">
+      <div className="mt-4 max-h-96 overflow-y-auto overflow-x-auto rounded-xl border border-white/5">
         <table className="w-full text-left text-sm">
           <thead>
-            <tr className="border-b bg-gray-50 dark:bg-gray-900">
-              <th className="p-2">Timestamp</th>
-              <th className="p-2">Azione</th>
-              <th className="p-2">Attore</th>
+            <tr className={t.tableHeader}>
+              <th className="p-2.5 font-semibold">Data e ora</th>
+              <th className="p-2.5 font-semibold">Azione</th>
+              <th className="p-2.5 font-semibold">Attore</th>
             </tr>
           </thead>
           <tbody>
-            {entries.map((e, i) => (
-              <tr key={i} className="border-b hover:bg-gray-50 dark:hover:bg-gray-700">
-                <td className="p-2">{new Date(e.ts).toLocaleString()}</td>
-                <td className="p-2 font-mono">{e.action}</td>
-                <td className="p-2">{e.actor}</td>
+            {entries.length === 0 && !loading && (
+              <tr><td colSpan={3} className="p-4 text-center text-slate-500">Nessuna voce di audit ancora registrata.</td></tr>
+            )}
+            {entries.map((entry, index) => (
+              <tr key={index} className={`border-t ${t.tableRow}`}>
+                <td className="p-2.5 text-slate-400">{new Date(entry.ts).toLocaleString('it-IT')}</td>
+                <td className="p-2.5"><span className="rounded-md bg-blue-500/10 px-2 py-0.5 font-mono text-xs text-blue-300">{entry.action}</span></td>
+                <td className={`p-2.5 ${t.cardTitle}`}>{entry.actor}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-    </div>
-  );
+    </Card>
+  )
 }
