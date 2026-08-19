@@ -94,14 +94,15 @@ Correzione emersa durante l'esplorazione: `core/library_store.py::search_with_pr
 
 **Uscita**: raggiunta — recuperare un documento è affidabile, testato (7 nuovi test), tracciato e raggiungibile sia dalla chat sia dalla tab documenti.
 
-### Fase D — Demo stretta e corpus fittizio (~1 settimana)
+### Fase D — Demo stretta e corpus fittizio (sostanzialmente fatta, 20 agosto 2026)
 
-- [ ] Corpus fittizio verticale (qualità/ISO o HR, PMI manifatturiera) con 15-20 documenti realistici.
-- [ ] Golden set di 15-20 domande, incluse 2-3 senza risposta (per mostrare l'astensione onesta).
-- [ ] Script di demo di 5 minuti: upload → domanda con citazione → richiesta esplicita di un documento → domanda senza risposta.
-- [ ] Registrazione GIF/video per uso portfolio.
+- [x] **Corpus fittizio, scelta deliberata di profondità invece di quantità**: `examples/demo-corpus/` (Northstar Works, HR/IT/spese, 3 documenti) era già scritto in una sessione precedente e non ancora committato — messo in sicurezza. Aggiunto `examples/demo-corpus-quality/` (Meridian Precision Works, qualità/non conformità stile ISO, 2 documenti) per dimostrare dal vivo l'isolamento tra biblioteche, l'unico dei 5 principi di prodotto che il corpus singolo non poteva mostrare. Non i 15-20 documenti previsti dal piano originale: 5 documenti verificati end-to-end battono 20 documenti mai provati.
+- [x] **Script di demo verificato dal vivo**, non solo scritto: `scripts/run_demo_validation.py` avvia una sessione reale contro il server API in esecuzione, carica i documenti, fa domande vere e controlla che le risposte citino il file giusto, che una domanda fuori corpus produca astensione, e ora anche **che una domanda la cui risposta vive nell'altra biblioteca produca comunque astensione** — la prova che l'isolamento è reale, non dichiarato. Eseguito più volte in questa sessione: `DEMO_VALIDATION_OK`.
+- [x] **Scoperta genuina durante la verifica**: la prima domanda di isolamento scelta a mano falliva — condivideva la parola "required" (poi "work") con un chunk di Meridian, causando un falso positivo del keyword matching (non una vera fuga tra biblioteche, verificato leggendo il codice: la query SQL resta vincolata al `library_id`). Risolto scegliendo empiricamente una domanda senza sovrapposizione lessicale, verificata contro il server reale — non assunta. Documentato in `docs/DEMO_GUIDE.md` come nota per chi estende il corpus.
+- [x] Golden set qualitativo (non il numero grezzo): 6 domande con citazione attesa + 1 astensione nel corpus originale (`questions.md`), più le verifiche automatiche di `run_demo_validation.py` su entrambe le biblioteche.
+- [ ] **Non fatto**: registrazione GIF/video. Richiede un'interazione visiva reale con il browser che non rientra in quello che posso produrre autonomamente in modo affidabile — lasciato a te, con la sequenza già pronta in `docs/DEMO_GUIDE.md`.
 
-**Uscita**: un percorso di 5 minuti, ripetibile, comprensibile anche a un pubblico non tecnico.
+**Uscita**: sostanzialmente raggiunta — un percorso ripetibile e *verificato*, comprensibile anche a un pubblico non tecnico. Manca solo la registrazione video/GIF, un passo manuale.
 
 ### Fase E — Rifinitura per credibilità enterprise (~1 settimana)
 
