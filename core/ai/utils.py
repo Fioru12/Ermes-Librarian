@@ -326,6 +326,7 @@ def call_llm(prompt: str, model_id: str, system_prompt: str = None, temp: float 
 
         # Legacy fallback
         import httpx as _httpx
+
         from config import cfg as _cfg
 
         if not _cfg.OPENROUTER_API_KEY:

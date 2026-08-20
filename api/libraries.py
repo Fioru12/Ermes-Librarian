@@ -19,7 +19,6 @@ from core.ingestion_service import process_ingestion_job
 from core.input_validator import matches_expected_file_signature, sanitize_upload_name
 from core.library_store import LibraryAccessError, LibraryNotFoundError, LibraryStore
 
-
 router = APIRouter(prefix="/api/libraries", tags=["Libraries"])
 _store: LibraryStore | None = None
 

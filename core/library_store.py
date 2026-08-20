@@ -18,7 +18,6 @@ from pathlib import Path
 
 from core.library_embeddings import cosine_similarity, embed_texts
 
-
 # Common function words must not become the only "evidence" for a RAG answer.
 # This compact local-first baseline deliberately keeps a conservative bilingual
 # list; a production language analyser can replace it behind this same method.

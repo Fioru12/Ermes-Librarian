@@ -12,7 +12,6 @@ from pathlib import Path
 
 import httpx
 
-
 ROOT = Path(__file__).resolve().parents[1]
 CORPUS = ROOT / "examples" / "demo-corpus"
 QUALITY_CORPUS = ROOT / "examples" / "demo-corpus-quality"

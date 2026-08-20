@@ -20,7 +20,6 @@ Moduli:
 """
 
 import asyncio
-import httpx
 import logging
 import os
 import re
@@ -29,6 +28,7 @@ from collections import defaultdict
 from contextlib import asynccontextmanager
 from pathlib import Path
 
+import httpx
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, Response
@@ -234,15 +234,15 @@ def prometheus_metrics():
 
 
 # ── Import moduli ──
-from api.auth import router as auth_router
-from api.health import router as health_router
-from api.backup import router as backup_router
-from api.users import router as users_router
 from api.audit import router as audit_router
+from api.auth import router as auth_router
+from api.backup import router as backup_router
+from api.health import router as health_router
+from api.libraries import router as libraries_router
 from api.models import router as models_router
 from api.providers import router as providers_router
-from api.libraries import router as libraries_router
 from api.shutdown import router as shutdown_router
+from api.users import router as users_router
 
 # Il vecchio motore WinSarp resta disponibile per sviluppo interno, ma non fa
 # parte del percorso pubblico del bibliotecario. Si abilita esplicitamente solo
@@ -253,11 +253,11 @@ query_router = None
 documents_router = None
 integrations_router = None
 if getattr(cfg, "ENABLE_LEGACY_WINSARP", False):
-    from api.query import router as query_router
     from api.documents import router as documents_router
     from api.formule import router as formule_router
     from api.graph import router as graph_router
     from api.integrations import router as integrations_router
+    from api.query import router as query_router
 
 app.include_router(auth_router)
 app.include_router(health_router)

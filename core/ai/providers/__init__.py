@@ -16,7 +16,6 @@ from .ollama import OllamaProvider
 from .openai_compat import OpenAICompatProvider
 from .registry import PROVIDER_TYPES, ProviderRegistry, get_registry
 
-
 __all__ = [
     "BaseProvider",
     "ProviderConfig",

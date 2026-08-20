@@ -12,7 +12,6 @@ from pydantic import BaseModel
 
 from config import cfg
 
-
 _logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["Health"])
