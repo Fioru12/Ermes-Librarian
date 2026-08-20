@@ -39,6 +39,19 @@ In tutti e tre i casi il codice *sembrava* corretto e riportava successo senza
 aver eseguito il controllo. La revisione ha cercato questa categoria — non i tre
 casi specifici — in tutto il repository, e l'ha ritrovata altrove.
 
+A revisione già conclusa se n'è manifestato un quarto caso, nello stesso script:
+la riga finale `$Host.UI.RawUI.ReadKey(...)`, protetta da un `try/catch` con il
+commento «in modalità non interattiva, esci senza attendere». Il `try/catch` non
+protegge nulla: con stdin rediretto `ReadKey` non solleva un'eccezione, **si
+blocca**. Due esecuzioni dello script sono rimaste appese oltre un'ora prima che
+il problema venisse notato. Sostituito con un controllo che distingue davvero i
+due casi (`[Environment]::UserInteractive` e `[Console]::IsInputRedirected`), e
+verificato: lo script ora esce da solo con exit 0 in 19 secondi.
+
+Vale la pena notarlo perché è il caso più istruttivo dei quattro. Il commento
+descriveva l'intenzione corretta, il codice sembrava implementarla, e il difetto
+si è manifestato solo osservando che due processi non erano mai terminati.
+
 ## Finding
 
 ### 1. La build Docker era rotta per chiunque clonasse il repository — *corretto*
