@@ -151,16 +151,22 @@ jobs:
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
     needs: [docker]
     runs-on: ubuntu-latest
+    # Il contesto `secrets` non e' utilizzabile in una condizione `if`: usarlo
+    # li' e' un errore di validazione del workflow, che faceva fallire l'intera
+    # run in 0 secondi prima di eseguire un solo job. Il segreto va portato in
+    # un env di job, e la condizione testa quello.
+    env:
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
     steps:
       - name: Notify deploy
         run: |
           echo "::notice::Deploy in corso per ${{ github.repository }}@${{ github.sha }}"
           echo "Deploy tag: $(echo ${{ github.sha }} | cut -c1-7)"
       - name: Send deploy notification (Slack)
-        if: ${{ secrets.SLACK_WEBHOOK_URL != '' }}
+        if: env.SLACK_WEBHOOK_URL != ''
         uses: slackapi/slack-github-action@v2
         with:
-          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook: ${{ env.SLACK_WEBHOOK_URL }}
           webhook-type: incoming-webhook
           payload: |
             {
