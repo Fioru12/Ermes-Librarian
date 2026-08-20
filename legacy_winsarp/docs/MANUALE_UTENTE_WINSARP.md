@@ -44,28 +44,28 @@
 
 ### Client (da dove ti colleghi)
 - **Browser**: Chrome, Edge, Firefox (ultima versione)
-- **Rete**: stessa LAN del server (es. http://192.168.1.100:8502)
+- **Rete**: stessa LAN del server (es. http://192.168.1.100:8504)
 
 ---
 
 ## 3. Primo avvio
 
 ### Se hai lo script automatico (raccomandato)
-1. Doppio click su **`AVVIA_FINALE.bat`**
+1. Doppio click su **`AVVIA_PRO.bat`**
 2. Lo script controlla e installa automaticamente:
    - Ambiente virtuale Python
    - Dipendenze (se mancanti)
    - Avvia Ollama (se non in esecuzione)
    - Scarica i modelli AI (solo la prima volta)
-   - Apre il browser su `http://127.0.0.1:8502`
+   - Apre il browser su `http://127.0.0.1:8504`
 
 ### Se avvii manualmente
 Apri un terminale nella cartella del progetto ed esegui:
 ```
 ollama serve
-python -m streamlit run app.py --server.port 8502
+uvicorn api:app --host 127.0.0.1 --port 8504
 ```
-Poi apri il browser all'indirizzo `http://localhost:8502`.
+Poi apri il browser all'indirizzo `http://localhost:8504`.
 
 ---
 
@@ -277,7 +277,7 @@ $body = @{
     module = "WinSarp"
 } | ConvertTo-Json
 
-Invoke-RestMethod -Uri "http://localhost:8503/query" `
+Invoke-RestMethod -Uri "http://localhost:8504/query" `
     -Method POST `
     -Body $body `
     -ContentType "application/json" `

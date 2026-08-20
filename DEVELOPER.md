@@ -1,74 +1,89 @@
-# Guida per Sviluppatori — Ermes RAG
+# Guida per Sviluppatori — Ermes Knowledge
 
-## Struttura del Progetto
+Questa guida descrive il codice **effettivamente eseguito dal prodotto**. Il motore
+formule WinSarp è materiale storico, isolato sotto `legacy_winsarp/` e non
+raggiungibile dal percorso di prodotto se non dietro il flag `ENABLE_LEGACY_WINSARP`
+(vedi `legacy_winsarp/README.md`).
+
+## Struttura del progetto
 
 ```
-app.py                  # Entry point Streamlit (585 righe)
-api.py                  # API REST FastAPI
-config.py               # Config centralizzata (dataclass + .env)
+config.py               # Config centralizzata (dataclass congelata + .env)
 pyproject.toml          # Ruff + pytest config
 
+api/                    # FastAPI — l'app e' `api:app`
+├── __init__.py         # Composizione app, router, startup, SPA catch-all
+├── auth.py             # Login locale, API key, RBAC (_require_role)
+├── libraries.py        # Biblioteche, documenti, versioni, download, ricerca
+├── health.py           # /health (stato ollama, storage, disco, database)
+├── users.py            # Gestione account e API key (solo admin)
+├── audit.py            # Lettura audit log firmato
+├── backup.py           # Backup e ripristino
+├── models.py           # Elenco modelli disponibili
+├── providers.py        # Provider LLM approvati
+└── shutdown.py         # Arresto controllato
+
 core/
-├── error_handler.py    # Gerarchia errori, log, retry_on_error, safe_call
-├── governance.py       # Autenticazione, audit log, utenti
-├── input_validator.py  # Validazione/sanitizzazione input
-├── rag_engine.py       # RAG puro: LlamaIndex, ChromaDB, embedding, LLM
-├── rate_limiter.py     # Rate limiting DoS
-├── streamlit_rag.py    # Wrapper cached (check_ollama, get_index) per Streamlit
-└── utils.py            # Utility: hash, log, pulizia
+├── library_store.py    # Metadati, versioni, ACL, ricerca ibrida keyword+embedding
+├── ingestion_service.py# Pipeline di ingestione (parse -> chunk -> embedding)
+├── document_parser.py  # Estrazione testo PDF/DOCX/TXT/MD
+├── library_embeddings.py# Generazione e persistenza embedding dei chunk
+├── evidence_assistant.py# Risposta evidence-first con citazioni, o astensione
+├── governance.py       # Utenti, audit log firmato
+├── input_validator.py  # Validazione/sanitizzazione input e nomi file upload
+├── rate_limiter.py     # Rate limiting
+├── pii_filter.py       # Filtro PII (GDPR)
+├── backup_manager.py   # Backup/ripristino atomico
+└── monitoring.py       # Metriche
 
-modules/
-├── winsarp.py          # Modulo WinSarp (formule HR)
-└── generic.py          # Modulo generico
+core/ai/
+├── llm_bridge.py       # Bridge LLM
+├── utils.py            # Utility AI
+└── providers/          # Registry provider (ollama, openai_compat, anthropic, google)
 
-ui/
-├── admin_ui.py         # Pannello admin (utenti, audit)
-├── chat_handler.py     # Flusso streaming chat (estratto da app.py)
-├── chat_ui.py          # Render storico messaggi, badge confidenza, formula
-├── monitor_dashboard.py# Dashboard metriche
-├── sidebar_ui.py       # Sidebar: logo, tema, modelli, moduli, stato
-├── theme.py            # Tema dark/light + copy button JS
-├── theme_base.css      # Variabili CSS, scrollbar, reset, streamlit override
-├── theme_layout.css    # Header, sidebar, footer, layout
-├── theme_components.css# Bottoni, badge, card, chat, formula, modali
-└── welcome_ui.py       # Welcome screen, feedback, help, workspace overview
+frontend/               # UI React + TypeScript + Vite + Tailwind
+├── src/                # Componenti, hook, tema
+└── dist/               # Build di produzione (servita dal backend, non versionata)
 
-scripts/
-├── AVVIA.bat           # Launcher principale
-├── AVVIA.vbs           # Wrapper VBS invisibile
-└── crea_shortcut.ps1   # Crea shortcut desktop
-
-tests/                  # 115+ test (pytest)
-├── test_api.py
-├── test_error_handler.py
-├── test_governance.py
-├── test_integration.py
-├── test_monitor.py
-├── test_rag_engine.py
-├── test_rate_limiter.py
-├── test_utils.py
-└── test_winsarp.py
+evaluation/             # Golden set e harness di valutazione del retrieval
+examples/               # Corpus demo (Northstar Works, Meridian Precision Works)
+scripts/                # Launcher e utility operative
+tests/                  # 148 test (pytest)
+legacy_winsarp/         # Motore formule storico, congelato
 ```
 
 ## Convenzioni
 
-- **Lint**: `ruff check .` — 0 errori richiesto prima di commit
-- **Test**: `pytest tests/ -v` — tutti verdi
-- **Python**: 3.11+, type hints ovunque
-- **CSS**: `string.Template` con variabili `$color`, split in 3 file
-- **Errori**: usare gerarchia `AppError` da `core/error_handler.py`
+- **Lint**: `ruff check .` — 0 errori richiesto prima del commit
+- **Test**: `pytest tests/` — tutti verdi
+- **Python**: 3.11+, type hints
+- **Ambiente**: `.venv-ermes` (non `.venv`, che può provenire da un altro profilo Windows)
+- **Autenticazione**: ogni endpoint deve dipendere da `_verify_api_key` o
+  `_require_role`. `tests/test_api_auth_coverage.py` percorre le route dell'app e
+  fa fallire la CI se un endpoint viene aggiunto senza protezione: l'allowlist
+  dei percorsi pubblici va aggiornata esplicitamente.
+- **Errori**: non usare `except Exception: pass`. Un errore ingoiato produce un
+  controllo che riporta successo senza aver verificato nulla — logga sempre,
+  o lascia propagare.
 
-## Come Aggiungere un Modulo
+## Come eseguire
 
-1. Crea `modules/tuo_modulo.py` con classe che implementa `get_prompt()`
-2. Aggiungi a `app.py` nell'init di `st.session_state.modules`
-3. Crea `documenti/tuo_modulo/` e metti i PDF/DOCX/TXT
-
-## Come Eseguire
-
-```bash
-.venv\Scripts\streamlit run app.py    # UI
-.venv\Scripts\uvicorn api:app         # API REST
-.venv\Scripts\pytest tests/ -v       # Test
-.venv\Scripts\ruff check .           # Lint
+```powershell
+.\scripts\avvia_ermes.ps1                                   # Tutto (Ollama + backend + frontend)
+.\.venv-ermes\Scripts\python.exe -m uvicorn api:app --reload --port 8502   # Solo backend
+npm.cmd --prefix frontend run dev                           # Solo frontend (porta 3000)
+.\.venv-ermes\Scripts\python.exe -m pytest tests/           # Test
 ```
+
+Backend su `8502`, frontend di sviluppo su `3000` (il proxy Vite punta a 8502).
+La build di produzione in `frontend/dist/` è servita direttamente dal backend ed è
+un artefatto separato: modificare `frontend/index.html` non la aggiorna finché non
+si riesegue `npm run build`.
+
+## Come aggiungere un endpoint
+
+1. Aggiungi la route nel router appropriato sotto `api/`.
+2. Dichiara la dipendenza di autenticazione (`_require_role("admin")` o `_verify_api_key`).
+3. Se la route tocca una biblioteca, l'ACL va applicata **server-side** prima di
+   servire qualunque contenuto — mai delegarla al frontend.
+4. Esegui la suite: `test_api_auth_coverage.py` rifiuta gli endpoint non protetti.

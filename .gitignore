@@ -31,13 +31,21 @@ __pycache__/
 # ── Cache modelli HuggingFace ──────────────────────────────
 .embed_cache/
 # ── Variabili d'ambiente e segreti ──────────────────────────
+# `.env.*` copre ogni variante presente e futura (.env.test, .env.staging...).
+# La regola precedente elencava i nomi uno per uno piu' `*.env`, che matcha solo
+# i file che *finiscono* in `.env`: un `.env.test` restava tracciabile.
 .env
-.env.local
-.env.development
-.env.production
+.env.*
+!.env.example
 *.env
 LOCAL_LOGIN.txt
 config/providers.json
+
+# ── Documenti personali / scansioni ─────────────────────────
+# Questo repository ha gia' avuto un documento riservato committato per errore
+# e rimosso dall'intera cronologia. Le scansioni non entrano mai nel repository.
+Adobe Scan*.pdf
+*.scan.pdf
 
 # ── Editor e OS ─────────────────────────────────────────────
 .vscode/

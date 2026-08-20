@@ -70,7 +70,6 @@ echo ✅ TUTTI I PREREQUISITI SONO SODDISFATTI!
 echo ============================================================
 echo.
 echo Puoi ora avviare l'applicazione:
-echo   - AVVIA.bat (per uso locale)
-echo   - AVVIA.vbs (per accesso LAN)
+echo   - scripts\avvia_ermes.ps1 (launcher ufficiale)
 echo.
 pause

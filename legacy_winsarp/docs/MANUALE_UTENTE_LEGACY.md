@@ -13,8 +13,9 @@
 
 ### Windows (doppio click)
 ```bat
-AVVIA_DIRETTO.bat
+AVVIA_PRO.bat
 ```
+Questo è il punto di avvio consigliato. In alternativa puoi usare `launch.py` oppure lanciare direttamente `uvicorn api:app --host 127.0.0.1 --port 8504`.
 
 ### Manuale
 ```bash
@@ -24,20 +25,17 @@ ollama serve
 # Attiva virtual environment
 .venv\Scripts\activate
 
-# Avvia Streamlit (frontend)
-streamlit run app.py
-
-# Avvia FastAPI (API REST, opzionale)
-uvicorn api:app --host 127.0.0.1 --port 8503
+# Avvia backend (serve anche frontend precompilato)
+uvicorn api:app --host 127.0.0.1 --port 8504
 ```
 
-Apri `http://127.0.0.1:8502` nel browser.
+Apri `http://127.0.0.1:8504` nel browser.
 
 ### Docker
 ```bash
 docker compose up -d
 ```
-Servizi: Streamlit (8502), FastAPI (8503), Ollama (11434).
+Servizi: Backend FastAPI (8504), Ollama (11434).
 
 ## Interfaccia
 
@@ -78,8 +76,8 @@ Analisi approfondita delle formule con navigazione del Knowledge Graph.
 ## Knowledge Graph
 
 Il grafo delle formule WinSarp contiene:
-- **27 formule** con metadati completi (ID, nome, tipo, codice, campi, chiamate)
-- **27 archi** di relazione (calls_r, calls_p)
+- **Catalogo WinSarp strutturato** con metadati, codice, campi e chiamate
+- **Grafo delle dipendenze** con relazioni `calls_r`, `calls_p` e collegamenti di flusso
 - Ricerca per: ID, nome, tipo, campo, operatore
 - Navigazione: chiama/chiamata da, catene di chiamate
 
@@ -87,18 +85,18 @@ Il grafo delle formule WinSarp contiene:
 
 ```bash
 # Query RAG
-curl -X POST http://127.0.0.1:8503/query \
+curl -X POST http://127.0.0.1:8504/query \
   -H "Authorization: Bearer <API_KEY>" \
   -H "Content-Type: application/json" \
   -d '{"query": "domanda", "module": "WinSarp"}'
 
 # Health check
-curl http://127.0.0.1:8503/health
+curl http://127.0.0.1:8504/health
 
 # Knowledge Graph
-curl http://127.0.0.1:8503/modules/WinSarp/graph/stats
-curl http://127.0.0.1:8503/modules/WinSarp/graph/search?q=principale
-curl http://127.0.0.1:8503/modules/WinSarp/graph/formula/120
+curl http://127.0.0.1:8504/modules/WinSarp/graph/stats
+curl http://127.0.0.1:8504/modules/WinSarp/graph/search?q=principale
+curl http://127.0.0.1:8504/modules/WinSarp/graph/formula/120
 ```
 
 ## Configurazione (.env)
@@ -110,8 +108,7 @@ ERMES_EMBED_MODEL=bge-m3
 
 # Server
 OLLAMA_HOST=127.0.0.1:11434
-STREAMLIT_PORT=8502
-API_PORT=8503
+ERMES_PORT=8504
 
 # Sicurezza
 ADMIN_USER=admin
@@ -180,28 +177,42 @@ Ogni operazione admin viene registrata con:
 
 ```
 ProgettoRAG_DEV/
-├── app.py                 # Entry point Streamlit
-├── api.py                 # API REST FastAPI
+├── api.py                 # Entry point FastAPI (uvicorn), retrocompat wrapper
+├── api/                   # API moduli (auth, query, formule, documents, etc.)
+├── frontend/              # UI React (Vite)
 ├── config.py              # Configurazione centralizzata
 ├── core/
 │   ├── rag_engine.py      # LlamaIndex, ChromaDB, hybrid retriever
-│   ├── knowledge_graph.py # Knowledge Graph 27 formule
+│   ├── knowledge_graph.py # Knowledge Graph formule
 │   ├── formula_builder.py # Generazione formule WinSarp
-│   ├── business_assistant.py # Intent recognition LLM-based
-│   ├── agent_runner.py    # Agente multi-step
+│   ├── formula_booster.py # Post-processor formule
+│   ├── intent_builder.py  # Classifica intenti + IR generation
+│   ├── monitoring.py      # Monitoraggio e metriche
+│   ├── backup_manager.py  # Backup/ripristino
+│   ├── pii_filter.py      # Filtro PII (GDPR)
 │   └── governance.py      # Auth, audit, security
-├── ui/
-│   ├── chat_handler.py    # Streaming, auto-correzione
-│   ├── sidebar_ui.py      # Sidebar, health check
-│   ├── monitor_dashboard.py # Dashboard KPI
-│   └── theme.py           # Tema Deep Enterprise
+├── core/ai/
+│   ├── llm_bridge.py      # Bridge LLM (Ollama + OpenRouter)
+│   ├── chain_of_thought.py # Pipeline 4-step
+│   ├── providers/         # Registry provider LLM
+│   ├── response_cache.py  # Cache risposte
+│   └── semantic_cache.py  # Cache semantica
+├── core/winsarp/
+│   ├── catalog.py         # Parsing catalogo WinSarp
+│   ├── knowledge_graph.py # Grafo formule
+│   ├── patterns.py        # Pattern library (44 codici)
+│   ├── parser_rules.py    # Regole regex centralizzate
+│   ├── linter.py          # Linter statico
+│   ├── validator.py       # Validatore Lark
+│   └── workbook_retriever.py # Recupero workbook
 ├── modules/
-│   ├── base.py            # Classe astratta moduli
-│   └── winsarp.py         # Modulo WinSarp (prompt, validazione)
+│   ├── winsarp/           # Modulo WinSarp (package)
+│   ├── generic.py         # Modulo generico
+│   └── base.py            # Classe astratta moduli
 ├── evaluation/
 │   ├── gold_set.json      # 50 query di evaluation
 │   └── run_eval.py        # Script evaluation automatico
-├── tests/                 # 173 test
+├── tests/                 # 871 test
 ├── data/
 │   └── winsarp_graph.json # Grafo persistito
 ├── Dockerfile             # Python 3.14, multi-stage
@@ -218,7 +229,7 @@ ProgettoRAG_DEV/
 | Nessun documento trovato | Metti file in `documenti/<modulo>/` e re-indicizza |
 | Indice ChromaDB obsoleto | Click "Aggiorna" nella sidebar o cancella `chroma_db/` |
 | Errori di import | `pip install -r requirements.txt` |
-| Porta 8502 occupata | Cambia porta: `streamlit run app.py --server.port 8503` |
+| Porta 8502 occupata | Cambia porta: `$env:ERMES_PORT="8504"; uvicorn api:app --port 8504` |
 
 ## Limiti noti
 

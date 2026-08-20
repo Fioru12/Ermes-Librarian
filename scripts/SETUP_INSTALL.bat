@@ -170,7 +170,7 @@ echo.
 REM ── 6. Collegamento desktop ──────────────────────────────────────────────────
 echo [6/6] Collegamento sul desktop...
 powershell -NoProfile -ExecutionPolicy Bypass -Command ^
- "$s=(New-Object -ComObject WScript.Shell).CreateShortcut([Environment]::GetFolderPath('Desktop')+'\Ermes.lnk');$s.TargetPath='%~dp0AVVIA.vbs';$s.WorkingDirectory='%~dp0';$s.Description='Avvia Ermes - Sistema RAG aziendale (senza finestra nera)';$s.IconLocation='shell32.dll,13';$s.Save()" >NUL 2>&1
+ "$s=(New-Object -ComObject WScript.Shell).CreateShortcut([Environment]::GetFolderPath('Desktop')+'\Ermes.lnk');$s.TargetPath='powershell.exe';$s.Arguments='-ExecutionPolicy Bypass -File \"%~dp0avvia_ermes.ps1\"';$s.WorkingDirectory='%~dp0..';$s.Description='Avvia Ermes Knowledge';$s.IconLocation='shell32.dll,13';$s.Save()"
 echo         ✅ Collegamento creato sul desktop!
 echo         📌 Doppio click su "Ermes" sul desktop per avviare
 echo            In alternativa: AVVIA.bat (mostra finestra dei log)
@@ -227,7 +227,7 @@ echo    Creazione Collegamento Desktop
 echo ============================================
 echo.
 powershell -NoProfile -ExecutionPolicy Bypass -Command ^
- "$s=(New-Object -ComObject WScript.Shell).CreateShortcut([Environment]::GetFolderPath('Desktop')+'\Ermes.lnk');$s.TargetPath='%~dp0AVVIA.vbs';$s.WorkingDirectory='%~dp0';$s.Description='Avvia Ermes - Sistema RAG aziendale (senza finestra nera)';$s.IconLocation='shell32.dll,13';$s.Save()" >NUL 2>&1
+ "$s=(New-Object -ComObject WScript.Shell).CreateShortcut([Environment]::GetFolderPath('Desktop')+'\Ermes.lnk');$s.TargetPath='powershell.exe';$s.Arguments='-ExecutionPolicy Bypass -File \"%~dp0avvia_ermes.ps1\"';$s.WorkingDirectory='%~dp0..';$s.Description='Avvia Ermes Knowledge';$s.IconLocation='shell32.dll,13';$s.Save()"
 if %ERRORLEVEL% EQU 0 (
     echo  ✅ Collegamento creato sul desktop!
     echo     Doppio click su "Ermes" per avviare.

@@ -32,12 +32,19 @@ jobs:
           pip install ruff mypy bandit pip-audit
       - name: Ruff check
         run: ruff check . --output-format=github
-      - name: MyPy check
-        run: mypy . --ignore-missing-imports || true
-      - name: Bandit security scan
-        run: bandit -r api.py api/ config.py core/ -x core/templates,core/evaluation -ll || true
-      - name: pip-audit (vulnerability scan)
-        run: pip-audit --continue-on-error || true
+      # The three steps below are advisory, not gates. That is declared with
+      # continue-on-error so the run is visibly yellow rather than hidden behind
+      # a trailing "|| true", which made a failing check report success and left
+      # no signal that anything had gone wrong.
+      - name: MyPy check (advisory)
+        continue-on-error: true
+        run: mypy . --ignore-missing-imports
+      - name: Bandit security scan (advisory)
+        continue-on-error: true
+        run: bandit -r api/ config.py core/ -ll
+      - name: pip-audit (vulnerability scan, advisory)
+        continue-on-error: true
+        run: pip-audit
 
   test:
     runs-on: ubuntu-latest

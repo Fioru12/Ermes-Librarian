@@ -203,13 +203,14 @@ OK "Porta 11434 (Ollama API) bloccata dalla LAN"
 # [8/8] Collegamento Desktop
 # --------------------------------------------------------
 Step 8 8 "Creo collegamento Desktop..."
-$vbsPath      = Join-Path $ProjectRoot "scripts\AVVIA.vbs"
-$shortcutPath = "$env:USERPROFILE\Desktop\WinSarp AI Hub.lnk"
+$launcher     = Join-Path $ProjectRoot "scripts\avvia_ermes.ps1"
+$shortcutPath = "$env:USERPROFILE\Desktop\Ermes Knowledge.lnk"
 $wsh = New-Object -ComObject WScript.Shell
 $sc  = $wsh.CreateShortcut($shortcutPath)
-$sc.TargetPath       = $vbsPath
+$sc.TargetPath       = "powershell.exe"
+$sc.Arguments        = "-ExecutionPolicy Bypass -File `"$launcher`""
 $sc.WorkingDirectory = $ProjectRoot
-$sc.Description      = "Avvia WinSarp AI Hub"
+$sc.Description      = "Avvia Ermes Knowledge"
 $sc.IconLocation     = "shell32.dll,13"
 $sc.Save()
 OK "Collegamento Desktop creato"

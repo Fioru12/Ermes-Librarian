@@ -11,7 +11,7 @@ Il progetto è strutturato su più livelli, separando nettamente la presentazion
 ```mermaid
 graph TB
     subgraph Presentation ["Strato Presentazione"]
-        UI["Streamlit UI (app.py)"]
+        UI["React UI (frontend/)"]
         API["FastAPI REST (api.py)"]
     end
 
@@ -55,7 +55,7 @@ I file principali del progetto sono descritti di seguito:
 
 ### ⚙️ Configurazione e Avvio
 *   [config.py](file:///c:/ProgettoRAG_DEV/config.py): Gestione centralizzata dei parametri ambientali. Consente l'override tramite variabili d'ambiente o file `.env`. Controlla le porte, le directory per i dati, i timeout di generazione, i modelli utilizzati (`ERMES_MODEL` di default impostato a `qwen3:8b` e `ERMES_EMBED_MODEL` a `bge-m3`), le soglie di confidenza del RAG e le chiavi API.
-*   [AVVIA.bat](file:///c:/ProgettoRAG_DEV/AVVIA.bat) e [AVVIA.vbs](file:///c:/ProgettoRAG_DEV/AVVIA.vbs): Script di avvio per l'ambiente Windows. Verificano i prerequisiti (Python, Ollama) e lanciano in background il server Ollama e il server Streamlit su http://localhost:8502. Il file `.vbs` agisce in modalità silenziosa per evitare di lasciare aperte console cmd visibili all'utente.
+*   [scripts/AVVIA.bat](file:///c:/ProgettoRAG_DEV/scripts/AVVIA.bat) e [AVVIA_PRO.bat](file:///c:/ProgettoRAG_DEV/AVVIA_PRO.bat): Script di avvio per l'ambiente Windows. Verificano i prerequisiti (Python, Ollama) e lanciano in background il server Ollama e il backend FastAPI su http://localhost:8504.
 *   [docker-compose.yml](file:///c:/ProgettoRAG_DEV/docker-compose.yml) e [Dockerfile](file:///c:/ProgettoRAG_DEV/Dockerfile): Supporto per containerizzazione opzionale.
 
 ### 🧠 Core RAG e Intelligenza Artificiale
@@ -72,13 +72,10 @@ I file principali del progetto sono descritti di seguito:
 *   [input_validator.py](file:///c:/ProgettoRAG_DEV/input_validator.py): Controlli preventivi contro tentativi di attacco (Path Traversal, Null Byte Injection). Imposta limiti severi sulle lunghezze degli username, dei nomi dei moduli e delle query degli utenti.
 *   [rate_limiter.py](file:///c:/ProgettoRAG_DEV/rate_limiter.py): Implementa un rate limiter in-memory per IP o identificativo sessione. Previene abusi o attacchi DOS limitando il numero di query al minuto (max 60/min) e le dimensioni totali degli upload orari (max 500MB/ora o max 20 caricamenti/ora).
 
-### 🖥️ Interfaccia Utente (Streamlit)
-L'UI è suddivisa in file specializzati per massimizzare la leggibilità e la manutenibilità:
-*   [app.py](file:///c:/ProgettoRAG_DEV/app.py): Entry point principale che assembla i componenti Streamlit. Gestisce lo streaming in tempo reale dei token estratti da Ollama tramite un thread produttore e una coda di messaggi sincrona.
-*   [sidebar_ui.py](file:///c:/ProgettoRAG_DEV/sidebar_ui.py): Renderizza la barra laterale con la selezione dei moduli, lo stato di salute dei servizi, la lista dei documenti indicizzati, i warning sui documenti modificati e le funzioni di aggiornamento del DB.
-*   [chat_ui.py](file:///c:/ProgettoRAG_DEV/chat_ui.py): Gestisce lo storico della conversazione, i widget per mostrare le risposte e il punteggio di confidenza.
-*   [welcome_ui.py](file:///c:/ProgettoRAG_DEV/welcome_ui.py): Mostra la schermata iniziale di benvenuto e gestisce l'area per il feedback (Up/Down) dell'utente per ciascuna risposta.
-*   [theme.py](file:///c:/ProgettoRAG_DEV/theme.py): File per l'iniezione di fogli di stile CSS personalizzati (design moderno, badges di confidenza colorati, pulsanti rapidi per copiare le formule negli appunti).
+### 🖥️ Interfaccia Utente (React SPA)
+L'UI è una Single Page Application React con Vite, servita staticamente dal backend FastAPI:
+*   [frontend/](file:///c:/ProgettoRAG_DEV/frontend/): SPA React buildata in `frontend/dist/`.
+*   **API backend**: Il frontend comunica con il backend via REST API su `localhost:8502`.
 
 ### 📊 Dashboard & Monitoring KPI
 *   [monitor_dashboard.py](file:///c:/ProgettoRAG_DEV/monitor_dashboard.py): Analizza in tempo reale i log delle sessioni per estrarre statistiche aggregate:
@@ -89,7 +86,7 @@ L'UI è suddivisa in file specializzati per massimizzare la leggibilità e la ma
     *   Esporta il report completo su file JSON (`logs/dashboard_report.json`) scaricabile direttamente dall'interfaccia.
 
 ### 🔌 REST API (FastAPI)
-*   [api.py](file:///c:/ProgettoRAG_DEV/api.py): Espone un server FastAPI separato (porta `8503`) che consente l'integrazione di Ermes all'interno di chatbot aziendali (Teams/Slack) o altri portali intranet.
+*   [api.py](file:///c:/ProgettoRAG_DEV/api.py): Espone un server FastAPI (porta `8502`) che consente l'integrazione di Ermes all'interno di chatbot aziendali (Teams/Slack) o altri portali intranet, e serve anche il frontend React precompilato.
     *   **Autenticazione via Bearer Token:** Richiega una chiave `ERMES_API_KEY` forte (se vuota, le API restano disabilitate per sicurezza). La convalida della chiave avviene tramite `hmac.compare_digest`.
     *   **Endpoint `/health`:** Fornisce un resoconto completo dello stato di salute per sistemi di monitoraggio esterni (funzionamento effettivo di ChromaDB, spazio libero sul disco in GB, disponibilità di Ollama e dei modelli).
     *   **Endpoint `/query`:** Accetta una query in linguaggio naturale e restituisce la risposta dell'LLM, il livello e il punteggio di confidenza numerico, i chunk di contesto usati per il retrieval (con relativi score e file sorgente) e i secondi impiegati per completare la richiesta. Offre inoltre il parametro booleano `formula_only` per restituire esclusivamente il codice compresso delle formule escludendo le spiegazioni testuali.
@@ -154,5 +151,5 @@ Il sistema è coperto da test automatizzati localizzati nella cartella `tests/`:
 
 ### 🔒 Raccomandazioni per la Produzione
 1.  **Password di Default:** Modificare assolutamente la variabile `ERMES_ADMIN_PASSWORD` (attualmente impostata a `CHANGE_ME` o vuota) e usare una password complessa (conforme ai requisiti di [validate_password_strength](file:///c:/ProgettoRAG_DEV/governance.py#L189)).
-2.  **API Key REST:** Assicurarsi che `ERMES_API_KEY` sia popolata con una stringa generata crittograficamente (es. `secrets.token_urlsafe(32)`) prima di esporre la porta 8503.
+2.  **API Key REST:** Assicurarsi che `ERMES_API_KEY` sia popolata con una stringa generata crittograficamente (es. `secrets.token_urlsafe(32)`) prima di esporre la porta 8502.
 3.  **Segreto per l'Audit:** Impostare la variabile d'ambiente `ERMES_AUDIT_SECRET` in modo statico sul server di produzione per evitare che la chiave HMAC cambi ad ogni riavvio dell'applicazione.

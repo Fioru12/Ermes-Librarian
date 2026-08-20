@@ -133,6 +133,7 @@ This workspace intentionally contains development history and local artifacts. B
 - [Project plan](docs/PROJECT_PLAN.md) (historical) and [Roadmap v2](docs/ROADMAP_V2.md) (current, phase-by-phase log)
 - [Target architecture](docs/ARCHITECTURE_TARGET.md)
 - [Team audit](docs/AUDIT_2026-08-19.md) — architecture, security and design findings with file:line references
+- [Code review](docs/CODE_REVIEW.md) — a verification-driven review: what was found, what was fixed, and what could not be verified
 - [RAG retrieval evaluation](docs/RETRIEVAL_EVALUATION.md)
 - [Demo guide](docs/DEMO_GUIDE.md)
 - [GitHub release plan](docs/GITHUB_RELEASE_PLAN.md)

@@ -56,6 +56,10 @@ services:
       - LANGFUSE_PUBLIC_KEY=${LANGFUSE_PUBLIC_KEY:-}
       - LANGFUSE_SECRET_KEY=${LANGFUSE_SECRET_KEY:-}
       - LANGFUSE_HOST=${LANGFUSE_HOST:-http://langfuse:3000}
+      # Chat integrations are NOT part of the Ermes Knowledge product surface:
+      # the only implementation lives in legacy_winsarp/api/integrations.py and
+      # is reachable solely with ENABLE_LEGACY_WINSARP=1. Setting these on the
+      # product image alone does not enable any Teams/Slack/Telegram endpoint.
       - ERMES_TEAMS_WEBHOOK_SECRET=${ERMES_TEAMS_WEBHOOK_SECRET:-}
       - ERMES_SLACK_SIGNING_SECRET=${ERMES_SLACK_SIGNING_SECRET:-}
       - ERMES_SLACK_BOT_TOKEN=${ERMES_SLACK_BOT_TOKEN:-}

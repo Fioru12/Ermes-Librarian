@@ -4,6 +4,17 @@ Registro leggibile del lavoro su questo branch (`codex/ermes-knowledge-v01`). Pe
 
 ## 2026-08-20
 
+- **Revisione sistematica del codice** ([docs/CODE_REVIEW.md](docs/CODE_REVIEW.md)): partita da tre bug nello script di avvio che si sono rivelati la stessa causa radice — il *fallimento silenzioso*, cioè un controllo che riporta successo senza aver verificato nulla. Cercata quella categoria in tutto il repository invece dei tre casi singoli.
+- **Trovata e corretta una build Docker rotta per chiunque cloni il repository**: `COPY data/ ./data/` copiava una cartella non tracciata (contiene solo il database runtime). Funzionava in locale, falliva su clone pulito.
+- **Rimosso `api.py` dalla root**: codice irraggiungibile, non uno shim come valutato in precedenza — in CPython il package `api/` vince sempre sul modulo omonimo. Valutazione precedente corretta agli atti nella roadmap.
+- **Rimosso `openapi.json` versionato**: documentava 44 endpoint inesistenti e ne ometteva 38 reali. Il contratto vero è servito a runtime su `/openapi.json`.
+- **Rimosse 1.389 righe di codice morto** in `core/` e i 25 test che lo coprivano: il 14% della suite verificava codice che il prodotto non esegue mai.
+- **Corretti due gate di CI che non potevano fallire** (`mypy || true`, `bandit || true`) e le loro esclusioni verso cartelle non più esistenti.
+- **Riscritta `DEVELOPER.md`**, che descriveva l'architettura WinSarp; spostati sotto `legacy_winsarp/docs/` quattro documenti WinSarp che vivevano in root e in `docs/`.
+- **Corretti gli script di collegamento sul Desktop**, che non creavano alcun collegamento e puntavano a percorsi hardcoded errati.
+- **Chiusa una lacuna in `.gitignore`**: la regola `*.env` matcha solo i file che *finiscono* in `.env`, quindi un `.env.test` restava tracciabile. Sostituita con `.env.*` (più `!.env.example`) e aggiunta una regola per le scansioni PDF personali.
+- File tracciati in root da 37 a 18. Suite verde a ogni passo, 92 route invariate.
+
 - **Trovato e risolto un bug reale di isolamento tra test** (`tests/test_e2e_api.py`): un `importlib.reload(config)` a tempo di collezione lasciava alcuni moduli agganciati alla config vecchia a seconda dell'ordine di raccolta dei test, causando un fallimento intermittente. Corretto mutando il singleton esistente dentro una fixture a tempo di esecuzione, con ripristino garantito. Verificato 3 volte di fila: 171 test passati, 0 falliti.
 - Chiusa la lacuna di test su `core/backup_manager.py`: aggiunti test su restore (dry-run e reale), scrittura atomica, ed exclusione dei metadati, più un test di concorrenza reale su `_backup_lock`.
 - Favicon collegato: esisteva già un logo brandizzato (`frontend/public/favicon.svg`) mai wireato — l'app usava un'emoji placeholder.

@@ -55,7 +55,7 @@ def main():
     print()
     
     print("PASSO 4: Riavvia Ermes")
-    print("  python launch.py")
+    print("  .\\scripts\\avvia_ermes.ps1")
     print()
     
     # Verifica se API key esiste

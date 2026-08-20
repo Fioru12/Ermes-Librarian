@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
 from config import cfg
-from api.auth import _verify_api_key, _require_role, _clear_rbac_cache, _invalidate_sessions_for_user
+from api.auth import _require_role, _clear_rbac_cache, _invalidate_sessions_for_user
 
 _logger = logging.getLogger(__name__)
 
