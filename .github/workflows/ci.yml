@@ -13,7 +13,11 @@ on:
         default: false
 
 env:
-  PYTHON_VERSION: "3.14"
+  # Deve corrispondere al Dockerfile (python:3.11-slim), a requires-python
+  # in pyproject.toml e al prerequisito documentato nel README. Con 3.14 la
+  # CI validava una versione che non usa nessun altro, e l'immagine di
+  # produzione viaggiava non testata.
+  PYTHON_VERSION: "3.11"
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
 
