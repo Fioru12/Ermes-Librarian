@@ -1,0 +1,24 @@
+Ermes Knowledge
+Copyright (c) 2026 Niko Fioru
+
+This product is distributed under the MIT License; see LICENSE.
+
+It bundles no third-party source code, but it depends on open-source
+packages at runtime and at build time. Those packages remain under their
+own licenses, held by their respective authors. The complete inventory,
+with version and license for each declared dependency, is in
+THIRD_PARTY_NOTICES.md.
+
+Ermes Knowledge can optionally send retrieved passages to a local Ollama
+instance or to an approved cloud provider. Those services are operated by
+third parties under their own terms; this project neither includes nor
+redistributes them, and no data reaches them unless an administrator
+explicitly enables that mode for a specific library.
+
+The demo corpora under examples/ describe fictional companies. Any
+resemblance to real organisations, documents or people is unintended.
+
+The legacy WinSarp formula engine under legacy_winsarp/ is historical
+personal material, frozen and excluded from the product path. It is not
+covered by the demo corpora statement above and must not be used as a
+public demonstration dataset.

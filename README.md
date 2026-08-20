@@ -144,7 +144,9 @@ The legacy WinSarp formula work is personal historical material, physically isol
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT — see [LICENSE](LICENSE) and [NOTICE](NOTICE). Every declared dependency is
+under a permissive license (MIT, BSD-3-Clause, Apache-2.0 or ISC); the full
+inventory with versions is in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 ## Repository hygiene before publishing
 
@@ -157,6 +159,7 @@ This workspace intentionally contains development history and local artifacts. B
 - [Product strategy](docs/PRODUCT_STRATEGY.md)
 - [Project plan](docs/PROJECT_PLAN.md) (historical) and [Roadmap v2](docs/ROADMAP_V2.md) (current, phase-by-phase log)
 - [Target architecture](docs/ARCHITECTURE_TARGET.md)
+- [Threat model](docs/THREAT_MODEL.md) — assets, trust boundaries, what is defended and what is not, with the test proving each claim
 - [Team audit](docs/AUDIT_2026-08-19.md) — architecture, security and design findings with file:line references
 - [Code review](docs/CODE_REVIEW.md) — a verification-driven review: what was found, what was fixed, and what could not be verified
 - [RAG retrieval evaluation](docs/RETRIEVAL_EVALUATION.md)
