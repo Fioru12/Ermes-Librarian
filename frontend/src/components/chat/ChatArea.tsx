@@ -1,6 +1,7 @@
 import { useRef, useEffect } from 'react'
 import { Send, Square, HelpCircle, ArrowRight, BookOpen, Files, ShieldCheck, Download } from 'lucide-react'
 import { useTheme } from '../../hooks/useTheme'
+import { InlineMarkdown } from './InlineMarkdown'
 import type { Message } from '../../types'
 
 interface ChatAreaProps {
@@ -113,7 +114,7 @@ export default function ChatArea({
                     {m.evidence.reason ? ` - ${m.evidence.reason}` : ''}
                   </p>
                 )}
-                <div className="whitespace-pre-wrap">{m.content}</div>
+                <div className="whitespace-pre-wrap"><InlineMarkdown text={m.content} /></div>
                 {m.role === 'assistant' && m.sources && m.sources.length > 0 && <div className="mt-4 border-t border-white/10 pt-3"><p className="text-xs font-semibold text-slate-400">Fonti</p><div className="mt-2 space-y-2">{m.sources.map((source, index) => <div key={`${source.document_id}-${source.locator}-${index}`} className="rounded-md bg-white/5 p-2 text-xs">
                     <div className="flex items-center justify-between gap-2">
                       <span className="font-medium text-blue-300">{source.filename}<span className="font-normal text-slate-400"> · v{source.version} · {source.locator}</span></span>
@@ -121,7 +122,7 @@ export default function ChatArea({
                         <Download className="h-3 w-3" /> Apri originale
                       </button>
                     </div>
-                    <p className="mt-1 text-slate-400">{source.excerpt}</p>
+                    <p className="mt-1 text-slate-400"><InlineMarkdown text={source.excerpt} /></p>
                   </div>)}</div></div>}
                 {m.role === 'assistant' && m.content === '' && (
                   <div className="flex flex-col gap-2 py-1">

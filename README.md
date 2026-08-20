@@ -6,6 +6,10 @@ The product is designed to be useful before any cloud AI is enabled. Its default
 
 > Status: active MVP / portfolio project. The current implementation is single-tenant and local-first; it is not yet a complete enterprise SaaS platform.
 
+![The assistant answering from a document library, with every passage tied to a file, version and section](docs/screenshots/assistant-with-citations.png)
+
+*Every substantive answer names its sources: file, version, section and the exact excerpt it relied on — and the original document is one click away. When the library cannot support an answer, the assistant says so instead of inventing one.*
+
 ## Why it exists
 
 Teams often have procedures, policies, manuals, contracts and internal know-how spread across folders. Finding the right version is slow and unreliable. Ermes Knowledge provides one controlled entry point where the answer is tied to the source document instead of presented as unexplained AI output.
@@ -25,6 +29,10 @@ Teams often have procedures, policies, manuals, contracts and internal know-how 
   - `approved_openrouter` — requires an explicit global consent and an administrator's per-library choice.
 - React interface, FastAPI API, automated backend and frontend tests.
 
+![Libraries and documents, each with version, indexing state and a per-library assistant policy](docs/screenshots/libraries-and-documents.png)
+
+*Each library is a separate boundary: its own documents, its own collaborators, and its own assistant policy. Retrieval is constrained to the selected library before any context reaches the assistant — the demo corpus ships with a check that proves it, rather than asserting it.*
+
 ## Product principles
 
 1. **Local first.** A cloud API key alone never enables cloud processing.
@@ -32,6 +40,10 @@ Teams often have procedures, policies, manuals, contracts and internal know-how 
 3. **Library isolation.** Retrieval is constrained to the chosen library before context reaches the assistant.
 4. **Documents are untrusted data.** Retrieved text cannot authorize tools or actions.
 5. **Originals and versions matter.** Citations remain linked to the document version that supported the answer.
+
+![Administrative audit log reporting that the HMAC signature on every entry verifies](docs/screenshots/audit-log-integrity.png)
+
+*Library operations are recorded in an append-only audit log, each entry signed with HMAC. The interface verifies every signature and reports tampering rather than assuming the record is intact. Set a persistent `ERMES_AUDIT_SECRET`: without one a fresh key is generated at each restart, and earlier entries stop verifying.*
 
 ## Quick start (Windows)
 
