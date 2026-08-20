@@ -72,6 +72,19 @@ npm.cmd --prefix frontend test -- --run
 npm.cmd --prefix frontend run build
 ```
 
+End-to-end tests run against a **running** instance and exercise the real API,
+store and retrieval path — they are what caught unit tests that passed without
+verifying anything (see [docs/CODE_REVIEW.md](docs/CODE_REVIEW.md), finding 17).
+Start the stack, load the demo corpora, then:
+
+```powershell
+.\.venv-ermes\Scripts\python.exe scripts\run_demo_validation.py
+npm.cmd --prefix frontend run e2e
+```
+
+They read the administrator credentials from `ERMES_ADMIN_USERNAME` and
+`ERMES_ADMIN_PASSWORD`, and skip themselves if no password is set.
+
 ## Docker
 
 ```powershell

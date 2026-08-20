@@ -20,5 +20,9 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: './src/test/setup.ts',
     css: true,
+    // e2e/ holds Playwright specs, which need a real browser and a running
+    // backend. Vitest cannot execute them and fails at collection; they are
+    // run separately with `npm run e2e`.
+    exclude: ['node_modules/**', 'dist/**', 'e2e/**'],
   },
 })

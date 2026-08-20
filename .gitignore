@@ -47,6 +47,14 @@ config/providers.json
 Adobe Scan*.pdf
 *.scan.pdf
 
+# ── Artefatti dei test E2E (Playwright) ─────────────────────
+# Tracce, screenshot e report delle esecuzioni: rigenerabili, e le tracce
+# di un fallimento possono contenere lo stato autenticato della sessione.
+frontend/test-results/
+frontend/playwright-report/
+frontend/blob-report/
+frontend/.playwright/
+
 # ── Editor e OS ─────────────────────────────────────────────
 .vscode/
 .idea/
