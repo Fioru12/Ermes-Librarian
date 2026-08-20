@@ -76,6 +76,22 @@ Declared in `frontend/package.json`.
 Transitive dependencies are not listed individually; they are pinned in
 `frontend/package-lock.json` and resolved from `requirements.txt`.
 
+## Machine-readable SBOM
+
+`sbom.json` is a CycloneDX 1.6 software bill of materials for the Python
+dependency surface. Regenerate it whenever `requirements.txt` changes:
+
+```powershell
+.\.venv-ermes\Scripts\python.exe -m pip install cyclonedx-bom
+.\.venv-ermes\Scripts\python.exe -m cyclonedx_py requirements requirements.txt -o sbom.json --output-format JSON
+```
+
+The generator warns about any dependency without an exact version, which is how
+two unpinned requirements (`httpx`, `langfuse`) were found: `langfuse>=2.60.0`
+was resolving to 4.14.4, two major versions past the declared floor, so CI and a
+developer machine could install different code with nothing reporting it. Both
+are now pinned.
+
 ## External services
 
 These are not dependencies and are not redistributed. They run under their own

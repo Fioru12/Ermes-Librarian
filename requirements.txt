@@ -28,14 +28,17 @@ pypdf==6.10.2
 python-dotenv==1.2.2
 
 # HTTP Client (Ollama API calls)
-httpx>=0.28.0
+httpx==0.28.1
 
 # File Locking (cross-process safe)
 filelock==3.29.0
 lark==1.3.1
 
 # LLM Observability (opzionale — si attiva con env LANGFUSE_*)
-langfuse>=2.60.0
+# Fissata alla versione verificata: il vincolo precedente (>=2.60.0) ammetteva
+# anche la 4.x, due major piu' avanti, quindi CI e sviluppo locale potevano
+# risolvere versioni diverse senza che nulla lo segnalasse.
+langfuse==4.14.4
 
 # Testing
 pytest==9.0.3
