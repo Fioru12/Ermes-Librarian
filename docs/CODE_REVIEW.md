@@ -215,21 +215,65 @@ Non tutto era da correggere. Questi punti sono stati controllati e sono risultat
 - **Suite**: 146 test passati e 2 skipped, stabile su esecuzioni ripetute (~8,2 s).
 - **Import inutilizzati**: 4 reali su tutto il codice di prodotto, ora rimossi.
 
-## Non verificato
+## La CI era rossa da sempre, e nessuno se n'era accorto
 
-Dichiarato esplicitamente per non spacciare per verificato ciò che non lo è:
+La revisione si era chiusa dichiarando `ruff`, `mypy`, `bandit` e la build Docker
+come **non verificati**, perché `pip install` falliva con
+`CERTIFICATE_VERIFY_FAILED` dietro la TLS inspection aziendale. Guardando la CI
+per delegarle quei controlli, è emerso che **falliva a ogni push, in 0 secondi**,
+da settimane: nessun test e nessun controllo di sicurezza era mai realmente girato.
 
-- **`ruff`, `mypy` e `bandit` non sono stati eseguiti.** `pip install` fallisce su
-  questa macchina con `CERTIFICATE_VERIFY_FAILED` a causa della TLS inspection
-  aziendale. Il controllo sugli import inutilizzati è stato fatto con uno scanner
-  AST scritto ad hoc con la sola libreria standard, che copre F401 ma non il resto
-  del ruleset. Il lint completo va eseguito in CI o su una rete non filtrata.
-- **La build Docker non è stata eseguita**, per lo stesso motivo (pip fallirebbe
-  dentro il container senza il certificato CA interno). Il finding 1 è stato
-  verificato sul contenuto tracciato del repository, non su una build riuscita.
-- **Il venv locale è disallineato da `requirements.txt`**: manca `pytest-timeout`,
-  che la CI usa (`pytest --timeout=30`). CI e locale non eseguono quindi la stessa
-  configurazione della suite. Non correggibile qui per il blocco di `pip`.
+### 15. Un errore di workflow annullava l'intera pipeline — *corretto*
+
+Il job di deploy usava `if: ${{ secrets.SLACK_WEBHOOK_URL != '' }}`. Il contesto
+`secrets` non è utilizzabile in una condizione `if`: è un errore di validazione
+che GitHub rileva prima di eseguire qualunque job, quindi l'intera run falliva
+istantaneamente. Spostato il segreto in un `env` di job.
+
+### 16. `npm ci` era irriproducibile — *corretto*
+
+`package.json` dichiarava `vite ^5.1.4` e `vitest ^4.1.10`, ma vitest 4 richiede
+vite `^6 || ^7 || ^8`. Una violazione di peer dependency che npm tollerava in
+locale, dove `node_modules` esisteva già, ma che rendeva impossibile un lockfile
+riproducibile: npm 11 risolveva esbuild 0.21.5, npm 10 pretendeva 0.28.2.
+Rigenerare il lock non bastava — il conflitto era nelle dipendenze dichiarate.
+
+### 17. Quattro test verdi che non verificavano nulla — *corretti*
+
+Il finding più serio emerso dalla CI. `test_e2e_no_api_key_rejected` e
+`test_e2e_invalid_api_key_rejected` interrogavano `/modules`, un endpoint WinSarp
+rimosso. La catch-all della SPA risponde `200` con l'index HTML a qualunque
+percorso sconosciuto, e i test asserivano soltanto `status_code == 200`: passavano
+servendo una pagina HTML, senza toccare un endpoint API. **Due test il cui nome
+promette di verificare il rifiuto dell'autenticazione non verificavano alcuna
+autenticazione.** In CI, dove `frontend/dist/` non viene costruito, la catch-all
+non è montata e i 404 hanno reso visibile l'inganno.
+
+Riscritti su endpoint reali, con il content-type fra le asserzioni, così un `200`
+servito dalla SPA non può più far passare un test per sbaglio. Verificati
+riproducendo la condizione della CI in locale, cioè rimuovendo `frontend/dist/`.
+
+### 18. Il gate ruff era inutilizzabile — *corretto*
+
+Prima esecuzione reale: 616 violazioni, di cui **551 in `legacy_winsarp/`**, che
+seppellivano le 65 del prodotto. Il legacy è ora escluso dal lint — è codice
+congelato — e le 65 reali sono state corrette.
+
+L'ostacolo di partenza è stato risolto senza aggirare la sicurezza: il trust
+store di Windows contiene già la CA aziendale, quindi è stato esportato e passato
+a `pip --cert`. Verifica reale del certificato, non disabilitata.
+
+## Stato dei controlli
+
+Tutti e sei i job della pipeline sono verdi, per la prima volta: `lint`, `test`,
+`frontend`, `pre-deploy-backup`, `docker`, `deploy`. Il job `docker` costruisce
+e pubblica l'immagine, il che verifica anche la correzione del finding 1 — la
+build che in locale non era eseguibile.
+
+Resta un solo disallineamento noto: il venv locale non ha `pytest-timeout`, che
+la CI usa (`pytest --timeout=30`), quindi in locale la suite gira senza timeout
+per test. Si risolve con `pip install -r requirements.txt` una volta configurato
+il certificato aziendale.
 
 ## Effetto complessivo
 
