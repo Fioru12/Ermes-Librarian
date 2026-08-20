@@ -28,13 +28,47 @@ os.makedirs(os.path.join(BASE_TEMP, "chroma_db"), exist_ok=True)
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import pytest
-import importlib
-
-# ── Reload config so it picks up our env vars ──
-import config
-importlib.reload(config)
-
 from api import app
+import config as _config_module
+
+# ── Configure the *existing* cfg singleton in place, instead of reloading ──
+# There is exactly one `Config()` instance for the whole process; every
+# module gets it via `from config import cfg`, binding a direct reference at
+# *its own* first-import time. `importlib.reload(config)` (the previous
+# approach here) built a brand-new Config object and only repointed
+# `config.cfg` itself — modules already imported by an earlier-collected
+# test file (e.g. api/auth.py) kept their reference to the *original*
+# object and never saw the env vars this file sets, so the admin API key
+# stopped matching whenever collection order shifted.
+#
+# Mutating the singleton's own fields in place fixes that (every module
+# sees the same object), but it must happen at *test run time*, inside the
+# fixture below — not at module import/collection time like this file used
+# to. Pytest imports every test module during collection, before any test
+# function runs; a collection-time mutation would apply to the *whole*
+# session from that point on and corrupt any other test that happens to
+# run before this module's teardown restores it (this bit
+# tests/test_backup_manager.py, which reads cfg.BASE_DIR at call time, the
+# first time this fix was attempted).
+_overrides = {
+    "BASE_DIR": BASE_TEMP,
+    "API_KEY": "e2e-super-admin-key-12345",
+    "ADMIN_PASSWORD": "test-admin-pass-123!",
+    "ADMIN_USERNAME": "admin",
+    "ENABLE_FORMULA_GENERATION": True,
+    "BACKUP_ENABLED": False,
+    "OLLAMA_HOST": "http://127.0.0.1:11434",
+}
+
+
+@pytest.fixture(scope="module", autouse=True)
+def _scoped_global_config():
+    originals = {name: getattr(_config_module.cfg, name) for name in _overrides}
+    for name, value in _overrides.items():
+        object.__setattr__(_config_module.cfg, name, value)
+    yield
+    for name, value in originals.items():
+        object.__setattr__(_config_module.cfg, name, value)
 
 # Override lifespan to skip expensive startup (model download, backup scheduler)
 @asynccontextmanager
