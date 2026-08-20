@@ -14,7 +14,8 @@ from .base import BaseProvider, ProviderConfig
 from .google import GoogleProvider
 from .ollama import OllamaProvider
 from .openai_compat import OpenAICompatProvider
-from .registry import get_registry, PROVIDER_TYPES, ProviderRegistry
+from .registry import PROVIDER_TYPES, ProviderRegistry, get_registry
+
 
 __all__ = [
     "BaseProvider",

@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 from io import BytesIO
 from pathlib import Path
 
@@ -12,12 +12,13 @@ from pydantic import BaseModel, Field
 
 from api.auth import _require_role
 from config import cfg
-from core.document_parser import chunk_source_units, DocumentParseError, extract_source_units
+from core.document_parser import DocumentParseError, chunk_source_units, extract_source_units
 from core.evidence_assistant import answer_from_evidence
 from core.governance import append_audit
 from core.ingestion_service import process_ingestion_job
 from core.input_validator import matches_expected_file_signature, sanitize_upload_name
 from core.library_store import LibraryAccessError, LibraryNotFoundError, LibraryStore
+
 
 router = APIRouter(prefix="/api/libraries", tags=["Libraries"])
 _store: LibraryStore | None = None

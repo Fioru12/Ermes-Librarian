@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from evaluation.run_library_eval import evaluate, GOLD_SET_PATH
+from evaluation.run_library_eval import GOLD_SET_PATH, evaluate
 
 
 def test_demo_gold_set_meets_retrieval_quality_bar():

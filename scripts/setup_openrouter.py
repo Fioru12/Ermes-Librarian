@@ -13,6 +13,7 @@ Esempi modelli OpenRouter disponibili:
 import sys
 from pathlib import Path
 
+
 def main():
     sys.path.insert(0, str(Path(__file__).parent.parent))
 

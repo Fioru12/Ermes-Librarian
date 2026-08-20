@@ -13,7 +13,7 @@ import sqlite3
 import threading
 import uuid
 from contextlib import contextmanager
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 from pathlib import Path
 
 from core.library_embeddings import cosine_similarity, embed_texts

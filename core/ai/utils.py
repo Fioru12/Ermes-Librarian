@@ -4,6 +4,7 @@ Funzioni di supporto: hash documenti, validazione file,
 log JSON/TXT, pulizia log vecchi, pulizia ChromaDB orfani.
 Nessuna dipendenza da Streamlit o LlamaIndex.
 """
+import contextlib
 import hashlib
 import json
 import logging
@@ -438,14 +439,14 @@ def _lf_end_trace(gen, start, result, error):
     """Finalizza il trace Langfuse (se attivo). Silenzioso se fallisce."""
     if gen is None or start is None:
         return
-    try:
+    # Il tracing e' osservabilita' opzionale: se Langfuse non risponde, la
+    # richiesta dell'utente non deve fallire per questo.
+    with contextlib.suppress(Exception):
         gen.end(
             output=result,
             level="ERROR" if error else "DEFAULT",
             status_message=str(error) if error else None,
         )
-    except Exception:
-        pass
 
 
 def _call_ollama(prompt, model_id, system_prompt, temp, json_mode, timeout, _httpx, _cfg):

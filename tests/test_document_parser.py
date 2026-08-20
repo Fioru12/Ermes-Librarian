@@ -4,7 +4,7 @@ from zipfile import ZIP_DEFLATED, ZipFile
 
 import pytest
 
-from core.document_parser import chunk_source_units, DocumentParseError, extract_source_units, extract_text, split_into_chunks
+from core.document_parser import DocumentParseError, chunk_source_units, extract_source_units, extract_text, split_into_chunks
 
 
 def test_extracts_text_and_markdown():
