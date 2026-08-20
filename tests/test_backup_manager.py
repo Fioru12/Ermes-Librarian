@@ -37,7 +37,12 @@ class TestCreateBackup:
         result = bm.create_backup(label="test")
         assert os.path.exists(result["path"])
         assert "test" in result["name"]
-        assert result["size_mb"] > 0
+        # size_mb e' arrotondato a due decimali: un backup piccolo vale 0.0 e
+        # l'asserzione falliva su un checkout pulito (CI) pur passando in
+        # locale, dove BASE_DIR contiene molto piu' materiale. Il fatto da
+        # verificare e' che l'archivio non sia vuoto, quindi si controllano i byte.
+        assert os.path.getsize(result["path"]) > 0
+        assert result["size_mb"] >= 0
         with tarfile.open(result["path"], "r:gz") as tar:
             names = tar.getnames()
             assert len(names) > 0

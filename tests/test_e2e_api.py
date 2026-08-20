@@ -91,14 +91,24 @@ def client():
     shutil.rmtree(BASE_TEMP, ignore_errors=True)
 
 
+# Questi test interrogavano `/modules`, un endpoint WinSarp rimosso con
+# l'isolamento del legacy. Passavano comunque, perche' la catch-all della SPA
+# risponde 200 con l'index HTML a qualunque percorso sconosciuto: asserire solo
+# `status_code == 200` non verificava nulla. In CI, dove `frontend/dist/` non
+# viene costruito, la catch-all non e' montata e i 404 hanno smascherato il
+# problema. Ora interrogano endpoint reali e controllano anche il content-type,
+# cosi' un 200 servito dalla SPA non puo' piu' far passare il test per sbaglio.
+
+
+def _is_json(resp):
+    return "application/json" in resp.headers.get("content-type", "")
+
+
 def test_e2e_rbac_full_flow(client):
     admin_key = os.environ["ERMES_API_KEY"]
     admin_headers = {"Authorization": f"Bearer {admin_key}"}
 
     resp = client.post("/api/users", json={"username": "e2e_test", "role": "editor"}, headers=admin_headers)
-    assert resp.status_code == 200
-
-    resp = client.get("/modules")
     assert resp.status_code == 200
 
     resp = client.post("/api/users", json={"username": "viewer_user", "role": "viewer"}, headers=admin_headers)
@@ -107,17 +117,20 @@ def test_e2e_rbac_full_flow(client):
     # Verifica utente creato
     resp = client.get("/api/users", headers=admin_headers)
     assert resp.status_code == 200
+    assert _is_json(resp)
+
 
 def test_e2e_no_api_key_rejected(client):
-    """Ora che l'auth è disabilitata, la richiesta deve avere successo."""
-    resp = client.get("/modules")
-    assert resp.status_code == 200
+    """Un endpoint protetto senza credenziali deve essere rifiutato."""
+    resp = client.get("/api/users")
+    assert resp.status_code in (401, 403), f"atteso rifiuto, ricevuto {resp.status_code}"
+
 
 def test_e2e_invalid_api_key_rejected(client):
-    """Ora che l'auth è disabilitata, anche con chiave invalida deve avere successo."""
+    """Una chiave API non valida deve essere rifiutata."""
     headers = {"Authorization": "Bearer invalid_key_12345"}
-    resp = client.get("/modules", headers=headers)
-    assert resp.status_code == 200
+    resp = client.get("/api/users", headers=headers)
+    assert resp.status_code in (401, 403), f"atteso rifiuto, ricevuto {resp.status_code}"
 
 
 def test_e2e_prometheus_metrics(client):
@@ -134,13 +147,17 @@ def test_e2e_v1_versioned_routes(client):
     admin_key = os.environ["ERMES_API_KEY"]
     admin_headers = {"Authorization": f"Bearer {admin_key}"}
 
-    # /v1/health check
+    # /v1/health: rotta pubblica, deve rispondere JSON (non l'index della SPA)
     resp = client.get("/v1/health")
     assert resp.status_code == 200, f"/v1/health error: {resp.text}"
-    data = resp.json()
-    assert "status" in data
+    assert _is_json(resp), "/v1/health ha risposto HTML: e' la catch-all della SPA, non la rotta v1"
+    assert "status" in resp.json()
 
-    # /v1/modules check
-    resp = client.get("/v1/modules", headers=admin_headers)
-    assert resp.status_code == 200
+    # /v1/api/users: rotta protetta, verifica che il prefisso v1 preservi l'auth
+    resp = client.get("/v1/api/users", headers=admin_headers)
+    assert resp.status_code == 200, f"/v1/api/users error: {resp.text}"
+    assert _is_json(resp)
+
+    resp = client.get("/v1/api/users")
+    assert resp.status_code in (401, 403), "il prefisso v1 non deve aggirare l'autenticazione"
 
