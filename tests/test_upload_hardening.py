@@ -88,7 +88,7 @@ class TestZipBombDefences:
             _validate_office_archive(content, "docx")
 
     def test_archive_with_too_many_entries_is_refused(self):
-        entries = {"word/media/f%d.txt" % i: "x" for i in range(MAX_OFFICE_ARCHIVE_FILES + 5)}
+        entries = {f"word/media/f{i}.txt": "x" for i in range(MAX_OFFICE_ARCHIVE_FILES + 5)}
         content = _office_zip(entries)
 
         with pytest.raises(DocumentParseError, match="troppi file"):
