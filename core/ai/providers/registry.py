@@ -3,11 +3,11 @@ import logging
 import os
 import threading
 
-from .base import BaseProvider, ProviderConfig
-from .openai_compat import OpenAICompatProvider
 from .anthropic import AnthropicProvider
+from .base import BaseProvider, ProviderConfig
 from .google import GoogleProvider
 from .ollama import OllamaProvider
+from .openai_compat import OpenAICompatProvider
 
 _logger = logging.getLogger(__name__)
 
@@ -204,9 +204,11 @@ def _legacy_call_llm(
     json_mode: bool = False,
     timeout: int = 120,
 ) -> str:
-    from config import cfg
-    import httpx
     import time as _time
+
+    import httpx
+
+    from config import cfg
 
     if not cfg.OPENROUTER_API_KEY:
         return _legacy_ollama(prompt, model_id, system_prompt, temp, json_mode, timeout)
@@ -216,7 +218,7 @@ def _legacy_call_llm(
         "Content-Type": "application/json",
     }
 
-    _OPENROUTER_FREE_MODELS = [
+    _openrouter_free_models = [
         "google/gemma-4-31b-it:free",
         "tencent/hy3:free",
         "qwen/qwen3-next-80b-a3b-instruct:free",
@@ -227,9 +229,9 @@ def _legacy_call_llm(
 
     is_openrouter_model = "/" in model_id and not model_id.startswith("hf.co/")
     if is_openrouter_model:
-        models_to_try = [model_id] + [m for m in _OPENROUTER_FREE_MODELS if m != model_id]
+        models_to_try = [model_id] + [m for m in _openrouter_free_models if m != model_id]
     else:
-        models_to_try = list(_OPENROUTER_FREE_MODELS)
+        models_to_try = list(_openrouter_free_models)
 
     messages = []
     if system_prompt:
@@ -296,8 +298,9 @@ def _legacy_call_llm(
 
 
 def _legacy_ollama(prompt, model_id, system_prompt, temp, json_mode, timeout):
-    from config import cfg
     import httpx
+
+    from config import cfg
     url = f"{cfg.OLLAMA_HOST.rstrip('/')}/api/generate"
     payload = {
         "model": model_id,

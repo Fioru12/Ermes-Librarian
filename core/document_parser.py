@@ -6,10 +6,10 @@ external model or network connection.
 """
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from io import BytesIO
 from pathlib import Path
-import re
 from zipfile import ZipFile
 
 

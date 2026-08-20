@@ -8,8 +8,8 @@ import os
 from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends
-from api.auth import _require_role
 
+from api.auth import _require_role
 from config import cfg
 
 _logger = logging.getLogger(__name__)

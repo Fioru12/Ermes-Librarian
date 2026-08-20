@@ -6,7 +6,6 @@ import os
 import sys
 import tempfile
 import shutil
-import json
 from contextlib import asynccontextmanager
 
 # Must set env BEFORE any project imports so Config picks them up

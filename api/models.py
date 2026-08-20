@@ -59,9 +59,9 @@ async def list_models(_auth: None = Depends(__import__('api.auth', fromlist=['_v
 
     # Aggiungiamo SEMPRE OpenRouter se la chiave è presente
     if getattr(_cfg, "OPENROUTER_API_KEY", ""):
-        from core.ai.utils import _OPENROUTER_FREE_MODELS as _free_models
+        from core.ai.utils import _OPENROUTER_FREE_MODELS as _FREE_MODELS
         openrouter_models = []
-        for m in _free_models:
+        for m in _FREE_MODELS:
             if m not in models:
                 models.append(m)
             display = OPENROUTER_MODEL_LABELS.get(m, m)

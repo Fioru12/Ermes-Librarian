@@ -3,9 +3,8 @@ api/auth.py
 Autenticazione JWT + RBAC + rate limiter.
 """
 import logging
-import os
-import threading
 import secrets
+import threading
 import time
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response

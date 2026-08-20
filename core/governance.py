@@ -61,7 +61,7 @@ def _save_api_keys(data: dict) -> None:
         if os.path.exists(path + ".bak"):
             with contextlib.suppress(BaseException):
                 os.remove(path + ".bak")
-    except Exception as e:
+    except Exception:
         if os.path.exists(tmp_path):
             with contextlib.suppress(BaseException):
                 os.unlink(tmp_path)

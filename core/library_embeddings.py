@@ -6,7 +6,7 @@ is normal in a lightweight install and callers must retain keyword retrieval.
 from __future__ import annotations
 
 import math
-from typing import Iterable
+from collections.abc import Iterable
 
 from config import cfg
 

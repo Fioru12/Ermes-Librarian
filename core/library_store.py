@@ -13,7 +13,7 @@ import sqlite3
 import threading
 import uuid
 from contextlib import contextmanager
-from datetime import UTC, datetime
+from datetime import datetime, UTC
 from pathlib import Path
 
 from core.library_embeddings import cosine_similarity, embed_texts
@@ -219,9 +219,7 @@ class LibraryStore:
             return True
         if member_role == "viewer" and not write:
             return True
-        if library.get("visibility") == "shared" and not write:
-            return True
-        return False
+        return library.get("visibility") == "shared" and not write
 
     def _membership_roles(self, username: str) -> dict[str, str]:
         with self._connection() as connection:

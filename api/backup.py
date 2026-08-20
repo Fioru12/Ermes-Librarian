@@ -6,6 +6,7 @@ import logging
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
+
 from api.auth import _require_role
 
 _logger = logging.getLogger(__name__)

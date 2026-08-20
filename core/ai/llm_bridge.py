@@ -20,7 +20,8 @@ Soluzione:
 """
 
 import logging
-from typing import Any, Generator, Sequence
+from collections.abc import Generator, Sequence
+from typing import Any
 
 from llama_index.core.base.llms.types import (
     ChatMessage,

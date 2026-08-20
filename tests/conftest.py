@@ -11,11 +11,11 @@ import json
 import shutil
 import tempfile
 from pathlib import Path
-from typing import Generator
+from collections.abc import Generator
 
 import pytest
 
-from core.rate_limiter import RateLimiter, RateLimitConfig
+from core.rate_limiter import RateLimitConfig, RateLimiter
 
 
 # ── Marker per test LLM-dipendenti ──

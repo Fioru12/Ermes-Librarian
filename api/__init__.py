@@ -229,7 +229,7 @@ def prometheus_metrics():
             lines.append(f'ermes_http_request_duration_seconds_count{{method="{method}",path="{path}"}} {count}')
     lines.append("# HELP ermes_system_info Metadati di sistema dell'istanza Ermes.")
     lines.append("# TYPE ermes_system_info gauge")
-    lines.append(f'ermes_system_info{{version="2.1.0",python_version="3.11",environment="enterprise"}} 1')
+    lines.append('ermes_system_info{version="2.1.0",python_version="3.11",environment="enterprise"} 1')
     return Response(content="\n".join(lines) + "\n", media_type="text/plain; version=0.0.4")
 
 

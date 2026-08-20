@@ -4,7 +4,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from config import cfg
-from core.document_parser import DocumentParseError, chunk_source_units, extract_source_units
+from core.document_parser import chunk_source_units, DocumentParseError, extract_source_units
 from core.library_embeddings import embed_texts
 from core.library_store import LibraryStore
 

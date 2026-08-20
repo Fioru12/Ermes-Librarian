@@ -6,9 +6,9 @@ from core.pii_filter import filter_pii
 
 # ── Test RBAC ──
 def test_rbac_hierarchy():
-    assert has_min_role('admin', 'viewer') == True
-    assert has_min_role('editor', 'viewer') == True
-    assert has_min_role('viewer', 'admin') == False
+    assert has_min_role('admin', 'viewer')
+    assert has_min_role('editor', 'viewer')
+    assert not has_min_role('viewer', 'admin')
 
 def test_per_user_api_key_auth():
     # Usa un file temp per non sporcare il vero security/api_keys.json

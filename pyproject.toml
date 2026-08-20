@@ -28,6 +28,11 @@ dependencies = [
 [tool.ruff]
 line-length = 120
 target-version = "py311"
+# Il motore formule WinSarp e' codice storico congelato (vedi
+# legacy_winsarp/README.md): non viene piu' modificato e non fa parte del
+# percorso di prodotto. Analizzarlo produceva 551 violazioni su 616 totali,
+# che seppellivano le 65 reali del prodotto e rendevano il gate inutilizzabile.
+exclude = ["legacy_winsarp"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "W", "UP", "SIM"]
@@ -44,9 +49,9 @@ ignore = [
 "tests/*.py" = ["S101", "S311", "E402", "I001", "E701", "E702", "N802"]
 "scripts/*.py" = ["E402", "E722"]
 "evaluation/*.py" = ["E402", "F841"]
-"legacy_winsarp/core/winsarp/transformer.py" = ["N802"]
-"legacy_winsarp/core/winsarp/*.lark" = ["ALL"]
-"legacy_winsarp/**/*.py" = ["E402", "N802", "F841"]
+# I router vengono importati dopo la creazione dell'app e dei middleware, per
+# evitare import circolari: e' il pattern FastAPI abituale, non un difetto.
+"api/__init__.py" = ["E402"]
 "config.py" = ["N802"]
 "*.pyi" = ["N"]
 

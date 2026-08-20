@@ -4,7 +4,7 @@ from dataclasses import replace
 import pytest
 from fastapi import HTTPException
 
-from api.users import CreateLocalAccountRequest, UpdateLocalAccountRequest, create_local_account, update_local_account
+from api.users import create_local_account, CreateLocalAccountRequest, update_local_account, UpdateLocalAccountRequest
 from config import cfg
 
 

@@ -26,8 +26,9 @@ env_path = os.path.join(os.path.dirname(__file__), '.env')
 if os.path.exists(env_path):
     try:
         load_dotenv(env_path, encoding='utf-8')
-    except:
-        # Fallback senza encoding specifico
+    except (UnicodeDecodeError, OSError):
+        # Fallback senza encoding specifico: un .env salvato con la codepage
+        # di sistema invece che in UTF-8. Le altre eccezioni devono propagare.
         load_dotenv(env_path)
 
 

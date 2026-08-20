@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from io import BytesIO
 from pathlib import Path
 
@@ -10,14 +10,14 @@ from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, Up
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
-from config import cfg
 from api.auth import _require_role
-from core.document_parser import DocumentParseError, chunk_source_units, extract_source_units
+from config import cfg
+from core.document_parser import chunk_source_units, DocumentParseError, extract_source_units
 from core.evidence_assistant import answer_from_evidence
+from core.governance import append_audit
 from core.ingestion_service import process_ingestion_job
 from core.input_validator import matches_expected_file_signature, sanitize_upload_name
 from core.library_store import LibraryAccessError, LibraryNotFoundError, LibraryStore
-from core.governance import append_audit
 
 router = APIRouter(prefix="/api/libraries", tags=["Libraries"])
 _store: LibraryStore | None = None
@@ -230,7 +230,7 @@ def ask_library(
             "status": "abstained",
             "evidence": {"coverage": "insufficient_evidence", "reason": "Nessun passaggio corrispondente recuperato."},
             "citations": [],
-            "meta": {"assistant_mode": library["assistant_mode"], "assistant_provider": library.get("assistant_provider", ""), "retrieval_profile": retrieval_profile, "created_at": datetime.now(timezone.utc).isoformat()},
+            "meta": {"assistant_mode": library["assistant_mode"], "assistant_provider": library.get("assistant_provider", ""), "retrieval_profile": retrieval_profile, "created_at": datetime.now(UTC).isoformat()},
         }
     answer, coverage, reason = answer_from_evidence(
         request.question, citations, mode=library["assistant_mode"], provider_name=library.get("assistant_provider", ""),
@@ -247,7 +247,7 @@ def ask_library(
         "status": "answered" if coverage == "supported" else "abstained",
         "evidence": {"coverage": coverage, "reason": reason},
         "citations": [item["citation"] | {"excerpt": item["excerpt"], "marker": index, "relevance_score": item["relevance_score"]} for index, item in enumerate(citations, start=1)],
-        "meta": {"assistant_mode": library["assistant_mode"], "assistant_provider": library.get("assistant_provider", ""), "retrieval_profile": retrieval_profile, "created_at": datetime.now(timezone.utc).isoformat()},
+        "meta": {"assistant_mode": library["assistant_mode"], "assistant_provider": library.get("assistant_provider", ""), "retrieval_profile": retrieval_profile, "created_at": datetime.now(UTC).isoformat()},
     }
 
 
@@ -263,9 +263,8 @@ def set_library_assistant_policy(
         library = store.get_library(library_id, _auth, write=True)
         if request.mode in {"approved_openrouter", "approved_provider"} and not store.can_manage_library_members(library_id, _auth):
             raise HTTPException(status_code=403, detail="Solo il proprietario o un amministratore possono autorizzare un provider cloud")
-        if request.mode == "approved_openrouter":
-            if not cfg.LIBRARY_CLOUD_CONSENT or not cfg.OPENROUTER_API_KEY:
-                raise HTTPException(status_code=409, detail="OpenRouter non e autorizzato o configurato per questa istanza")
+        if request.mode == "approved_openrouter" and (not cfg.LIBRARY_CLOUD_CONSENT or not cfg.OPENROUTER_API_KEY):
+            raise HTTPException(status_code=409, detail="OpenRouter non e autorizzato o configurato per questa istanza")
         if request.mode == "approved_provider" and _get_approved_cloud_provider(request.provider_name) is None:
             raise HTTPException(status_code=409, detail="Provider cloud non autorizzato o non configurato per questa istanza")
         updated = store.set_assistant_policy(library_id, request.mode, request.provider_name)

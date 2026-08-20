@@ -9,12 +9,12 @@ Moduli:
     registry    → ProviderRegistry (gestione, salvataggio, fallback)
 """
 
-from .base import BaseProvider, ProviderConfig
-from .openai_compat import OpenAICompatProvider
 from .anthropic import AnthropicProvider
+from .base import BaseProvider, ProviderConfig
 from .google import GoogleProvider
 from .ollama import OllamaProvider
-from .registry import ProviderRegistry, get_registry, PROVIDER_TYPES
+from .openai_compat import OpenAICompatProvider
+from .registry import get_registry, PROVIDER_TYPES, ProviderRegistry
 
 __all__ = [
     "BaseProvider",

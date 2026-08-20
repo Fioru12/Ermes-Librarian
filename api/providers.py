@@ -8,6 +8,7 @@ from urllib.parse import urlparse
 import httpx
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
+
 from api.auth import _require_role
 from config import cfg
 
