@@ -119,10 +119,16 @@ Write-Host "Apertura browser su http://localhost:$frontendPort ..." -ForegroundC
 Start-Process "http://localhost:$frontendPort"
 
 Write-Host ""
-Write-Host "Premi un tasto per chiudere questa finestra..." -ForegroundColor Gray
-# Se siamo in modalità interattiva, attendi input; altrimenti esci subito
-try {
-    $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
-} catch {
-    # In modalità non interattiva, esci senza attendere
+# Attendi un tasto solo se c'e' davvero qualcuno a premerlo.
+# Il try/catch da solo non basta: con stdin rediretto (CI, task in background,
+# `powershell -File` invocato da un altro processo) ReadKey non solleva
+# un'eccezione, si BLOCCA — lo script resta appeso a tempo indefinito invece
+# di uscire. IsInputRedirected e' il controllo che distingue davvero i due casi.
+if ([Environment]::UserInteractive -and -not [Console]::IsInputRedirected) {
+    Write-Host "Premi un tasto per chiudere questa finestra..." -ForegroundColor Gray
+    try {
+        $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+    } catch {
+        # Host senza supporto RawUI (es. ISE): esci senza attendere.
+    }
 }
