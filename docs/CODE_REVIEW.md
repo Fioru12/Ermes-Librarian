@@ -147,6 +147,56 @@ viva le espone (verificato sulle 92 route dell'app). Le variabili sono state las
 — servono con `ENABLE_LEGACY_WINSARP=1` — ma commentate esplicitamente, per non
 promettere integrazioni che il prodotto non ha.
 
+## Revisione della struttura
+
+Una seconda passata, sulla forma anziché sulla logica: dove vivono i file, come
+sono nominati, e cosa comunica l'organizzazione a chi apre il repository.
+
+### 11. Il percorso di installazione non portava al percorso di avvio — *corretto*
+
+Il finding strutturale più grave. I tre installer (`SETUP_INSTALL.bat`,
+`SETUP_RAPIDO.bat`, `SETUP_INIZIALE.ps1`) creavano tutti un ambiente virtuale
+chiamato `.venv`. Ma `scripts/avvia_ermes.ps1` cerca `.venv-ermes` ed esce con
+errore se non lo trova. **Chi seguiva gli script di installazione otteneva
+un'installazione "riuscita" che poi non si avviava.** Gli stessi installer
+rimandavano inoltre a `AVVIA.bat`, che era stato spostato in `scripts/archive/`.
+
+Consolidato su un solo installer allineato al launcher; i duplicati sono in
+`legacy_winsarp/scripts/`. Corretti anche `smoke_test.bat`, `test_all.bat` e
+`VERIFICA_SISTEMA.bat`, che puntavano al venv sbagliato.
+
+### 12. Contenuto legacy dentro le cartelle del prodotto — *spostato*
+
+- `tests/verify_final.py` era un test WinSarp (chiama `/api/formula/generate`)
+  che viveva nella suite del prodotto e **non veniva mai eseguito**, perché il
+  nome non corrisponde al pattern `test_*.py` di pytest.
+- `docs/` conteneva `winsarp_grammar.txt`, più due file grafici orfani con zero
+  riferimenti — uno dei quali, `literature_review_reading_read_icon_179858.ico`,
+  con il nome di download da un sito di icone stock. `docs/` ora contiene
+  soltanto documentazione.
+- `scripts/STOP.ps1` era intitolato "WinSarp AI Hub" e fermava **Streamlit**,
+  cioè la UI legacy — non il frontend del prodotto. Riscritto come vera
+  controparte del launcher, e verificato dal vivo: ferma backend e frontend e
+  controlla che le porte siano davvero libere.
+
+### 13. Un verificatore che approvava sempre — *corretto*
+
+`VERIFICA_SISTEMA.bat` stampava «TUTTI I PREREQUISITI SONO SODDISFATTI»
+incondizionatamente, anche se ogni singolo controllo aveva stampato un errore.
+Fra le dipendenze "principali" che verificava c'era `streamlit`, che non è
+nemmeno in `requirements.txt`: quel controllo falliva sempre, senza conseguenze.
+Riscritto con un conteggio reale dei fallimenti, e verificato su entrambi i
+percorsi — quello di successo e quello di errore, che è poi quello che era rotto.
+
+### 14. Organizzazione e naming — *documentati*
+
+Metà del repository (173 file tracciati su 339) è `legacy_winsarp/`: è una scelta
+esplicita, ma vale la pena saperlo prima di giudicare le proporzioni del
+progetto. I nomi degli script mescolano maiuscole e minuscole, italiano e
+inglese. Invece di rinominarli in massa — churn e rischio di rotture per un
+guadagno cosmetico — la convenzione è stata resa esplicita in `scripts/README.md`,
+che documenta anche a cosa serve ciascuno script.
+
 ## Verificato sano
 
 Non tutto era da correggere. Questi punti sono stati controllati e sono risultati solidi:

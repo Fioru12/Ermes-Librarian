@@ -148,9 +148,12 @@ echo.
 
 REM ── 5. Ambiente virtuale Python ──────────────────────────────────────────────
 echo [5/6] Ambiente virtuale Python...
-if not exist ".venv\Scripts\python.exe" (
+REM L'ambiente DEVE chiamarsi .venv-ermes: e' quello che scripts\avvia_ermes.ps1
+REM cerca, e senza il quale il launcher esce con errore. Creare .venv qui
+REM produceva un'installazione "riuscita" che non si riusciva poi ad avviare.
+if not exist ".venv-ermes\Scripts\python.exe" (
     echo         Creazione venv...
-    python -m venv .venv
+    python -m venv .venv-ermes
     if errorlevel 1 (
         echo  ❌ Impossibile creare il venv.
         pause
@@ -158,7 +161,7 @@ if not exist ".venv\Scripts\python.exe" (
     )
 )
 echo         Installazione dipendenze...
-call .venv\Scripts\activate.bat
+call .venv-ermes\Scripts\activate.bat
 pip install -r requirements.txt --quiet 2>&1 | findstr /v "already satisfied"
 if %ERRORLEVEL% NEQ 0 (
     echo  ⚠️  Alcune dipendenze potrebbero non essere state installate.
@@ -173,7 +176,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command ^
  "$s=(New-Object -ComObject WScript.Shell).CreateShortcut([Environment]::GetFolderPath('Desktop')+'\Ermes.lnk');$s.TargetPath='powershell.exe';$s.Arguments='-ExecutionPolicy Bypass -File \"%~dp0avvia_ermes.ps1\"';$s.WorkingDirectory='%~dp0..';$s.Description='Avvia Ermes Knowledge';$s.IconLocation='shell32.dll,13';$s.Save()"
 echo         ✅ Collegamento creato sul desktop!
 echo         📌 Doppio click su "Ermes" sul desktop per avviare
-echo            In alternativa: AVVIA.bat (mostra finestra dei log)
+echo            In alternativa: scripts\avvia_ermes.ps1 (mostra i log)
 echo.
 
 echo ============================================
@@ -182,7 +185,7 @@ echo ============================================
 echo.
 echo  Per avviare, fai doppio click su:
 echo    - Il collegamento "Ermes" sul desktop
-echo    - Oppure AVVIA.bat in questa cartella
+echo    - Oppure esegui scripts\avvia_ermes.ps1
 echo.
 pause
 goto MENU

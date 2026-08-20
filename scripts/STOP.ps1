@@ -1,43 +1,45 @@
-﻿# STOP.ps1 - Arresto WinSarp AI Hub
-Write-Host ""
-Write-Host "=== WinSarp AI Hub - Arresto ===" -ForegroundColor Cyan
+# STOP.ps1 - Arresto dei servizi Ermes
+# Controparte di scripts\avvia_ermes.ps1: ferma cio' che quello avvia.
+# Usage: .\scripts\STOP.ps1
 
-$streamlit = Get-WmiObject Win32_Process | Where-Object { $_.CommandLine -like "*streamlit*" -and $_.CommandLine -like "*app.py*" }
-if ($streamlit) {
-    Write-Host "Arresto Streamlit..." -ForegroundColor Yellow
-    $streamlit | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
-    Write-Host "Streamlit arrestato." -ForegroundColor Green
-} else {
-    Write-Host "Streamlit non in esecuzione." -ForegroundColor Gray
+Write-Host ""
+Write-Host "=== Ermes - Arresto Servizi ===" -ForegroundColor Cyan
+
+function Stop-Port {
+    param([int]$Port, [string]$Nome)
+    $conns = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue
+    if (-not $conns) {
+        Write-Host "  $Nome (porta $Port): gia' libera." -ForegroundColor Gray
+        return
+    }
+    $conns | Select-Object -ExpandProperty OwningProcess -Unique | ForEach-Object {
+        Stop-Process -Id $_ -Force -ErrorAction SilentlyContinue
+    }
+    Start-Sleep -Milliseconds 600
+    # Verifica che la porta sia davvero libera invece di dichiararlo e basta.
+    if (Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue) {
+        Write-Host "  $Nome (porta $Port): ANCORA OCCUPATA." -ForegroundColor Yellow
+    } else {
+        Write-Host "  $Nome (porta $Port): arrestato." -ForegroundColor Green
+    }
 }
 
+Stop-Port -Port 8502 -Nome "Backend"
+Stop-Port -Port 3000 -Nome "Frontend"
+
+# Ollama non viene arrestato: e' un servizio di sistema che puo' servire altre
+# applicazioni. Per fermarlo esplicitamente: Stop-Process -Name ollama -Force
 $ollama = Get-Process -Name "ollama" -ErrorAction SilentlyContinue
 if ($ollama) {
-    Write-Host "Arresto Ollama..." -ForegroundColor Yellow
-    Stop-Process -Name "ollama" -Force -ErrorAction SilentlyContinue
-    Write-Host "Ollama arrestato." -ForegroundColor Green
-} else {
-    Write-Host "Ollama non in esecuzione." -ForegroundColor Gray
-}
-
-$porta = Get-NetTCPConnection -LocalPort 8502 -ErrorAction SilentlyContinue
-if ($porta) {
-    Write-Host "Forzo chiusura porta 8502..." -ForegroundColor Yellow
-    $porta | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }
-    Write-Host "Porta 8502 liberata." -ForegroundColor Green
-} else {
-    Write-Host "Porta 8502 libera." -ForegroundColor Green
-}
-
-Start-Sleep -Milliseconds 500
-$check = Get-NetTCPConnection -LocalPort 8502 -ErrorAction SilentlyContinue
-if ($check) {
-    Write-Host "ATTENZIONE: Porta 8502 ancora occupata." -ForegroundColor Yellow
-} else {
-    Write-Host "Verifica finale: Porta 8502 libera." -ForegroundColor Green
+    Write-Host "  Ollama: lasciato in esecuzione (servizio condiviso)." -ForegroundColor Gray
 }
 
 Write-Host ""
 Write-Host "=== Arresto completato ===" -ForegroundColor Cyan
 Write-Host ""
-Read-Host "Premi INVIO per chiudere"
+
+# Attendi solo se c'e' davvero qualcuno a premere: con stdin rediretto
+# Read-Host non solleva un'eccezione, si blocca a tempo indefinito.
+if ([Environment]::UserInteractive -and -not [Console]::IsInputRedirected) {
+    Read-Host "Premi INVIO per chiudere" | Out-Null
+}
