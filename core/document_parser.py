@@ -134,6 +134,33 @@ def _extract_text_units(text: str, suffix: str) -> list[SourceUnit]:
     return units or [SourceUnit(normalized, "Documento")]
 
 
+def _parse_office_xml(data: bytes):
+    """Parse XML from an uploaded Office archive, refusing document type
+    declarations.
+
+    `xml.etree.ElementTree` expands internal entities, so a few kilobytes of
+    nested entity definitions inside an uploaded .xlsx expand to gigabytes in
+    memory — the classic "billion laughs" denial of service. Verified before
+    this guard existed: a 1.157-byte file produced 10.001 characters with only
+    four nesting levels.
+
+    A legitimate OOXML part never carries a DTD, so refusing `<!DOCTYPE`
+    outright removes the entire entity-expansion class without pulling in a
+    third-party parser. Documents are untrusted input: this is the product's
+    fourth stated principle, and the parser has to honour it too.
+    """
+    from xml.etree import ElementTree
+
+    # The declaration, if present at all, precedes the root element.
+    if b"<!DOCTYPE" in data[:4096] or b"<!ENTITY" in data[:4096]:
+        raise DocumentParseError("Il file contiene una dichiarazione XML non ammessa")
+    # nosec B314 — bandit segnala ElementTree su input non fidato. Qui la classe
+    # di attacco (espansione di entita') e' gia' esclusa dal controllo sopra,
+    # che rifiuta qualunque DTD, ed e' coperta da un test di regressione:
+    # tests/test_document_parser.py::test_xlsx_with_entity_declarations_is_rejected
+    return ElementTree.fromstring(data)  # nosec B314
+
+
 def _extract_xlsx_units(content: bytes) -> list[SourceUnit]:
     """Read an XLSX without adding an office-suite dependency.
 
@@ -142,14 +169,12 @@ def _extract_xlsx_units(content: bytes) -> list[SourceUnit]:
     spreadsheet engine and formula values are intentionally not calculated.
     """
     with ZipFile(BytesIO(content)) as archive:
-        from xml.etree import ElementTree
-
         ns = "{http://schemas.openxmlformats.org/spreadsheetml/2006/main}"
         shared_strings: list[str] = []
         if "xl/sharedStrings.xml" in archive.namelist():
-            root = ElementTree.fromstring(archive.read("xl/sharedStrings.xml"))
+            root = _parse_office_xml(archive.read("xl/sharedStrings.xml"))
             shared_strings = ["".join(item.itertext()).strip() for item in root.findall(f"{ns}si")]
-        workbook = ElementTree.fromstring(archive.read("xl/workbook.xml"))
+        workbook = _parse_office_xml(archive.read("xl/workbook.xml"))
         worksheet_paths = sorted(name for name in archive.namelist() if name.startswith("xl/worksheets/") and name.endswith(".xml"))
         units: list[SourceUnit] = []
         for index, sheet in enumerate(workbook.iter(f"{ns}sheet")):
@@ -157,7 +182,7 @@ def _extract_xlsx_units(content: bytes) -> list[SourceUnit]:
             if index >= len(worksheet_paths):
                 continue
             sheet_path = worksheet_paths[index]
-            root = ElementTree.fromstring(archive.read(sheet_path))
+            root = _parse_office_xml(archive.read(sheet_path))
             for row in root.findall(f".//{ns}row"):
                 values: list[str] = []
                 for cell in row.findall(f"{ns}c"):

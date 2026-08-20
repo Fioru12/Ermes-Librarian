@@ -85,3 +85,43 @@ def test_public_demo_corpus_is_parseable_and_has_section_locators():
 
         assert chunks
         assert all(locator.startswith("Sezione:") for _, locator in chunks)
+
+
+def test_xlsx_with_entity_declarations_is_rejected():
+    """An uploaded workbook must not be able to expand XML entities.
+
+    `xml.etree.ElementTree` expands internal entities, so a few kilobytes of
+    nested definitions expand to gigabytes in memory (the "billion laughs"
+    denial of service). Measured before the guard existed: 1.157 bytes of
+    input produced 10.001 characters with only four nesting levels.
+    """
+    bomb = (
+        '<?xml version="1.0"?>\n'
+        "<!DOCTYPE sst [\n"
+        '  <!ENTITY a "AAAAAAAAAA">\n'
+        '  <!ENTITY b "&a;&a;&a;&a;&a;&a;&a;&a;&a;&a;">\n'
+        '  <!ENTITY c "&b;&b;&b;&b;&b;&b;&b;&b;&b;&b;">\n'
+        "]>\n"
+        '<sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="1">'
+        "<si><t>&c;</t></si></sst>"
+    )
+    workbook = (
+        '<?xml version="1.0"?>'
+        '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
+        '<sheets><sheet name="Foglio1" sheetId="1"/></sheets></workbook>'
+    )
+    sheet = (
+        '<?xml version="1.0"?>'
+        '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
+        '<sheetData><row r="1"><c r="A1" t="s"><v>0</v></c></row></sheetData></worksheet>'
+    )
+
+    buffer = BytesIO()
+    with ZipFile(buffer, "w", ZIP_DEFLATED) as archive:
+        archive.writestr("[Content_Types].xml", "<Types />")
+        archive.writestr("xl/workbook.xml", workbook)
+        archive.writestr("xl/sharedStrings.xml", bomb)
+        archive.writestr("xl/worksheets/sheet1.xml", sheet)
+
+    with pytest.raises(DocumentParseError):
+        extract_source_units("bomba.xlsx", buffer.getvalue())
