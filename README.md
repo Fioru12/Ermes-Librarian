@@ -127,6 +127,7 @@ This workspace intentionally contains development history and local artifacts. B
 
 ## Documentation
 
+- [Changelog](CHANGELOG.md) — a readable log of this work, not a raw commit list
 - [One-pager](docs/ONE_PAGER.md) — the short version, written for someone evaluating this project in two minutes
 - [Product strategy](docs/PRODUCT_STRATEGY.md)
 - [Project plan](docs/PROJECT_PLAN.md) (historical) and [Roadmap v2](docs/ROADMAP_V2.md) (current, phase-by-phase log)
