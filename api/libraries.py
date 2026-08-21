@@ -17,7 +17,13 @@ from core.evidence_assistant import answer_from_evidence
 from core.governance import append_audit
 from core.ingestion_service import process_ingestion_job
 from core.input_validator import matches_expected_file_signature, sanitize_upload_name
-from core.library_store import LibraryAccessError, LibraryNotFoundError, LibraryStore
+from core.library_store import (
+    LibraryAccessError,
+    LibraryNotFoundError,
+    LibraryStore,
+    resolve_storage_path,
+    storage_relative_path,
+)
 
 router = APIRouter(prefix="/api/libraries", tags=["Libraries"])
 _store: LibraryStore | None = None
@@ -120,7 +126,7 @@ def download_document(
     except (LibraryNotFoundError, LibraryAccessError) as error:
         raise HTTPException(status_code=404, detail="Documento non trovato") from error
     storage_root = Path(cfg.LIBRARY_STORAGE_DIR).resolve()
-    source_path = Path(document["storage_path"])
+    source_path = resolve_storage_path(document["storage_path"], cfg.LIBRARY_STORAGE_DIR)
     try:
         source_path.resolve().relative_to(storage_root)
     except ValueError as error:
@@ -181,7 +187,7 @@ async def upload_document(
     try:
         document = store.add_document(
             library_id=library_id, filename=safe_name, media_type=file.content_type or "", content=content,
-            storage_path=str(destination), status="queued", chunks=[],
+            storage_path=storage_relative_path(library_id, destination.name), status="queued", chunks=[],
         )
     except Exception as error:
         destination.unlink(missing_ok=True)
@@ -365,7 +371,7 @@ def reindex_library_document(
     except (LibraryNotFoundError, LibraryAccessError) as error:
         raise HTTPException(status_code=404, detail="Documento non trovato") from error
 
-    source_path = Path(document["storage_path"])
+    source_path = resolve_storage_path(document["storage_path"], cfg.LIBRARY_STORAGE_DIR)
     storage_root = Path(cfg.LIBRARY_STORAGE_DIR).resolve()
     try:
         source_path.resolve().relative_to(storage_root)
@@ -408,7 +414,7 @@ def restore_document_version(
         raise HTTPException(status_code=404, detail="Versione non trovata")
 
     storage_root = Path(cfg.LIBRARY_STORAGE_DIR).resolve()
-    source_path = Path(source["storage_path"])
+    source_path = resolve_storage_path(source["storage_path"], cfg.LIBRARY_STORAGE_DIR)
     try:
         source_path.resolve().relative_to(storage_root)
     except ValueError as error:

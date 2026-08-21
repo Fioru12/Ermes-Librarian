@@ -62,7 +62,12 @@ ENV PYTHONUNBUFFERED=1
 
 EXPOSE 8502
 
+# La porta deve seguire ERMES_PORT, non essere fissata: con ERMES_PORT=8504
+# l'applicazione ascoltava su 8504 mentre l'healthcheck interrogava 8502, e il
+# container restava unhealthy per sempre. Un container unhealthy viene ucciso
+# dagli orchestratori e blocca chi dipende da lui via `depends_on: healthy`.
+# La forma shell di CMD espande la variabile a runtime.
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD curl -f http://localhost:8502/health || exit 1
+    CMD curl -f "http://localhost:${ERMES_PORT:-8502}/health" || exit 1
 
 CMD ["sh", "-c", "uvicorn api:app --host ${ERMES_HOST:-0.0.0.0} --port ${ERMES_PORT:-8502}"]

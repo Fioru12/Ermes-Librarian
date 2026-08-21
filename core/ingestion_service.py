@@ -6,7 +6,7 @@ from pathlib import Path
 from config import cfg
 from core.document_parser import DocumentParseError, chunk_source_units, extract_source_units
 from core.library_embeddings import embed_texts
-from core.library_store import LibraryStore
+from core.library_store import LibraryStore, resolve_storage_path
 
 
 def process_ingestion_job(store: LibraryStore, job_id: str, storage_root: str | Path) -> None:
@@ -19,7 +19,7 @@ def process_ingestion_job(store: LibraryStore, job_id: str, storage_root: str | 
         if not document_id:
             raise DocumentParseError("Job senza documento associato")
         document = store.get_document(job["library_id"], document_id)
-        path = Path(document["storage_path"])
+        path = resolve_storage_path(document["storage_path"], storage_root)
         path.resolve().relative_to(Path(storage_root).resolve())
         if not path.is_file():
             raise DocumentParseError("Originale non disponibile")

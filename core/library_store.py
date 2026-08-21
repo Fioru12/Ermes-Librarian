@@ -30,6 +30,46 @@ _QUERY_STOPWORDS = {
 }
 
 
+def storage_relative_path(library_id: str, stored_filename: str) -> str:
+    """Location to record for a document, relative to the storage root.
+
+    Absolute paths must never be written: the database would stop being
+    portable. A library moved into a container, restored from backup into a
+    different directory, or copied to another machine would keep pointing at
+    the ingesting machine's filesystem, and every original would become
+    unreachable while the rows still looked healthy.
+    """
+    return f"{library_id}/{stored_filename}"
+
+
+def resolve_storage_path(stored: str, storage_root: str | Path) -> Path:
+    """Resolve a recorded document location against the current storage root.
+
+    Handles three cases: a relative path (what is written now), an absolute
+    path that still resolves (same machine, same layout), and an absolute path
+    written by another machine — including a Windows path seen from Linux,
+    where the whole string is a single POSIX component. The last case is
+    re-anchored under the current root by its final two segments, which is the
+    `<library_id>/<stored filename>` layout every writer produces.
+
+    The caller must still confirm the result stays inside the storage root:
+    this function locates a file, it does not authorise reading it.
+    """
+    root = Path(storage_root)
+    segments = [s for s in stored.replace("\\", "/").split("/") if s not in ("", ".")]
+    looks_absolute = stored.startswith(("/", "\\")) or re.match(r"^[A-Za-z]:", stored)
+
+    if not looks_absolute:
+        return root.joinpath(*segments) if segments else root
+
+    candidate = Path(stored)
+    if candidate.is_file():
+        return candidate
+    if len(segments) >= 2:
+        return root / segments[-2] / segments[-1]
+    return candidate
+
+
 class LibraryNotFoundError(KeyError):
     """Raised when a requested library does not exist."""
 

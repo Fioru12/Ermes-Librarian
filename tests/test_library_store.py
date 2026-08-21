@@ -5,7 +5,13 @@ from fastapi.testclient import TestClient
 from api import app
 from api.auth import _verify_api_key
 from api.libraries import get_library_store
-from core.library_store import LibraryAccessError, LibraryNotFoundError, LibraryStore
+from core.library_store import (
+    LibraryAccessError,
+    LibraryNotFoundError,
+    LibraryStore,
+    resolve_storage_path,
+    storage_relative_path,
+)
 import core.library_store as library_store_module
 
 
@@ -326,3 +332,47 @@ def test_viewer_cannot_change_a_library(tmp_path: Path):
         assert response.status_code == 403
     finally:
         app.dependency_overrides.clear()
+
+
+class TestStoragePathPortability:
+    """The database must not pin documents to the machine that ingested them.
+
+    Absolute paths were being written, so the same SQLite file moved into a
+    container (or restored from backup into another directory) kept pointing at
+    the original filesystem: every original became unreachable while the rows
+    still looked healthy. Found by actually running `docker compose up`.
+    """
+
+    def test_new_documents_record_a_relative_location(self):
+        assert storage_relative_path("lib-1", "abc_manuale.pdf") == "lib-1/abc_manuale.pdf"
+        assert not Path(storage_relative_path("lib-1", "x.pdf")).is_absolute()
+
+    def test_a_relative_location_resolves_under_the_current_root(self, tmp_path):
+        resolved = resolve_storage_path("lib-1/abc_manuale.pdf", tmp_path)
+        assert resolved == tmp_path / "lib-1" / "abc_manuale.pdf"
+
+    def test_an_absolute_path_that_still_exists_is_kept(self, tmp_path):
+        real = tmp_path / "lib-1" / "abc.pdf"
+        real.parent.mkdir(parents=True)
+        real.write_bytes(b"%PDF-1.7")
+
+        assert resolve_storage_path(str(real), tmp_path) == real
+
+    def test_a_windows_path_from_another_machine_is_re_anchored(self, tmp_path):
+        # Seen from Linux this whole string is a single POSIX component, which
+        # is exactly why the container could not find any document.
+        stored = r"C:\Progetti\ProgettoRAG_DEV\storage\libraries\lib-1\abc_manuale.pdf"
+
+        assert resolve_storage_path(stored, tmp_path) == tmp_path / "lib-1" / "abc_manuale.pdf"
+
+    def test_a_posix_path_from_another_machine_is_re_anchored(self, tmp_path):
+        stored = "/srv/ermes/storage/libraries/lib-9/def_policy.md"
+
+        assert resolve_storage_path(stored, tmp_path) == tmp_path / "lib-9" / "def_policy.md"
+
+    def test_resolution_does_not_by_itself_escape_the_storage_root(self, tmp_path):
+        # Re-anchoring keeps only the last two segments, so a crafted value
+        # cannot climb out of the root through this path.
+        resolved = resolve_storage_path("/etc/../../root/.ssh/id_rsa", tmp_path)
+
+        assert tmp_path in resolved.parents or resolved.parent.parent == tmp_path
