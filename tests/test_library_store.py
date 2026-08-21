@@ -376,3 +376,14 @@ class TestStoragePathPortability:
         resolved = resolve_storage_path("/etc/../../root/.ssh/id_rsa", tmp_path)
 
         assert tmp_path in resolved.parents or resolved.parent.parent == tmp_path
+
+    def test_an_unreadable_absolute_path_does_not_raise(self, tmp_path, monkeypatch):
+        # On Linux, stat() of an unreadable location raises PermissionError
+        # instead of returning False. CI caught this; Windows could not.
+        def boom(self):
+            raise PermissionError(13, "Permission denied")
+
+        monkeypatch.setattr(Path, "is_file", boom)
+        resolved = resolve_storage_path("/root/.ssh/lib-1/segreto.pdf", tmp_path)
+
+        assert resolved == tmp_path / "lib-1" / "segreto.pdf"

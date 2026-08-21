@@ -63,8 +63,15 @@ def resolve_storage_path(stored: str, storage_root: str | Path) -> Path:
         return root.joinpath(*segments) if segments else root
 
     candidate = Path(stored)
-    if candidate.is_file():
-        return candidate
+    try:
+        if candidate.is_file():
+            return candidate
+    except OSError:
+        # Probing a path outside the storage root can fail rather than return
+        # False — on Linux, stat() of an unreadable location raises
+        # PermissionError. Treat any such failure as "not usable here" and fall
+        # through to re-anchoring, instead of letting it reach the caller.
+        pass
     if len(segments) >= 2:
         return root / segments[-2] / segments[-1]
     return candidate
