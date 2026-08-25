@@ -86,6 +86,7 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
   const [searchResults, setSearchResults] = useState<SearchResult[] | null>(null)
   const [retrievalProfile, setRetrievalProfile] = useState<RetrievalProfile | null>(null)
   const [searching, setSearching] = useState(false)
+  const [searchScopeDoc, setSearchScopeDoc] = useState<LibraryDocument | null>(null)
   const [versionHistory, setVersionHistory] = useState<{ document: LibraryDocument; items: DocumentVersion[] } | null>(null)
   const [members, setMembers] = useState<LibraryMember[]>([])
   const [canManageMembers, setCanManageMembers] = useState(false)
@@ -174,6 +175,7 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
     setSearchQuery('')
     setSearchResults(null)
     setRetrievalProfile(null)
+    setSearchScopeDoc(null)
   }, [selectedLibraryId])
 
   useEffect(() => {
@@ -201,7 +203,10 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
     if (!selectedLibraryId || searchQuery.trim().length < 2) return
     setSearching(true)
     try {
-      const response = await fetch(`/api/libraries/${selectedLibraryId}/search?q=${encodeURIComponent(searchQuery.trim())}`)
+      const endpoint = searchScopeDoc
+        ? `/api/libraries/${selectedLibraryId}/documents/${searchScopeDoc.id}/search?q=${encodeURIComponent(searchQuery.trim())}`
+        : `/api/libraries/${selectedLibraryId}/search?q=${encodeURIComponent(searchQuery.trim())}`
+      const response = await fetch(endpoint)
       if (!response.ok) throw new Error('search failed')
       const data = await response.json()
       setSearchResults(data.items ?? [])
@@ -536,6 +541,12 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
                   <span className="flex items-center gap-1.5"><Search className="h-3.5 w-3.5" />{searching ? 'Ricerca...' : 'Cerca'}</span>
                 </button>
               </form>
+              {searchScopeDoc && (
+                <div className="mb-4 flex max-w-2xl items-center justify-between gap-2 rounded-lg border border-blue-500/30 bg-blue-500/10 px-3 py-2 text-xs text-blue-200">
+                  <span>Ricerca limitata a: <strong>{searchScopeDoc.filename}</strong></span>
+                  <button type="button" onClick={() => { setSearchScopeDoc(null); setSearchResults(null); setRetrievalProfile(null) }} className="rounded-md border border-blue-400/40 px-2 py-0.5 font-semibold transition hover:bg-blue-500/20" aria-label="Torna alla ricerca sull'intera biblioteca">Tutta la biblioteca ✕</button>
+                </div>
+              )}
               {searchResults !== null && (
                 <div className="mb-6 space-y-3">
                   <div className="flex flex-wrap items-center gap-2 text-xs font-medium uppercase tracking-wide text-slate-400">
@@ -578,7 +589,7 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
                             const status = documentStatus(document.status)
                             return <span className={`mt-3 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${status.className}`}><status.Icon className={`h-3 w-3 ${document.status === 'processing' ? 'animate-spin' : ''}`} />{status.label}</span>
                           })()}
-                          <div className="mt-3 flex flex-wrap gap-3"><button onClick={() => showSummary(document)} disabled={summarizing} className="flex items-center gap-1 text-xs text-slate-400 transition hover:text-blue-400 disabled:cursor-not-allowed disabled:opacity-40"><FileText className="h-3 w-3" />{summarizing ? 'Riassumo…' : 'Riassumi'}</button><button onClick={() => downloadDocument(document)} className="flex items-center gap-1 text-xs text-slate-400 transition hover:text-blue-400"><Download className="h-3 w-3" />Apri</button>{canManageMembers && <button onClick={() => openAclPanel(document)} className="flex items-center gap-1 text-xs text-slate-400 transition hover:text-blue-400"><ShieldCheck className="h-3 w-3" />Accessi</button>}{canEditLibrary && <button disabled={document.status === 'queued' || document.status === 'processing'} onClick={() => reindexDocument(document)} className="flex items-center gap-1 text-xs text-slate-400 transition hover:text-blue-400 disabled:cursor-not-allowed disabled:opacity-40"><RefreshCw className="h-3 w-3" />Reindicizza</button>}<button onClick={() => showVersions(document)} className="text-xs text-slate-400 transition hover:text-blue-400">Versioni</button></div>
+                          <div className="mt-3 flex flex-wrap gap-3"><button onClick={() => { setSearchScopeDoc(current => current?.id === document.id ? null : document); setSearchQuery(''); setSearchResults(null); setRetrievalProfile(null) }} className={`flex items-center gap-1 text-xs transition hover:text-blue-400 ${searchScopeDoc?.id === document.id ? 'text-blue-300' : 'text-slate-400'}`}><Search className="h-3 w-3" />{searchScopeDoc?.id === document.id ? 'Scope attivo' : 'Cerca qui'}</button><button onClick={() => showSummary(document)} disabled={summarizing} className="flex items-center gap-1 text-xs text-slate-400 transition hover:text-blue-400 disabled:cursor-not-allowed disabled:opacity-40"><FileText className="h-3 w-3" />{summarizing ? 'Riassumo…' : 'Riassumi'}</button><button onClick={() => downloadDocument(document)} className="flex items-center gap-1 text-xs text-slate-400 transition hover:text-blue-400"><Download className="h-3 w-3" />Apri</button>{canManageMembers && <button onClick={() => openAclPanel(document)} className="flex items-center gap-1 text-xs text-slate-400 transition hover:text-blue-400"><ShieldCheck className="h-3 w-3" />Accessi</button>}{canEditLibrary && <button disabled={document.status === 'queued' || document.status === 'processing'} onClick={() => reindexDocument(document)} className="flex items-center gap-1 text-xs text-slate-400 transition hover:text-blue-400 disabled:cursor-not-allowed disabled:opacity-40"><RefreshCw className="h-3 w-3" />Reindicizza</button>}<button onClick={() => showVersions(document)} className="text-xs text-slate-400 transition hover:text-blue-400">Versioni</button></div>
                         </div>
                       </div>
                     </article>

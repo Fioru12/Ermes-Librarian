@@ -375,6 +375,26 @@ def remove_library_member(
     append_audit(cfg.AUDIT_FILE, "library_member_removed", _auth["username"], {"library_id": library_id, "username": username})
 
 
+@router.get("/{library_id}/documents/{document_id}/search")
+def search_single_document(
+    library_id: str,
+    document_id: str,
+    q: str = "",
+    _auth: dict = Depends(_verify_api_key),
+    store: LibraryStore = Depends(get_library_store),
+):
+    """Ricerca limitata a un documento, con lo stesso ACL della lettura."""
+    if len(q.strip()) < 2:
+        raise HTTPException(status_code=422, detail="Inserisci almeno 2 caratteri per cercare")
+    try:
+        store.get_document(library_id, document_id, actor=_auth)
+        items, retrieval_profile = store.search_with_profile(library_id, q, limit=50, actor=_auth)
+    except (LibraryNotFoundError, LibraryAccessError) as error:
+        raise HTTPException(status_code=404, detail="Documento non trovato") from error
+    filtered = [item for item in items if item["document_id"] == document_id]
+    return {"items": filtered, "retrieval_profile": retrieval_profile}
+
+
 @router.get("/{library_id}/documents/{document_id}/summary")
 def summarize_library_document(
     library_id: str,

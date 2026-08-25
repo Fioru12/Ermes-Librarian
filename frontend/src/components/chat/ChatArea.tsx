@@ -1,8 +1,42 @@
-import { useRef, useEffect } from 'react'
-import { Send, Square, HelpCircle, ArrowRight, BookOpen, Files, ShieldCheck, Download } from 'lucide-react'
+import { useRef, useEffect, useState } from 'react'
+import { Send, Square, HelpCircle, ArrowRight, BookOpen, Files, ShieldCheck, Download, X } from 'lucide-react'
 import { useTheme } from '../../hooks/useTheme'
 import { InlineMarkdown } from './InlineMarkdown'
 import type { Message } from '../../types'
+
+type Source = NonNullable<Message['sources']>[number]
+
+/** Renderizza il testo della risposta trasformando i marcatori [1], [2]... in
+ *  citazioni cliccabili che aprono la fonte corrispondente. */
+function CitationText({ text, sources, onCitation }: {
+  text: string
+  sources: Source[]
+  onCitation: (source: Source, marker: number) => void
+}) {
+  const parts = text.split(/(\[\d+\])/g)
+  return (
+    <span className="whitespace-pre-wrap">
+      {parts.map((part, index) => {
+        const match = part.match(/^\[(\d+)\]$/)
+        if (!match) return <InlineMarkdown key={index} text={part} />
+        const marker = Number(match[1])
+        const source = sources.find(candidate => (candidate.marker ?? index) === marker)
+        if (!source) return <span key={index}>{part}</span>
+        return (
+          <button
+            key={index}
+            type="button"
+            onClick={() => onCitation(source, marker)}
+            title={`${source.filename} · ${source.locator}`}
+            className="mx-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full border border-blue-400/40 bg-blue-500/15 px-1 align-super text-[10px] font-semibold text-blue-300 transition hover:bg-blue-500/30 hover:text-blue-200"
+          >
+            {marker}
+          </button>
+        )
+      })}
+    </span>
+  )
+}
 
 interface ChatAreaProps {
   messages: Message[]
@@ -25,6 +59,7 @@ export default function ChatArea({
 }: ChatAreaProps) {
   const { t } = useTheme()
   const chatEndRef = useRef<HTMLDivElement>(null)
+  const [activeCitation, setActiveCitation] = useState<{ source: Source; marker: number } | null>(null)
 
   useEffect(() => {
     if (typeof chatEndRef.current?.scrollIntoView === 'function') {
@@ -114,7 +149,9 @@ export default function ChatArea({
                     {m.evidence.reason ? ` - ${m.evidence.reason}` : ''}
                   </p>
                 )}
-                <div className="whitespace-pre-wrap"><InlineMarkdown text={m.content} /></div>
+                <div className="whitespace-pre-wrap">{m.role === 'assistant' && m.sources && m.sources.length > 0
+                  ? <CitationText text={m.content} sources={m.sources} onCitation={(source, marker) => setActiveCitation({ source, marker })} />
+                  : <InlineMarkdown text={m.content} />}</div>
                 {m.role === 'assistant' && m.sources && m.sources.length > 0 && <div className="mt-4 border-t border-white/10 pt-3"><p className="text-xs font-semibold text-slate-400">Fonti</p><div className="mt-2 space-y-2">{m.sources.map((source, index) => <div key={`${source.document_id}-${source.locator}-${index}`} className="rounded-md bg-white/5 p-2 text-xs">
                     <div className="flex items-center justify-between gap-2">
                       <span className="font-medium text-blue-300">{source.filename}<span className="font-normal text-slate-400"> · v{source.version} · {source.locator}</span></span>
@@ -162,6 +199,31 @@ export default function ChatArea({
           )}
         </form>
       </div>
+      {activeCitation && (
+        <div className="absolute inset-0 z-30 flex items-center justify-center bg-slate-950/70 p-6" role="dialog" aria-label="Dettaglio citazione">
+          <section className={`w-full max-w-lg rounded-2xl border p-6 shadow-2xl ${t.card}`}>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="font-semibold">Citazione [{activeCitation.marker}]</h2>
+                <p className="mt-1 text-sm text-slate-400">{activeCitation.source.filename} · v{activeCitation.source.version} · {activeCitation.source.locator}</p>
+              </div>
+              <button onClick={() => setActiveCitation(null)} className="text-slate-400 hover:text-white" aria-label="Chiudi citazione"><X className="h-4 w-4" /></button>
+            </div>
+            <blockquote className="mt-4 rounded-lg border border-white/10 bg-white/[0.02] p-4 text-sm leading-6">
+              <InlineMarkdown text={activeCitation.source.excerpt} />
+            </blockquote>
+            <div className="mt-4 flex justify-end">
+              <button
+                type="button"
+                onClick={() => window.open(`/api/libraries/${selectedLibraryId}/documents/${activeCitation.source.document_id}/download`, '_blank', 'noopener,noreferrer')}
+                className="flex items-center gap-1.5 rounded-lg border border-blue-500/30 bg-blue-500/10 px-3 py-1.5 text-xs font-semibold text-blue-300 transition hover:bg-blue-500/20"
+              >
+                <Download className="h-3.5 w-3.5" /> Apri originale
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
     </div>
   )
 }
