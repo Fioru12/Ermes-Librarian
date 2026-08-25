@@ -13,6 +13,7 @@ from pydantic import BaseModel, Field
 from api.auth import _require_role, _verify_api_key
 from config import cfg
 from core.document_parser import DocumentParseError, chunk_source_units, extract_source_units
+from core.document_summary import summarize_document
 from core.evidence_assistant import answer_from_evidence
 from core.governance import append_audit
 from core.ingestion_service import process_ingestion_job
@@ -372,6 +373,31 @@ def remove_library_member(
     if not store.remove_library_member(library_id, username):
         raise HTTPException(status_code=404, detail="Collaboratore non trovato")
     append_audit(cfg.AUDIT_FILE, "library_member_removed", _auth["username"], {"library_id": library_id, "username": username})
+
+
+@router.get("/{library_id}/documents/{document_id}/summary")
+def summarize_library_document(
+    library_id: str,
+    document_id: str,
+    use_llm: bool = True,
+    _auth: dict = Depends(_verify_api_key),
+    store: LibraryStore = Depends(get_library_store),
+):
+    """Riassunto evidence-bound di un documento, rispettando l'ACL per-documento."""
+    try:
+        document = store.get_document(library_id, document_id, actor=_auth)
+        chunks = store.get_document_chunks(library_id, document_id, actor=_auth)
+    except (LibraryNotFoundError, LibraryAccessError) as error:
+        raise HTTPException(status_code=404, detail="Documento non trovato") from error
+    result = summarize_document(document["filename"], chunks, use_local_llm=use_llm)
+    append_audit(
+        cfg.AUDIT_FILE, "document_summary", _auth["username"],
+        {"library_id": library_id, "document_id": document_id, "status": result["status"], "mode": result["mode"]},
+    )
+    return {
+        "document": {"id": document["id"], "filename": document["filename"], "version": document.get("version")},
+        **result,
+    }
 
 
 @router.get("/{library_id}/documents/{document_id}/acl")

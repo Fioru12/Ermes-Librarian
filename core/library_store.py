@@ -16,7 +16,7 @@ from contextlib import contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
 
-from core.library_embeddings import cosine_similarity, embed_texts
+from core.library_embeddings import cosine_similarity, embed_texts, min_semantic_score
 
 # Common function words must not become the only "evidence" for a RAG answer.
 # This compact local-first baseline deliberately keeps a conservative bilingual
@@ -187,6 +187,15 @@ class LibraryStore:
                 );
                 CREATE INDEX IF NOT EXISTS versions_by_document
                     ON document_versions(document_id, version DESC);
+
+                CREATE TABLE IF NOT EXISTS document_acls (
+                    document_id TEXT NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+                    username TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    PRIMARY KEY (document_id, username)
+                );
+                CREATE INDEX IF NOT EXISTS acls_by_username
+                    ON document_acls(username);
 
                 CREATE TABLE IF NOT EXISTS ingestion_jobs (
                     id TEXT PRIMARY KEY,
@@ -439,9 +448,60 @@ class LibraryStore:
         library = self.get_library(library_id, actor)
         return self._can_manage_members(library, actor)
 
-    def list_documents(self, library_id: str) -> list[dict]:
-        self.get_library(library_id)
+    # ============================================================
+    # Document-level ACL
+    # ============================================================
+    # Un documento senza righe in document_acls segue le regole di accesso
+    # della libreria. Un documento CON righe e' visibile solo ad admin, al
+    # proprietario della libreria e agli utenti elencati: la lista e' una
+    # allow-list esplicita, non un'aggiunta ai permessi base.
+
+    @staticmethod
+    def _actor_bypasses_document_acl(library: dict, actor: dict | None) -> bool:
+        """Admin e proprietario vedono sempre tutto; None e' il sistema."""
+        return actor is None or actor.get("role") == "admin" or library.get("owner_id") == actor.get("username")
+
+    def _hidden_document_ids(self, connection: sqlite3.Connection, library: dict, actor: dict | None) -> set[str]:
+        if self._actor_bypasses_document_acl(library, actor):
+            return set()
+        rows = connection.execute(
+            """
+            SELECT DISTINCT d.id
+            FROM documents d
+            JOIN document_acls a ON a.document_id = d.id
+            WHERE d.library_id = ?
+              AND d.id NOT IN (SELECT document_id FROM document_acls WHERE username = ?)
+            """,
+            (library["id"], actor["username"] if actor else ""),
+        ).fetchall()
+        return {row["id"] for row in rows}
+
+    def list_document_acl(self, library_id: str, document_id: str) -> list[dict]:
+        self.get_document(library_id, document_id)
         with self._connection() as connection:
+            rows = connection.execute(
+                "SELECT username, created_at FROM document_acls WHERE document_id = ? ORDER BY username",
+                (document_id,),
+            ).fetchall()
+        return [self._row(row) for row in rows]
+
+    def set_document_acl(self, library_id: str, document_id: str, usernames: list[str]) -> dict:
+        """Replace the whole allow-list. An empty list removes the restriction."""
+        self.get_document(library_id, document_id)
+        cleaned = sorted({username.strip() for username in usernames if username and username.strip()})
+        now = self._timestamp()
+        with self._lock, self._connection() as connection:
+            connection.execute("DELETE FROM document_acls WHERE document_id = ?", (document_id,))
+            connection.executemany(
+                "INSERT INTO document_acls (document_id, username, created_at) VALUES (?, ?, ?)",
+                [(document_id, username, now) for username in cleaned],
+            )
+        return {"document_id": document_id, "usernames": cleaned}
+
+    def list_documents(self, library_id: str, actor: dict | None = None) -> list[dict]:
+        library = self.get_library(library_id, actor)
+        with self._lock, self._connection() as connection:
+            hidden = self._hidden_document_ids(connection, library, actor)
             rows = connection.execute(
                 """
                 SELECT * FROM documents
@@ -450,7 +510,7 @@ class LibraryStore:
                 """,
                 (library_id,),
             ).fetchall()
-        return [self._row(row) for row in rows]
+        return [self._row(row) for row in rows if row["id"] not in hidden]
 
     def start_ingestion_job(self, library_id: str, filename: str, document_id: str | None = None) -> dict:
         self.get_library(library_id)
@@ -494,6 +554,117 @@ class LibraryStore:
             rows = connection.execute("SELECT * FROM ingestion_jobs WHERE status = 'queued' ORDER BY created_at ASC").fetchall()
         return [self._row(row) for row in rows]
 
+    def verify_index_consistency(self, storage_root: str | Path, expected_embed_model: str | None = None) -> dict:
+        """Cross-check database rows against originals and the derived index.
+
+        The SQLite rows are the source of truth; a backup/restore cycle or a
+        half-finished upload can drift in four ways this reports:
+
+        - ``missing_originals``: rows whose original file is gone (download
+          and reindex would fail while the row looks healthy);
+        - ``orphan_files``: files under the storage root no row references
+          (an upload that failed between file write and insert);
+        - ``ready_without_chunks``: documents marked ready with zero chunks,
+          silently invisible to retrieval;
+        - embedding issues per document: partially embedded chunk sets, or
+          embeddings produced by a model different from the expected one —
+          both silently degrade semantic retrieval to keyword-only.
+
+        Identifiers and counts only, never document content: the report is
+        safe to log or expose.
+        """
+        root = Path(storage_root)
+        with self._connection() as connection:
+            documents = connection.execute(
+                "SELECT id, filename, storage_path FROM documents"
+            ).fetchall()
+            chunk_stats = connection.execute(
+                """
+                SELECT d.id AS document_id, d.status,
+                       COUNT(c.id) AS chunk_count,
+                       SUM(CASE WHEN c.embedding_json <> '' THEN 1 ELSE 0 END) AS embedded_count
+                FROM documents d LEFT JOIN document_chunks c ON c.document_id = d.id
+                GROUP BY d.id
+                """
+            ).fetchall()
+            models = connection.execute(
+                """
+                SELECT DISTINCT d.id AS document_id, c.embedding_model
+                FROM documents d JOIN document_chunks c ON c.document_id = d.id
+                WHERE c.embedding_model <> ''
+                """
+            ).fetchall()
+
+        missing_originals: list[dict] = []
+        expected_files: set[Path] = set()
+        for row in documents:
+            path = resolve_storage_path(row["storage_path"], root)
+            expected_files.add(path)
+            try:
+                inside_root = path.resolve().is_relative_to(root.resolve())
+            except (OSError, ValueError):
+                inside_root = False
+            if not (inside_root and path.is_file()):
+                missing_originals.append({"document_id": row["id"], "filename": row["filename"]})
+
+        orphan_files: list[str] = []
+        if root.is_dir():
+            for path in root.rglob("*"):
+                if path.is_file() and path not in expected_files:
+                    orphan_files.append(path.relative_to(root).as_posix())
+
+        ready_without_chunks = sorted(
+            row["document_id"] for row in chunk_stats
+            if row["status"] == "ready" and row["chunk_count"] == 0
+        )
+        partially_embedded = sorted(
+            row["document_id"] for row in chunk_stats
+            if row["chunk_count"] > 0 and 0 < (row["embedded_count"] or 0) < row["chunk_count"]
+        )
+        mismatched_models = sorted({
+            row["document_id"] for row in models
+            if expected_embed_model and row["embedding_model"] != expected_embed_model
+        })
+
+        issue_count = (
+            len(missing_originals) + len(orphan_files) + len(ready_without_chunks)
+            + len(partially_embedded) + len(mismatched_models)
+        )
+        return {
+            "ok": issue_count == 0,
+            "issue_count": issue_count,
+            "checked_documents": len(documents),
+            "missing_originals": missing_originals,
+            "orphan_files": orphan_files,
+            "ready_without_chunks": ready_without_chunks,
+            "partially_embedded_documents": partially_embedded,
+            "embedding_model_mismatch_documents": mismatched_models,
+        }
+
+    def recover_stale_ingestion_jobs(self) -> int:
+        """Requeue jobs left in 'processing' by an interrupted run.
+
+        ``claim_ingestion_job`` moves a job out of 'queued' before parsing, and
+        ``finish_ingestion_job`` is the only writer that ends that state. A
+        crash between the two leaves the job outside every queue forever while
+        looking active to the UI. Startup calls this before reading the pending
+        queue, so an interrupted upload resumes exactly like one accepted just
+        before a clean restart.
+        """
+        with self._lock, self._connection() as connection:
+            stuck = connection.execute(
+                "SELECT id FROM ingestion_jobs WHERE status = 'processing'"
+            ).fetchall()
+            if stuck:
+                connection.execute(
+                    """
+                    UPDATE ingestion_jobs
+                    SET status = 'queued', error_message = '', completed_at = NULL
+                    WHERE status = 'processing'
+                    """
+                )
+        return len(stuck)
+
     def mark_document_status(self, library_id: str, document_id: str, status: str) -> None:
         with self._lock, self._connection() as connection:
             connection.execute(
@@ -510,7 +681,7 @@ class LibraryStore:
             ).fetchall()
         return [self._row(row) for row in rows]
 
-    def get_document(self, library_id: str, document_id: str) -> dict:
+    def get_document(self, library_id: str, document_id: str, actor: dict | None = None) -> dict:
         with self._connection() as connection:
             row = connection.execute(
                 "SELECT * FROM documents WHERE id = ? AND library_id = ?",
@@ -518,15 +689,46 @@ class LibraryStore:
             ).fetchone()
         if row is None:
             raise LibraryNotFoundError(document_id)
-        return self._row(row)
+        document = self._row(row)
+        if not self._actor_bypasses_document_acl({"owner_id": self._library_owner(library_id)}, actor):
+            with self._connection() as connection:
+                allowed = connection.execute(
+                    "SELECT 1 FROM document_acls WHERE document_id = ? AND username = ?",
+                    (document_id, actor["username"] if actor else ""),
+                ).fetchone()
+                restricted = connection.execute(
+                    "SELECT 1 FROM document_acls WHERE document_id = ?",
+                    (document_id,),
+                ).fetchone()
+            if restricted and not allowed:
+                raise LibraryAccessError(document_id)
+        return document
 
-    def list_document_versions(self, library_id: str, document_id: str) -> list[dict]:
-        self.get_document(library_id, document_id)
+    def _library_owner(self, library_id: str) -> str:
+        with self._connection() as connection:
+            row = connection.execute("SELECT owner_id FROM libraries WHERE id = ?", (library_id,)).fetchone()
+        return row["owner_id"] if row else ""
+
+    def list_document_versions(self, library_id: str, document_id: str, actor: dict | None = None) -> list[dict]:
+        self.get_document(library_id, document_id, actor)
         with self._connection() as connection:
             rows = connection.execute(
                 """
                 SELECT version, filename, media_type, size_bytes, content_hash, storage_path, created_at
                 FROM document_versions WHERE document_id = ? ORDER BY version DESC
+                """,
+                (document_id,),
+            ).fetchall()
+        return [self._row(row) for row in rows]
+
+    def get_document_chunks(self, library_id: str, document_id: str, actor: dict | None = None) -> list[dict]:
+        """Chunks of one document, ordered, after the same ACL check as get_document."""
+        self.get_document(library_id, document_id, actor)
+        with self._connection() as connection:
+            rows = connection.execute(
+                """
+                SELECT ordinal, text, source_locator FROM document_chunks
+                WHERE document_id = ? ORDER BY ordinal
                 """,
                 (document_id,),
             ).fetchall()
@@ -568,19 +770,24 @@ class LibraryStore:
         results, _ = self.search_with_profile(library_id, query, limit)
         return results
 
-    def search_with_profile(self, library_id: str, query: str, limit: int = 20) -> tuple[list[dict], dict]:
+    def search_with_profile(self, library_id: str, query: str, limit: int = 20, actor: dict | None = None) -> tuple[list[dict], dict]:
         """Retrieve chunks with a truthful local retrieval profile.
 
         Keyword matches are always available. When the index and the current
         query both have embeddings from the local Ollama endpoint, cosine
         similarity is added as a second signal. No external provider is ever
         used for retrieval.
+
+        The optional actor filters out documents restricted by a document ACL:
+        filtering happens here, before any citation can be built, so a hidden
+        document cannot leak through search results either.
         """
-        self.get_library(library_id)
+        library = self.get_library(library_id, actor)
         normalized = query.strip()
         if not normalized:
             return [], {"mode": "keyword", "semantic_indexed_chunks": 0, "semantic_used": False}
         with self._connection() as connection:
+            hidden = self._hidden_document_ids(connection, library, actor)
             rows = connection.execute(
                 """
                 SELECT documents.id AS document_id, documents.filename, documents.version, documents.content_hash,
@@ -593,6 +800,7 @@ class LibraryStore:
                 """,
                 (library_id,),
             ).fetchall()
+        rows = [row for row in rows if row["document_id"] not in hidden]
         tokens = [
             self._search_token(token)
             for token in re.findall(r"[\wÀ-ÿ]{3,}", normalized.lower())
@@ -614,7 +822,7 @@ class LibraryStore:
                     semantic_score = max(0.0, cosine_similarity(query_embedding, json.loads(row["embedding_json"])))
                 except (TypeError, ValueError):
                     semantic_score = 0.0
-            if phrase_score or token_score or semantic_score >= 0.35:
+            if phrase_score or token_score or semantic_score >= min_semantic_score():
                 ranked.append((phrase_score + token_score + (semantic_score * 40), row))
         ranked.sort(key=lambda item: (-item[0], item[1]["ordinal"]))
         results = [
