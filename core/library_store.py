@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
 import sqlite3
 import threading
@@ -209,6 +210,16 @@ class LibraryStore:
                 );
                 CREATE INDEX IF NOT EXISTS jobs_by_library
                     ON ingestion_jobs(library_id, created_at DESC);
+
+                CREATE TABLE IF NOT EXISTS import_sources (
+                    id TEXT PRIMARY KEY,
+                    library_id TEXT NOT NULL REFERENCES libraries(id) ON DELETE CASCADE,
+                    path TEXT NOT NULL,
+                    created_by TEXT NOT NULL DEFAULT '',
+                    last_scan_at TEXT,
+                    created_at TEXT NOT NULL,
+                    UNIQUE (library_id, path)
+                );
                 """
             )
             # SQLite does not support ADD COLUMN IF NOT EXISTS.  This keeps
@@ -733,6 +744,77 @@ class LibraryStore:
                 (document_id,),
             ).fetchall()
         return [self._row(row) for row in rows]
+
+    def add_import_source(self, library_id: str, path: str, created_by: str = "") -> dict:
+        """Register one watched folder. The path must be unique per library."""
+        self.get_library(library_id)
+        now = self._timestamp()
+        normalized = os.path.normpath(path)
+        with self._lock, self._connection() as connection:
+            try:
+                connection.execute(
+                    """
+                    INSERT INTO import_sources (id, library_id, path, created_by, created_at)
+                    VALUES (?, ?, ?, ?, ?)
+                    """,
+                    (str(uuid.uuid4()), library_id, normalized, created_by, now),
+                )
+            except sqlite3.IntegrityError as error:
+                raise ValueError("Sorgente già registrata per questa biblioteca") from error
+        return self.get_import_source(library_id, normalized)
+
+    def get_import_source(self, library_id: str, path: str) -> dict:
+        with self._connection() as connection:
+            row = connection.execute(
+                "SELECT * FROM import_sources WHERE library_id = ? AND path = ?",
+                (library_id, path),
+            ).fetchone()
+        if row is None:
+            raise LibraryNotFoundError(path)
+        return self._row(row)
+
+    def get_import_source_by_id(self, library_id: str, source_id: str) -> dict:
+        with self._connection() as connection:
+            row = connection.execute(
+                "SELECT * FROM import_sources WHERE library_id = ? AND id = ?",
+                (library_id, source_id),
+            ).fetchone()
+        if row is None:
+            raise LibraryNotFoundError(source_id)
+        return self._row(row)
+
+    def list_import_sources(self, library_id: str) -> list[dict]:
+        self.get_library(library_id)
+        with self._connection() as connection:
+            rows = connection.execute(
+                "SELECT * FROM import_sources WHERE library_id = ? ORDER BY created_at",
+                (library_id,),
+            ).fetchall()
+        return [self._row(row) for row in rows]
+
+    def remove_import_source(self, library_id: str, source_id: str) -> bool:
+        with self._lock, self._connection() as connection:
+            cursor = connection.execute(
+                "DELETE FROM import_sources WHERE library_id = ? AND id = ?",
+                (library_id, source_id),
+            )
+            return cursor.rowcount > 0
+
+    def touch_import_source(self, library_id: str, source_id: str) -> None:
+        with self._lock, self._connection() as connection:
+            connection.execute(
+                "UPDATE import_sources SET last_scan_at = ? WHERE library_id = ? AND id = ?",
+                (self._timestamp(), library_id, source_id),
+            )
+
+    def existing_content_hashes(self, library_id: str) -> set[str]:
+        """Content hashes of every document in the library, for import dedupe."""
+        with self._connection() as connection:
+            rows = connection.execute(
+                "SELECT content_hash FROM documents WHERE library_id = ?",
+                (library_id,),
+            ).fetchall()
+        return {row["content_hash"] for row in rows}
 
     def replace_document_index(
         self,
