@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { CheckCircle2, Clock3, Download, FileText, FolderPlus, Library, RefreshCw, Search, Trash2, Upload, UserPlus, Users, XCircle } from 'lucide-react'
+import { CheckCircle2, Clock3, Download, FileText, FolderPlus, Library, RefreshCw, Search, ShieldCheck, Trash2, Upload, UserPlus, Users, XCircle } from 'lucide-react'
 import { useTheme } from '../../hooks/useTheme'
 import { CardTitle } from '../../components/ui'
 
@@ -54,6 +54,11 @@ interface ApprovedProvider {
   default_model: string
 }
 
+interface DocumentAclEntry {
+  username: string
+  created_at: string
+}
+
 interface DocumentsTabProps {
   showNotif: (msg: string, type?: 'success' | 'error') => void
 }
@@ -89,6 +94,11 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
   const [memberRole, setMemberRole] = useState<'viewer' | 'editor'>('viewer')
   const [savingMember, setSavingMember] = useState(false)
   const [approvedProviders, setApprovedProviders] = useState<ApprovedProvider[]>([])
+  const [aclPanel, setAclPanel] = useState<{ document: LibraryDocument; usernames: string[] } | null>(null)
+  const [aclUsername, setAclUsername] = useState('')
+  const [savingAcl, setSavingAcl] = useState(false)
+  const [summaryPanel, setSummaryPanel] = useState<{ document: LibraryDocument; status: string; summary: string; mode: string; reason: string } | null>(null)
+  const [summarizing, setSummarizing] = useState(false)
 
   const selectedLibrary = libraries.find(library => library.id === selectedLibraryId) ?? null
   const canEditLibrary = selectedLibrary?.access_role === 'admin' || selectedLibrary?.access_role === 'owner' || selectedLibrary?.access_role === 'editor'
@@ -274,6 +284,77 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
   const downloadDocument = (document: LibraryDocument) => {
     if (!selectedLibraryId) return
     window.open(`/api/libraries/${selectedLibraryId}/documents/${document.id}/download`, '_blank', 'noopener,noreferrer')
+  }
+
+  const showSummary = async (document: LibraryDocument) => {
+    if (!selectedLibraryId) return
+    setSummarizing(true)
+    try {
+      const response = await fetch(`/api/libraries/${selectedLibraryId}/documents/${document.id}/summary`)
+      if (!response.ok) throw new Error('summary unavailable')
+      const data = await response.json()
+      setSummaryPanel({
+        document,
+        status: data.status ?? 'abstained',
+        summary: data.summary ?? '',
+        mode: data.mode ?? '',
+        reason: data.reason ?? '',
+      })
+    } catch {
+      showNotif('Impossibile generare il riassunto', 'error')
+    } finally {
+      setSummarizing(false)
+    }
+  }
+
+  const saveDocumentAcl = async (documentId: string, usernames: string[]) => {
+    if (!selectedLibraryId) return false
+    setSavingAcl(true)
+    try {
+      const response = await fetch(`/api/libraries/${selectedLibraryId}/documents/${documentId}/acl`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ usernames }),
+      })
+      if (!response.ok) {
+        const detail = await response.json().catch(() => null)
+        throw new Error(detail?.detail ?? 'acl update failed')
+      }
+      setAclPanel(current => current && current.document.id === documentId ? { ...current, usernames } : current)
+      showNotif(usernames.length ? `Accesso limitato a: ${usernames.join(', ')}` : 'Restrizioni rimosse: documento visibile alla biblioteca')
+      return true
+    } catch (error) {
+      showNotif(error instanceof Error && error.message.includes('Utenti sconosciuti') ? error.message : 'Impossibile aggiornare le restrizioni del documento', 'error')
+      return false
+    } finally {
+      setSavingAcl(false)
+    }
+  }
+
+  const openAclPanel = async (document: LibraryDocument) => {
+    if (!selectedLibraryId || !canManageMembers) return
+    try {
+      const response = await fetch(`/api/libraries/${selectedLibraryId}/documents/${document.id}/acl`)
+      if (!response.ok) throw new Error('acl unavailable')
+      const data = await response.json()
+      setAclPanel({ document, usernames: (data.items as DocumentAclEntry[]).map(item => item.username) })
+      setAclUsername('')
+    } catch {
+      showNotif('Impossibile leggere le restrizioni del documento', 'error')
+    }
+  }
+
+  const addAclUser = async (event: React.FormEvent) => {
+    event.preventDefault()
+    if (!aclPanel) return
+    const username = aclUsername.trim()
+    if (!username || aclPanel.usernames.includes(username)) return
+    if (await saveDocumentAcl(aclPanel.document.id, [...aclPanel.usernames, username])) setAclUsername('')
+  }
+
+  const removeAclUser = async (username: string) => {
+    if (!aclPanel) return
+    await saveDocumentAcl(aclPanel.document.id, aclPanel.usernames.filter(item => item !== username))
   }
 
   const showVersions = async (document: LibraryDocument) => {
@@ -497,7 +578,7 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
                             const status = documentStatus(document.status)
                             return <span className={`mt-3 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${status.className}`}><status.Icon className={`h-3 w-3 ${document.status === 'processing' ? 'animate-spin' : ''}`} />{status.label}</span>
                           })()}
-                          <div className="mt-3 flex flex-wrap gap-3"><button onClick={() => downloadDocument(document)} className="flex items-center gap-1 text-xs text-slate-400 transition hover:text-blue-400"><Download className="h-3 w-3" />Apri</button>{canEditLibrary && <button disabled={document.status === 'queued' || document.status === 'processing'} onClick={() => reindexDocument(document)} className="flex items-center gap-1 text-xs text-slate-400 transition hover:text-blue-400 disabled:cursor-not-allowed disabled:opacity-40"><RefreshCw className="h-3 w-3" />Reindicizza</button>}<button onClick={() => showVersions(document)} className="text-xs text-slate-400 transition hover:text-blue-400">Versioni</button></div>
+                          <div className="mt-3 flex flex-wrap gap-3"><button onClick={() => showSummary(document)} disabled={summarizing} className="flex items-center gap-1 text-xs text-slate-400 transition hover:text-blue-400 disabled:cursor-not-allowed disabled:opacity-40"><FileText className="h-3 w-3" />{summarizing ? 'Riassumo…' : 'Riassumi'}</button><button onClick={() => downloadDocument(document)} className="flex items-center gap-1 text-xs text-slate-400 transition hover:text-blue-400"><Download className="h-3 w-3" />Apri</button>{canManageMembers && <button onClick={() => openAclPanel(document)} className="flex items-center gap-1 text-xs text-slate-400 transition hover:text-blue-400"><ShieldCheck className="h-3 w-3" />Accessi</button>}{canEditLibrary && <button disabled={document.status === 'queued' || document.status === 'processing'} onClick={() => reindexDocument(document)} className="flex items-center gap-1 text-xs text-slate-400 transition hover:text-blue-400 disabled:cursor-not-allowed disabled:opacity-40"><RefreshCw className="h-3 w-3" />Reindicizza</button>}<button onClick={() => showVersions(document)} className="text-xs text-slate-400 transition hover:text-blue-400">Versioni</button></div>
                         </div>
                       </div>
                     </article>
@@ -522,6 +603,58 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
           </div>
         )}
       </section>
+      {aclPanel && (
+        <div className="absolute inset-0 z-20 flex items-center justify-center bg-slate-950/70 p-6">
+          <section className={`w-full max-w-lg rounded-2xl border p-6 shadow-2xl ${t.card}`} aria-label="Accessi documento">
+            <div className="flex items-start justify-between gap-4"><div><h2 className="font-semibold">Chi può vedere questo documento</h2><p className="mt-1 text-sm text-slate-400">{aclPanel.document.filename}</p></div><button onClick={() => setAclPanel(null)} className="text-slate-400 hover:text-white">Chiudi</button></div>
+            <p className="mt-4 rounded-lg border border-white/10 bg-white/[0.02] p-3 text-xs leading-5 text-slate-400">Senza restrizioni il documento è visibile a chi accede alla biblioteca. Con una lista, solo l'amministratore, il proprietario e gli utenti elencati possono vederlo — anche nelle risposte dell'assistente.</p>
+            {aclPanel.usernames.length > 0 ? (
+              <ul className="mt-4 space-y-2">
+                {aclPanel.usernames.map(username => (
+                  <li key={username} className="flex items-center justify-between rounded-lg border border-white/10 px-3 py-2">
+                    <span className="flex items-center gap-2 text-sm"><ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />{username}</span>
+                    <button disabled={savingAcl} onClick={() => removeAclUser(username)} className="text-xs text-rose-400 transition hover:text-rose-300 disabled:opacity-40">Rimuovi</button>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-4 text-sm text-slate-500">Nessuna restrizione: visibile a tutta la biblioteca.</p>
+            )}
+            <form onSubmit={addAclUser} className="mt-5 flex flex-wrap items-center gap-2">
+              <input value={aclUsername} onChange={event => setAclUsername(event.target.value)} placeholder="nome utente da autorizzare" className={`min-w-0 flex-1 rounded-xl border px-3 py-2 text-sm outline-none ${t.sidebarInput}`} aria-label="Utente da autorizzare" />
+              <button type="submit" disabled={savingAcl || !aclUsername.trim()} className="flex items-center gap-1.5 rounded-xl bg-blue-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-40">
+                <UserPlus className="h-3.5 w-3.5" />{savingAcl ? 'Salvo…' : 'Autorizza'}
+              </button>
+            </form>
+          </section>
+        </div>
+      )}
+      {summaryPanel && (
+        <div className="absolute inset-0 z-20 flex items-center justify-center bg-slate-950/70 p-6">
+          <section className={`w-full max-w-lg rounded-2xl border p-6 shadow-2xl ${t.card}`} aria-label="Riassunto documento">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="font-semibold">Riassunto</h2>
+                <p className="mt-1 text-sm text-slate-400">{summaryPanel.document.filename}</p>
+              </div>
+              <button onClick={() => setSummaryPanel(null)} className="text-slate-400 hover:text-white">Chiudi</button>
+            </div>
+            {summaryPanel.status === 'answered' ? (
+              <>
+                <div className="mt-4 space-y-2 rounded-lg border border-white/10 bg-white/[0.02] p-4 text-sm leading-6 whitespace-pre-wrap">{summaryPanel.summary}</div>
+                <p className="mt-3 text-xs text-slate-500">
+                  Generato {summaryPanel.mode === 'local_llm' ? 'con il modello locale' : 'in modo estrattivo'} solo dai passaggi indicizzati del documento.
+                  {summaryPanel.reason ? ` ${summaryPanel.reason}` : ''}
+                </p>
+              </>
+            ) : (
+              <p className="mt-4 rounded-lg border border-white/10 bg-white/[0.02] p-4 text-sm text-slate-400">
+                Nessun riassunto disponibile: {summaryPanel.reason || 'il documento non ha testo indicizzato utilizzabile.'}
+              </p>
+            )}
+          </section>
+        </div>
+      )}
       {versionHistory && (
         <div className="absolute inset-0 z-20 flex items-center justify-center bg-slate-950/70 p-6">
           <section className={`w-full max-w-lg rounded-2xl border p-6 shadow-2xl ${t.card}`}>

@@ -84,4 +84,6 @@ export interface ThemeClasses {
   documentsBg?: string
   docSelected?: string
   skeleton?: string
+  textSecondary?: string
+  badgeInfo?: string
 }
