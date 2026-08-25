@@ -10,7 +10,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, Up
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
-from api.auth import _require_role
+from api.auth import _require_role, _verify_api_key
 from config import cfg
 from core.document_parser import DocumentParseError, chunk_source_units, extract_source_units
 from core.evidence_assistant import answer_from_evidence
@@ -30,8 +30,14 @@ _store: LibraryStore | None = None
 
 
 def get_library_store() -> LibraryStore:
+    """Singleton legato al percorso configurato.
+
+    Se cfg cambia (test con BASE_DIR temporanei, o un deployment che ripunta
+    altrove), l'istanza vecchia punta a un file magari piu' esistente: la si
+    ricrea invece di restituire un store morto.
+    """
     global _store
-    if _store is None:
+    if _store is None or Path(_store.database_path) != Path(cfg.LIBRARY_DB_PATH):
         _store = LibraryStore(cfg.LIBRARY_DB_PATH)
     return _store
 
@@ -57,6 +63,15 @@ class LibraryMemberRequest(BaseModel):
     role: str = Field(pattern="^(viewer|editor)$")
 
 
+class DocumentAclRequest(BaseModel):
+    """Allow-list dei nomi utente che possono vedere il documento.
+
+    Lista vuota = nessuna restrizione oltre a quelle della libreria.
+    """
+
+    usernames: list[str] = Field(default_factory=list, max_length=100)
+
+
 def _require_library_member_manager(store: LibraryStore, library_id: str, actor: dict) -> None:
     try:
         if not store.can_manage_library_members(library_id, actor):
@@ -67,7 +82,7 @@ def _require_library_member_manager(store: LibraryStore, library_id: str, actor:
 
 @router.get("")
 def list_libraries(
-    _auth: dict = Depends(__import__("api.auth", fromlist=["_verify_api_key"])._verify_api_key),
+    _auth: dict = Depends(_verify_api_key),
     store: LibraryStore = Depends(get_library_store),
 ):
     return {"items": store.list_libraries(_auth)}
@@ -88,12 +103,12 @@ def create_library(
 @router.get("/{library_id}/documents")
 def list_documents(
     library_id: str,
-    _auth: dict = Depends(__import__("api.auth", fromlist=["_verify_api_key"])._verify_api_key),
+    _auth: dict = Depends(_verify_api_key),
     store: LibraryStore = Depends(get_library_store),
 ):
     try:
         store.get_library(library_id, _auth)
-        return {"items": store.list_documents(library_id)}
+        return {"items": store.list_documents(library_id, _auth)}
     except (LibraryNotFoundError, LibraryAccessError) as error:
         raise HTTPException(status_code=404, detail="Biblioteca non trovata") from error
 
@@ -102,12 +117,12 @@ def list_documents(
 def list_document_versions(
     library_id: str,
     document_id: str,
-    _auth: dict = Depends(__import__("api.auth", fromlist=["_verify_api_key"])._verify_api_key),
+    _auth: dict = Depends(_verify_api_key),
     store: LibraryStore = Depends(get_library_store),
 ):
     try:
         store.get_library(library_id, _auth)
-        return {"items": store.list_document_versions(library_id, document_id)}
+        return {"items": store.list_document_versions(library_id, document_id, _auth)}
     except (LibraryNotFoundError, LibraryAccessError) as error:
         raise HTTPException(status_code=404, detail="Documento non trovato") from error
 
@@ -116,13 +131,13 @@ def list_document_versions(
 def download_document(
     library_id: str,
     document_id: str,
-    _auth: dict = Depends(__import__("api.auth", fromlist=["_verify_api_key"])._verify_api_key),
+    _auth: dict = Depends(_verify_api_key),
     store: LibraryStore = Depends(get_library_store),
 ):
     """Serve the current immutable original only after the library access check."""
     try:
         store.get_library(library_id, _auth)
-        document = store.get_document(library_id, document_id)
+        document = store.get_document(library_id, document_id, _auth)
     except (LibraryNotFoundError, LibraryAccessError) as error:
         raise HTTPException(status_code=404, detail="Documento non trovato") from error
     storage_root = Path(cfg.LIBRARY_STORAGE_DIR).resolve()
@@ -143,7 +158,7 @@ def download_document(
 @router.get("/{library_id}/ingestion-jobs")
 def list_ingestion_jobs(
     library_id: str,
-    _auth: dict = Depends(__import__("api.auth", fromlist=["_verify_api_key"])._verify_api_key),
+    _auth: dict = Depends(_verify_api_key),
     store: LibraryStore = Depends(get_library_store),
 ):
     try:
@@ -153,11 +168,11 @@ def list_ingestion_jobs(
         raise HTTPException(status_code=404, detail="Biblioteca non trovata") from error
 
 
-@router.post("/{library_id}/documents", status_code=201)
+@router.post("/{library_id}/documents", status_code=201, response_model=None)
 async def upload_document(
     library_id: str,
+    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
-    background_tasks: BackgroundTasks = None,
     _auth: dict = Depends(_require_role("editor")),
     store: LibraryStore = Depends(get_library_store),
 ):
@@ -193,6 +208,8 @@ async def upload_document(
         destination.unlink(missing_ok=True)
         raise HTTPException(status_code=500, detail="Impossibile registrare il documento") from error
     job = store.start_ingestion_job(library_id, safe_name, document_id=document["id"])
+    if background_tasks is None:  # chiamata diretta senza injection FastAPI
+        background_tasks = BackgroundTasks()
     background_tasks.add_task(process_ingestion_job, store, job["id"], cfg.LIBRARY_STORAGE_DIR)
     return {**document, "ingestion_job_id": job["id"], "status": "queued"}
 
@@ -201,14 +218,14 @@ async def upload_document(
 def search_library(
     library_id: str,
     q: str = "",
-    _auth: dict = Depends(__import__("api.auth", fromlist=["_verify_api_key"])._verify_api_key),
+    _auth: dict = Depends(_verify_api_key),
     store: LibraryStore = Depends(get_library_store),
 ):
     if len(q.strip()) < 2:
         raise HTTPException(status_code=422, detail="Inserisci almeno 2 caratteri per cercare")
     try:
         store.get_library(library_id, _auth)
-        items, retrieval_profile = store.search_with_profile(library_id, q)
+        items, retrieval_profile = store.search_with_profile(library_id, q, actor=_auth)
         return {"items": items, "retrieval_profile": retrieval_profile}
     except (LibraryNotFoundError, LibraryAccessError) as error:
         raise HTTPException(status_code=404, detail="Biblioteca non trovata") from error
@@ -218,13 +235,13 @@ def search_library(
 def ask_library(
     library_id: str,
     request: AskLibraryRequest,
-    _auth: dict = Depends(__import__("api.auth", fromlist=["_verify_api_key"])._verify_api_key),
+    _auth: dict = Depends(_verify_api_key),
     store: LibraryStore = Depends(get_library_store),
 ):
     """Evidence-first assistant baseline, intentionally abstaining without sources."""
     try:
         library = store.get_library(library_id, _auth)
-        citations, retrieval_profile = store.search_with_profile(library_id, request.question, limit=request.top_k)
+        citations, retrieval_profile = store.search_with_profile(library_id, request.question, limit=request.top_k, actor=_auth)
     except (LibraryNotFoundError, LibraryAccessError) as error:
         raise HTTPException(status_code=404, detail="Biblioteca non trovata") from error
     if not citations:
@@ -321,7 +338,7 @@ def library_assistant_options(
 @router.get("/{library_id}/members")
 def list_library_members(
     library_id: str,
-    _auth: dict = Depends(__import__("api.auth", fromlist=["_verify_api_key"])._verify_api_key),
+    _auth: dict = Depends(_verify_api_key),
     store: LibraryStore = Depends(get_library_store),
 ):
     _require_library_member_manager(store, library_id, _auth)
@@ -332,7 +349,7 @@ def list_library_members(
 def set_library_member(
     library_id: str,
     request: LibraryMemberRequest,
-    _auth: dict = Depends(__import__("api.auth", fromlist=["_verify_api_key"])._verify_api_key),
+    _auth: dict = Depends(_verify_api_key),
     store: LibraryStore = Depends(get_library_store),
 ):
     _require_library_member_manager(store, library_id, _auth)
@@ -348,13 +365,56 @@ def set_library_member(
 def remove_library_member(
     library_id: str,
     username: str,
-    _auth: dict = Depends(__import__("api.auth", fromlist=["_verify_api_key"])._verify_api_key),
+    _auth: dict = Depends(_verify_api_key),
     store: LibraryStore = Depends(get_library_store),
 ):
     _require_library_member_manager(store, library_id, _auth)
     if not store.remove_library_member(library_id, username):
         raise HTTPException(status_code=404, detail="Collaboratore non trovato")
     append_audit(cfg.AUDIT_FILE, "library_member_removed", _auth["username"], {"library_id": library_id, "username": username})
+
+
+@router.get("/{library_id}/documents/{document_id}/acl")
+def get_document_acl(
+    library_id: str,
+    document_id: str,
+    _auth: dict = Depends(_verify_api_key),
+    store: LibraryStore = Depends(get_library_store),
+):
+    """Allow-list di un documento. Solo proprietario o amministratore."""
+    try:
+        if not store.can_manage_library_members(library_id, _auth):
+            raise HTTPException(status_code=403, detail="Solo il proprietario o un amministratore possono vedere le restrizioni del documento")
+        return {"items": store.list_document_acl(library_id, document_id)}
+    except (LibraryNotFoundError, LibraryAccessError) as error:
+        raise HTTPException(status_code=404, detail="Documento non trovato") from error
+
+
+@router.put("/{library_id}/documents/{document_id}/acl")
+def set_document_acl(
+    library_id: str,
+    document_id: str,
+    request: DocumentAclRequest,
+    _auth: dict = Depends(_verify_api_key),
+    store: LibraryStore = Depends(get_library_store),
+):
+    """Replace the document allow-list. Owner or administrator only."""
+    _require_library_member_manager(store, library_id, _auth)
+    requested = sorted({username.strip() for username in request.usernames if username and username.strip()})
+    from core.governance import list_users
+    known = {item["username"] for item in list_users(cfg.USERS_FILE)}
+    unknown = [username for username in requested if username not in known]
+    if unknown:
+        raise HTTPException(status_code=422, detail=f"Utenti sconosciuti: {', '.join(unknown)}")
+    try:
+        result = store.set_document_acl(library_id, document_id, requested)
+    except (LibraryNotFoundError, LibraryAccessError) as error:
+        raise HTTPException(status_code=404, detail="Documento non trovato") from error
+    append_audit(
+        cfg.AUDIT_FILE, "document_acl_changed", _auth["username"],
+        {"library_id": library_id, "document_id": document_id, "usernames": requested},
+    )
+    return result
 
 
 @router.post("/{library_id}/documents/{document_id}/reindex")
@@ -367,7 +427,7 @@ def reindex_library_document(
     """Rebuild derived text and citations from the immutable original file."""
     try:
         store.get_library(library_id, _auth, write=True)
-        document = store.get_document(library_id, document_id)
+        document = store.get_document(library_id, document_id, _auth)
     except (LibraryNotFoundError, LibraryAccessError) as error:
         raise HTTPException(status_code=404, detail="Documento non trovato") from error
 
@@ -406,7 +466,7 @@ def restore_document_version(
     """Make an older immutable original the current document as a new version."""
     try:
         store.get_library(library_id, _auth, write=True)
-        versions = store.list_document_versions(library_id, document_id)
+        versions = store.list_document_versions(library_id, document_id, _auth)
     except (LibraryNotFoundError, LibraryAccessError) as error:
         raise HTTPException(status_code=404, detail="Documento non trovato") from error
     source = next((item for item in versions if item["version"] == version), None)
