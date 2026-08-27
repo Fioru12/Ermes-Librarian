@@ -96,3 +96,7 @@ frontend/tsconfig.tsbuildinfo
 # ── Payload JSON temporanei dei test di debug ──
 scripts/chat_*.json
 scripts/ollama_*.json
+
+# ── Config locali di strumenti e legacy ──
+.claude/
+.streamlit/

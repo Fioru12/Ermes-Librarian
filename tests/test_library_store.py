@@ -1,3 +1,4 @@
+from dataclasses import replace
 from pathlib import Path
 
 from fastapi.testclient import TestClient
@@ -5,6 +6,7 @@ from fastapi.testclient import TestClient
 from api import app
 from api.auth import _verify_api_key
 from api.libraries import get_library_store
+from config import cfg
 from core.library_store import (
     LibraryAccessError,
     LibraryNotFoundError,
@@ -337,6 +339,51 @@ def test_viewer_cannot_change_a_library(tmp_path: Path):
         assert response.status_code == 403
     finally:
         app.dependency_overrides.clear()
+
+def test_reindex_recomputes_embeddings_instead_of_silently_dropping_them(tmp_path: Path, monkeypatch):
+    """Regressione: replace_document_index ricrea i chunk da zero, quindi un
+    reindex che non ricalcola gli embedding degrada la biblioteca da
+    hybrid_local a keyword senza alcun errore visibile. Il fix chiama
+    embed_texts + store_chunk_embeddings dopo la ricostruzione, come fa
+    process_ingestion_job: qui verifichiamo che dopo un reindex ogni chunk
+    abbia il suo vettore."""
+    test_cfg = replace(cfg, BASE_DIR=str(tmp_path), API_KEY="")
+    monkeypatch.setattr("api.libraries.cfg", test_cfg)
+    vector = [0.1, 0.2, 0.3]
+    fake_embed = lambda texts: [vector for _ in texts]  # noqa: E731 — mock deterministico
+    monkeypatch.setattr("api.libraries.embed_texts", fake_embed)
+    # L'upload lancia process_ingestion_job in background: anche il suo
+    # percorso deve restare deterministico su macchine con o senza Ollama.
+    monkeypatch.setattr("core.ingestion_service.embed_texts", fake_embed)
+
+    store = LibraryStore(tmp_path / "reindex.sqlite3")
+    app.dependency_overrides[get_library_store] = lambda: store
+    app.dependency_overrides[_verify_api_key] = lambda: {"username": "test", "role": "admin"}
+    try:
+        client = TestClient(app)
+        created = client.post("/api/libraries", json={"name": "Reindex", "visibility": "private"})
+        assert created.status_code == 201
+        library_id = created.json()["id"]
+        uploaded = client.post(
+            f"/api/libraries/{library_id}/documents",
+            files={"file": ("policy.md", b"# Policy\nContenuto di prova per il reindex.", "text/markdown")},
+        )
+        assert uploaded.status_code == 201
+        document_id = uploaded.json()["id"]
+
+        reindexed = client.post(f"/api/libraries/{library_id}/documents/{document_id}/reindex")
+        assert reindexed.status_code == 200
+
+        with store._connection() as connection:
+            rows = connection.execute(
+                "SELECT embedding_json FROM document_chunks WHERE document_id = ?",
+                (document_id,),
+            ).fetchall()
+        assert rows, "il reindex deve ricreare i chunk"
+        assert all(row[0] for row in rows), "dopo il reindex ogni chunk deve avere un embedding"
+    finally:
+        app.dependency_overrides.clear()
+
 
 
 class TestStoragePathPortability:
