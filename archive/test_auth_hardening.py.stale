@@ -1,0 +1,110 @@
+"""Hardening dell'autenticazione e recupero dei job di ingestion.
+
+Copre le tre difese aggiunte al percorso locale:
+- lockout del login dopo N tentativi falliti entro la finestra;
+- persistenza delle sessioni browser su SQLite (un riavvio non disconnette);
+- requeue all'avvio dei job di ingestion rimasti 'processing' dopo un crash.
+"""
+import sqlite3
+import time
+from dataclasses import replace
+
+from fastapi.testclient import TestClient
+
+from api import app
+from api.auth import (
+    _FAILED_LOGINS,
+    _SESSIONS,
+    _PersistentSessions,
+    _clear_failed_logins,
+    _login_lockout_state,
+)
+from config import cfg
+from core.library_store import LibraryStore
+
+
+def _test_cfg(tmp_path):
+    return replace(
+        cfg,
+        BASE_DIR=str(tmp_path),
+        ADMIN_USERNAME="owner",
+        ADMIN_PASSWORD="StrongPassword!123",
+        API_KEY="",
+    )
+
+
+def test_login_locks_out_after_repeated_failures_and_expires(tmp_path, monkeypatch):
+    test_cfg = _test_cfg(tmp_path)
+    monkeypatch.setattr("config.cfg", test_cfg)
+    monkeypatch.setattr("api.auth.cfg", test_cfg)
+    _SESSIONS.clear()
+    _FAILED_LOGINS.clear()
+    client = TestClient(app)
+
+    for _ in range(5):
+        assert client.post("/api/auth/login", json={"username": "owner", "password": "wrong"}).status_code == 401
+
+    # Anche la password corretta viene rifiutata finche' dura il lockout...
+    locked, remaining = _login_lockout_state("owner")
+    assert locked and remaining > 0
+    response = client.post("/api/auth/login", json={"username": "owner", "password": "StrongPassword!123"})
+    assert response.status_code == 429
+
+    # ...e si sblocca quando tutti i tentativi escono dalla finestra.
+    window = max(1, test_cfg.LOGIN_LOCKOUT_MINUTES) * 60
+    _FAILED_LOGINS["owner"] = [time.time() - window - 1 for _ in range(5)]
+    locked, remaining = _login_lockout_state("owner")
+    assert not locked
+    assert client.post("/api/auth/login", json={"username": "owner", "password": "StrongPassword!123"}).status_code == 200
+
+    _clear_failed_logins("owner")
+    _FAILED_LOGINS.clear()
+
+
+def test_sessions_survive_a_restart_through_sqlite(tmp_path, monkeypatch):
+    test_cfg = _test_cfg(tmp_path)
+    monkeypatch.setattr("config.cfg", test_cfg)
+    monkeypatch.setattr("api.auth.cfg", test_cfg)
+    _SESSIONS.clear()
+    client = TestClient(app)
+    assert client.post("/api/auth/login", json={"username": "owner", "password": "StrongPassword!123"}).status_code == 200
+
+    # Il login ha scritto una riga su disco...
+    db_path = tmp_path / "security" / "sessions.sqlite3"
+    assert db_path.exists()
+    with sqlite3.connect(db_path) as connection:
+        rows = connection.execute("SELECT token, username, role FROM browser_sessions").fetchall()
+    assert len(rows) == 1 and rows[0][1] == "owner"
+
+    # ...e un'istanza nuova (il processo dopo il riavvio) ripristina la sessione.
+    restarted = _PersistentSessions()
+    restarted.load()
+    token = rows[0][0]
+    assert token in restarted
+    user, expires_at = restarted[token]
+    assert user["role"] == "admin" and expires_at > time.time()
+
+    # Logout: la rimozione passa anche dal disco.
+    restarted.pop(token)
+    with sqlite3.connect(db_path) as connection:
+        assert connection.execute("SELECT COUNT(*) FROM browser_sessions").fetchone()[0] == 0
+
+
+def test_stale_processing_jobs_are_requeued_on_startup(tmp_path):
+    store = LibraryStore(tmp_path / "ermes.sqlite3")
+    library = store.create_library("Test", "", "private", owner_id="owner")
+    library_id = library["id"]
+    job = store.start_ingestion_job(library_id, "doc.txt")
+
+    # Simula un crash dopo il claim: nessuno scrivera' mai lo stato finale.
+    with store._connection() as connection:
+        connection.execute("UPDATE ingestion_jobs SET status = 'processing' WHERE id = ?", (job["id"],))
+    assert store.pending_ingestion_jobs() == []
+
+    recovered = store.recover_stale_ingestion_jobs()
+    assert recovered == 1
+    pending = store.pending_ingestion_jobs()
+    assert [item["id"] for item in pending] == [job["id"]]
+
+    # Idempotente: nessun job bloccato, nessuna modifica ulteriore.
+    assert store.recover_stale_ingestion_jobs() == 0

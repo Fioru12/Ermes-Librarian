@@ -100,3 +100,6 @@ scripts/ollama_*.json
 # ── Config locali di strumenti e legacy ──
 .claude/
 .streamlit/
+
+# ── Pacchetti di release precompilati (250+ MB, mai nel repo) ──
+release/
