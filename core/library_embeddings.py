@@ -40,3 +40,12 @@ def embed_texts(texts: list[str]) -> list[list[float]]:
     except (httpx.HTTPError, ValueError, TypeError):
         pass
     return []
+
+
+def min_semantic_score() -> float:
+    """Restituisce la soglia minima per il punteggio semantico di recupero.
+
+    Derivata da SCORE_THRESHOLD_LOW nel config: le corrispondenze con un
+    punteggio semantico al di sotto di questa soglia vengono filtrate.
+    """
+    return cfg.SCORE_THRESHOLD_LOW

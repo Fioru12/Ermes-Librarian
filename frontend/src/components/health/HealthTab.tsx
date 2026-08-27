@@ -20,7 +20,7 @@ export default function HealthTab() {
   const fetchHealth = async () => {
     setLoading(true)
     try {
-      const res = await fetch('/health')
+      const res = await fetch('/health', { credentials: 'include' })
       if (res.ok) setHealth(await res.json())
     } catch { setHealth(null) }
     setLoading(false)

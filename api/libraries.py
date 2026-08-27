@@ -19,6 +19,7 @@ from core.evidence_assistant import answer_from_evidence
 from core.governance import append_audit
 from core.ingestion_service import process_ingestion_job
 from core.input_validator import matches_expected_file_signature, sanitize_upload_name
+from core.library_embeddings import embed_texts
 from core.library_store import (
     LibraryAccessError,
     LibraryNotFoundError,
@@ -574,13 +575,27 @@ def reindex_library_document(
     if not source_units:
         raise HTTPException(status_code=422, detail="Il documento non contiene testo estraibile")
 
-    return store.replace_document_index(
-        library_id=library_id,
-        document_id=document_id,
-        extracted_text="\n\n".join(unit.text for unit in source_units),
-        source_units=len(source_units),
-        chunks=chunk_source_units(source_units),
-    )
+    try:
+        chunks = chunk_source_units(source_units)
+        result = store.replace_document_index(
+            library_id=library_id,
+            document_id=document_id,
+            extracted_text="\n\n".join(unit.text for unit in source_units),
+            source_units=len(source_units),
+            chunks=chunks,
+        )
+    except Exception as error:
+        raise HTTPException(status_code=500, detail="Impossibile ricostruire l'indice del documento") from error
+
+    # Allineato a core/ingestion_service.py: replace_document_index ricrea i
+    # chunk da zero (embedding_json persi), quindi il profilo semantico va
+    # ricalcolato qui, altrimenti un reindex degraderebbe silenziosamente la
+    # biblioteca da "hybrid_local" a "keyword".
+    embeddings = embed_texts([text for text, _ in chunks])
+    if embeddings:
+        store.store_chunk_embeddings(library_id, document_id, embeddings, cfg.EMBED_MODEL_ID)
+
+    return result
 
 
 @router.post("/{library_id}/documents/{document_id}/versions/{version}/restore")

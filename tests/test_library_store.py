@@ -206,7 +206,12 @@ def test_unknown_library_is_rejected(tmp_path: Path):
         raise AssertionError("Expected LibraryNotFoundError")
 
 
-def test_library_api_creates_and_uploads_a_document(tmp_path: Path):
+def test_library_api_creates_and_uploads_a_document(tmp_path: Path, monkeypatch):
+    # Il profilo "keyword" richiede che l'ingestion non produca embeddings:
+    # quando il modello locale è scaricato (cache .embed_cache) il profilo
+    # legittimo diventa "hybrid_local", quindi forziamo il fallback qui sotto
+    # per mantenere il test deterministico su qualsiasi macchina.
+    monkeypatch.setattr("core.ingestion_service.embed_texts", lambda _texts: [])
     app.dependency_overrides[get_library_store] = lambda: LibraryStore(tmp_path / "api.sqlite3")
     app.dependency_overrides[_verify_api_key] = lambda: {"username": "test", "role": "admin"}
     try:

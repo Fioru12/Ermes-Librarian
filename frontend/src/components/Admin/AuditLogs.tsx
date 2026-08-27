@@ -19,12 +19,12 @@ export default function AuditLogs({ showNotif }: { showNotif: (m: string, t: 'su
   const fetchLogs = async () => {
     setLoading(true)
     try {
-      const res = await fetch('/api/audit/logs?limit=50')
+      const res = await fetch('/api/audit/logs?limit=50', { credentials: 'include' })
       if (res.ok) {
         const data = await res.json()
         setEntries(data.entries || [])
       }
-      const verRes = await fetch('/api/audit/verify')
+      const verRes = await fetch('/api/audit/verify', { credentials: 'include' })
       if (verRes.ok) setIntegrity(await verRes.json())
     } catch {
       showNotif('Errore caricamento audit', 'error')

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+﻿import { useEffect, useRef, useState } from 'react'
 import { AlertTriangle, CheckCircle, LockKeyhole, ShieldCheck, Sparkles } from 'lucide-react'
 import UserManagement from './components/Admin/UserManagement'
 import AuditLogs from './components/Admin/AuditLogs'
@@ -43,7 +43,10 @@ function AppInner() {
 
   const fetchData = async () => {
     try {
-      const [librariesResponse, healthResponse] = await Promise.all([fetch('/api/libraries'), fetch('/health')])
+      const [librariesResponse, healthResponse] = await Promise.all([
+        fetch('/api/libraries', { credentials: 'include' }),
+        fetch('/health', { credentials: 'include' }),
+      ])
       if (librariesResponse.ok) {
         const data = await librariesResponse.json()
         const items: LibrarySummary[] = data.items ?? []
@@ -57,7 +60,7 @@ function AppInner() {
   }
 
   useEffect(() => {
-    fetch('/api/auth/me')
+    fetch('/api/auth/me', { credentials: 'include' })
       .then(async response => {
         if (!response.ok) return setAuthState('anonymous')
         setCurrentUser(await response.json())
@@ -88,6 +91,7 @@ function AppInner() {
       const response = await fetch(`/api/libraries/${selectedLibraryId}/ask`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ question }), signal: controller.signal,
+        credentials: 'include',
       })
       if (!response.ok) throw new Error('Impossibile interrogare la biblioteca')
       const data = await response.json()
@@ -112,6 +116,7 @@ function AppInner() {
       const response = await fetch('/api/auth/login', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: loginUsername, password: loginPassword }),
+        credentials: 'include',
       })
       if (!response.ok) throw new Error('Credenziali non valide o login non configurato')
       setCurrentUser(await response.json())

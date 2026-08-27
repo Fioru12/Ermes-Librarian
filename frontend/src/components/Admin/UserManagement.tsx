@@ -35,7 +35,7 @@ export default function UserManagement({ showNotif }: { showNotif: (m: string, t
 
   const fetchUsers = async () => {
     try {
-      const res = await fetch('/api/users');
+      const res = await fetch('/api/users', { credentials: 'include' });
       if (res.ok) {
         const data = await res.json();
         setUsers(data.users || []);
@@ -45,7 +45,7 @@ export default function UserManagement({ showNotif }: { showNotif: (m: string, t
 
   const fetchAccounts = async () => {
     try {
-      const res = await fetch('/api/accounts');
+      const res = await fetch('/api/accounts', { credentials: 'include' });
       if (res.ok) {
         const data = await res.json();
         setAccounts(data.users || []);
@@ -147,7 +147,7 @@ export default function UserManagement({ showNotif }: { showNotif: (m: string, t
   const deleteUser = async (username: string) => {
     if (!confirm(`Revocare accesso a ${username}?`)) return;
     try {
-      const res = await fetch(`/api/users/${username}`, { method: 'DELETE' });
+      const res = await fetch(`/api/users/${username}`, {  method: 'DELETE', credentials: 'include' });
       if (res.ok) {
         showNotif('Utente revocato', 'success');
         fetchUsers();

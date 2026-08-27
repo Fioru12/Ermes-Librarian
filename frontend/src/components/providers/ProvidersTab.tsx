@@ -29,7 +29,7 @@ export default function ProvidersTab({ showNotif }: ProvidersTabProps) {
 
   const fetchProviders = async () => {
     try {
-      const res = await fetch('/api/providers')
+      const res = await fetch('/api/providers', { credentials: 'include' })
       if (res.ok) {
         const data = await res.json()
         setProviders(data.providers || [])
@@ -126,7 +126,7 @@ export default function ProvidersTab({ showNotif }: ProvidersTabProps) {
 
   const removeProvider = async (name: string) => {
     if (!confirm(`Rimuovere provider "${name}"?`)) return
-    const res = await fetch(`/api/providers/${name}`, { method: 'DELETE' })
+    const res = await fetch(`/api/providers/${name}`, {  method: 'DELETE', credentials: 'include' })
     if (res.ok) {
       showNotif(`Provider "${name}" rimosso`)
       fetchProviders()

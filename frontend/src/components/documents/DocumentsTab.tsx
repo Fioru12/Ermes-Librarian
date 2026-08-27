@@ -107,7 +107,7 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
   const fetchLibraries = async () => {
     setLoadingLibraries(true)
     try {
-      const response = await fetch('/api/libraries')
+      const response = await fetch('/api/libraries', { credentials: 'include' })
       if (!response.ok) throw new Error('libraries unavailable')
       const data = await response.json()
       const items = data.items ?? []
@@ -124,7 +124,7 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
   const fetchDocuments = async (libraryId: string) => {
     setLoadingDocuments(true)
     try {
-      const response = await fetch(`/api/libraries/${libraryId}/documents`)
+      const response = await fetch(`/api/libraries/${libraryId}/documents`, { credentials: 'include' })
       if (!response.ok) throw new Error('documents unavailable')
       const data = await response.json()
       setDocuments(data.items ?? [])
@@ -138,7 +138,7 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
 
   const fetchMembers = async (libraryId: string) => {
     try {
-      const response = await fetch(`/api/libraries/${libraryId}/members`)
+      const response = await fetch(`/api/libraries/${libraryId}/members`, { credentials: 'include' })
       if (!response.ok) {
         setCanManageMembers(false)
         setMembers([])
@@ -156,7 +156,7 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
 
   const fetchApprovedProviders = async (libraryId: string) => {
     try {
-      const response = await fetch(`/api/libraries/${libraryId}/assistant-options`)
+      const response = await fetch(`/api/libraries/${libraryId}/assistant-options`, { credentials: 'include' })
       if (!response.ok) {
         setApprovedProviders([])
         return
@@ -262,7 +262,7 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
     const formData = new FormData()
     formData.append('file', file)
     try {
-      const response = await fetch(`/api/libraries/${selectedLibraryId}/documents`, { method: 'POST', body: formData })
+      const response = await fetch(`/api/libraries/${selectedLibraryId}/documents`, {  method: 'POST', body: formData, credentials: 'include' })
       if (!response.ok) throw new Error('upload failed')
       showNotif(`Documento “${file.name}” aggiunto alla biblioteca`)
       await fetchDocuments(selectedLibraryId)
@@ -277,7 +277,7 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
   const reindexDocument = async (document: LibraryDocument) => {
     if (!selectedLibraryId) return
     try {
-      const response = await fetch(`/api/libraries/${selectedLibraryId}/documents/${document.id}/reindex`, { method: 'POST' })
+      const response = await fetch(`/api/libraries/${selectedLibraryId}/documents/${document.id}/reindex`, {  method: 'POST', credentials: 'include' })
       if (!response.ok) throw new Error('reindex failed')
       await fetchDocuments(selectedLibraryId)
       showNotif(`Indice aggiornato: ${document.filename}`)
@@ -295,7 +295,7 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
     if (!selectedLibraryId) return
     setSummarizing(true)
     try {
-      const response = await fetch(`/api/libraries/${selectedLibraryId}/documents/${document.id}/summary`)
+      const response = await fetch(`/api/libraries/${selectedLibraryId}/documents/${document.id}/summary`, { credentials: 'include' })
       if (!response.ok) throw new Error('summary unavailable')
       const data = await response.json()
       setSummaryPanel({
@@ -339,7 +339,7 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
   const openAclPanel = async (document: LibraryDocument) => {
     if (!selectedLibraryId || !canManageMembers) return
     try {
-      const response = await fetch(`/api/libraries/${selectedLibraryId}/documents/${document.id}/acl`)
+      const response = await fetch(`/api/libraries/${selectedLibraryId}/documents/${document.id}/acl`, { credentials: 'include' })
       if (!response.ok) throw new Error('acl unavailable')
       const data = await response.json()
       setAclPanel({ document, usernames: (data.items as DocumentAclEntry[]).map(item => item.username) })
@@ -365,7 +365,7 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
   const showVersions = async (document: LibraryDocument) => {
     if (!selectedLibraryId) return
     try {
-      const response = await fetch(`/api/libraries/${selectedLibraryId}/documents/${document.id}/versions`)
+      const response = await fetch(`/api/libraries/${selectedLibraryId}/documents/${document.id}/versions`, { credentials: 'include' })
       if (!response.ok) throw new Error('versions unavailable')
       const data = await response.json()
       setVersionHistory({ document, items: data.items ?? [] })
@@ -377,7 +377,7 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
   const restoreVersion = async (version: number) => {
     if (!selectedLibraryId || !versionHistory) return
     try {
-      const response = await fetch(`/api/libraries/${selectedLibraryId}/documents/${versionHistory.document.id}/versions/${version}/restore`, { method: 'POST' })
+      const response = await fetch(`/api/libraries/${selectedLibraryId}/documents/${versionHistory.document.id}/versions/${version}/restore`, {  method: 'POST', credentials: 'include' })
       if (!response.ok) throw new Error('restore failed')
       await fetchDocuments(selectedLibraryId)
       setVersionHistory(null)
@@ -410,7 +410,7 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
   const removeMember = async (username: string) => {
     if (!selectedLibraryId) return
     try {
-      const response = await fetch(`/api/libraries/${selectedLibraryId}/members/${encodeURIComponent(username)}`, { method: 'DELETE' })
+      const response = await fetch(`/api/libraries/${selectedLibraryId}/members/${encodeURIComponent(username)}`, {  method: 'DELETE', credentials: 'include' })
       if (!response.ok) throw new Error('member removal failed')
       await fetchMembers(selectedLibraryId)
       showNotif('Collaboratore rimosso')

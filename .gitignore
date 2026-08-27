@@ -88,3 +88,11 @@ coverage/
 fix_*.py
 check_*.py
 debug_*.py
+
+
+# ── Build frontend incrementale (rigenerabile da tsc) ──
+frontend/tsconfig.tsbuildinfo
+
+# ── Payload JSON temporanei dei test di debug ──
+scripts/chat_*.json
+scripts/ollama_*.json
