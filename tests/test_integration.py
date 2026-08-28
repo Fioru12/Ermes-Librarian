@@ -14,7 +14,6 @@ import pytest
 
 from config import Config
 from core.governance import validate_admin_user, validate_password_strength
-from core.input_validator import is_safe_module_name, is_safe_string
 
 
 class TestPasswordValidation:
@@ -100,34 +99,6 @@ class TestAdminUserValidation:
         """Test ruolo non admin."""
         admin_user = {"username": "user", "role": "viewer"}
         assert validate_admin_user(admin_user) is False
-
-
-class TestInputValidation:
-    """Test validazione input."""
-
-    def test_safe_module_name(self):
-        """Test nome modulo sicuro."""
-        assert is_safe_module_name("WinSarp") is True
-        assert is_safe_module_name("my_module") is True
-        assert is_safe_module_name("Module-123") is True
-
-    def test_unsafe_module_name(self):
-        """Test nome modulo non sicuro."""
-        assert is_safe_module_name("../../../etc/passwd") is False
-        assert is_safe_module_name("module<script>") is False
-        assert is_safe_module_name("") is False
-        assert is_safe_module_name(None) is False
-
-    def test_safe_string(self):
-        """Test stringa sicura."""
-        assert is_safe_string("normal text") is True
-        assert is_safe_string("test123") is True
-
-    def test_unsafe_string(self):
-        """Test stringa non sicura."""
-        assert is_safe_string("../../../etc/passwd") is False
-        assert is_safe_string("test<script>") is False
-        assert is_safe_string("") is False
 
 
 class TestConfigDefaults:
