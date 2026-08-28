@@ -8,7 +8,6 @@ Regole verificate:
 from dataclasses import replace
 
 from fastapi.testclient import TestClient
-import pytest
 
 from api import app
 from api.auth import _SESSIONS
