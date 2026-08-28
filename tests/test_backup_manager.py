@@ -146,6 +146,48 @@ class TestRestoreBackup:
         leftovers = [f for f in os.listdir(os.path.join(restore_target, "data")) if f.endswith(".tmp")]
         assert leftovers == []
 
+    def test_restore_skips_a_non_regular_member_instead_of_crashing(self, temp_dir, monkeypatch):
+        """tarfile.extractfile() returns None for a member that is neither a
+        directory nor a regular file (symlink, device, fifo) — mypy caught
+        this as a real gap: the restore loop only checked member.isdir(),
+        so an archive with such an entry would raise AttributeError on
+        `with None as src`. A backup this module creates never contains one
+        (it only tars the app's own directories), but a hand-crafted or
+        corrupted archive could; a legitimate member elsewhere in the same
+        archive must still restore correctly.
+        """
+        backup_dir = os.path.join(temp_dir, "backups")
+        os.makedirs(backup_dir, exist_ok=True)
+        monkeypatch.setattr(bm, "BACKUP_DIR", backup_dir)
+        archive_path = os.path.join(backup_dir, "special.tar.gz")
+        with tarfile.open(archive_path, "w:gz") as tar:
+            # FIFOTYPE: extractfile() returns None for it without raising,
+            # which is the exact case being guarded against. A dangling
+            # symlink was tried first and turned out to raise KeyError
+            # *inside* extractfile() itself instead — a different failure,
+            # caught only by actually running this test against the
+            # unpatched code before trusting it as a regression test.
+            special = tarfile.TarInfo(name="data/broken_fifo")
+            special.type = tarfile.FIFOTYPE
+            tar.addfile(special)
+
+            import io
+            content = b'{"nodes": []}'
+            info = tarfile.TarInfo(name="data/winsarp_graph.json")
+            info.size = len(content)
+            tar.addfile(info, io.BytesIO(content))
+
+        restore_target = os.path.join(temp_dir, "restore_target")
+        monkeypatch.setattr(bm, "cfg", _fake_cfg(restore_target))
+
+        result = bm.restore_backup("special", dry_run=False)
+
+        assert "data/broken_fifo" not in result["restored"]
+        assert "data/winsarp_graph.json" in result["restored"]
+        restored_graph = os.path.join(restore_target, "data", "winsarp_graph.json")
+        with open(restored_graph) as f:
+            assert f.read() == '{"nodes": []}'
+
     def test_concurrent_create_backup_calls_do_not_corrupt_each_other(self, temp_dir, monkeypatch):
         """_backup_lock exists specifically so two callers (e.g. the manual
         API endpoint and the background scheduler) can't interleave writes

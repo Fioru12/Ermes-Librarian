@@ -165,10 +165,17 @@ def restore_backup(backup_name: str, dry_run: bool = False) -> dict:
 
                 if member.isdir():
                     os.makedirs(target, exist_ok=True)
-                else:
+                elif member.isfile():
                     import tempfile
                     os.makedirs(os.path.dirname(target), exist_ok=True)
-                    with tar.extractfile(member) as src:
+                    extracted = tar.extractfile(member)
+                    if extracted is None:
+                        # tarfile can return None for a regular-looking member
+                        # in a corrupted or truncated archive; extractfile()'s
+                        # own contract is best-effort even for isfile()==True.
+                        _logger.warning("Restore: impossibile leggere %s dal backup, saltato", member.name)
+                        continue
+                    with extracted as src:
                         data = src.read()
                     tmp = tempfile.NamedTemporaryFile(dir=os.path.dirname(target), delete=False, suffix=".tmp")
                     try:
@@ -179,6 +186,14 @@ def restore_backup(backup_name: str, dry_run: bool = False) -> dict:
                         if os.path.exists(tmp.name):
                             os.unlink(tmp.name)
                         raise
+                else:
+                    # Ne' directory ne' file regolare (symlink, device, fifo):
+                    # non atteso da un backup che questo stesso modulo crea,
+                    # ma un archivio esterno o corrotto potrebbe contenerne uno.
+                    # Restare fuori da entrambi i rami sopra non deve comunque
+                    # far dichiarare "ripristinato" un membro mai scritto.
+                    _logger.warning("Restore: membro %s non e' un file o una directory, saltato", member.name)
+                    continue
                 restored.append(member.name)
 
         _logger.info("Restore completato: %d items", len(restored))
