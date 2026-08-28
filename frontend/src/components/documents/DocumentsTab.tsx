@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { CheckCircle2, Clock3, Download, FileText, FolderPlus, Library, RefreshCw, Search, ShieldCheck, Trash2, Upload, UserPlus, Users, XCircle } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Clock3, Download, FileText, FolderCog, FolderPlus, Library, RefreshCw, Search, ShieldCheck, Trash2, Upload, UserPlus, Users, XCircle } from 'lucide-react'
 import { useTheme } from '../../hooks/useTheme'
 import { CardTitle } from '../../components/ui'
 
@@ -59,6 +59,21 @@ interface DocumentAclEntry {
   created_at: string
 }
 
+interface ImportSource {
+  id: string
+  path: string
+  created_by: string
+  last_scan_at: string | null
+  created_at: string
+}
+
+interface ScanResult {
+  imported: { filename: string }[]
+  skipped_duplicates: string[]
+  skipped_unsupported: string[]
+  failed: { file: string; error: string }[]
+}
+
 interface DocumentsTabProps {
   showNotif: (msg: string, type?: 'success' | 'error') => void
 }
@@ -100,9 +115,21 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
   const [savingAcl, setSavingAcl] = useState(false)
   const [summaryPanel, setSummaryPanel] = useState<{ document: LibraryDocument; status: string; summary: string; mode: string; reason: string } | null>(null)
   const [summarizing, setSummarizing] = useState(false)
+  const [deletingDocumentId, setDeletingDocumentId] = useState<string | null>(null)
+  const [deletingLibrary, setDeletingLibrary] = useState(false)
+  const [sources, setSources] = useState<ImportSource[]>([])
+  const [showSources, setShowSources] = useState(false)
+  const [newSourcePath, setNewSourcePath] = useState('')
+  const [addingSource, setAddingSource] = useState(false)
+  const [scanningSourceId, setScanningSourceId] = useState<string | null>(null)
 
   const selectedLibrary = libraries.find(library => library.id === selectedLibraryId) ?? null
   const canEditLibrary = selectedLibrary?.access_role === 'admin' || selectedLibrary?.access_role === 'owner' || selectedLibrary?.access_role === 'editor'
+  // Sorgenti cartella e cancellazione biblioteca concedono al server accesso
+  // in lettura a un percorso scelto dall'attore, o distruggono l'intera
+  // biblioteca: stessa soglia usata lato backend (owner o admin globale),
+  // non un editor collaboratore qualsiasi.
+  const canManageLibrary = selectedLibrary?.access_role === 'admin' || selectedLibrary?.access_role === 'owner'
 
   const fetchLibraries = async () => {
     setLoadingLibraries(true)
@@ -154,6 +181,17 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
     }
   }
 
+  const fetchSources = async (libraryId: string) => {
+    try {
+      const response = await fetch(`/api/libraries/${libraryId}/sources`, { credentials: 'include' })
+      if (!response.ok) { setSources([]); return }
+      const data = await response.json()
+      setSources(data.items ?? [])
+    } catch {
+      setSources([])
+    }
+  }
+
   const fetchApprovedProviders = async (libraryId: string) => {
     try {
       const response = await fetch(`/api/libraries/${libraryId}/assistant-options`, { credentials: 'include' })
@@ -191,6 +229,11 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
     if (selectedLibraryId && canEditLibrary) fetchApprovedProviders(selectedLibraryId)
     else setApprovedProviders([])
   }, [selectedLibraryId, canEditLibrary])
+
+  useEffect(() => {
+    if (selectedLibraryId && canManageLibrary) fetchSources(selectedLibraryId)
+    else { setSources([]); setShowSources(false) }
+  }, [selectedLibraryId, canManageLibrary])
 
   useEffect(() => {
     if (!selectedLibraryId || !documents.some(document => document.status === 'queued' || document.status === 'processing')) return
@@ -407,6 +450,99 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
     }
   }
 
+  const deleteDocument = async (document: LibraryDocument) => {
+    if (!selectedLibraryId) return
+    if (!window.confirm(`Eliminare “${document.filename}” e tutte le sue versioni? L'operazione non è reversibile.`)) return
+    setDeletingDocumentId(document.id)
+    try {
+      const response = await fetch(`/api/libraries/${selectedLibraryId}/documents/${document.id}`, { method: 'DELETE', credentials: 'include' })
+      if (!response.ok) throw new Error('delete failed')
+      if (searchScopeDoc?.id === document.id) setSearchScopeDoc(null)
+      await fetchDocuments(selectedLibraryId)
+      await fetchLibraries()
+      showNotif(`Documento “${document.filename}” eliminato`)
+    } catch {
+      showNotif('Impossibile eliminare il documento', 'error')
+    } finally {
+      setDeletingDocumentId(null)
+    }
+  }
+
+  const deleteLibrary = async () => {
+    if (!selectedLibrary) return
+    if (!window.confirm(`Eliminare la biblioteca “${selectedLibrary.name}” con tutti i suoi ${selectedLibrary.document_count} documenti? L'operazione non è reversibile.`)) return
+    setDeletingLibrary(true)
+    try {
+      const response = await fetch(`/api/libraries/${selectedLibrary.id}`, { method: 'DELETE', credentials: 'include' })
+      if (!response.ok) throw new Error('delete failed')
+      const deletedName = selectedLibrary.name
+      setSelectedLibraryId(null)
+      await fetchLibraries()
+      showNotif(`Biblioteca “${deletedName}” eliminata`)
+    } catch {
+      showNotif('Impossibile eliminare la biblioteca', 'error')
+    } finally {
+      setDeletingLibrary(false)
+    }
+  }
+
+  const addSource = async (event: React.FormEvent) => {
+    event.preventDefault()
+    if (!selectedLibraryId || !newSourcePath.trim()) return
+    setAddingSource(true)
+    try {
+      const response = await fetch(`/api/libraries/${selectedLibraryId}/sources`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: newSourcePath.trim() }),
+      })
+      if (!response.ok) {
+        const detail = await response.json().catch(() => null)
+        throw new Error(detail?.detail ?? 'add source failed')
+      }
+      setNewSourcePath('')
+      await fetchSources(selectedLibraryId)
+      showNotif('Sorgente cartella registrata')
+    } catch (error) {
+      showNotif(error instanceof Error ? error.message : 'Impossibile registrare la sorgente', 'error')
+    } finally {
+      setAddingSource(false)
+    }
+  }
+
+  const removeSource = async (source: ImportSource) => {
+    if (!selectedLibraryId) return
+    if (!window.confirm(`Rimuovere la sorgente “${source.path}”? I documenti già importati non vengono eliminati.`)) return
+    try {
+      const response = await fetch(`/api/libraries/${selectedLibraryId}/sources/${source.id}`, { method: 'DELETE', credentials: 'include' })
+      if (!response.ok) throw new Error('remove source failed')
+      await fetchSources(selectedLibraryId)
+      showNotif('Sorgente rimossa')
+    } catch {
+      showNotif('Impossibile rimuovere la sorgente', 'error')
+    }
+  }
+
+  const scanSource = async (source: ImportSource) => {
+    if (!selectedLibraryId) return
+    setScanningSourceId(source.id)
+    try {
+      const response = await fetch(`/api/libraries/${selectedLibraryId}/sources/${source.id}/scan`, { method: 'POST', credentials: 'include' })
+      if (!response.ok) throw new Error('scan failed')
+      const result: ScanResult = await response.json()
+      await fetchSources(selectedLibraryId)
+      await fetchDocuments(selectedLibraryId)
+      await fetchLibraries()
+      const parts = [`${result.imported.length} importati`]
+      if (result.skipped_duplicates.length) parts.push(`${result.skipped_duplicates.length} duplicati saltati`)
+      if (result.failed.length) parts.push(`${result.failed.length} falliti`)
+      showNotif(parts.join(', '), result.failed.length ? 'error' : 'success')
+    } catch {
+      showNotif('Impossibile scansionare la sorgente', 'error')
+    } finally {
+      setScanningSourceId(null)
+    }
+  }
+
   const removeMember = async (username: string) => {
     if (!selectedLibraryId) return
     try {
@@ -477,6 +613,12 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
                 {canManageMembers && <button onClick={() => setShowMembers(current => !current)} className={`rounded-xl border px-3 py-2 text-xs font-medium transition ${showMembers ? 'border-blue-500/60 bg-blue-500/10 text-blue-300' : 'border-white/10 text-slate-300 hover:bg-white/5'}`}>
                   <span className="flex items-center gap-1.5"><Users className="h-3.5 w-3.5" />Collaboratori{members.length > 1 ? ` (${members.length - 1})` : ''}</span>
                 </button>}
+                {canManageLibrary && <button onClick={() => setShowSources(current => !current)} className={`rounded-xl border px-3 py-2 text-xs font-medium transition ${showSources ? 'border-blue-500/60 bg-blue-500/10 text-blue-300' : 'border-white/10 text-slate-300 hover:bg-white/5'}`}>
+                  <span className="flex items-center gap-1.5"><FolderCog className="h-3.5 w-3.5" />Sorgenti{sources.length > 0 ? ` (${sources.length})` : ''}</span>
+                </button>}
+                {canManageLibrary && <button onClick={deleteLibrary} disabled={deletingLibrary} aria-label="Elimina biblioteca" title="Elimina biblioteca" className="rounded-xl border border-rose-500/30 px-3 py-2 text-xs font-medium text-rose-300 transition hover:bg-rose-500/10 disabled:cursor-not-allowed disabled:opacity-40">
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>}
                 {canEditLibrary && <div className="flex items-center gap-2">
                   <select value={selectedLibrary.assistant_mode ?? 'evidence_only'} onChange={event => {
                     const mode = event.target.value as LibraryItem['assistant_mode']
@@ -521,6 +663,43 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
                     </article>
                   ))}
                 </div>
+              </section>
+            )}
+            {showSources && canManageLibrary && (
+              <section className={`border-b px-6 py-5 ${t.documentsBg}`} aria-label="Sorgenti cartella">
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div>
+                    <h2 className="text-sm font-semibold text-slate-200">Sorgenti cartella</h2>
+                    <p className="mt-1 flex max-w-md items-start gap-1.5 text-xs text-slate-400">
+                      <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-400" />
+                      <span>Registra un percorso locale o di rete (UNC): i diritti sulla cartella sono quelli dell'account con cui gira Ermes, nessuna credenziale viene salvata. Solo il proprietario o un amministratore possono registrarne; il percorso non può trovarsi dentro la cartella dell'applicazione. Scansionare importa i file .txt/.pdf/.docx nuovi, saltando i duplicati per contenuto.</span>
+                    </p>
+                  </div>
+                  <form onSubmit={addSource} className="flex flex-wrap items-center gap-2">
+                    <input value={newSourcePath} onChange={event => setNewSourcePath(event.target.value)} placeholder={'\\\\server\\condivisa oppure C:\\percorso'} aria-label="Percorso della cartella" className={`w-56 rounded-lg border px-3 py-2 text-xs outline-none ${t.sidebarInput}`} />
+                    <button type="submit" disabled={!newSourcePath.trim() || addingSource} className="rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-blue-500 disabled:opacity-50"><span className="flex items-center gap-1"><FolderPlus className="h-3.5 w-3.5" />{addingSource ? 'Registro...' : 'Registra'}</span></button>
+                  </form>
+                </div>
+                {sources.length === 0 ? (
+                  <p className="mt-4 text-xs text-slate-500">Nessuna sorgente registrata.</p>
+                ) : (
+                  <div className="mt-4 space-y-2">
+                    {sources.map(source => (
+                      <article key={source.id} className={`flex items-center justify-between gap-3 rounded-lg border px-3 py-2 ${t.card}`}>
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium">{source.path}</p>
+                          <p className="text-xs text-slate-400">{source.last_scan_at ? `Ultima scansione: ${new Date(source.last_scan_at).toLocaleString()}` : 'Mai scansionata'}</p>
+                        </div>
+                        <div className="flex shrink-0 items-center gap-2">
+                          <button onClick={() => scanSource(source)} disabled={scanningSourceId === source.id} className="flex items-center gap-1 rounded-md border border-white/10 px-2 py-1 text-xs text-slate-300 transition hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-40">
+                            <RefreshCw className={`h-3.5 w-3.5 ${scanningSourceId === source.id ? 'animate-spin' : ''}`} />{scanningSourceId === source.id ? 'Scansiono...' : 'Scansiona'}
+                          </button>
+                          <button onClick={() => removeSource(source)} aria-label={`Rimuovi sorgente ${source.path}`} className="rounded-md p-1.5 text-slate-400 transition hover:bg-rose-500/10 hover:text-rose-300"><Trash2 className="h-3.5 w-3.5" /></button>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                )}
               </section>
             )}
             <div className="flex-1 overflow-y-auto p-7">
@@ -589,7 +768,7 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
                             const status = documentStatus(document.status)
                             return <span className={`mt-3 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${status.className}`}><status.Icon className={`h-3 w-3 ${document.status === 'processing' ? 'animate-spin' : ''}`} />{status.label}</span>
                           })()}
-                          <div className="mt-3 flex flex-wrap gap-3"><button onClick={() => { setSearchScopeDoc(current => current?.id === document.id ? null : document); setSearchQuery(''); setSearchResults(null); setRetrievalProfile(null) }} className={`flex items-center gap-1 text-xs transition hover:text-blue-400 ${searchScopeDoc?.id === document.id ? 'text-blue-300' : 'text-slate-400'}`}><Search className="h-3 w-3" />{searchScopeDoc?.id === document.id ? 'Scope attivo' : 'Cerca qui'}</button><button onClick={() => showSummary(document)} disabled={summarizing} className="flex items-center gap-1 text-xs text-slate-400 transition hover:text-blue-400 disabled:cursor-not-allowed disabled:opacity-40"><FileText className="h-3 w-3" />{summarizing ? 'Riassumo…' : 'Riassumi'}</button><button onClick={() => downloadDocument(document)} className="flex items-center gap-1 text-xs text-slate-400 transition hover:text-blue-400"><Download className="h-3 w-3" />Apri</button>{canManageMembers && <button onClick={() => openAclPanel(document)} className="flex items-center gap-1 text-xs text-slate-400 transition hover:text-blue-400"><ShieldCheck className="h-3 w-3" />Accessi</button>}{canEditLibrary && <button disabled={document.status === 'queued' || document.status === 'processing'} onClick={() => reindexDocument(document)} className="flex items-center gap-1 text-xs text-slate-400 transition hover:text-blue-400 disabled:cursor-not-allowed disabled:opacity-40"><RefreshCw className="h-3 w-3" />Reindicizza</button>}<button onClick={() => showVersions(document)} className="text-xs text-slate-400 transition hover:text-blue-400">Versioni</button></div>
+                          <div className="mt-3 flex flex-wrap gap-3"><button onClick={() => { setSearchScopeDoc(current => current?.id === document.id ? null : document); setSearchQuery(''); setSearchResults(null); setRetrievalProfile(null) }} className={`flex items-center gap-1 text-xs transition hover:text-blue-400 ${searchScopeDoc?.id === document.id ? 'text-blue-300' : 'text-slate-400'}`}><Search className="h-3 w-3" />{searchScopeDoc?.id === document.id ? 'Scope attivo' : 'Cerca qui'}</button><button onClick={() => showSummary(document)} disabled={summarizing} className="flex items-center gap-1 text-xs text-slate-400 transition hover:text-blue-400 disabled:cursor-not-allowed disabled:opacity-40"><FileText className="h-3 w-3" />{summarizing ? 'Riassumo…' : 'Riassumi'}</button><button onClick={() => downloadDocument(document)} className="flex items-center gap-1 text-xs text-slate-400 transition hover:text-blue-400"><Download className="h-3 w-3" />Apri</button>{canManageMembers && <button onClick={() => openAclPanel(document)} className="flex items-center gap-1 text-xs text-slate-400 transition hover:text-blue-400"><ShieldCheck className="h-3 w-3" />Accessi</button>}{canEditLibrary && <button disabled={document.status === 'queued' || document.status === 'processing'} onClick={() => reindexDocument(document)} className="flex items-center gap-1 text-xs text-slate-400 transition hover:text-blue-400 disabled:cursor-not-allowed disabled:opacity-40"><RefreshCw className="h-3 w-3" />Reindicizza</button>}<button onClick={() => showVersions(document)} className="text-xs text-slate-400 transition hover:text-blue-400">Versioni</button>{canEditLibrary && <button onClick={() => deleteDocument(document)} disabled={deletingDocumentId === document.id} aria-label={`Elimina ${document.filename}`} className="flex items-center gap-1 text-xs text-rose-400/80 transition hover:text-rose-300 disabled:cursor-not-allowed disabled:opacity-40"><Trash2 className="h-3 w-3" />{deletingDocumentId === document.id ? 'Elimino…' : 'Elimina'}</button>}</div>
                         </div>
                       </div>
                     </article>
