@@ -100,3 +100,59 @@ def test_summary_endpoint_respects_document_acl(tmp_path, monkeypatch):
     missing = api_client.get(f"/api/libraries/{library['id']}/documents/inesistente/summary")
     assert missing.status_code == 404
 
+
+def test_evidence_only_library_never_calls_the_model_even_if_asked(tmp_path, monkeypatch):
+    """In evidence_only nessun modello deve vedere il contenuto del documento
+    — e' il primo principio dichiarato del prodotto (README). Il frontend
+    chiama /summary senza mai passare use_llm, e prima di questo fix ogni
+    riassunto passava comunque per Ollama a prescindere dalla policy scelta
+    dal proprietario della biblioteca.
+    """
+    api_client, test_cfg = api_client_factory(tmp_path, monkeypatch)
+    import api.libraries
+    monkeypatch.setattr(api.libraries, "_store", None)
+    store = api.libraries.get_library_store()
+    library = store.create_library("Evidenza", "", "private", owner_id="owner")
+    assert library["assistant_mode"] == "evidence_only"
+    _add_doc(store, library["id"], "policy.txt", "Le note spese si inviano entro il dieci del mese.")
+    document = store.list_documents(library["id"])[0]
+
+    called = {"n": 0}
+    monkeypatch.setattr("core.document_summary._call_ollama_summary", lambda prompt: called.__setitem__("n", called["n"] + 1) or "non dovrebbe mai arrivare qui")
+
+    assert api_client.post("/api/auth/login", json={"username": "owner", "password": "StrongPassword!123"}).status_code == 200
+
+    # use_llm=true esplicito: il client non deve poter forzare il modello
+    # oltre quanto la biblioteca permette.
+    r = api_client.get(f"/api/libraries/{library['id']}/documents/{document['id']}/summary?use_llm=true")
+    assert r.status_code == 200
+    assert r.json()["mode"] == "extractive"
+    assert called["n"] == 0
+
+    # Il default (nessun parametro, come fa davvero la UI) deve comportarsi
+    # allo stesso modo.
+    r = api_client.get(f"/api/libraries/{library['id']}/documents/{document['id']}/summary")
+    assert r.status_code == 200
+    assert r.json()["mode"] == "extractive"
+    assert called["n"] == 0
+
+
+def test_local_ollama_library_can_still_use_the_model(tmp_path, monkeypatch):
+    """Il fix non deve disattivare il generativo dove la policy lo permette."""
+    api_client, test_cfg = api_client_factory(tmp_path, monkeypatch)
+    import api.libraries
+    monkeypatch.setattr(api.libraries, "_store", None)
+    store = api.libraries.get_library_store()
+    library = store.create_library("Locale", "", "private", owner_id="owner")
+    store.set_assistant_mode(library["id"], "local_ollama")
+    _add_doc(store, library["id"], "policy.txt", "Le note spese si inviano entro il dieci del mese.")
+    document = store.list_documents(library["id"])[0]
+
+    monkeypatch.setattr("core.document_summary._call_ollama_summary", lambda prompt: "Riassunto generato localmente.")
+
+    assert api_client.post("/api/auth/login", json={"username": "owner", "password": "StrongPassword!123"}).status_code == 200
+    r = api_client.get(f"/api/libraries/{library['id']}/documents/{document['id']}/summary")
+    assert r.status_code == 200
+    assert r.json()["mode"] == "local_llm"
+    assert r.json()["summary"] == "Riassunto generato localmente."
+

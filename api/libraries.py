@@ -618,13 +618,25 @@ def summarize_library_document(
     _auth: dict = Depends(_verify_api_key),
     store: LibraryStore = Depends(get_library_store),
 ):
-    """Riassunto evidence-bound di un documento, rispettando l'ACL per-documento."""
+    """Riassunto evidence-bound di un documento, rispettando l'ACL per-documento.
+
+    `use_llm` e' un'opzione del chiamante per rinunciare al generativo anche
+    quando la biblioteca lo permetterebbe (preferire il riassunto estrattivo
+    deterministico), mai per attivarlo. In modalita' evidence_only nessun
+    modello deve vedere il contenuto del documento — e' il primo principio
+    dichiarato del prodotto — quindi qui viene ignorato lato server, non
+    fidandosi del client: la UI chiamava questo endpoint senza mai passare
+    il parametro, e ogni riassunto passava per Ollama a prescindere dalla
+    policy scelta dal proprietario della biblioteca.
+    """
     try:
+        library = store.get_library(library_id, _auth)
         document = store.get_document(library_id, document_id, actor=_auth)
         chunks = store.get_document_chunks(library_id, document_id, actor=_auth)
     except (LibraryNotFoundError, LibraryAccessError) as error:
         raise HTTPException(status_code=404, detail="Documento non trovato") from error
-    result = summarize_document(document["filename"], chunks, use_local_llm=use_llm)
+    use_local_llm = use_llm and library["assistant_mode"] != "evidence_only"
+    result = summarize_document(document["filename"], chunks, use_local_llm=use_local_llm)
     append_audit(
         cfg.AUDIT_FILE, "document_summary", _auth["username"],
         {"library_id": library_id, "document_id": document_id, "status": result["status"], "mode": result["mode"]},
