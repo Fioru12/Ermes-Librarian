@@ -14,8 +14,8 @@ from api.auth import _require_role, _verify_api_key
 from config import cfg
 from core.document_parser import DocumentParseError, chunk_source_units, extract_source_units
 from core.document_summary import summarize_document
-from core.folder_importer import scan_import_source
 from core.evidence_assistant import answer_from_evidence
+from core.folder_importer import scan_import_source
 from core.governance import append_audit
 from core.ingestion_service import process_ingestion_job
 from core.input_validator import matches_expected_file_signature, sanitize_upload_name
