@@ -1,4 +1,4 @@
-﻿import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { AlertTriangle, CheckCircle, LockKeyhole, ShieldCheck, Sparkles } from 'lucide-react'
 import UserManagement from './components/Admin/UserManagement'
 import AuditLogs from './components/Admin/AuditLogs'
