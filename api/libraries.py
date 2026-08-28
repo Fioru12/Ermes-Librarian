@@ -129,6 +129,20 @@ def list_documents(
         raise HTTPException(status_code=404, detail="Biblioteca non trovata") from error
 
 
+@router.get("/{library_id}/documents/{document_id}")
+def get_document_detail(
+    library_id: str,
+    document_id: str,
+    _auth: dict = Depends(_verify_api_key),
+    store: LibraryStore = Depends(get_library_store),
+):
+    """Dettaglio di un documento: usato per il polling dello stato di indicizzazione."""
+    try:
+        return store.get_document(library_id, document_id, _auth)
+    except (LibraryNotFoundError, LibraryAccessError) as error:
+        raise HTTPException(status_code=404, detail="Documento non trovato") from error
+
+
 @router.get("/{library_id}/documents/{document_id}/versions")
 def list_document_versions(
     library_id: str,
@@ -388,6 +402,70 @@ def remove_library_member(
     if not store.remove_library_member(library_id, username):
         raise HTTPException(status_code=404, detail="Collaboratore non trovato")
     append_audit(cfg.AUDIT_FILE, "library_member_removed", _auth["username"], {"library_id": library_id, "username": username})
+
+
+def _unlink_storage_paths(paths: list[str], root: str | Path | None = None) -> None:
+    """Unlink storage files returned by the store, never outside the root.
+
+    The storage root is owned by the API layer (same boundary as reindex);
+    path safety mirrors resolve_storage_path + relative_to there. `root`
+    defaults to the configured storage dir; tests may pass a narrower root.
+    """
+    root = Path(root or cfg.LIBRARY_STORAGE_DIR).resolve()
+    for rel in paths:
+        try:
+            target = resolve_storage_path(rel, cfg.LIBRARY_STORAGE_DIR)
+            target.resolve().relative_to(root)
+        except (ValueError, OSError):
+            continue
+        try:
+            target.unlink(missing_ok=True)
+        except OSError:
+            continue
+        parent = target.parent
+        for _ in range(3):
+            if parent == root or root not in parent.parents:
+                break
+            try:
+                parent.rmdir()
+            except OSError:
+                break
+            parent = parent.parent
+
+
+@router.delete("/{library_id}/documents/{document_id}", status_code=204)
+def delete_library_document(
+    library_id: str,
+    document_id: str,
+    _auth: dict = Depends(_require_role("editor")),
+    store: LibraryStore = Depends(get_library_store),
+):
+    """Rimuove un documento con chunk, versioni, ACL e file originali."""
+    try:
+        store.get_library(library_id, _auth, write=True)
+        paths = store.delete_document(library_id, document_id)
+    except (LibraryNotFoundError, LibraryAccessError) as error:
+        raise HTTPException(status_code=404, detail="Documento non trovato") from error
+    _unlink_storage_paths(paths)
+    append_audit(cfg.AUDIT_FILE, "library_document_deleted", _auth["username"], {"library_id": library_id, "document_id": document_id})
+
+
+@router.delete("/{library_id}", status_code=204)
+def delete_library(
+    library_id: str,
+    _auth: dict = Depends(_require_role("editor")),
+    store: LibraryStore = Depends(get_library_store),
+):
+    """Elimina l'intera biblioteca. Solo il proprietario o un admin globale."""
+    try:
+        library = store.get_library(library_id, _auth, write=True)
+    except (LibraryNotFoundError, LibraryAccessError) as error:
+        raise HTTPException(status_code=404, detail="Biblioteca non trovata") from error
+    if library["access_role"] != "owner" and _auth.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Solo il proprietario puo' eliminare la biblioteca")
+    paths = store.delete_library(library_id)
+    _unlink_storage_paths(paths)
+    append_audit(cfg.AUDIT_FILE, "library_deleted", _auth["username"], {"library_id": library_id, "name": library["name"]})
 
 
 @router.get("/{library_id}/sources")

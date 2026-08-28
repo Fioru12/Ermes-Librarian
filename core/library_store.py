@@ -947,6 +947,94 @@ class LibraryStore:
             )
         return len(embeddings)
 
+    def delete_document(self, library_id: str, document_id: str) -> list[str]:
+        """Remove one document and every derived row (chunks, versions, ACL, jobs).
+
+        Returns the storage paths (relative to the storage root) of the original
+        and of every version, so the caller can unlink the files after commit:
+        the store owns no storage root, file removal stays with the API layer.
+        """
+        self.get_library(library_id)
+        with self._lock, self._connection() as connection:
+            row = connection.execute(
+                "SELECT storage_path FROM documents WHERE id = ? AND library_id = ?",
+                (document_id, library_id),
+            ).fetchone()
+            if row is None:
+                raise LibraryNotFoundError(document_id)
+            # document_versions condivide spesso lo storage_path del documento
+            # (versione 1): dedup preservando l'ordine, il chiamante non deve
+            # fare unlink due volte dello stesso file.
+            paths = list(
+                dict.fromkeys(
+                    [row["storage_path"]]
+                    + [
+                        v["storage_path"]
+                        for v in connection.execute(
+                            "SELECT storage_path FROM document_versions WHERE document_id = ?",
+                            (document_id,),
+                        ).fetchall()
+                    ]
+                )
+            )
+            connection.execute("DELETE FROM document_chunks WHERE document_id = ?", (document_id,))
+            connection.execute("DELETE FROM document_versions WHERE document_id = ?", (document_id,))
+            connection.execute("DELETE FROM document_acls WHERE document_id = ?", (document_id,))
+            connection.execute("DELETE FROM ingestion_jobs WHERE document_id = ?", (document_id,))
+            connection.execute(
+                "DELETE FROM documents WHERE id = ? AND library_id = ?", (document_id, library_id),
+            )
+        return paths
+
+    def delete_library(self, library_id: str) -> list[str]:
+        """Remove a library with members, sources and every document.
+
+        Same contract as delete_document: DB rows go in one transaction here,
+        storage files are returned for the caller to unlink.
+        """
+        self.get_library(library_id)
+        with self._lock, self._connection() as connection:
+            rows = connection.execute(
+                """
+                SELECT d.storage_path AS storage_path FROM documents d
+                WHERE d.library_id = ?
+                UNION ALL
+                SELECT v.storage_path FROM document_versions v
+                JOIN documents d ON d.id = v.document_id
+                WHERE d.library_id = ?
+                """,
+                (library_id, library_id),
+            ).fetchall()
+            # Dedup: le versioni condividono spesso lo storage_path del documento.
+            paths = list(dict.fromkeys(r["storage_path"] for r in rows))
+            connection.execute(
+                """
+                DELETE FROM document_chunks WHERE document_id IN
+                    (SELECT id FROM documents WHERE library_id = ?)
+                """,
+                (library_id,),
+            )
+            connection.execute(
+                """
+                DELETE FROM document_versions WHERE document_id IN
+                    (SELECT id FROM documents WHERE library_id = ?)
+                """,
+                (library_id,),
+            )
+            connection.execute(
+                """
+                DELETE FROM document_acls WHERE document_id IN
+                    (SELECT id FROM documents WHERE library_id = ?)
+                """,
+                (library_id,),
+            )
+            connection.execute("DELETE FROM ingestion_jobs WHERE library_id = ?", (library_id,))
+            connection.execute("DELETE FROM import_sources WHERE library_id = ?", (library_id,))
+            connection.execute("DELETE FROM library_members WHERE library_id = ?", (library_id,))
+            connection.execute("DELETE FROM documents WHERE library_id = ?", (library_id,))
+            connection.execute("DELETE FROM libraries WHERE id = ?", (library_id,))
+        return paths
+
     def add_document(
         self,
         library_id: str,

@@ -29,7 +29,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 import httpx
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
@@ -72,7 +72,6 @@ def _list_available_modules() -> list[str]:
 
 
 def _resolve_module_name(module_name: str) -> str:
-    from fastapi import HTTPException
     normalized = (module_name or "").strip()
     if not normalized:
         raise HTTPException(status_code=400, detail="Nome modulo mancante")
@@ -314,6 +313,13 @@ if os.path.isdir(_frontend_dist):
 
     @app.get("/{full_path:path}", response_class=HTMLResponse, include_in_schema=False)
     async def _serve_frontend(full_path: str = ""):
+        # La SPA deve servire solo le rotte dell'interfaccia: un path API
+        # sconosciuto (es. typo o route mancante) deve restare un 404 JSON,
+        # non l'HTML dell'app con status 200 — altrimenti i client API
+        # ricevono risposte HTML "successful" anche quando qualcosa e' rotto.
+        first = full_path.split("/", 1)[0].lower()
+        if first in {"api", "v1", "metrics", "docs", "redoc", "openapi.json", "health"}:
+            raise HTTPException(status_code=404, detail="Endpoint non trovato")
         idx = os.path.join(_frontend_dist, "index.html")
         if os.path.isfile(idx):
             return HTMLResponse(Path(idx).read_text(encoding="utf-8"))
