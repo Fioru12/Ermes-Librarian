@@ -106,6 +106,15 @@ def create_library(
     except ValueError as error:
         raise HTTPException(status_code=422, detail=str(error)) from error
 
+@router.get("/index-consistency")
+def library_index_consistency(
+    _auth: dict = Depends(_require_role("admin")),
+    store: LibraryStore = Depends(get_library_store),
+):
+    """Diagnostica di allineamento tra DB, originali e vettori (solo admin)."""
+    report = store.verify_index_consistency(cfg.LIBRARY_STORAGE_DIR, cfg.EMBED_MODEL_ID)
+    return report
+
 
 @router.get("/{library_id}/documents")
 def list_documents(

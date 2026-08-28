@@ -12,9 +12,21 @@ interface HealthStatus {
   modules_available?: string[]
 }
 
+interface ConsistencyReport {
+  ok: boolean
+  issue_count: number
+  checked_documents: number
+  missing_originals: string[]
+  orphan_files: string[]
+  ready_without_chunks: string[]
+  partially_embedded_documents: string[]
+  embedding_model_mismatch_documents: string[]
+}
+
 export default function HealthTab() {
   const { t } = useTheme()
   const [health, setHealth] = useState<HealthStatus | null>(null)
+  const [consistency, setConsistency] = useState<ConsistencyReport | null>(null)
   const [loading, setLoading] = useState(true)
 
   const fetchHealth = async () => {
@@ -23,6 +35,11 @@ export default function HealthTab() {
       const res = await fetch('/health', { credentials: 'include' })
       if (res.ok) setHealth(await res.json())
     } catch { setHealth(null) }
+    // Diagnostica coerenza indice: solo admin (403 -> card nascosta).
+    try {
+      const res = await fetch('/api/libraries/index-consistency', { credentials: 'include' })
+      setConsistency(res.ok ? await res.json() : null)
+    } catch { setConsistency(null) }
     setLoading(false)
   }
 
@@ -107,6 +124,32 @@ export default function HealthTab() {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {consistency && (
+        <div className="mt-8">
+          <CardTitle className="mb-4"><Database className="w-4 h-4 text-cyan-400" />Coerenza Indice</CardTitle>
+          <Card>
+            <div className="flex items-center gap-2 mb-3">
+              <Database className="w-4 h-4 text-cyan-400" />
+              <span className="text-sm font-bold">Diagnostica biblioteche</span>
+              {statusIcon(consistency.ok ? 'healthy' : 'degraded')}
+            </div>
+            <p className={`text-xs ${t.cardDesc}`}>
+              Documenti verificati: <span className="font-medium text-slate-300">{consistency.checked_documents}</span>
+              {' '}&middot; Problemi: <span className="font-medium text-slate-300">{consistency.issue_count}</span>
+            </p>
+            {consistency.issue_count > 0 && (
+              <ul className={`text-xs mt-2 space-y-1 ${t.cardDesc}`}>
+                <li>Originali mancanti: {consistency.missing_originals.length}</li>
+                <li>File orfani: {consistency.orphan_files.length}</li>
+                <li>Ready senza chunk: {consistency.ready_without_chunks.length}</li>
+                <li>Parzialmente indicizzati: {consistency.partially_embedded_documents.length}</li>
+                <li>Modello embedding diverso: {consistency.embedding_model_mismatch_documents.length}</li>
+              </ul>
+            )}
+          </Card>
         </div>
       )}
 
