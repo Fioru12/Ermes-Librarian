@@ -80,9 +80,21 @@ def test_scan_imports_supported_files_and_deduplicates_by_content(tmp_path, monk
     assert body["skipped_duplicates"] == ["stesso_contenuto.txt"]
     assert body["skipped_unsupported"] == ["foglio.xlsx"]
 
-    # Il documento importato è realmente nella biblioteca.
+    # Il documento importato è realmente nella biblioteca, e la sua
+    # ingestione e' arrivata a "ready", non solo la riga creata in stato
+    # "queued". Trovato in revisione (non da questo test, che non lo
+    # controllava): add_document registra solo metadati, non scrive mai il
+    # contenuto su disco — scan_import_source riceveva storage_dir ma non lo
+    # usava, quindi ogni file importato falliva l'ingestione subito dopo con
+    # "Originale non disponibile", pur risultando "imported" nella risposta
+    # della scansione qui sopra.
     documents = store.list_documents(library["id"])
     assert [d["filename"] for d in documents] == ["contratto.txt"]
+    assert documents[0]["status"] == "ready", documents[0].get("status")
+    from core.library_store import resolve_storage_path
+    stored_path = resolve_storage_path(documents[0]["storage_path"], tmp_path / "app" / "storage" / "libraries")
+    assert stored_path.is_file()
+    assert stored_path.read_text(encoding="utf-8") == "Il contratto scade a dicembre."
 
     # Seconda scansione: nessun nuovo import; entrambi i file sono già noti.
     rescan = client.post(f"/api/libraries/{library['id']}/sources/{source_id}/scan").json()

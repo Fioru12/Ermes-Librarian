@@ -10,6 +10,8 @@ from __future__ import annotations
 import hashlib
 from pathlib import Path
 
+from core.library_store import storage_relative_path
+
 SUPPORTED_EXTENSIONS = {".txt", ".pdf", ".docx"}
 
 MEDIA_TYPES = {
@@ -31,6 +33,16 @@ def scan_import_source(
 
     Returns counts so the API can report exactly what happened. A file that
     cannot be read is counted as failed, never fatal for the rest of the batch.
+
+    `storage_dir` was accepted but never used: this called store.add_document
+    with a storage_path pointing under Ermes' own storage tree, but never
+    actually copied the file's bytes there — add_document only records
+    metadata, it does not write to disk (the upload endpoint in
+    api/libraries.py writes the file itself before calling add_document).
+    Every scan "succeeded" (imported: [...]), and every one of those imports
+    then failed ingestion with "Originale non disponibile", because the row
+    pointed at a file that was never created. Found by actually running the
+    feature through the browser, not by reading the code.
     """
     root = Path(source["path"])
     result = {"path": source["path"], "imported": [], "skipped_duplicates": [], "skipped_unsupported": [], "failed": []}
@@ -60,12 +72,16 @@ def scan_import_source(
                 result["skipped_duplicates"].append(file_path.name)
                 continue
             extension = file_path.suffix.lower()
+            stored_filename = f"{digest[:12]}_{file_path.name}"
+            destination = Path(storage_dir) / library_id / stored_filename
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            destination.write_bytes(content)
             document = store.add_document(
                 library_id=library_id,
                 filename=file_path.name,
                 media_type=MEDIA_TYPES[extension],
                 content=content,
-                storage_path=f"{library_id}/{digest[:12]}_{file_path.name}",
+                storage_path=storage_relative_path(library_id, stored_filename),
                 status="queued",
                 chunks=[],
             )
