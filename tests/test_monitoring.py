@@ -1,72 +1,66 @@
+"""core/monitoring.py: aggregazione del log di audit.
+
+analyze_audit e' l'unica funzione ancora raggiungibile dal prodotto
+(api/audit.py -> GET /api/audit/stats). Il resto del modulo leggeva log di
+sessione in formato session_*.jsonl, una convenzione dell'era WinSarp che il
+prodotto attuale non scrive piu' da nessuna parte: rimosso il 21 agosto 2026
+insieme a questo file, che testava esclusivamente quel codice morto senza
+coprire mai analyze_audit stessa.
+"""
 import json
-import os
 
 from core import monitoring
 
 
-class TestCountSessions:
-    def test_empty_dir_returns_zero(self, temp_dir):
-        result = monitoring.count_sessions(str(temp_dir))
-        assert result["total_sessions"] == 0
-        assert result["sessions_today"] == 0
-
-    def test_counts_session_files(self, temp_dir):
-        for name in ["session_20260625_001.jsonl", "session_20260625_002.jsonl"]:
-            path = os.path.join(temp_dir, name)
-            with open(path, "w") as f:
-                f.write("{}")
-        result = monitoring.count_sessions(str(temp_dir))
-        assert result["total_sessions"] == 2
+def _write_entry(audit_file, **fields):
+    entry = {"ts": "2026-08-21T10:00:00", "action": "unknown", "actor": "unknown"}
+    entry.update(fields)
+    with open(audit_file, "a", encoding="utf-8") as f:
+        f.write(json.dumps(entry) + "\n")
 
 
-class TestCountQueries:
-    def test_empty_dir(self, temp_dir):
-        result = monitoring.count_queries(str(temp_dir))
-        assert result["total_queries"] == 0
-
-    def test_queries_in_session(self, temp_dir):
-        today = __import__("datetime").datetime.now().strftime("%Y%m%d")
-        fpath = os.path.join(temp_dir, f"session_{today}_001.jsonl")
-        with open(fpath, "w") as f:
-            f.write(json.dumps({"role": "user", "modulo": "winsarp"}) + "\n")
-            f.write(json.dumps({"role": "assistant", "modulo": "winsarp"}) + "\n")
-            f.write(json.dumps({"role": "user", "modulo": "generic"}) + "\n")
-        result = monitoring.count_queries(str(temp_dir))
-        assert result["total_queries"] == 2
-        assert result["queries_by_module"]["winsarp"] == 1
+def test_missing_audit_file_returns_empty_report(temp_dir):
+    result = monitoring.analyze_audit(str(temp_dir / "nessuno.jsonl"))
+    assert result == {"total_actions": 0, "actions_by_type": {}, "top_users": []}
 
 
-class TestAnalyzePerformance:
-    def test_empty_dir(self, temp_dir):
-        result = monitoring.analyze_performance(str(temp_dir))
-        assert result["total_responses"] == 0
+def test_counts_actions_by_type_and_top_users(temp_dir):
+    audit_file = str(temp_dir / "audit.jsonl")
+    _write_entry(audit_file, action="library_created", actor="alice")
+    _write_entry(audit_file, action="library_created", actor="alice")
+    _write_entry(audit_file, action="document_downloaded", actor="bob")
 
-    def test_with_response_times(self, temp_dir):
-        fpath = os.path.join(temp_dir, "session_20260625_001.jsonl")
-        with open(fpath, "w") as f:
-            f.write(json.dumps({"elapsed_sec": 1.5}) + "\n")
-            f.write(json.dumps({"elapsed_sec": 2.5}) + "\n")
-        result = monitoring.analyze_performance(str(temp_dir))
-        assert result["total_responses"] == 2
-        assert result["avg_response_time_s"] == 2.0
+    result = monitoring.analyze_audit(audit_file)
+
+    assert result["total_actions"] == 3
+    assert result["actions_by_type"] == {"library_created": 2, "document_downloaded": 1}
+    assert result["top_users"][0] == {"username": "alice", "actions": 2}
 
 
-class TestGetFeedbackStats:
-    def test_no_feedback(self):
-        result = monitoring.get_feedback_stats({})
-        assert result["up_votes"] == 0
-        assert result["down_votes"] == 0
+def test_entries_older_than_the_window_are_excluded(temp_dir):
+    audit_file = str(temp_dir / "audit.jsonl")
+    old_ts = "2020-01-01T00:00:00"
+    _write_entry(audit_file, ts=old_ts, action="library_created", actor="alice")
+    _write_entry(audit_file, action="library_created", actor="bob")
 
-    def test_with_feedback(self):
-        state = {"feedback_q1": "up", "feedback_q2": "down", "feedback_q3": "up"}
-        result = monitoring.get_feedback_stats(state)
-        assert result["up_votes"] == 2
-        assert result["down_votes"] == 1
-        assert result["total"] == 3
+    result = monitoring.analyze_audit(audit_file, days=30)
+
+    assert result["total_actions"] == 1
+    assert result["top_users"] == [{"username": "bob", "actions": 1}]
 
 
-class TestCheckAlerts:
-    def test_returns_list(self):
-        from config import cfg
-        alerts = monitoring.check_alerts(cfg)
-        assert isinstance(alerts, list)
+def test_a_malformed_line_does_not_stop_the_rest_of_the_file_from_being_read(temp_dir):
+    """Trovato in revisione: un try/except attorno all'intero ciclo (invece che
+    per riga) faceva si' che una singola riga corrotta azzerasse silenziosamente
+    le statistiche su ogni riga successiva, anche valida — mentre gli altri
+    lettori dello stesso file in api/audit.py gestiscono l'errore per riga.
+    """
+    audit_file = str(temp_dir / "audit.jsonl")
+    _write_entry(audit_file, action="library_created", actor="alice")
+    with open(audit_file, "a", encoding="utf-8") as f:
+        f.write("questa riga non e' JSON valido\n")
+    _write_entry(audit_file, action="library_created", actor="alice")
+
+    result = monitoring.analyze_audit(audit_file)
+
+    assert result["total_actions"] == 2
