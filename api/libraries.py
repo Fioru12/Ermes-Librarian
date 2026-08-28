@@ -480,6 +480,50 @@ def list_library_sources(
         raise HTTPException(status_code=404, detail="Biblioteca non trovata") from error
 
 
+def _reject_source_path_inside_app(path: str) -> None:
+    """Refuse a registered import source that resolves inside the app's own tree.
+
+    Found by review, not in the wild: with no restriction here, any editor of
+    ANY library could register another library's storage directory
+    (storage/libraries/<other-id>/) as a "folder source" for their own
+    library and scan it in — the confidential document would be imported
+    verbatim, fully readable via the importing library's own citations. That
+    is a complete bypass of the product's central guarantee ("retrieval never
+    crosses a library boundary"), reachable without ever touching the normal
+    read path the isolation tests actually cover.
+
+    This check is independent of the role gate below: it holds even for a
+    library's own owner, because there is no legitimate reason a folder
+    source should ever point inside data the application itself manages
+    (storage/, data/, security/, docs/, the source tree). A folder source
+    exists to pull in an *external* network drop folder.
+    """
+    try:
+        resolved = Path(path).expanduser().resolve()
+    except (OSError, ValueError) as error:
+        raise HTTPException(status_code=422, detail="Percorso non valido") from error
+    app_root = Path(cfg.BASE_DIR).resolve()
+    if resolved == app_root or app_root in resolved.parents:
+        raise HTTPException(
+            status_code=422,
+            detail="Il percorso non puo' trovarsi dentro la directory dell'applicazione",
+        )
+
+
+def _require_library_owner_or_admin(store: LibraryStore, library_id: str, actor: dict) -> dict:
+    """Import sources grant the server filesystem read access on the actor's say-so.
+
+    That is a materially larger blast radius than uploading through the
+    browser, so registering or removing one requires the same trust level as
+    deleting the library outright (owner or global admin) — not just
+    "editor", which any collaborator added to a shared library can be.
+    """
+    library = store.get_library(library_id, actor, write=True)
+    if library["access_role"] != "owner" and actor.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Solo il proprietario o un amministratore possono gestire le sorgenti cartella")
+    return library
+
+
 @router.post("/{library_id}/sources", status_code=201)
 def add_library_source(
     library_id: str,
@@ -491,8 +535,9 @@ def add_library_source(
     path = request.path.strip()
     if not path:
         raise HTTPException(status_code=422, detail="Indica il percorso della cartella")
+    _reject_source_path_inside_app(path)
     try:
-        store.get_library(library_id, _auth, write=True)
+        _require_library_owner_or_admin(store, library_id, _auth)
         source = store.add_import_source(library_id, path, created_by=_auth["username"])
     except ValueError as error:
         raise HTTPException(status_code=409, detail=str(error)) from error
@@ -510,7 +555,7 @@ def remove_library_source(
     store: LibraryStore = Depends(get_library_store),
 ):
     try:
-        store.get_library(library_id, _auth, write=True)
+        _require_library_owner_or_admin(store, library_id, _auth)
         removed = store.remove_import_source(library_id, source_id)
     except (LibraryNotFoundError, LibraryAccessError) as error:
         raise HTTPException(status_code=404, detail="Biblioteca non trovata") from error
