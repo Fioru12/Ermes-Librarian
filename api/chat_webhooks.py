@@ -87,14 +87,24 @@ async def _resolve_answer_text(store: LibraryStore, platform: str, external_chan
 
 @router.post("/slack", summary="Webhook per Slack Slash Command ed Event API")
 async def slack_webhook(request: Request):
+    # Fallisce chiuso: senza secret configurato non c'e' alcun modo di
+    # verificare che la richiesta venga davvero da Slack. Saltare la verifica
+    # in quel caso (invece di rifiutare) renderebbe questo endpoint
+    # raggiungibile da chiunque conosca o indovini un external_channel_id
+    # collegato -- senza sessione, senza API key, senza alcuna credenziale --
+    # esponendo il contenuto della biblioteca collegata. Trovato mentre si
+    # provava a rompere la propria stessa integrazione, non nella revisione
+    # iniziale: il default di fabbrica di SLACK_SIGNING_SECRET e' vuoto.
+    if not cfg.SLACK_SIGNING_SECRET:
+        raise HTTPException(503, "Integrazione Slack non configurata (ERMES_SLACK_SIGNING_SECRET)")
+
     body_bytes = await request.body()
     content_type = request.headers.get("content-type", "")
 
-    if cfg.SLACK_SIGNING_SECRET:
-        timestamp = request.headers.get("X-Slack-Request-Timestamp", "0")
-        signature = request.headers.get("X-Slack-Signature", "")
-        if not _verify_slack_signature(body_bytes, timestamp, signature):
-            raise HTTPException(403, "Firma Slack non valida")
+    timestamp = request.headers.get("X-Slack-Request-Timestamp", "0")
+    signature = request.headers.get("X-Slack-Signature", "")
+    if not _verify_slack_signature(body_bytes, timestamp, signature):
+        raise HTTPException(403, "Firma Slack non valida")
 
     store = get_library_store()
 
@@ -139,11 +149,16 @@ async def slack_webhook(request: Request):
 
 @router.post("/teams", summary="Webhook per Microsoft Teams Outgoing Webhook")
 async def teams_webhook(request: Request):
+    # Stesso principio del webhook Slack sopra: senza secret configurato,
+    # nessuna richiesta puo' essere verificata come proveniente davvero da
+    # Teams -- fallisce chiuso invece di lasciar passare tutto.
+    if not cfg.TEAMS_WEBHOOK_SECRET:
+        raise HTTPException(503, "Integrazione Teams non configurata (ERMES_TEAMS_WEBHOOK_SECRET)")
+
     body_bytes = await request.body()
-    if cfg.TEAMS_WEBHOOK_SECRET:
-        authorization = request.headers.get("authorization", "")
-        if not _verify_teams_signature(body_bytes, authorization):
-            raise HTTPException(403, "Firma Teams non valida")
+    authorization = request.headers.get("authorization", "")
+    if not _verify_teams_signature(body_bytes, authorization):
+        raise HTTPException(403, "Firma Teams non valida")
 
     try:
         body = await request.json()
@@ -151,7 +166,7 @@ async def teams_webhook(request: Request):
         raise HTTPException(400, "Body JSON non valido")
 
     text = re.sub(r"<at>[^<]+</at>", "", body.get("text", "")).strip()
-    channel_id = body.get("conversation", {}).get("id", "")
+    channel_id = (body.get("conversation") or {}).get("id", "")
 
     store = get_library_store()
     answer = await _resolve_answer_text(store, "teams", channel_id, text)

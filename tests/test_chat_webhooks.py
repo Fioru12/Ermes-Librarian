@@ -125,6 +125,57 @@ def test_teams_webhook_rejects_basic_auth_the_legacy_scheme_is_not_accepted(tmp_
     assert response.status_code == 403
 
 
+def test_slack_webhook_refuses_every_request_when_no_secret_is_configured(tmp_path, monkeypatch):
+    """Trovato debuggando il progetto, non nella revisione iniziale: con
+    SLACK_SIGNING_SECRET vuoto (il default di fabbrica) la verifica veniva
+    saltata invece di rifiutare la richiesta -- chiunque conoscesse un
+    external_channel_id collegato poteva leggere il contenuto della
+    biblioteca senza alcuna credenziale. Riprodotto con un documento
+    confidenziale prima di correggere: vedi git blame per la PoC."""
+    client, store, library, test_cfg = _client(tmp_path, monkeypatch, slack_secret="")
+    client.post(
+        f"/api/libraries/{library['id']}/documents",
+        files={"file": ("segreto.txt", b"Stipendio CEO: 950000 EUR - CONFIDENZIALE", "text/plain")},
+    )
+    client.post(f"/api/libraries/{library['id']}/integrations", json={"platform": "slack", "external_channel_id": "PUBLIC"})
+
+    attacker = TestClient(app)
+    body = "text=Qual+e%27+lo+stipendio+del+CEO%3F&channel_id=PUBLIC"
+    response = attacker.post("/api/integrations/slack", content=body, headers={"Content-Type": "application/x-www-form-urlencoded"})
+
+    assert response.status_code == 503
+    assert "CEO" not in response.text
+    assert "950000" not in response.text
+
+
+def test_teams_webhook_refuses_every_request_when_no_secret_is_configured(tmp_path, monkeypatch):
+    client, store, library, test_cfg = _client(tmp_path, monkeypatch, teams_secret="")
+    client.post(
+        f"/api/libraries/{library['id']}/documents",
+        files={"file": ("segreto.txt", b"Stipendio CEO: 950000 EUR - CONFIDENZIALE", "text/plain")},
+    )
+    client.post(f"/api/libraries/{library['id']}/integrations", json={"platform": "teams", "external_channel_id": "PUBLIC"})
+
+    attacker = TestClient(app)
+    body = b'{"text": "Qual e lo stipendio del CEO?", "conversation": {"id": "PUBLIC"}}'
+    response = attacker.post("/api/integrations/teams", content=body, headers={"Content-Type": "application/json"})
+
+    assert response.status_code == 503
+    assert "CEO" not in response.text
+    assert "950000" not in response.text
+
+
+def test_teams_webhook_survives_a_null_conversation_field(tmp_path, monkeypatch):
+    """Un payload malformato/malevolo con "conversation": null non deve
+    far crashare l'handler con AttributeError (.get su None)."""
+    client, store, library, test_cfg = _client(tmp_path, monkeypatch)
+    body = b'{"text": "ciao", "conversation": null}'
+    headers = {"Authorization": _teams_authorization(test_cfg.TEAMS_WEBHOOK_SECRET, body), "Content-Type": "application/json"}
+    response = client.post("/api/integrations/teams", content=body, headers=headers)
+    assert response.status_code == 200
+    assert "non è collegato" in response.json()["text"]
+
+
 def test_unbound_channel_gets_a_friendly_message_not_an_error(tmp_path, monkeypatch):
     client, store, library, test_cfg = _client(tmp_path, monkeypatch)
     body = b"text=ciao&channel_id=UNBOUND"
