@@ -220,6 +220,18 @@ class LibraryStore:
                     created_at TEXT NOT NULL,
                     UNIQUE (library_id, path)
                 );
+
+                CREATE TABLE IF NOT EXISTS chat_integrations (
+                    id TEXT PRIMARY KEY,
+                    library_id TEXT NOT NULL REFERENCES libraries(id) ON DELETE CASCADE,
+                    platform TEXT NOT NULL,
+                    external_channel_id TEXT NOT NULL,
+                    created_by TEXT NOT NULL DEFAULT '',
+                    created_at TEXT NOT NULL,
+                    UNIQUE (platform, external_channel_id)
+                );
+                CREATE INDEX IF NOT EXISTS chat_integrations_by_library
+                    ON chat_integrations(library_id);
                 """
             )
             # SQLite does not support ADD COLUMN IF NOT EXISTS.  This keeps
@@ -807,6 +819,61 @@ class LibraryStore:
                 (self._timestamp(), library_id, source_id),
             )
 
+    def add_chat_integration(self, library_id: str, platform: str, external_channel_id: str, created_by: str = "") -> dict:
+        """Bind one external chat channel to this library. A channel can point to only one library."""
+        self.get_library(library_id)
+        now = self._timestamp()
+        integration_id = str(uuid.uuid4())
+        with self._lock, self._connection() as connection:
+            try:
+                connection.execute(
+                    """
+                    INSERT INTO chat_integrations (id, library_id, platform, external_channel_id, created_by, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    """,
+                    (integration_id, library_id, platform, external_channel_id, created_by, now),
+                )
+            except sqlite3.IntegrityError as error:
+                raise ValueError("Questo canale è già collegato a una biblioteca") from error
+        return self.get_chat_integration_by_id(library_id, integration_id)
+
+    def get_chat_integration_by_id(self, library_id: str, integration_id: str) -> dict:
+        with self._connection() as connection:
+            row = connection.execute(
+                "SELECT * FROM chat_integrations WHERE library_id = ? AND id = ?",
+                (library_id, integration_id),
+            ).fetchone()
+        if row is None:
+            raise LibraryNotFoundError(integration_id)
+        return self._row(row)
+
+    def get_chat_integration_by_channel(self, platform: str, external_channel_id: str) -> dict | None:
+        """Routing lookup used by the inbound webhook: no ownership check, the
+        destination library was already decided when the channel was registered."""
+        with self._connection() as connection:
+            row = connection.execute(
+                "SELECT * FROM chat_integrations WHERE platform = ? AND external_channel_id = ?",
+                (platform, external_channel_id),
+            ).fetchone()
+        return self._row(row) if row is not None else None
+
+    def list_chat_integrations(self, library_id: str) -> list[dict]:
+        self.get_library(library_id)
+        with self._connection() as connection:
+            rows = connection.execute(
+                "SELECT * FROM chat_integrations WHERE library_id = ? ORDER BY created_at",
+                (library_id,),
+            ).fetchall()
+        return [self._row(row) for row in rows]
+
+    def remove_chat_integration(self, library_id: str, integration_id: str) -> bool:
+        with self._lock, self._connection() as connection:
+            cursor = connection.execute(
+                "DELETE FROM chat_integrations WHERE library_id = ? AND id = ?",
+                (library_id, integration_id),
+            )
+            return cursor.rowcount > 0
+
     def existing_content_hashes(self, library_id: str) -> set[str]:
         """Content hashes of every document in the library, for import dedupe."""
         with self._connection() as connection:
@@ -1030,6 +1097,7 @@ class LibraryStore:
             )
             connection.execute("DELETE FROM ingestion_jobs WHERE library_id = ?", (library_id,))
             connection.execute("DELETE FROM import_sources WHERE library_id = ?", (library_id,))
+            connection.execute("DELETE FROM chat_integrations WHERE library_id = ?", (library_id,))
             connection.execute("DELETE FROM library_members WHERE library_id = ?", (library_id,))
             connection.execute("DELETE FROM documents WHERE library_id = ?", (library_id,))
             connection.execute("DELETE FROM libraries WHERE id = ?", (library_id,))

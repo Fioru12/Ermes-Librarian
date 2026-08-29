@@ -236,6 +236,7 @@ def prometheus_metrics():
 from api.audit import router as audit_router
 from api.auth import router as auth_router
 from api.backup import router as backup_router
+from api.chat_webhooks import router as chat_webhooks_router
 from api.health import router as health_router
 from api.libraries import router as libraries_router
 from api.models import router as models_router
@@ -266,6 +267,7 @@ app.include_router(audit_router)
 app.include_router(models_router)
 app.include_router(providers_router)
 app.include_router(libraries_router)
+app.include_router(chat_webhooks_router)
 app.include_router(shutdown_router)
 
 if formule_router is not None:

@@ -5,6 +5,7 @@ import uuid
 from datetime import UTC, datetime
 from io import BytesIO
 from pathlib import Path
+from typing import Literal
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile
 from fastapi.responses import FileResponse
@@ -58,6 +59,11 @@ class AskLibraryRequest(BaseModel):
 
 class ImportSourceRequest(BaseModel):
     path: str = Field(min_length=1, max_length=500)
+
+
+class ChatIntegrationRequest(BaseModel):
+    platform: Literal["slack", "teams"]
+    external_channel_id: str = Field(min_length=1, max_length=500)
 
 
 class AssistantPolicyRequest(BaseModel):
@@ -261,24 +267,23 @@ def search_library(
         raise HTTPException(status_code=404, detail="Biblioteca non trovata") from error
 
 
-@router.post("/{library_id}/ask")
-def ask_library(
-    library_id: str,
-    request: AskLibraryRequest,
-    _auth: dict = Depends(_verify_api_key),
-    store: LibraryStore = Depends(get_library_store),
-):
-    """Evidence-first assistant baseline, intentionally abstaining without sources."""
+def _answer_question(store: LibraryStore, library_id: str, question: str, top_k: int, actor: dict) -> dict:
+    """Evidence-first assistant baseline, intentionally abstaining without sources.
+
+    Shared by the HTTP `/ask` endpoint and the chat webhooks (Slack/Teams):
+    both must go through the same access checks and the same evidence-only
+    guarantee, so this is the only place that logic is allowed to live.
+    """
     try:
-        library = store.get_library(library_id, _auth)
-        citations, retrieval_profile = store.search_with_profile(library_id, request.question, limit=request.top_k, actor=_auth)
+        library = store.get_library(library_id, actor)
+        citations, retrieval_profile = store.search_with_profile(library_id, question, limit=top_k, actor=actor)
     except (LibraryNotFoundError, LibraryAccessError) as error:
         raise HTTPException(status_code=404, detail="Biblioteca non trovata") from error
     if not citations:
         return {
             "answer_id": str(uuid.uuid4()),
             "library": {"id": library["id"], "name": library["name"]},
-            "question": request.question,
+            "question": question,
             "answer": "Non ho trovato evidenza sufficiente nella biblioteca selezionata. Prova con parole più specifiche oppure carica il documento pertinente.",
             "status": "abstained",
             "evidence": {"coverage": "insufficient_evidence", "reason": "Nessun passaggio corrispondente recuperato."},
@@ -286,22 +291,32 @@ def ask_library(
             "meta": {"assistant_mode": library["assistant_mode"], "assistant_provider": library.get("assistant_provider", ""), "retrieval_profile": retrieval_profile, "created_at": datetime.now(UTC).isoformat()},
         }
     answer, coverage, reason = answer_from_evidence(
-        request.question, citations, mode=library["assistant_mode"], provider_name=library.get("assistant_provider", ""),
+        question, citations, mode=library["assistant_mode"], provider_name=library.get("assistant_provider", ""),
     )
     append_audit(
-        cfg.AUDIT_FILE, "library_answer", _auth["username"],
+        cfg.AUDIT_FILE, "library_answer", actor["username"],
         {"library_id": library_id, "assistant_mode": library["assistant_mode"], "assistant_provider": library.get("assistant_provider", ""), "retrieval_profile": retrieval_profile["mode"], "citation_count": len(citations), "coverage": coverage},
     )
     return {
         "answer_id": str(uuid.uuid4()),
         "library": {"id": library["id"], "name": library["name"]},
-        "question": request.question,
+        "question": question,
         "answer": answer,
         "status": "answered" if coverage == "supported" else "abstained",
         "evidence": {"coverage": coverage, "reason": reason},
         "citations": [item["citation"] | {"excerpt": item["excerpt"], "marker": index, "relevance_score": item["relevance_score"]} for index, item in enumerate(citations, start=1)],
         "meta": {"assistant_mode": library["assistant_mode"], "assistant_provider": library.get("assistant_provider", ""), "retrieval_profile": retrieval_profile, "created_at": datetime.now(UTC).isoformat()},
     }
+
+
+@router.post("/{library_id}/ask")
+def ask_library(
+    library_id: str,
+    request: AskLibraryRequest,
+    _auth: dict = Depends(_verify_api_key),
+    store: LibraryStore = Depends(get_library_store),
+):
+    return _answer_question(store, library_id, request.question, request.top_k, _auth)
 
 
 @router.put("/{library_id}/assistant-policy")
@@ -588,6 +603,61 @@ def scan_library_source(
          "skipped_duplicates": len(result["skipped_duplicates"]), "failed": len(result["failed"])},
     )
     return result
+
+
+@router.get("/{library_id}/integrations")
+def list_library_chat_integrations(
+    library_id: str,
+    _auth: dict = Depends(_verify_api_key),
+    store: LibraryStore = Depends(get_library_store),
+):
+    try:
+        return {"items": store.list_chat_integrations(library_id)}
+    except (LibraryNotFoundError, LibraryAccessError) as error:
+        raise HTTPException(status_code=404, detail="Biblioteca non trovata") from error
+
+
+@router.post("/{library_id}/integrations", status_code=201)
+def add_library_chat_integration(
+    library_id: str,
+    request: ChatIntegrationRequest,
+    _auth: dict = Depends(_require_role("editor")),
+    store: LibraryStore = Depends(get_library_store),
+):
+    """Collega un canale Slack/Teams a questa biblioteca (nessuna credenziale
+    di piattaforma qui: solo l'id del canale che potrà interrogarla)."""
+    try:
+        _require_library_owner_or_admin(store, library_id, _auth)
+        integration = store.add_chat_integration(
+            library_id, request.platform, request.external_channel_id, created_by=_auth["username"],
+        )
+    except ValueError as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
+    except (LibraryNotFoundError, LibraryAccessError) as error:
+        raise HTTPException(status_code=404, detail="Biblioteca non trovata") from error
+    append_audit(
+        cfg.AUDIT_FILE, "chat_integration_added", _auth["username"],
+        {"library_id": library_id, "platform": integration["platform"], "external_channel_id": integration["external_channel_id"]},
+    )
+    return integration
+
+
+@router.delete("/{library_id}/integrations/{integration_id}")
+def remove_library_chat_integration(
+    library_id: str,
+    integration_id: str,
+    _auth: dict = Depends(_require_role("editor")),
+    store: LibraryStore = Depends(get_library_store),
+):
+    try:
+        _require_library_owner_or_admin(store, library_id, _auth)
+        removed = store.remove_chat_integration(library_id, integration_id)
+    except (LibraryNotFoundError, LibraryAccessError) as error:
+        raise HTTPException(status_code=404, detail="Biblioteca non trovata") from error
+    if not removed:
+        raise HTTPException(status_code=404, detail="Collegamento non trovato")
+    append_audit(cfg.AUDIT_FILE, "chat_integration_removed", _auth["username"], {"library_id": library_id, "integration_id": integration_id})
+    return {"removed": True}
 
 
 @router.get("/{library_id}/documents/{document_id}/search")
