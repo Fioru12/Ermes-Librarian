@@ -28,6 +28,16 @@ PUBLIC_PATHS = {
     # The SPA catch-all that serves the compiled frontend shell (index.html
     # and static assets) — no application data, must be reachable pre-login.
     ("GET", "/{full_path:path}"),
+    # Slack/Teams webhooks: the caller is Slack or Teams, not an Ermes user —
+    # there is no session or API key to present. Authentication here is the
+    # platform's own request signature (HMAC), checked inside the handler
+    # against a channel explicitly bound to one library by that library's
+    # owner (see api/libraries.py: add_library_chat_integration). Requiring
+    # _verify_api_key would make the route unreachable by design, not safer.
+    ("POST", "/api/integrations/slack"),
+    ("POST", "/v1/api/integrations/slack"),
+    ("POST", "/api/integrations/teams"),
+    ("POST", "/v1/api/integrations/teams"),
 }
 
 
