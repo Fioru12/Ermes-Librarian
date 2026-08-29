@@ -6,6 +6,10 @@ The product is designed to be useful before any cloud AI is enabled. Its default
 
 > Status: active MVP / portfolio project. The current implementation is single-tenant and local-first; it is not yet a complete enterprise SaaS platform.
 
+![Walkthrough: login, browsing a library's documents, asking a question that gets cited, and honest abstention on two different out-of-scope questions — including one that only a different library could answer](docs/assets/demo.gif)
+
+*The full sequence from [docs/DEMO_GUIDE.md](docs/DEMO_GUIDE.md), recorded end-to-end against a running instance: two answered questions with real citations, then two correct abstentions — the second one proving retrieval never crosses a library boundary, not just asserting it.*
+
 ![The assistant answering from a document library, with every passage tied to a file, version and section](docs/screenshots/assistant-with-citations.png)
 
 *Every substantive answer names its sources: file, version, section and the exact excerpt it relied on — and the original document is one click away. When the library cannot support an answer, the assistant says so instead of inventing one.*

@@ -104,9 +104,9 @@ Correzione emersa durante l'esplorazione: `core/library_store.py::search_with_pr
 - [x] **Script di demo verificato dal vivo**, non solo scritto: `scripts/run_demo_validation.py` avvia una sessione reale contro il server API in esecuzione, carica i documenti, fa domande vere e controlla che le risposte citino il file giusto, che una domanda fuori corpus produca astensione, e ora anche **che una domanda la cui risposta vive nell'altra biblioteca produca comunque astensione** — la prova che l'isolamento è reale, non dichiarato. Eseguito più volte in questa sessione: `DEMO_VALIDATION_OK`.
 - [x] **Scoperta genuina durante la verifica**: la prima domanda di isolamento scelta a mano falliva — condivideva la parola "required" (poi "work") con un chunk di Meridian, causando un falso positivo del keyword matching (non una vera fuga tra biblioteche, verificato leggendo il codice: la query SQL resta vincolata al `library_id`). Risolto scegliendo empiricamente una domanda senza sovrapposizione lessicale, verificata contro il server reale — non assunta. Documentato in `docs/DEMO_GUIDE.md` come nota per chi estende il corpus.
 - [x] Golden set qualitativo (non il numero grezzo): 6 domande con citazione attesa + 1 astensione nel corpus originale (`questions.md`), più le verifiche automatiche di `run_demo_validation.py` su entrambe le biblioteche.
-- [ ] **Non fatto**: registrazione GIF/video. Richiede un'interazione visiva reale con il browser che non rientra in quello che posso produrre autonomamente in modo affidabile — lasciato a te, con la sequenza già pronta in `docs/DEMO_GUIDE.md`.
+- [x] **GIF registrata (29 agosto 2026)**: contrariamente alla stima iniziale, un GIF (non un video con voce) era producibile autonomamente — pilotando un browser headless (Playwright, non il tool sandboxato: quello non espone i frame come file su disco) attraverso la sequenza esatta di `docs/DEMO_GUIDE.md` contro un'istanza reale in esecuzione, catturando uno screenshot per passo e assemblandoli con Pillow. `docs/assets/demo.gif`, linkato in cima al README al posto dello screenshot statico isolato.
 
-**Uscita**: sostanzialmente raggiunta — un percorso ripetibile e *verificato*, comprensibile anche a un pubblico non tecnico. Manca solo la registrazione video/GIF, un passo manuale.
+**Uscita**: raggiunta — un percorso ripetibile e *verificato*, comprensibile anche a un pubblico non tecnico, ora anche con un GIF che lo dimostra senza richiedere di avviare l'app.
 
 ### Fase E — Rifinitura per credibilità enterprise (fatta, 20 agosto 2026)
 
@@ -126,9 +126,9 @@ Correzione emersa durante l'esplorazione: `core/library_store.py::search_with_pr
 
 - [x] Licenza scelta con l'utente (MIT) e aggiunta (`LICENSE`).
 - [x] One-pager di presentazione: versione visiva pubblicata come artifact, versione testuale in `docs/ONE_PAGER.md`, linkata dal README. Contiene solo numeri realmente misurati in questa sessione (recall, test passati, query del golden set), non placeholder.
-- [ ] **Non fatto**: repository reso effettivamente pubblico su GitHub (resta privato, deliberatamente — è una decisione dell'utente, non mia) e video/GIF demo (richiede interazione visiva reale).
+- [x] **Repository reso pubblico** (confermato 29 agosto 2026, con conferma esplicita dell'utente prima del cambio) e GIF demo registrato (vedi Fase D).
 
-**Uscita**: sostanzialmente raggiunta — il link (repo privato + one-pager) regge da solo per chi ha accesso; mancano solo la scelta finale di rendere pubblico e la registrazione video.
+**Uscita**: raggiunta.
 
 ## Ordine e motivazione
 
