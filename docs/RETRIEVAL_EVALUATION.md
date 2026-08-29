@@ -20,7 +20,7 @@ python evaluation/run_library_eval.py --semantic
 
 attiva anche la componente semantica locale (`core/library_embeddings.py`, embedding via Ollama). Se Ollama non e' raggiungibile, lo script degrada automaticamente a keyword-only e lo segnala esplicitamente a schermo (`semantic_search_active: false` nel report) — non fallisce in silenzio e non finge un numero che non ha misurato.
 
-## Numero reale, misurato in questa sessione (20 agosto 2026, solo modalita' keyword — Ollama non disponibile in questo ambiente)
+## Numero reale, modalita' keyword (misurato 20 agosto 2026, riconfermato 29 agosto 2026)
 
 ```json
 {
@@ -37,18 +37,41 @@ attiva anche la componente semantica locale (`core/library_embeddings.py`, embed
 Letto onestamente, non solo il numero migliore:
 
 - **`recall_at_3_direct = 1.0`**: sulle query dirette, la ricerca a parole chiave trova sempre il passaggio giusto nei primi tre risultati. E' la baseline attesa — un corpus di 16 chunk con query che condividono lessico col testo non e' una prova severa.
-- **`recall_at_3_paraphrase = 0.5`**: su metà delle query parafrasate, il solo keyword matching non basta — esattamente il gap che la ricerca semantica (`ERMES_LIBRARY_SEMANTIC_SEARCH=1`) dovrebbe colmare. **Il numero in modalita' `--semantic` non e' stato misurato in questa sessione** (Ollama non raggiungibile qui) — va rieseguito in locale per essere verificato, non dichiarato.
+- **`recall_at_3_paraphrase = 0.5`**: su metà delle query parafrasate, il solo keyword matching non basta.
 - **`abstention_accuracy = 0.667`** (2 su 3): una query di astensione ("un collega lavora sempre da casa...") ha trovato per errore un passaggio su assenze per malattia. Causa individuata: lo stemmer naive in `core/library_store.py::_search_token` (righe 199-208) tronca l'ultima vocale delle parole >4 caratteri — "lavora" e "lavoro" collassano sulla stessa radice "lavor", causando un match spurio. E' una lacuna reale dell'euristica attuale, non nascosta qui.
 - **`citation_coverage = 1.0`**: su tutte le query dove ci si aspetta evidenza (dirette + parafrasate), il sistema ha sempre trovato *qualcosa* da citare — anche quando quel qualcosa non era il passaggio corretto (vedi `recall_at_3_paraphrase`). Coverage alta non implica correttezza: sono due assi diversi, letti insieme.
 
+## Numero reale, modalita' `--semantic` (misurato 29 agosto 2026, con Ollama locale attivo — `nomic-embed-text`)
+
+```json
+{
+  "queries": 27,
+  "passed": 22,
+  "recall_at_3": 0.815,
+  "recall_at_3_direct": 1.0,
+  "recall_at_3_paraphrase": 0.75,
+  "abstention_accuracy": 0.0,
+  "citation_coverage": 1.0
+}
+```
+
+Prima misurazione reale di questa modalita' — e il risultato non e' univocamente positivo, riportato per intero:
+
+- **`recall_at_3_paraphrase` sale da 0.5 a 0.75**: la ricerca semantica recupera 2 delle 4 query parafrasate che il solo keyword matching perdeva — l'effetto per cui e' stata aggiunta.
+- **`abstention_accuracy` crolla da 0.667 a 0.0**: tutte e tre le query che dovrebbero astenersi ora trovano un passaggio "abbastanza simile" da superare la soglia di coseno-similarita' (0.35 in `core/library_embeddings.py::min_semantic_score`), anche quando l'argomento non e' davvero nel corpus. La ricerca semantica, cosi' com'e' configurata, e' piu' brava a trovare cose vagamente correlate e piu' incline a farlo anche quando non dovrebbe — un compromesso reale, non un dettaglio da correggere in un futuro imprecisato.
+- **Bug trovato misurando questo numero, non nell'algoritmo di retrieval ma nello script di valutazione**: `build_demo_store` in `evaluation/run_library_eval.py` costruiva il database demo senza mai generare embedding per i chunk (solo `core/ingestion_service.py`, il percorso di caricamento reale, lo faceva) — il flag `--semantic` non aveva mai avuto un vettore da confrontare, quindi restava silenziosamente in modalita' keyword indipendentemente da Ollama. Corretto imitando esattamente il percorso di ingestion reale (embed dei chunk + `store_chunk_embeddings`, stesso ordine e stesso modello configurato).
+- **Secondo bug trovato nello stesso punto**: il flag `LIBRARY_SEMANTIC_SEARCH_ENABLED` veniva impostato a `True` solo se `--semantic` era passato, mai esplicitamente a `False` altrimenti — un `.env` locale con `ERMES_LIBRARY_SEMANTIC_SEARCH=1` (lasciato attivo da altri test manuali di sessione) faceva quindi "trapelare" la modalita' semantica anche nella corsa di default, silenziosamente. La valutazione "sempre sicura per la CI, senza Ollama" dipendeva in realta' da una variabile d'ambiente ambientale, non dal flag passato. Corretto impostando il flag esplicitamente in entrambe le direzioni.
+
+**Implicazione pratica**: prima di attivare `ERMES_LIBRARY_SEMANTIC_SEARCH=1` per un utente reale, la soglia di coseno-similarita' andrebbe alzata sopra 0.35, o l'astensione andrebbe ricontrollata con un secondo segnale — attivarla cosi' com'e' oggi scambia "trova piu' parafrasi" con "inventa citazioni quando non dovrebbe rispondere", che per un prodotto evidence-first e' il compromesso sbagliato di default.
+
 ## Gate CI
 
-`tests/test_library_evaluation.py` verifica `recall_at_3_direct >= 0.9` e `citation_coverage >= 0.9` come soglie dure (sempre raggiungibili senza Ollama), piu' due soglie morbide (`recall_at_3_paraphrase > 0`, `abstention_accuracy > 0`) per accorgersi se la qualita' sulle query difficili crolla a zero, senza pretendere che il keyword-only le risolva tutte.
+`tests/test_library_evaluation.py` verifica `recall_at_3_direct >= 0.9` e `citation_coverage >= 0.9` come soglie dure (sempre raggiungibili senza Ollama), piu' due soglie morbide (`recall_at_3_paraphrase > 0`, `abstention_accuracy > 0`) per accorgersi se la qualita' sulle query difficili crolla a zero, senza pretendere che il keyword-only le risolva tutte. Il gate CI resta sulla modalita' keyword-only: la modalita' `--semantic` non e' ancora adatta a un default di prodotto (vedi sopra) e comunque richiederebbe Ollama in CI, non disponibile.
 
 ## Cosa NON misura ancora
 
 - La qualita' di generazione LLM quando `assistant_mode` e' `local_ollama`/`approved_openrouter` — questa valutazione misura solo il retrieval, il requisito che viene prima.
 - Il comportamento su versioni ripristinate o casi di accesso negato tra librerie.
-- Il numero reale della modalita' `--semantic` (richiede Ollama locale attivo — rieseguire `python evaluation/run_library_eval.py --semantic` per ottenerlo).
+- Una soglia di coseno-similarita' che non sacrifichi l'astensione per guadagnare sulle parafrasi — vedi l'implicazione pratica sopra.
 
 Prima di una release pubblica, il golden set dovrebbe crescere ulteriormente con query derivate dal corpus demo fittizio della Fase D del roadmap (`docs/ROADMAP_V2.md`), non solo dal corpus sintetico qui sopra.

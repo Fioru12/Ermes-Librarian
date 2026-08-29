@@ -15,6 +15,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from config import cfg
+from core.library_embeddings import embed_texts
 from core.library_store import LibraryStore
 
 ROOT = Path(__file__).resolve().parent
@@ -55,7 +56,15 @@ def build_demo_store(database_path: Path) -> tuple[LibraryStore, dict[str, str]]
         library = store.create_library(name, "Corpus dimostrativo fittizio", "shared", owner_id="demo")
         libraries[name] = library["id"]
         content = "\n".join(text for text, _ in chunks).encode("utf-8")
-        store.add_document(library["id"], filename, "text/markdown", content, f"/demo/{filename}", chunks=chunks)
+        document = store.add_document(library["id"], filename, "text/markdown", content, f"/demo/{filename}", chunks=chunks)
+        # Mirrors core/ingestion_service.py: add_document only stores chunk text,
+        # never embeddings. Without this, search_with_profile has no vector to
+        # compare against and silently stays in keyword mode regardless of
+        # --semantic or Ollama's availability — found while trying to actually
+        # measure the semantic recall number this script was built to report.
+        embeddings = embed_texts([text for text, _ in chunks])
+        if embeddings:
+            store.store_chunk_embeddings(library["id"], document["id"], embeddings, cfg.EMBED_MODEL_ID)
     return store, libraries
 
 
@@ -68,11 +77,15 @@ def _recall(details: list[dict], type_filter: str | None = None) -> float | None
 
 def evaluate(gold_set: list[dict], limit: int | None = None, semantic: bool = False) -> dict:
     cases = gold_set[:limit] if limit else gold_set
-    if semantic:
-        # cfg is a frozen dataclass singleton shared with core.library_store /
-        # core.library_embeddings; this is the standard way to flip one flag
-        # on an already-constructed frozen instance without reconstructing it.
-        object.__setattr__(cfg, "LIBRARY_SEMANTIC_SEARCH_ENABLED", True)
+    # cfg is a frozen dataclass singleton shared with core.library_store /
+    # core.library_embeddings; this is the standard way to flip one flag on an
+    # already-constructed frozen instance without reconstructing it. Set
+    # unconditionally, not just when semantic=True: a local .env with
+    # ERMES_LIBRARY_SEMANTIC_SEARCH=1 (set for other manual testing) would
+    # otherwise leak into the supposedly keyword-only default path, making
+    # this "deterministic, safe for CI" evaluation silently depend on ambient
+    # environment state instead of the --semantic flag actually passed.
+    object.__setattr__(cfg, "LIBRARY_SEMANTIC_SEARCH_ENABLED", semantic)
     with tempfile.TemporaryDirectory(prefix="ermes-library-eval-") as temp_dir:
         store, libraries = build_demo_store(Path(temp_dir) / "library.sqlite3")
         details = []
