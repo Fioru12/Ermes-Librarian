@@ -69,6 +69,25 @@ def test_local_search_matches_simple_singular_plural_variants(tmp_path: Path):
     assert results[0]["citation"]["locator"] == "Sezione: Ferie"
 
 
+def test_local_search_does_not_collapse_unrelated_words_ending_in_different_vowels(tmp_path: Path):
+    """Trovato mentre si misurava per la prima volta il numero reale
+    dell'eval sulle query di astensione: _search_token troncava QUALSIASI
+    vocale finale, quindi "lavora" (verbo) e "lavoro" (sostantivo)
+    collassavano entrambe su "lavor" -- una domanda su chi "lavora sempre
+    da casa" trovava per errore un passaggio che parla di tutt'altro (le
+    assenze per malattia) solo perche' conteneva "lavoro"."""
+    store = LibraryStore(tmp_path / "false_stem_collision.sqlite3")
+    library = store.create_library("Procedure")
+    store.add_document(
+        library["id"], "assenze.md", "text/markdown", b"assenze", "/tmp/assenze",
+        chunks=[("Il certificato di malattia va caricato entro tre giorni dal primo giorno di lavoro.", "Sezione: Assenze")],
+    )
+
+    results = store.search_documents(library["id"], "Che cosa succede se un collega lavora sempre da casa?")
+
+    assert results == []
+
+
 def test_local_search_does_not_treat_common_question_words_as_evidence(tmp_path: Path):
     store = LibraryStore(tmp_path / "abstention.sqlite3")
     library = store.create_library("Procedure")

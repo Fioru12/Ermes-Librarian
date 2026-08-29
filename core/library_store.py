@@ -278,12 +278,23 @@ class LibraryStore:
     def _search_token(token: str) -> str:
         """Small deterministic Italian-friendly normalization for MVP search.
 
-        It deliberately is not a linguistic model; trimming a terminal vowel
-        avoids missing obvious forms such as ``richiesta`` / ``richieste``
-        while semantic retrieval remains an optional later ranking signal.
+        It deliberately is not a linguistic model; trimming a terminal ``a``/
+        ``e`` avoids missing obvious feminine singular/plural forms such as
+        ``richiesta`` / ``richieste`` while semantic retrieval remains an
+        optional later ranking signal.
+
+        Found in review: trimming *any* trailing vowel (the original ``in
+        "aeiou"`` check) collapsed unrelated words that merely happen to end
+        in different vowels onto the same stem — ``lavora`` (verb, "works")
+        and ``lavoro`` (noun, "job") both became ``lavor``, causing a
+        false-positive match on an abstention query that should have found
+        nothing. Restricting the trim to ``a``/``e`` keeps the one pairing
+        this heuristic is actually meant for (feminine singular/plural) while
+        no longer touching ``-o``/``-i``/``-u`` endings, which is where the
+        verb/noun collisions come from.
         """
         normalized = token.lower()
-        return normalized[:-1] if len(normalized) > 4 and normalized[-1] in "aeiou" else normalized
+        return normalized[:-1] if len(normalized) > 4 and normalized[-1] in "ae" else normalized
 
     @staticmethod
     def _can_access(library: dict, actor: dict | None, write: bool = False, member_role: str | None = None) -> bool:
