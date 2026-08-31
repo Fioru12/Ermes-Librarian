@@ -143,6 +143,25 @@ def test_source_registration_requires_ownership_not_just_a_role(tmp_path, monkey
     assert again.status_code == 409
 
 
+def test_listing_sources_is_denied_to_a_non_member_of_a_private_library(tmp_path, monkeypatch):
+    """Trovato debuggando il progetto: list_import_sources chiamava
+    self.get_library(library_id) senza l'attore, quindi _can_access
+    restituiva sempre True (il "system bypass" per actor=None) -- un
+    utente autenticato ma senza alcuna relazione con la biblioteca privata
+    poteva leggere i veri percorsi filesystem registrati come sorgenti,
+    esattamente il tipo di dato che questa registrazione dovrebbe
+    proteggere. /documents applicava gia' correttamente il 404; /sources
+    no. Riprodotto con un percorso plausibile prima di correggere."""
+    client, store, library, test_cfg = _setup_library(tmp_path, monkeypatch, visibility="private")
+    client.post(f"/api/libraries/{library['id']}/sources", json={"path": str(tmp_path / "server" / "hr")})
+
+    stranger_client = _login_as(test_cfg, "mallory", "viewer", "StrongViewer!123")
+    denied = stranger_client.get(f"/api/libraries/{library['id']}/sources")
+    assert denied.status_code == 404
+
+    assert client.get(f"/api/libraries/{library['id']}/sources").status_code == 200
+
+
 def test_editor_member_cannot_use_another_librarys_storage_as_a_source(tmp_path, monkeypatch):
     """Riproduce e chiude il bypass descritto nel docstring del modulo."""
     client, store, private_library, test_cfg = _setup_library(tmp_path, monkeypatch, visibility="private")

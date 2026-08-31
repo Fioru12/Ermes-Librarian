@@ -806,8 +806,8 @@ class LibraryStore:
             raise LibraryNotFoundError(source_id)
         return self._row(row)
 
-    def list_import_sources(self, library_id: str) -> list[dict]:
-        self.get_library(library_id)
+    def list_import_sources(self, library_id: str, actor: dict | None = None) -> list[dict]:
+        self.get_library(library_id, actor)
         with self._connection() as connection:
             rows = connection.execute(
                 "SELECT * FROM import_sources WHERE library_id = ? ORDER BY created_at",
@@ -868,8 +868,8 @@ class LibraryStore:
             ).fetchone()
         return self._row(row) if row is not None else None
 
-    def list_chat_integrations(self, library_id: str) -> list[dict]:
-        self.get_library(library_id)
+    def list_chat_integrations(self, library_id: str, actor: dict | None = None) -> list[dict]:
+        self.get_library(library_id, actor)
         with self._connection() as connection:
             rows = connection.execute(
                 "SELECT * FROM chat_integrations WHERE library_id = ? ORDER BY created_at",

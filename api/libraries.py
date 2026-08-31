@@ -490,7 +490,7 @@ def list_library_sources(
     store: LibraryStore = Depends(get_library_store),
 ):
     try:
-        return {"items": store.list_import_sources(library_id)}
+        return {"items": store.list_import_sources(library_id, _auth)}
     except (LibraryNotFoundError, LibraryAccessError) as error:
         raise HTTPException(status_code=404, detail="Biblioteca non trovata") from error
 
@@ -612,7 +612,7 @@ def list_library_chat_integrations(
     store: LibraryStore = Depends(get_library_store),
 ):
     try:
-        return {"items": store.list_chat_integrations(library_id)}
+        return {"items": store.list_chat_integrations(library_id, _auth)}
     except (LibraryNotFoundError, LibraryAccessError) as error:
         raise HTTPException(status_code=404, detail="Biblioteca non trovata") from error
 

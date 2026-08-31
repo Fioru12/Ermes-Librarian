@@ -80,6 +80,20 @@ def test_integration_registration_requires_ownership_not_just_a_role(tmp_path, m
     assert denied_remove.status_code == 403
 
 
+def test_listing_integrations_is_denied_to_a_non_member_of_a_private_library(tmp_path, monkeypatch):
+    """Stesso bug e stessa causa di quello trovato in list_import_sources
+    (vedi tests/test_folder_import.py): copiato per mirroring in
+    list_chat_integrations, che chiamava get_library senza l'attore."""
+    client, store, library, test_cfg = _setup_library(tmp_path, monkeypatch, visibility="private")
+    client.post(f"/api/libraries/{library['id']}/integrations", json={"platform": "slack", "external_channel_id": "C1"})
+
+    stranger_client = _login_as(test_cfg, "mallory", "viewer", "StrongViewer!123")
+    denied = stranger_client.get(f"/api/libraries/{library['id']}/integrations")
+    assert denied.status_code == 404
+
+    assert client.get(f"/api/libraries/{library['id']}/integrations").status_code == 200
+
+
 def test_a_channel_can_only_be_bound_to_one_library(tmp_path, monkeypatch):
     client, store, library, test_cfg = _setup_library(tmp_path, monkeypatch)
     other = client.post("/api/libraries", json={"name": "Altra", "visibility": "private"}).json()
