@@ -280,6 +280,13 @@ def _answer_question(store: LibraryStore, library_id: str, question: str, top_k:
     try:
         library = store.get_library(library_id, actor)
         citations, retrieval_profile = store.search_with_profile(library_id, question, limit=top_k, actor=actor)
+        if not citations:
+            from core.query_expander import expand_query
+            expanded_queries = expand_query(question)
+            for eq in expanded_queries[1:]:
+                citations, retrieval_profile = store.search_with_profile(library_id, eq, limit=top_k, actor=actor)
+                if citations:
+                    break
     except (LibraryNotFoundError, LibraryAccessError) as error:
         raise HTTPException(status_code=404, detail="Biblioteca non trovata") from error
     if not citations:
