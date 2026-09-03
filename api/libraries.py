@@ -287,6 +287,11 @@ def _answer_question(store: LibraryStore, library_id: str, question: str, top_k:
                 citations, retrieval_profile = store.search_with_profile(library_id, eq, limit=top_k, actor=actor)
                 if citations:
                     break
+        if not citations:
+            from core.hyde import generate_hypothetical_document
+            hyde_passage = generate_hypothetical_document(question, mode=library.get("assistant_mode"))
+            if hyde_passage and hyde_passage != question:
+                citations, retrieval_profile = store.search_with_profile(library_id, hyde_passage, limit=top_k, actor=actor)
     except (LibraryNotFoundError, LibraryAccessError) as error:
         raise HTTPException(status_code=404, detail="Biblioteca non trovata") from error
     if not citations:

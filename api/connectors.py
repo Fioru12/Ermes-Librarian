@@ -137,3 +137,33 @@ def sync_connector(
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Errore sincronizzazione connettore: {e}") from e
+
+
+@router.get("/watcher/status", summary="Stato del demone Folder Watcher per cartelle condivise/NAS")
+def get_watcher_status(
+    _auth: dict = Depends(_require_role("editor")),
+    store: LibraryStore = Depends(get_library_store),
+) -> dict:
+    sources = store.list_all_import_sources()
+    return {
+        "active": True,
+        "monitored_sources_count": len(sources),
+        "sources": sources,
+    }
+
+
+@router.post("/watcher/sync", summary="Forza la sincronizzazione immediata di tutte le cartelle monitorate")
+def sync_watcher_now(
+    _auth: dict = Depends(_require_role("editor")),
+    store: LibraryStore = Depends(get_library_store),
+) -> dict:
+    from core.folder_watcher import sync_all_sources
+    result = sync_all_sources(store=store)
+    append_audit(
+        cfg.AUDIT_FILE,
+        "folder_watcher_manual_sync",
+        _auth["username"],
+        result,
+    )
+    return {"ok": True, "result": result}
+

@@ -145,8 +145,26 @@ async def lifespan(app: FastAPI):
     if cfg.BACKUP_ENABLED:
         _backup_task = asyncio.create_task(_backup_scheduler())
 
+    # ── Avvia Folder Watcher daemon thread ──
+    _watcher_stop_event = threading.Event()
+    _watcher_thread = None
+    try:
+        from api.libraries import get_library_store
+        from core.folder_watcher import start_folder_watcher_thread
+        _watcher_thread = start_folder_watcher_thread(
+            store=get_library_store(),
+            storage_dir=cfg.LIBRARY_STORAGE_DIR,
+            interval_sec=getattr(cfg, "FOLDER_WATCHER_INTERVAL_SEC", 30),
+            stop_event=_watcher_stop_event,
+        )
+        _logger.info("Folder Watcher daemon thread avviato con successo.")
+    except Exception as watcher_err:
+        _logger.warning("Impossibile avviare Folder Watcher thread: %s", watcher_err)
+
     yield
 
+    if _watcher_stop_event is not None:
+        _watcher_stop_event.set()
     if _backup_task is not None:
         _backup_task.cancel()
     global _http_client
