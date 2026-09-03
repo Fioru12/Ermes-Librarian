@@ -1,13 +1,14 @@
 """Libraries and document inventory endpoints for Ermes Knowledge."""
 from __future__ import annotations
 
+import os
 import uuid
 from datetime import UTC, datetime
 from io import BytesIO
 from pathlib import Path
 from typing import Literal
 
-from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
@@ -62,7 +63,7 @@ class ImportSourceRequest(BaseModel):
 
 
 class ChatIntegrationRequest(BaseModel):
-    platform: Literal["slack", "teams"]
+    platform: Literal["slack", "teams", "telegram"]
     external_channel_id: str = Field(min_length=1, max_length=500)
 
 
@@ -274,14 +275,28 @@ def _answer_question(store: LibraryStore, library_id: str, question: str, top_k:
     both must go through the same access checks and the same evidence-only
     guarantee, so this is the only place that logic is allowed to live.
     """
+    import time
+    t0 = time.perf_counter()
     try:
         library = store.get_library(library_id, actor)
         citations, retrieval_profile = store.search_with_profile(library_id, question, limit=top_k, actor=actor)
     except (LibraryNotFoundError, LibraryAccessError) as error:
         raise HTTPException(status_code=404, detail="Biblioteca non trovata") from error
     if not citations:
+        latency_ms = (time.perf_counter() - t0) * 1000.0
+        from core.analytics import record_query_event
+        ans_id = record_query_event(
+            query=question,
+            library_id=library_id,
+            actor=actor.get("username", "anonymous"),
+            result_count=0,
+            latency_ms=latency_ms,
+            coverage="insufficient_evidence",
+            assistant_mode=library["assistant_mode"],
+            fallback_reason="Nessun passaggio corrispondente recuperato.",
+        )
         return {
-            "answer_id": str(uuid.uuid4()),
+            "answer_id": ans_id,
             "library": {"id": library["id"], "name": library["name"]},
             "question": question,
             "answer": "Non ho trovato evidenza sufficiente nella biblioteca selezionata. Prova con parole più specifiche oppure carica il documento pertinente.",
@@ -293,12 +308,24 @@ def _answer_question(store: LibraryStore, library_id: str, question: str, top_k:
     answer, coverage, reason = answer_from_evidence(
         question, citations, mode=library["assistant_mode"], provider_name=library.get("assistant_provider", ""),
     )
+    latency_ms = (time.perf_counter() - t0) * 1000.0
+    from core.analytics import record_query_event
+    ans_id = record_query_event(
+        query=question,
+        library_id=library_id,
+        actor=actor.get("username", "anonymous"),
+        result_count=len(citations),
+        latency_ms=latency_ms,
+        coverage=coverage,
+        assistant_mode=library["assistant_mode"],
+        fallback_reason=reason,
+    )
     append_audit(
         cfg.AUDIT_FILE, "library_answer", actor["username"],
         {"library_id": library_id, "assistant_mode": library["assistant_mode"], "assistant_provider": library.get("assistant_provider", ""), "retrieval_profile": retrieval_profile["mode"], "citation_count": len(citations), "coverage": coverage},
     )
     return {
-        "answer_id": str(uuid.uuid4()),
+        "answer_id": ans_id,
         "library": {"id": library["id"], "name": library["name"]},
         "question": question,
         "answer": answer,
@@ -856,3 +883,117 @@ def restore_document_version(
         source_units=len(source_units),
         chunks=chunk_source_units(source_units),
     )
+
+
+@router.get("/{library_id}/export")
+def export_library_endpoint(
+    library_id: str,
+    _auth: dict = Depends(_require_role("viewer")),
+    store: LibraryStore = Depends(get_library_store),
+):
+    """Export the entire library with documents and chunks as a downloadable .ermes pack."""
+    import tempfile
+    from fastapi.responses import FileResponse
+    from core.library_pack import export_library_pack
+
+    try:
+        library = store.get_library(library_id, _auth)
+    except (LibraryNotFoundError, LibraryAccessError) as error:
+        raise HTTPException(status_code=404, detail="Biblioteca non trovata") from error
+
+    temp_pack = tempfile.NamedTemporaryFile(suffix=".ermes", delete=False)
+    temp_pack.close()
+
+    try:
+        pack_path = export_library_pack(
+            store=store,
+            library_id=library_id,
+            storage_dir=cfg.LIBRARY_STORAGE_DIR,
+            output_path=temp_pack.name,
+            actor=_auth,
+        )
+        safe_name = "".join(c for c in library["name"] if c.isalnum() or c in "._ -").strip() or "biblioteca"
+        filename = f"{safe_name}.ermes"
+        append_audit(cfg.AUDIT_FILE, "library_exported", _auth["username"], {"library_id": library_id, "name": library["name"]})
+        return FileResponse(
+            path=pack_path,
+            filename=filename,
+            media_type="application/gzip",
+        )
+    except Exception as error:
+        if os.path.exists(temp_pack.name):
+            try:
+                os.unlink(temp_pack.name)
+            except OSError:
+                pass
+        raise HTTPException(status_code=500, detail=f"Errore durante l'esportazione: {error}") from error
+
+
+@router.post("/import-pack", status_code=201)
+async def import_library_pack_endpoint(
+    file: UploadFile = File(...),
+    name: str = Form(""),
+    _auth: dict = Depends(_require_role("editor")),
+    store: LibraryStore = Depends(get_library_store),
+):
+    """Import a .ermes knowledge pack and create a new library with full indexing."""
+    import tempfile
+    from core.library_pack import import_library_pack, KnowledgePackError
+
+    temp_pack = tempfile.NamedTemporaryFile(suffix=".ermes", delete=False)
+    try:
+        content = await file.read()
+        temp_pack.write(content)
+        temp_pack.close()
+
+        library = import_library_pack(
+            store=store,
+            pack_path=temp_pack.name,
+            storage_dir=cfg.LIBRARY_STORAGE_DIR,
+            owner_id=_auth["username"],
+            override_name=name,
+        )
+        append_audit(cfg.AUDIT_FILE, "library_pack_imported", _auth["username"], {"library_id": library["id"], "name": library["name"]})
+        return library
+    except KnowledgePackError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+    except Exception as error:
+        raise HTTPException(status_code=500, detail=f"Errore durante l'importazione: {error}") from error
+    finally:
+        if os.path.exists(temp_pack.name):
+            try:
+                os.unlink(temp_pack.name)
+            except OSError:
+                pass
+
+
+@router.get("/{library_id}/duplicates")
+def get_library_duplicates_endpoint(
+    library_id: str,
+    _auth: dict = Depends(_require_role("viewer")),
+    store: LibraryStore = Depends(get_library_store),
+):
+    """Rileva documenti identici o con forte sovrapposizione testuale (near-duplicates)."""
+    from core.deduplication import find_library_duplicates
+
+    try:
+        store.get_library(library_id, _auth)
+    except (LibraryNotFoundError, LibraryAccessError) as error:
+        raise HTTPException(status_code=404, detail="Biblioteca non trovata") from error
+    docs = store.list_documents(library_id, _auth)
+    enriched_docs = []
+    for d in docs:
+        full_doc = store.get_document(library_id, d["id"], _auth)
+        if full_doc:
+            chunks = full_doc.get("chunks", [])
+            text = " ".join(c[0] for c in chunks if isinstance(c, (list, tuple)) and c)
+            enriched_docs.append({
+                "id": d["id"],
+                "filename": d.get("filename", ""),
+                "text": text,
+            })
+
+    duplicates = find_library_duplicates(enriched_docs)
+    return {"duplicates": duplicates, "total_groups": len(duplicates)}
+
+

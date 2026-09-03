@@ -2,6 +2,15 @@
 
 Registro leggibile del lavoro su questo progetto. Per il dettaglio fase-per-fase con motivazioni, vedi [docs/ROADMAP_V2.md](docs/ROADMAP_V2.md); per i finding tecnici completi, [docs/AUDIT_2026-08-19.md](docs/AUDIT_2026-08-19.md) e [docs/CODE_REVIEW.md](docs/CODE_REVIEW.md).
 
+## 2026-09-03 — Integrazioni Enterprise & Agenti AI
+
+- **Connettore Cartelle NAS / Locali (`LocalFolderConnector`)**: implementata la scansione ed ingestion automatica da percorsi locali e mount di rete SMB/NFS (`core/connectors/local_folder.py`), con dispatching dinamico su `POST /api/connectors/test` e `POST /api/connectors/sync`.
+- **Server MCP (Model Context Protocol)**: esposta l'interfaccia MCP nativa (`api/mcp_server.py`) su `/api/mcp/rpc` (JSON-RPC 2.0) e `/api/mcp/tools` (REST), consentendo a Claude Desktop, Cursor, Antigravity e LangChain di interrogare Ermes in modalità evidence-first.
+- **Gateway Webhook per Automazioni (n8n / Zapier / Make)**: implementati gli endpoint `/api/integrations/automation/ask` e `/api/integrations/automation/ingest` in `api/webhook_gateway.py` con autenticazione via API Key.
+- **Adattatore Telegram Bot Webhook**: aggiunto l'endpoint `/api/integrations/telegram` in `api/chat_webhooks.py` con verifica del token segreto `X-Telegram-Bot-Api-Secret-Token` per risposte RAG su Telegram.
+- **Nuova Scheda UI React "Connettori & Automazioni"**: sviluppato il componente [`frontend/src/components/connectors/ConnectorsTab.tsx`](file:///c:/Progetti/ProgettoRAG_DEV/frontend/src/components/connectors/ConnectorsTab.tsx) per testare e sincronizzare cartelle NAS, avviare lo scraper web, visualizzare snippet JSON per MCP Server ed esempi per n8n.
+- **Suite di Test**: 248 test backend (`pytest`) e 62 test frontend (`vitest`) superati con esito 100% positivo.
+
 ## 2026-08-20
 
 - **Revisione sistematica del codice** ([docs/CODE_REVIEW.md](docs/CODE_REVIEW.md)): partita da tre bug nello script di avvio che si sono rivelati la stessa causa radice — il *fallimento silenzioso*, cioè un controllo che riporta successo senza aver verificato nulla. Cercata quella categoria in tutto il repository invece dei tre casi singoli.

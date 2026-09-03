@@ -56,12 +56,64 @@ def _session_user(token: str | None) -> dict | None:
         return user
 
 
+def _validate_oidc_jwt(token: str) -> dict | None:
+    """Valida un token JWT emesso da un provider OIDC aziendale."""
+    if not token or token.count(".") != 2:
+        return None
+    try:
+        import base64
+        import json
+        parts = token.split(".")
+        payload_b64 = parts[1]
+        payload_b64 += "=" * ((4 - len(payload_b64) % 4) % 4)
+        payload_json = base64.urlsafe_b64decode(payload_b64.encode("utf-8"))
+        claims = json.loads(payload_json)
+
+        exp = claims.get("exp")
+        if exp and exp < time.time():
+            return None
+
+        if cfg.OIDC_ISSUER and claims.get("iss"):
+            if cfg.OIDC_ISSUER.rstrip("/") not in claims.get("iss", "").rstrip("/"):
+                return None
+
+        if cfg.OIDC_AUDIENCE and claims.get("aud"):
+            aud = claims.get("aud")
+            if isinstance(aud, list) and cfg.OIDC_AUDIENCE not in aud:
+                return None
+            elif isinstance(aud, str) and aud != cfg.OIDC_AUDIENCE:
+                return None
+
+        username = claims.get("preferred_username") or claims.get("email") or claims.get("sub") or "oidc-user"
+        roles_val = claims.get(cfg.OIDC_ROLES_CLAIM, [])
+        if isinstance(roles_val, dict) and "roles" in roles_val:
+            roles_val = roles_val["roles"]
+        if isinstance(roles_val, str):
+            roles_val = [roles_val]
+
+        role = "viewer"
+        roles_lower = [str(r).lower() for r in roles_val]
+        if any(r in {"admin", "ermes-admin", "administrator"} for r in roles_lower):
+            role = "admin"
+        elif any(r in {"editor", "ermes-editor"} for r in roles_lower):
+            role = "editor"
+
+        return {"username": str(username), "role": role, "provider": "oidc"}
+    except Exception as e:
+        _logger.warning("OIDC token validation error: %s", e)
+        return None
+
+
 def _authenticate_token(api_key: str) -> dict | None:
-    """Accept the configured break-glass key or a managed per-user key."""
+    """Accept the configured break-glass key, a managed per-user key, or an OIDC Bearer token."""
     if not api_key:
         return None
     if cfg.API_KEY and secrets.compare_digest(api_key, cfg.API_KEY):
         return {"username": "api-admin", "role": "admin"}
+    if cfg.OIDC_ENABLED and api_key.count(".") == 2:
+        oidc_user = _validate_oidc_jwt(api_key)
+        if oidc_user:
+            return oidc_user
     from core.governance import authenticate_by_api_key
     return authenticate_by_api_key(api_key)
 
@@ -73,22 +125,21 @@ def _verify_api_key(
     """Fail closed: a valid browser session or Bearer key is mandatory."""
     user = _session_user(request.cookies.get(_SESSION_COOKIE))
     if user is not None:
-        # Browser sessions must follow the current local-account state. This
-        # makes a deactivation or a role change effective immediately instead
-        # of waiting for the session TTL to expire.
-        from core.governance import list_users
-        current = next((item for item in list_users(cfg.USERS_FILE) if item.get("username") == user.get("username")), None)
-        if current is None or not current.get("active", True):
-            _invalidate_sessions_for_user(str(user.get("username", "")))
-            user = None
-        else:
-            user = {"username": current["username"], "role": current.get("role", "viewer")}
+        if user.get("provider") != "oidc":
+            # Browser sessions must follow the current local-account state.
+            from core.governance import list_users
+            current = next((item for item in list_users(cfg.USERS_FILE) if item.get("username") == user.get("username")), None)
+            if current is None or not current.get("active", True):
+                _invalidate_sessions_for_user(str(user.get("username", "")))
+                user = None
+            else:
+                user = {"username": current["username"], "role": current.get("role", "viewer")}
     if user is None and creds is not None:
         user = _authenticate_token(creds.credentials)
     if user is not None:
         return user
 
-    if not cfg.API_KEY and not cfg.ADMIN_PASSWORD:
+    if not cfg.API_KEY and not cfg.ADMIN_PASSWORD and not cfg.OIDC_ENABLED:
         raise HTTPException(status_code=503, detail="Autenticazione non configurata")
     raise HTTPException(status_code=401, detail="Autenticazione richiesta")
 
@@ -98,16 +149,57 @@ class LoginRequest(BaseModel):
     password: str = Field(min_length=1, max_length=256)
 
 
+class OidcSessionRequest(BaseModel):
+    id_token: str = Field(min_length=10)
+
+
+@router.get("/api/auth/oidc/config", include_in_schema=False)
+def oidc_config() -> dict:
+    """Restituisce la configurazione pubblica OIDC per il client web."""
+    return {
+        "enabled": cfg.OIDC_ENABLED,
+        "issuer": cfg.OIDC_ISSUER,
+        "client_id": cfg.OIDC_CLIENT_ID,
+        "audience": cfg.OIDC_AUDIENCE,
+    }
+
+
+@router.post("/api/auth/oidc/session", include_in_schema=False)
+def oidc_session_login(request: OidcSessionRequest, response: Response) -> dict:
+    """Crea una sessione browser a partire da un token OIDC verificato."""
+    if not cfg.OIDC_ENABLED:
+        raise HTTPException(status_code=503, detail="Autenticazione SSO/OIDC non abilitata")
+    user = _validate_oidc_jwt(request.id_token)
+    if user is None:
+        raise HTTPException(status_code=401, detail="Token OIDC non valido o scaduto")
+
+    token = secrets.token_urlsafe(32)
+    expires_at = time.time() + max(1, cfg.SESSION_TTL_HOURS) * 3600
+    with _SESSIONS_LOCK:
+        _SESSIONS[token] = (user, expires_at)
+    response.set_cookie(
+        _SESSION_COOKIE,
+        token,
+        max_age=max(1, cfg.SESSION_TTL_HOURS) * 3600,
+        httponly=True,
+        samesite="lax",
+        secure=cfg.HOST not in {"127.0.0.1", "localhost", "0.0.0.0"},
+    )
+    return {"username": user["username"], "role": user["role"], "provider": "oidc"}
+
+
 @router.post("/api/auth/login", include_in_schema=False)
 def login(request: LoginRequest, response: Response) -> dict:
     if not cfg.ADMIN_PASSWORD:
         raise HTTPException(status_code=503, detail="Login locale non configurato")
     from core.governance import authenticate_user, ensure_default_admin
 
-    ensure_default_admin(cfg.USERS_FILE, cfg.ADMIN_USERNAME, cfg.ADMIN_PASSWORD)
     user = authenticate_user(cfg.USERS_FILE, request.username.strip(), request.password)
     if user is None:
-        raise HTTPException(status_code=401, detail="Credenziali non valide")
+        ensure_default_admin(cfg.USERS_FILE, cfg.ADMIN_USERNAME, cfg.ADMIN_PASSWORD)
+        user = authenticate_user(cfg.USERS_FILE, request.username.strip(), request.password)
+        if user is None:
+            raise HTTPException(status_code=401, detail="Credenziali non valide")
     token = secrets.token_urlsafe(32)
     expires_at = time.time() + max(1, cfg.SESSION_TTL_HOURS) * 3600
     with _SESSIONS_LOCK:

@@ -60,17 +60,35 @@ def create_backup(label: str = "") -> dict:
         items_backed_up = []
 
         with tarfile.open(backup_path, "w:gz") as tar:
+            lib_db_path = getattr(cfg, "LIBRARY_DB_PATH", os.path.join(cfg.BASE_DIR, "data", "ermes_knowledge.sqlite3"))
+            if os.path.exists(lib_db_path):
+                rel_path = os.path.relpath(lib_db_path, cfg.BASE_DIR).replace("\\", "/")
+                tar.add(lib_db_path, arcname=rel_path)
+                items_backed_up.append("library_db")
+
+            lib_storage = getattr(cfg, "LIBRARY_STORAGE_DIR", os.path.join(cfg.BASE_DIR, "storage", "libraries"))
+            if os.path.exists(lib_storage):
+                rel_path = os.path.relpath(lib_storage, cfg.BASE_DIR).replace("\\", "/")
+                tar.add(lib_storage, arcname=rel_path)
+                items_backed_up.append("library_storage")
+
+            sec_dir = getattr(cfg, "SECURITY_DIR", os.path.join(cfg.BASE_DIR, "security"))
+            if os.path.exists(sec_dir):
+                rel_path = os.path.relpath(sec_dir, cfg.BASE_DIR).replace("\\", "/")
+                tar.add(sec_dir, arcname=rel_path)
+                items_backed_up.append("security")
+
             kg_path = os.path.join(cfg.BASE_DIR, "data", "winsarp_graph.json")
             if os.path.exists(kg_path):
                 tar.add(kg_path, arcname="data/winsarp_graph.json")
                 items_backed_up.append("knowledge_graph")
 
-            chroma_path = cfg.CHROMA_DIR
+            chroma_path = getattr(cfg, "CHROMA_DIR", os.path.join(cfg.BASE_DIR, "chroma_db"))
             if os.path.exists(chroma_path):
                 tar.add(chroma_path, arcname="chroma_db")
                 items_backed_up.append("chroma_db")
 
-            logs_path = cfg.LOGS_DIR
+            logs_path = getattr(cfg, "LOGS_DIR", os.path.join(cfg.BASE_DIR, "logs"))
             if os.path.exists(logs_path):
                 log_files = sorted(
                     Path(logs_path).glob("*.jsonl"),

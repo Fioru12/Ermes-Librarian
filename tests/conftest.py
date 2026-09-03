@@ -7,11 +7,13 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
+import gc
 import json
 import shutil
 import tempfile
-from pathlib import Path
 from collections.abc import Generator
+from pathlib import Path
+from typing import Any, cast
 
 import pytest
 
@@ -52,6 +54,7 @@ def pytest_collection_modifyitems(config, items):
 def temp_dir() -> Generator[Path, None, None]:
     tmp = Path(tempfile.mkdtemp())
     yield tmp
+    gc.collect()
     shutil.rmtree(tmp, ignore_errors=True)
 
 
@@ -87,10 +90,11 @@ def sample_env(temp_dir: Path) -> Generator[dict, None, None]:
         os.environ[k] = v
     yield env
     for k in env:
-        if old.get(k) is None:
+        old_val = old.get(k)
+        if old_val is None:
             os.environ.pop(k, None)
         else:
-            os.environ[k] = old[k]
+            os.environ[k] = old_val
 
 
 @pytest.fixture
@@ -111,10 +115,11 @@ VF
 
 
 @pytest.fixture
-def golden_set() -> list[dict]:
+def golden_set() -> list[dict[str, Any]]:
     """Carica il golden set di valutazione."""
     gs_path = Path(__file__).parent.parent / "evaluation" / "gold_set.json"
     if not gs_path.exists():
         pytest.skip("gold_set.json non trovato")
     with open(gs_path, encoding="utf-8") as f:
-        return json.load(f)
+        data = json.load(f)
+        return cast(list[dict[str, Any]], data)

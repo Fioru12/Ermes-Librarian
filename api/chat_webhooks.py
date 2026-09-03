@@ -171,3 +171,34 @@ async def teams_webhook(request: Request):
     store = get_library_store()
     answer = await _resolve_answer_text(store, "teams", channel_id, text)
     return {"type": "message", "text": answer}
+
+
+@router.post("/telegram", summary="Webhook per Telegram Bot API")
+async def telegram_webhook(request: Request):
+    if not cfg.TELEGRAM_BOT_TOKEN:
+        raise HTTPException(503, "Integrazione Telegram non configurata (ERMES_TELEGRAM_BOT_TOKEN)")
+
+    secret_token = request.headers.get("X-Telegram-Bot-Api-Secret-Token", "")
+    if secret_token and secret_token != cfg.TELEGRAM_BOT_TOKEN:
+        raise HTTPException(403, "Token segreto Telegram non valido")
+
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(400, "Body JSON non valido")
+
+    message = body.get("message") or body.get("edited_message") or {}
+    chat_id = str((message.get("chat") or {}).get("id", ""))
+    text = (message.get("text") or "").strip()
+
+    if not chat_id:
+        return {"ok": True}
+
+    store = get_library_store()
+    answer = await _resolve_answer_text(store, "telegram", chat_id, text)
+
+    return {
+        "method": "sendMessage",
+        "chat_id": chat_id,
+        "text": answer,
+    }

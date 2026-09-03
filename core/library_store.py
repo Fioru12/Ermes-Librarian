@@ -17,7 +17,9 @@ from contextlib import contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
 
+from config import cfg
 from core.library_embeddings import cosine_similarity, embed_texts, min_semantic_score
+from core.query_expander import expand_query
 
 # Common function words must not become the only "evidence" for a RAG answer.
 # This compact local-first baseline deliberately keeps a conservative bilingual
@@ -100,10 +102,11 @@ class LibraryStore:
         `sqlite3.Connection.__exit__` commits but does not close; leaving it
         open keeps Windows file handles alive and blocks cleanup/backup.
         """
-        connection = sqlite3.connect(self.database_path)
+        connection = sqlite3.connect(self.database_path, timeout=10.0)
         connection.row_factory = sqlite3.Row
         connection.execute("PRAGMA foreign_keys = ON")
-        connection.execute("PRAGMA busy_timeout = 5000")
+        connection.execute("PRAGMA busy_timeout = 10000")
+        connection.execute("PRAGMA synchronous = NORMAL")
         try:
             yield connection
             connection.commit()
@@ -115,6 +118,7 @@ class LibraryStore:
 
     def _initialize(self) -> None:
         with self._lock, self._connection() as connection:
+            connection.execute("PRAGMA journal_mode = WAL")
             connection.executescript(
                 """
                 PRAGMA foreign_keys = ON;
@@ -232,6 +236,36 @@ class LibraryStore:
                 );
                 CREATE INDEX IF NOT EXISTS chat_integrations_by_library
                     ON chat_integrations(library_id);
+
+                CREATE VIRTUAL TABLE IF NOT EXISTS document_chunks_fts USING fts5(
+                    chunk_id UNINDEXED,
+                    document_id UNINDEXED,
+                    library_id UNINDEXED,
+                    filename,
+                    text,
+                    source_locator UNINDEXED,
+                    tokenize = 'unicode61 remove_diacritics 2'
+                );
+
+                CREATE TRIGGER IF NOT EXISTS trg_document_chunks_fts_ai AFTER INSERT ON document_chunks
+                BEGIN
+                    INSERT INTO document_chunks_fts (chunk_id, document_id, library_id, filename, text, source_locator)
+                    SELECT new.id, new.document_id, d.library_id, d.filename, new.text, new.source_locator
+                    FROM documents d WHERE d.id = new.document_id;
+                END;
+
+                CREATE TRIGGER IF NOT EXISTS trg_document_chunks_fts_ad AFTER DELETE ON document_chunks
+                BEGIN
+                    DELETE FROM document_chunks_fts WHERE chunk_id = old.id;
+                END;
+
+                CREATE TRIGGER IF NOT EXISTS trg_document_chunks_fts_au AFTER UPDATE ON document_chunks
+                BEGIN
+                    DELETE FROM document_chunks_fts WHERE chunk_id = old.id;
+                    INSERT INTO document_chunks_fts (chunk_id, document_id, library_id, filename, text, source_locator)
+                    SELECT new.id, new.document_id, d.library_id, d.filename, new.text, new.source_locator
+                    FROM documents d WHERE d.id = new.document_id;
+                END;
                 """
             )
             # SQLite does not support ADD COLUMN IF NOT EXISTS.  This keeps
@@ -265,6 +299,18 @@ class LibraryStore:
                 FROM documents
                 """
             )
+            # Backfill FTS index if table is empty while chunks exist
+            fts_count = connection.execute("SELECT COUNT(*) FROM document_chunks_fts").fetchone()[0]
+            chunks_count = connection.execute("SELECT COUNT(*) FROM document_chunks").fetchone()[0]
+            if fts_count == 0 and chunks_count > 0:
+                connection.execute(
+                    """
+                    INSERT INTO document_chunks_fts (chunk_id, document_id, library_id, filename, text, source_locator)
+                    SELECT c.id, c.document_id, d.library_id, d.filename, c.text, c.source_locator
+                    FROM document_chunks c
+                    JOIN documents d ON d.id = c.document_id
+                    """
+                )
 
     @staticmethod
     def _timestamp() -> str:
@@ -815,13 +861,26 @@ class LibraryStore:
             ).fetchall()
         return [self._row(row) for row in rows]
 
+    def list_all_import_sources(self) -> list[dict]:
+        """List every registered import source across all libraries for the sync watcher."""
+        with self._connection() as connection:
+            rows = connection.execute(
+                """
+                SELECT import_sources.*, libraries.name AS library_name
+                FROM import_sources
+                JOIN libraries ON libraries.id = import_sources.library_id
+                ORDER BY import_sources.created_at
+                """
+            ).fetchall()
+        return [self._row(row) for row in rows]
+
     def remove_import_source(self, library_id: str, source_id: str) -> bool:
         with self._lock, self._connection() as connection:
             cursor = connection.execute(
                 "DELETE FROM import_sources WHERE library_id = ? AND id = ?",
                 (library_id, source_id),
             )
-            return cursor.rowcount > 0
+            return bool(cursor.rowcount and cursor.rowcount > 0)
 
     def touch_import_source(self, library_id: str, source_id: str) -> None:
         with self._lock, self._connection() as connection:
@@ -883,7 +942,7 @@ class LibraryStore:
                 "DELETE FROM chat_integrations WHERE library_id = ? AND id = ?",
                 (library_id, integration_id),
             )
-            return cursor.rowcount > 0
+            return bool(cursor.rowcount and cursor.rowcount > 0)
 
     def existing_content_hashes(self, library_id: str) -> set[str]:
         """Content hashes of every document in the library, for import dedupe."""
@@ -933,10 +992,10 @@ class LibraryStore:
     def search_with_profile(self, library_id: str, query: str, limit: int = 20, actor: dict | None = None) -> tuple[list[dict], dict]:
         """Retrieve chunks with a truthful local retrieval profile.
 
-        Keyword matches are always available. When the index and the current
-        query both have embeddings from the local Ollama endpoint, cosine
-        similarity is added as a second signal. No external provider is ever
-        used for retrieval.
+        Keyword matches are indexed via SQLite FTS5 for sub-millisecond retrieval.
+        When the index and the current query both have embeddings from the local
+        Ollama endpoint, cosine similarity is added as a second signal.
+        No external provider is ever used for retrieval.
 
         The optional actor filters out documents restricted by a document ACL:
         filtering happens here, before any citation can be built, so a hidden
@@ -946,30 +1005,110 @@ class LibraryStore:
         normalized = query.strip()
         if not normalized:
             return [], {"mode": "keyword", "semantic_indexed_chunks": 0, "semantic_used": False}
+
         with self._connection() as connection:
             hidden = self._hidden_document_ids(connection, library, actor)
-            rows = connection.execute(
+
+            indexed_chunks = connection.execute(
                 """
-                SELECT documents.id AS document_id, documents.filename, documents.version, documents.content_hash,
-                       document_chunks.id AS chunk_id, document_chunks.ordinal, document_chunks.text AS excerpt,
-                       document_chunks.source_locator, document_chunks.embedding_json
-                FROM document_chunks
-                JOIN documents ON documents.id = document_chunks.document_id
-                WHERE documents.library_id = ?
-                ORDER BY documents.created_at DESC, document_chunks.ordinal ASC
+                SELECT COUNT(c.id) FROM document_chunks c
+                JOIN documents d ON d.id = c.document_id
+                WHERE d.library_id = ? AND c.embedding_json <> ''
                 """,
                 (library_id,),
-            ).fetchall()
+            ).fetchone()[0]
+
+            query_embeddings = embed_texts([normalized]) if indexed_chunks else []
+            query_embedding = query_embeddings[0] if query_embeddings else []
+            semantic_used = bool(query_embedding and indexed_chunks)
+
+            tokens = [
+                self._search_token(token)
+                for token in re.findall(r"[\wÀ-ÿ]{3,}", normalized.lower())
+                if token not in _QUERY_STOPWORDS
+            ]
+
+            candidate_chunk_ids: set[str] = set()
+
+            # FTS5 search
+            fts_query_parts = []
+            clean_phrase = re.sub(r"[^\wÀ-ÿ\s]", " ", normalized).strip()
+            phrase_words = clean_phrase.split()
+            if len(phrase_words) > 1:
+                fts_query_parts.append('"' + " ".join(phrase_words) + '"')
+            for token in tokens:
+                clean_token = re.sub(r"[^\wÀ-ÿ]", "", token)
+                if len(clean_token) >= 3:
+                    fts_query_parts.append(f"{clean_token}*")
+            # Also consider 2-letter tokens if no 3+ letter tokens are found
+            if not tokens:
+                for token in re.findall(r"[\wÀ-ÿ]{2,}", normalized.lower()):
+                    if token not in _QUERY_STOPWORDS:
+                        clean_token = re.sub(r"[^\wÀ-ÿ]", "", token)
+                        if clean_token:
+                            fts_query_parts.append(f"{clean_token}*")
+
+            # Aggiunge sinonimi e acronimi aziendali espansi
+            expanded_queries = expand_query(normalized)
+            for eq in expanded_queries[1:]:
+                for syn_token in re.findall(r"[\wÀ-ÿ]{3,}", eq.lower()):
+                    if syn_token not in _QUERY_STOPWORDS and syn_token not in tokens:
+                        clean_syn = re.sub(r"[^\wÀ-ÿ]", "", syn_token)
+                        if clean_syn and f"{clean_syn}*" not in fts_query_parts:
+                            fts_query_parts.append(f"{clean_syn}*")
+
+            fts_match_query = " OR ".join(fts_query_parts) if fts_query_parts else ""
+            if fts_match_query:
+                try:
+                    fts_rows = connection.execute(
+                        """
+                        SELECT chunk_id FROM document_chunks_fts
+                        WHERE document_chunks_fts MATCH ? AND library_id = ?
+                        LIMIT 300
+                        """,
+                        (fts_match_query, library_id),
+                    ).fetchall()
+                    candidate_chunk_ids.update(r["chunk_id"] for r in fts_rows)
+                except sqlite3.OperationalError:
+                    candidate_chunk_ids = set()
+
+            if semantic_used:
+                emb_rows = connection.execute(
+                    """
+                    SELECT c.id FROM document_chunks c
+                    JOIN documents d ON d.id = c.document_id
+                    WHERE d.library_id = ? AND c.embedding_json <> ''
+                    """,
+                    (library_id,),
+                ).fetchall()
+                candidate_chunk_ids.update(r["id"] for r in emb_rows)
+
+            if not candidate_chunk_ids and not semantic_used:
+                return [], {
+                    "mode": "keyword",
+                    "semantic_indexed_chunks": indexed_chunks,
+                    "semantic_used": False,
+                }
+
+            if candidate_chunk_ids:
+                placeholders = ",".join("?" for _ in candidate_chunk_ids)
+                rows = connection.execute(
+                    f"""
+                    SELECT documents.id AS document_id, documents.filename, documents.version, documents.content_hash,
+                           document_chunks.id AS chunk_id, document_chunks.ordinal, document_chunks.text AS excerpt,
+                           document_chunks.source_locator, document_chunks.embedding_json
+                    FROM document_chunks
+                    JOIN documents ON documents.id = document_chunks.document_id
+                    WHERE document_chunks.id IN ({placeholders}) AND documents.library_id = ?
+                    ORDER BY documents.created_at DESC, document_chunks.ordinal ASC
+                    """,
+                    (*candidate_chunk_ids, library_id),
+                ).fetchall()
+            else:
+                rows = []
+
         rows = [row for row in rows if row["document_id"] not in hidden]
-        tokens = [
-            self._search_token(token)
-            for token in re.findall(r"[\wÀ-ÿ]{3,}", normalized.lower())
-            if token not in _QUERY_STOPWORDS
-        ]
-        indexed_chunks = sum(1 for row in rows if row["embedding_json"])
-        query_embeddings = embed_texts([normalized]) if indexed_chunks else []
-        query_embedding = query_embeddings[0] if query_embeddings else []
-        semantic_used = bool(query_embedding and indexed_chunks)
+
         ranked: list[tuple[float, sqlite3.Row]] = []
         for row in rows:
             haystack = f"{row['filename']} {row['excerpt']}".lower()
@@ -1000,6 +1139,9 @@ class LibraryStore:
             }
             for score, row in ranked[:max(1, min(limit, 50))]
         ]
+        if getattr(cfg, "RERANKER_ENABLED", True) and results:
+            from core.reranker import rerank_candidates
+            results = rerank_candidates(query=normalized, candidates=results, limit=max(1, min(limit, 50)))
         profile = {
             "mode": "hybrid_local" if semantic_used else "keyword",
             "semantic_indexed_chunks": indexed_chunks,

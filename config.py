@@ -195,6 +195,7 @@ class Config:
     ADMIN_PASSWORD: str = field(default_factory=lambda: os.environ.get("ERMES_ADMIN_PASSWORD", ""))
     ADMIN_USERNAME: str = field(default_factory=lambda: os.environ.get("ERMES_ADMIN_USERNAME", "admin"))
     ADMIN_MAX_UPLOAD_MB: int = field(default_factory=lambda: int(os.environ.get("ERMES_ADMIN_MAX_UPLOAD_MB", "50")))
+    AUDIT_SECRET: str = field(default_factory=lambda: os.environ.get("ERMES_AUDIT_SECRET", ""))
 
     # --------------------------------------------------------
     # FORMULA GENERATION
@@ -256,6 +257,43 @@ class Config:
     SLACK_SIGNING_SECRET: str = field(default_factory=lambda: os.environ.get("ERMES_SLACK_SIGNING_SECRET", ""))
     SLACK_BOT_TOKEN: str = field(default_factory=lambda: os.environ.get("ERMES_SLACK_BOT_TOKEN", ""))
     TELEGRAM_BOT_TOKEN: str = field(default_factory=lambda: os.environ.get("ERMES_TELEGRAM_BOT_TOKEN", ""))
+
+    # --------------------------------------------------------
+    # ENTERPRISE SSO / OIDC
+    # --------------------------------------------------------
+    OIDC_ENABLED: bool = field(
+        default_factory=lambda: os.environ.get("ERMES_OIDC_ENABLED", "0").strip().lower()
+        in {"1", "true", "yes", "on"}
+    )
+    OIDC_ISSUER: str = field(default_factory=lambda: os.environ.get("ERMES_OIDC_ISSUER", ""))
+    OIDC_CLIENT_ID: str = field(default_factory=lambda: os.environ.get("ERMES_OIDC_CLIENT_ID", ""))
+    OIDC_CLIENT_SECRET: str = field(default_factory=lambda: os.environ.get("ERMES_OIDC_CLIENT_SECRET", ""))
+    OIDC_AUDIENCE: str = field(default_factory=lambda: os.environ.get("ERMES_OIDC_AUDIENCE", ""))
+    OIDC_ROLES_CLAIM: str = field(default_factory=lambda: os.environ.get("ERMES_OIDC_ROLES_CLAIM", "roles"))
+    OIDC_JWKS_URL: str = field(default_factory=lambda: os.environ.get("ERMES_OIDC_JWKS_URL", ""))
+
+    # --------------------------------------------------------
+    # ENTERPRISE RERANKER & RETRIEVAL
+    # --------------------------------------------------------
+    RERANKER_ENABLED: bool = field(
+        default_factory=lambda: os.environ.get("ERMES_RERANKER_ENABLED", "1").strip().lower()
+        in {"1", "true", "yes", "on"}
+    )
+    RERANKER_MIN_SCORE: float = field(
+        default_factory=lambda: float(os.environ.get("ERMES_RERANKER_MIN_SCORE", "0.15"))
+    )
+
+    # --------------------------------------------------------
+    # ENTERPRISE DLP & AUDIT
+    # --------------------------------------------------------
+    DLP_AUDIT_ENABLED: bool = field(
+        default_factory=lambda: os.environ.get("ERMES_DLP_AUDIT_ENABLED", "1").strip().lower()
+        in {"1", "true", "yes", "on"}
+    )
+
+    @property
+    def ANALYTICS_FILE(self) -> str:
+        return os.path.join(self.LOGS_DIR, "analytics_events.jsonl")
 
 
 # Istanza globale — importa questa in tutti i moduli.

@@ -15,6 +15,10 @@ PUBLIC_PATHS = {
     ("GET", "/v1/health"),
     ("POST", "/api/auth/login"),
     ("POST", "/v1/api/auth/login"),
+    ("GET", "/api/auth/oidc/config"),
+    ("GET", "/v1/api/auth/oidc/config"),
+    ("POST", "/api/auth/oidc/session"),
+    ("POST", "/v1/api/auth/oidc/session"),
     # Logout only ever clears the cookie the caller already holds and
     # always returns success, including for an already-invalid session —
     # requiring auth here would be circular, not safer.
@@ -38,6 +42,8 @@ PUBLIC_PATHS = {
     ("POST", "/v1/api/integrations/slack"),
     ("POST", "/api/integrations/teams"),
     ("POST", "/v1/api/integrations/teams"),
+    ("POST", "/api/integrations/telegram"),
+    ("POST", "/v1/api/integrations/telegram"),
 }
 
 

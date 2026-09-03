@@ -197,3 +197,32 @@ def test_no_evidence_abstains_instead_of_guessing(tmp_path, monkeypatch):
 
     assert response.status_code == 200
     assert "evidenza sufficiente" in response.json()["text"]
+
+
+def test_telegram_webhook_answers_from_bound_library(tmp_path, monkeypatch):
+    client, store, library, test_cfg = _client(tmp_path, monkeypatch)
+    test_cfg = replace(test_cfg, TELEGRAM_BOT_TOKEN="123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11")
+    monkeypatch.setattr("config.cfg", test_cfg)
+    monkeypatch.setattr("api.auth.cfg", test_cfg)
+    monkeypatch.setattr("api.libraries.cfg", test_cfg)
+    monkeypatch.setattr("api.chat_webhooks.cfg", test_cfg)
+
+    client.post(
+        f"/api/libraries/{library['id']}/documents",
+        files={"file": ("ferie.txt", b"La pausa pranzo dura 60 minuti.", "text/plain")},
+    )
+    client.post(f"/api/libraries/{library['id']}/integrations", json={"platform": "telegram", "external_channel_id": "123456789"})
+
+    payload = {
+        "update_id": 1,
+        "message": {
+            "chat": {"id": 123456789},
+            "text": "Quanto dura la pausa pranzo?"
+        }
+    }
+    headers = {"X-Telegram-Bot-Api-Secret-Token": "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11"}
+    response = client.post("/api/integrations/telegram", json=payload, headers=headers)
+    assert response.status_code == 200
+    res_data = response.json()
+    assert res_data["method"] == "sendMessage"
+    assert "60 minuti" in res_data["text"] or "pausa pranzo" in res_data["text"].lower()

@@ -125,3 +125,18 @@ def test_xlsx_with_entity_declarations_is_rejected():
 
     with pytest.raises(DocumentParseError):
         extract_source_units("bomba.xlsx", buffer.getvalue())
+
+
+def test_extracts_csv_units_with_header_mapping():
+    csv_bytes = b"Prodotto,Reparto,Prezzo\nLaptop,IT,999\nMouse,IT,25"
+    text, units = extract_text("inventario.csv", csv_bytes)
+    assert units == 2
+    assert "Prodotto: Laptop | Reparto: IT | Prezzo: 999" in text
+
+
+def test_extracts_rtf_units():
+    rtf_bytes = b"{\\rtf1\\ansi\\deff0 {\\fonttbl {\\f0 Courier;}}\\f0\\fs24 Procedura di emergenza: evacuare l'edificio.\\par}"
+    text, units = extract_text("emergenza.rtf", rtf_bytes)
+    assert units == 1
+    assert "evacuare l'edificio" in text
+

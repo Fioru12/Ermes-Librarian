@@ -233,16 +233,20 @@ def prometheus_metrics():
 
 
 # ── Import moduli ──
+from api.analytics import router as analytics_router
 from api.audit import router as audit_router
 from api.auth import router as auth_router
 from api.backup import router as backup_router
 from api.chat_webhooks import router as chat_webhooks_router
+from api.connectors import router as connectors_router
 from api.health import router as health_router
 from api.libraries import router as libraries_router
+from api.mcp_server import router as mcp_server_router
 from api.models import router as models_router
 from api.providers import router as providers_router
 from api.shutdown import router as shutdown_router
 from api.users import router as users_router
+from api.webhook_gateway import router as webhook_gateway_router
 
 # Il vecchio motore WinSarp resta disponibile per sviluppo interno, ma non fa
 # parte del percorso pubblico del bibliotecario. Si abilita esplicitamente solo
@@ -264,10 +268,14 @@ app.include_router(health_router)
 app.include_router(backup_router)
 app.include_router(users_router)
 app.include_router(audit_router)
+app.include_router(analytics_router)
+app.include_router(connectors_router)
 app.include_router(models_router)
 app.include_router(providers_router)
 app.include_router(libraries_router)
 app.include_router(chat_webhooks_router)
+app.include_router(mcp_server_router)
+app.include_router(webhook_gateway_router)
 app.include_router(shutdown_router)
 
 if formule_router is not None:
@@ -292,12 +300,12 @@ try:
             if _path.startswith("/v1") or _path == "/" or _path.startswith("/docs") or _path.startswith("/openapi") or _path == "/metrics":
                 continue
             _v1_path = f"/v1{_path}"
-            if not any(r.path == _v1_path for r in app.routes):
+            if not any(isinstance(r, APIRoute) and r.path == _v1_path for r in app.routes):
                 app.add_api_route(
                     _v1_path,
                     _route.endpoint,
-                    methods=_route.methods,
-                    tags=[t + " (v1)" for t in _route.tags] if _route.tags else ["v1"],
+                    methods=list(_route.methods) if _route.methods else None,
+                    tags=[f"{t} (v1)" for t in _route.tags] if _route.tags else ["v1"],
                     summary=_route.summary,
                     description=_route.description,
                     include_in_schema=_route.include_in_schema,

@@ -48,7 +48,13 @@ def split_into_chunks(text: str, max_chars: int = 900, overlap_chars: int = 140)
         if current:
             chunks.append(current)
         while len(paragraph) > max_chars:
-            boundary = paragraph.rfind(" ", 0, max_chars)
+            # Prefer sentence boundaries (. ! ? \n) over simple whitespace
+            sentence_boundary = -1
+            for sep in (". ", ".\n", "! ", "? ", "\n"):
+                pos = paragraph.rfind(sep, max_chars // 2, max_chars)
+                if pos != -1:
+                    sentence_boundary = max(sentence_boundary, pos + len(sep))
+            boundary = sentence_boundary if sentence_boundary != -1 else paragraph.rfind(" ", 0, max_chars)
             boundary = boundary if boundary > max_chars // 2 else max_chars
             chunks.append(paragraph[:boundary].strip())
             paragraph = paragraph[max(0, boundary - overlap_chars):].strip()
@@ -85,11 +91,16 @@ def extract_source_units(filename: str, content: bytes) -> list[SourceUnit]:
             from pypdf import PdfReader
 
             reader = PdfReader(BytesIO(content))
-            return [
-                SourceUnit((page.extract_text() or "").strip(), f"Pagina {number}")
-                for number, page in enumerate(reader.pages, start=1)
-                if (page.extract_text() or "").strip()
-            ]
+            units: list[SourceUnit] = []
+            for number, page in enumerate(reader.pages, start=1):
+                page_text = (page.extract_text() or "").strip()
+                if page_text:
+                    units.append(SourceUnit(page_text, f"Pagina {number}"))
+                elif hasattr(page, "images") and page.images:
+                    ocr_text = _try_ocr_images(page.images)
+                    if ocr_text:
+                        units.append(SourceUnit(ocr_text, f"Pagina {number} (Scansione OCR)"))
+            return units
         if suffix == ".docx":
             _validate_office_archive(content, "docx")
             from docx import Document
@@ -109,9 +120,88 @@ def extract_source_units(filename: str, content: bytes) -> list[SourceUnit]:
         if suffix == ".xlsx":
             _validate_office_archive(content, "xlsx")
             return _extract_xlsx_units(content)
+        if suffix == ".csv":
+            return _extract_csv_units(content)
+        if suffix == ".rtf":
+            return _extract_rtf_units(content)
     except Exception as error:
         raise DocumentParseError(f"Impossibile leggere il documento: {error}") from error
     raise DocumentParseError("Formato documento non supportato")
+
+
+def _try_ocr_images(images) -> str:
+    """Attempt OCR extraction on extracted page images using pytesseract if available."""
+    try:
+        import pytesseract
+        from PIL import Image
+
+        parts = []
+        for img in images:
+            try:
+                pil_img = Image.open(BytesIO(img.data))
+                text = pytesseract.image_to_string(pil_img, lang="ita+eng").strip()
+                if text:
+                    parts.append(text)
+            except Exception:
+                continue
+        return "\n\n".join(parts)
+    except Exception:
+        return ""
+
+
+def _extract_csv_units(content: bytes) -> list[SourceUnit]:
+    import csv
+    import io
+    text = content.decode("utf-8-sig", errors="replace")
+    reader = csv.reader(io.StringIO(text))
+    rows = list(reader)
+    if not rows:
+        return []
+    header = rows[0] if len(rows) > 1 else None
+    units: list[SourceUnit] = []
+    data_rows = rows[1:] if header else rows
+    for idx, row in enumerate(data_rows, start=2 if header else 1):
+        if not any(cell.strip() for cell in row):
+            continue
+        if header and len(header) == len(row):
+            formatted_row = " | ".join(f"{h.strip()}: {c.strip()}" for h, c in zip(header, row) if c.strip())
+        else:
+            formatted_row = " | ".join(c.strip() for c in row if c.strip())
+        if formatted_row:
+            units.append(SourceUnit(formatted_row, f"Riga {idx}"))
+    return units or [SourceUnit(text[:2000], "Documento CSV")]
+
+
+def _strip_rtf(rtf: str) -> str:
+    # Remove groups like font tables, color tables, stylesheets, info, pict, etc.
+    rtf = re.sub(r"{\\\*(?:[^{}]|{[^{}]*})*}", "", rtf)
+    rtf = re.sub(r"{\\(?:fonttbl|colortbl|stylesheet|info|pict|header|footer)[^{}]*(?:{[^{}]*}[^{}]*)*}", "", rtf)
+    # Hex character escapes \'hh
+    rtf = re.sub(r"\\'([0-9a-fA-F]{2})", lambda m: chr(int(m.group(1), 16)), rtf)
+    # Paragraph and line breaks
+    rtf = re.sub(r"\\par\b|\\line\b", "\n", rtf)
+    rtf = re.sub(r"\\tab\b", "\t", rtf)
+    # Strip remaining RTF control words
+    rtf = re.sub(r"\\[a-zA-Z]+-?\d* ?", "", rtf)
+    # Handle escaped characters
+    rtf = rtf.replace(r"\{", "{").replace(r"\}", "}").replace(r"\\", "\\")
+    # Strip remaining formatting braces
+    rtf = re.sub(r"[{}]", "", rtf)
+    return "\n".join(line.strip() for line in rtf.splitlines() if line.strip())
+
+
+def _extract_rtf_units(content: bytes) -> list[SourceUnit]:
+    try:
+        from striprtf.striprtf import rtf_to_text
+        raw_text = content.decode("latin-1", errors="replace")
+        clean_text = rtf_to_text(raw_text).strip()
+    except Exception:
+        raw_text = content.decode("latin-1", errors="replace")
+        clean_text = _strip_rtf(raw_text).strip()
+
+    if not clean_text:
+        return []
+    return [SourceUnit(clean_text, "Documento RTF")]
 
 
 def _extract_text_units(text: str, suffix: str) -> list[SourceUnit]:

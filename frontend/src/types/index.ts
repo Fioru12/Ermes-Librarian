@@ -4,6 +4,7 @@ export interface Message {
   content: string
   timestamp: string
   evidence?: { coverage: 'supported' | 'partially_supported' | 'insufficient_evidence'; reason?: string | null }
+  feedback?: 1 | -1 | null
   sources?: Array<{
     document_id: string; filename: string; version: number; locator: string; excerpt: string
     marker?: number; content_hash?: string; chunk_id?: string; relevance_score?: number
@@ -58,7 +59,7 @@ export interface ProviderConfig {
   is_active?: boolean
 }
 
-export type TabId = 'chat' | 'docs' | 'kb' | 'health' | 'providers' | 'settings' | 'admin-users' | 'admin-audit' | 'admin-import'
+export type TabId = 'chat' | 'docs' | 'kb' | 'health' | 'providers' | 'settings' | 'connectors' | 'admin-users' | 'admin-audit' | 'admin-import' | 'admin-analytics'
 
 export interface ThemeClasses {
   bg: string

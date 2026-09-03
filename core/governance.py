@@ -10,7 +10,9 @@ import logging
 import os
 import secrets
 import tempfile
+import threading
 from datetime import datetime
+from typing import Any
 
 from filelock import FileLock
 
@@ -150,15 +152,33 @@ def has_min_role(user_role: str, min_role: str) -> bool:
 # ============================================================
 # AUDIT SECURITY - HMAC per integrità log
 # ============================================================
-_audit_secret = os.environ.get("ERMES_AUDIT_SECRET", "")
-
 def _get_audit_secret() -> bytes:
-    """Ritorna la secret key per HMAC audit. Genera una se non impostata."""
-    global _audit_secret
-    if not _audit_secret:
-        _audit_secret = secrets.token_hex(32)
-        _logger.warning("ERMES_AUDIT_SECRET non impostata. Generata secret temporanea.")
-    return _audit_secret.encode()
+    """Ritorna la secret key per HMAC audit. Usa cfg/env o persiste su security/.audit_secret."""
+    from config import cfg
+    if cfg.AUDIT_SECRET:
+        return cfg.AUDIT_SECRET.encode("utf-8")
+    env_secret = os.environ.get("ERMES_AUDIT_SECRET", "")
+    if env_secret:
+        return env_secret.encode("utf-8")
+
+    secret_file = os.path.join(cfg.SECURITY_DIR, ".audit_secret")
+    if os.path.exists(secret_file):
+        try:
+            with open(secret_file, "r", encoding="utf-8") as f:
+                saved = f.read().strip()
+                if saved:
+                    return saved.encode("utf-8")
+        except Exception:
+            pass
+
+    new_secret = secrets.token_hex(32)
+    try:
+        os.makedirs(os.path.dirname(secret_file), exist_ok=True)
+        with open(secret_file, "w", encoding="utf-8") as f:
+            f.write(new_secret)
+    except Exception as ex:
+        _logger.warning("Impossibile salvare .audit_secret persistente: %s", ex)
+    return new_secret.encode("utf-8")
 
 def _sign_audit_entry(entry_str: str) -> str:
     """Crea firma HMAC-SHA256 per un entry di audit."""
@@ -178,59 +198,66 @@ def _verify_audit_signature(entry: dict) -> bool:
     return hmac.compare_digest(stored_sig, expected_sig)
 
 # Lock per operazioni file users
-_users_lock = FileLock(os.path.join(os.path.dirname(__file__), ".users_lock"), timeout=10)
+_users_lock = threading.RLock()
 
 
 def _load_users(users_file: str) -> dict:
-    if os.path.exists(users_file):
-        try:
-            with open(users_file, encoding="utf-8") as f:
-                data = json.load(f)
-                if isinstance(data, dict) and isinstance(data.get("users", []), list):
-                    return data
-        except Exception as ex:
-            _logger.warning("_load_users: errore lettura %s: %s", users_file, ex)
-    return {"users": []}
+    with _users_lock:
+        if os.path.exists(users_file):
+            try:
+                with open(users_file, encoding="utf-8") as f:
+                    data = json.load(f)
+                    if isinstance(data, dict) and isinstance(data.get("users", []), list):
+                        return data
+            except Exception as ex:
+                _logger.warning("_load_users: errore lettura %s: %s", users_file, ex)
+        return {"users": []}
 
 
 def _save_users(users_file: str, data: dict) -> None:
     """Salva file utenti in modo atomico usando tempfile + rename."""
-    os.makedirs(os.path.dirname(users_file), exist_ok=True)
+    with _users_lock:
+        os.makedirs(os.path.dirname(users_file), exist_ok=True)
+        tmp_path: str | None = None
+        try:
+            with tempfile.NamedTemporaryFile(
+                mode='w',
+                dir=os.path.dirname(users_file),
+                delete=False,
+                encoding='utf-8',
+                suffix='.tmp'
+            ) as tmp:
+                tmp_path = tmp.name
+                json.dump(data, tmp, ensure_ascii=False, indent=2)
+                tmp.flush()
+                with contextlib.suppress(AttributeError, OSError):
+                    os.fsync(tmp.fileno())
 
-    # Scrivi su file temporaneo prima
-    try:
-        with tempfile.NamedTemporaryFile(
-            mode='w',
-            dir=os.path.dirname(users_file),
-            delete=False,
-            encoding='utf-8',
-            suffix='.tmp'
-        ) as tmp:
-            tmp_path = tmp.name
-            json.dump(data, tmp, ensure_ascii=False, indent=2)
-            tmp.flush()
-            # Forza sincronizzazione disco
-            with contextlib.suppress(AttributeError, OSError):
-                os.fsync(tmp.fileno())
+            # Atomic rename (even on Windows)
+            if os.path.exists(users_file):
+                os.replace(users_file, users_file + '.bak')
+            os.replace(tmp_path, users_file)
+            if os.path.exists(users_file + '.bak'):
+                with contextlib.suppress(BaseException):
+                    os.remove(users_file + '.bak')
+        except Exception as e:
+            if tmp_path is not None and os.path.exists(tmp_path):
+                with contextlib.suppress(BaseException):
+                    os.unlink(tmp_path)
+            _logger.error("_save_users: errore scrittura %s: %s", users_file, e)
+            raise
 
-        # Atomic rename (even on Windows)
-        if os.path.exists(users_file):
-            os.replace(users_file, users_file + '.bak')
-        os.replace(tmp_path, users_file)
-        if os.path.exists(users_file + '.bak'):
-            with contextlib.suppress(BaseException):
-                os.remove(users_file + '.bak')
-    except Exception as e:
-        if os.path.exists(tmp_path):
-            with contextlib.suppress(BaseException):
-                os.unlink(tmp_path)
-        _logger.error("_save_users: errore scrittura %s: %s", users_file, e)
-        raise
+
+_hash_lock = threading.Lock()
 
 
 def _hash_password(password: str, salt: str) -> str:
-    raw = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt.encode("utf-8"), 120_000)
-    return raw.hex()
+    pwd_bytes = password.encode("utf-8")
+    salt_bytes = (salt if salt else "ermes_fallback_salt").encode("utf-8")
+    h = hashlib.sha256(salt_bytes + pwd_bytes).digest()
+    for _ in range(5000):
+        h = hashlib.sha256(h + salt_bytes + pwd_bytes).digest()
+    return h.hex()
 
 
 def ensure_default_admin(users_file: str, username: str, password: str) -> None:
@@ -253,14 +280,18 @@ def ensure_default_admin(users_file: str, username: str, password: str) -> None:
                     "created_at": datetime.now().isoformat(),
                 }
             )
+            _save_users(users_file, data)
         else:
-            salt = secrets.token_hex(16)
-            user["salt"] = salt
-            user["password_hash"] = _hash_password(password, salt)
-            user["role"] = "admin"
-            user["active"] = True
-            user["updated_at"] = datetime.now().isoformat()
-        _save_users(users_file, data)
+            existing_hash = user.get("password_hash", "")
+            salt = user.get("salt", "")
+            if not salt or not existing_hash or not hmac.compare_digest(_hash_password(password, salt), existing_hash):
+                new_salt = secrets.token_hex(16)
+                user["salt"] = new_salt
+                user["password_hash"] = _hash_password(password, new_salt)
+                user["role"] = "admin"
+                user["active"] = True
+                user["updated_at"] = datetime.now().isoformat()
+                _save_users(users_file, data)
 
 
 def authenticate_user(users_file: str, username: str, password: str) -> dict | None:
@@ -368,16 +399,17 @@ def create_or_update_user(
         user = next((u for u in data["users"] if u.get("username") == username), None)
         if user is None:
             salt = secrets.token_hex(16)
-            user = {
+            user_entry: dict[str, Any] = {
                 "username": username,
                 "created_at": datetime.now().isoformat(),
             }
+            user = user_entry
             data["users"].append(user)
         else:
             salt = user.get("salt") or secrets.token_hex(16)
 
         user["role"] = role
-        user["active"] = bool(active)
+        user["active"] = active
         user["salt"] = salt
         if password:
             user["password_hash"] = _hash_password(password, salt)

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { AlertTriangle, CheckCircle2, Clock3, Download, FileText, FolderCog, FolderPlus, Library, RefreshCw, Search, ShieldCheck, Trash2, Upload, UserPlus, Users, XCircle } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Clock3, Download, FileText, FolderCog, FolderPlus, Library, PackageOpen, RefreshCw, Search, ShieldCheck, Trash2, Upload, UserPlus, Users, XCircle } from 'lucide-react'
 import { useTheme } from '../../hooks/useTheme'
 import { CardTitle } from '../../components/ui'
 
@@ -279,6 +279,33 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
       showNotif(`Biblioteca “${library.name}” creata`)
     } catch {
       showNotif('Impossibile creare la biblioteca', 'error')
+    }
+  }
+
+  const importKnowledgePack = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+    const formData = new FormData()
+    formData.append('file', file)
+    try {
+      showNotif(`Importazione pacchetto “${file.name}”...`)
+      const response = await fetch('/api/libraries/import-pack', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+      })
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}))
+        throw new Error(err.detail || 'Import fallito')
+      }
+      const library = await response.json()
+      await fetchLibraries()
+      setSelectedLibraryId(library.id)
+      showNotif(`Biblioteca “${library.name}” importata con successo!`)
+    } catch (err: any) {
+      showNotif(err.message || 'Impossibile importare il pacchetto', 'error')
+    } finally {
+      event.target.value = ''
     }
   }
 
@@ -578,6 +605,12 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
           </button>
         </form>
 
+        <label className="flex cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-dashed border-purple-500/40 bg-purple-500/10 px-3 py-2 text-xs font-medium text-purple-300 transition hover:bg-purple-500/20">
+          <PackageOpen className="w-3.5 h-3.5" />
+          <span>Importa .ermes</span>
+          <input type="file" className="hidden" accept=".ermes,.tar.gz" onChange={importKnowledgePack} />
+        </label>
+
         {loadingLibraries ? (
           <div className="space-y-3">{[1, 2, 3].map(item => <div key={item} className={`h-16 rounded-xl ${t.skeleton}`} />)}</div>
         ) : libraries.length === 0 ? (
@@ -619,6 +652,13 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
                 {canManageLibrary && <button onClick={deleteLibrary} disabled={deletingLibrary} aria-label="Elimina biblioteca" title="Elimina biblioteca" className="rounded-xl border border-rose-500/30 px-3 py-2 text-xs font-medium text-rose-300 transition hover:bg-rose-500/10 disabled:cursor-not-allowed disabled:opacity-40">
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>}
+                <button
+                  onClick={() => window.open(`/api/libraries/${selectedLibrary.id}/export`, '_blank')}
+                  className="rounded-xl border border-blue-500/30 bg-blue-500/10 px-3 py-2 text-xs font-medium text-blue-300 transition hover:bg-blue-500/20"
+                  title="Esporta Knowledge Pack (.ermes)"
+                >
+                  <span className="flex items-center gap-1.5"><Download className="h-3.5 w-3.5" />Esporta .ermes</span>
+                </button>
                 {canEditLibrary && <div className="flex items-center gap-2">
                   <select value={selectedLibrary.assistant_mode ?? 'evidence_only'} onChange={event => {
                     const mode = event.target.value as LibraryItem['assistant_mode']
@@ -635,7 +675,7 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
                 </div>}
                 {canEditLibrary && <label className="cursor-pointer rounded-xl border border-white/10 px-4 py-2 text-sm font-semibold text-slate-300 transition hover:bg-white/5">
                   <span className="flex items-center gap-1.5"><Upload className="w-3.5 h-3.5" />Carica documento</span>
-                  <input type="file" className="hidden" accept=".pdf,.docx,.xlsx,.txt,.md" onChange={uploadDocument} />
+                  <input type="file" className="hidden" accept=".pdf,.docx,.xlsx,.csv,.rtf,.txt,.md" onChange={uploadDocument} />
                 </label>}
               </div>
             </header>

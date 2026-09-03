@@ -26,12 +26,11 @@ Teams often have procedures, policies, manuals, contracts and internal know-how 
 - Chunk-level retrieval scoped to the selected library.
 - Evidence-first answers with citations, document version, locator and excerpt.
 - Clear abstention when the selected library does not contain enough evidence.
-- Local web accounts (viewer, editor or administrator), API keys for integrations, and audit metadata for library operations.
-- Per-library assistant policy:
-  - `evidence_only` — default; no LLM receives document content.
-  - `local_ollama` — sends selected passages only to an Ollama endpoint under your control.
-  - `approved_openrouter` — requires an explicit global consent and an administrator's per-library choice.
-- React interface, FastAPI API, automated backend and frontend tests.
+- Enterprise Connectors: Local NAS / Network Shared Folders (`local_folder`), Web Scraper, and Microsoft Graph.
+- Model Context Protocol (MCP) Server: native JSON-RPC 2.0 (`/api/mcp/rpc`) and REST (`/api/mcp/tools`) for AI agents (Claude Desktop, Cursor, Antigravity, LangChain).
+- Automation Webhook Gateway: API Key-authenticated REST endpoints (`/api/integrations/automation/ask` and `/ingest`) tailored for n8n, Zapier, Make, and microservices.
+- Multi-channel Chat Integrations: Slack Slash Commands / Events, Microsoft Teams Outgoing Webhooks, and Telegram Bot API.
+- Dedicated React Interface for Connectors & Automations, FastAPI backend, automated unit and integration test suite.
 
 ![Libraries and documents, each with version, indexing state and a per-library assistant policy](docs/screenshots/libraries-and-documents.png)
 

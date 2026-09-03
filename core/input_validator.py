@@ -19,7 +19,7 @@ def sanitize_upload_name(name: str) -> str | None:
     if not re.fullmatch(r"[A-Za-z0-9._ -]{1,120}", safe_name):
         return None
     ext = os.path.splitext(safe_name)[1].lower()
-    if ext not in {".txt", ".md", ".pdf", ".docx", ".xlsx"}:
+    if ext not in {".txt", ".md", ".pdf", ".docx", ".xlsx", ".csv", ".rtf"}:
         return None
     return safe_name
 
@@ -31,6 +31,8 @@ def matches_expected_file_signature(uploaded_file, safe_name: str) -> bool:
         return header.startswith(b"%PDF-")
     if ext in {".docx", ".xlsx"}:
         return header.startswith(b"PK\x03\x04")
-    if ext in {".txt", ".md"}:
+    if ext in {".txt", ".md", ".csv"}:
         return b"\x00" not in bytes(uploaded_file.getbuffer()[:1024])
+    if ext == ".rtf":
+        return header.startswith(b"{\\rtf") or b"\x00" not in bytes(uploaded_file.getbuffer()[:1024])
     return False

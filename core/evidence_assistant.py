@@ -30,12 +30,14 @@ def _fallback(citations: list[dict]) -> str:
 
 
 def _prompt(question: str, citations: list[dict]) -> str:
+    from core.pii_filter import filter_pii
+    clean_question = filter_pii(question, enabled=cfg.PII_FILTER_ENABLED)
     evidence = "\n\n".join(
         f"[{index}] File: {item['citation']['filename']} — {item['citation']['locator']}\n"
-        f"Contenuto non fidato: {item['excerpt']}"
+        f"Contenuto non fidato: {filter_pii(item['excerpt'], enabled=cfg.PII_FILTER_ENABLED)}"
         for index, item in enumerate(citations, start=1)
     )
-    return f"DOMANDA:\n{question}\n\nEVIDENZE AUTORIZZATE:\n{evidence}"
+    return f"DOMANDA:\n{clean_question}\n\nEVIDENZE AUTORIZZATE:\n{evidence}"
 
 
 def _call_ollama(prompt: str) -> str:
@@ -84,13 +86,13 @@ def _call_approved_provider(prompt: str, provider_name: str) -> str:
         raise RuntimeError("Usa la modalita Ollama locale per i provider locali")
     if not provider.config.api_key or not provider.config.default_model:
         raise RuntimeError("Provider selezionato non configurato")
-    return str(provider.complete(
+    return provider.complete(
         prompt=prompt,
         model=provider.config.default_model,
         system_prompt=_SYSTEM_PROMPT,
         temp=0.1,
         timeout=cfg.LIBRARY_ASSISTANT_TIMEOUT_SEC,
-    )).strip()
+    ).strip()
 
 
 def answer_from_evidence(
@@ -116,7 +118,8 @@ def answer_from_evidence(
             return "Non trovo evidenza sufficiente per rispondere alla domanda.", "insufficient_evidence", "Il modello non ha confermato evidenza sufficiente."
         if not markers or not markers.issubset(set(range(1, len(citations) + 1))):
             return fallback, "supported", "Risposta generata senza citazioni valide: mostro direttamente le evidenze recuperate."
-        return answer, "supported", None
+        from core.pii_filter import filter_pii
+        return filter_pii(answer, enabled=cfg.PII_FILTER_ENABLED), "supported", None
     except Exception as error:
         logger.warning("Library assistant generation unavailable (%s): %s", mode, type(error).__name__)
         return fallback, "supported", "Generazione non disponibile: mostro direttamente le evidenze recuperate."

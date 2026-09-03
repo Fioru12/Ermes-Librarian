@@ -18,6 +18,9 @@ def _fake_cfg(base_dir):
         BASE_DIR=base_dir,
         CHROMA_DIR=os.path.join(base_dir, "chroma_db"),
         LOGS_DIR=os.path.join(base_dir, "logs"),
+        LIBRARY_DB_PATH=os.path.join(base_dir, "data", "ermes_knowledge.sqlite3"),
+        LIBRARY_STORAGE_DIR=os.path.join(base_dir, "storage", "libraries"),
+        SECURITY_DIR=os.path.join(base_dir, "security"),
     )
 
 
@@ -34,6 +37,7 @@ class TestCreateBackup:
     def test_creates_tar_gz(self, temp_dir, monkeypatch):
         backup_dir = os.path.join(temp_dir, "backups")
         monkeypatch.setattr(bm, "BACKUP_DIR", backup_dir)
+        monkeypatch.setattr(bm, "cfg", _fake_cfg(temp_dir))
         result = bm.create_backup(label="test")
         assert os.path.exists(result["path"])
         assert "test" in result["name"]
@@ -50,12 +54,14 @@ class TestCreateBackup:
     def test_backup_without_label(self, temp_dir, monkeypatch):
         backup_dir = os.path.join(temp_dir, "backups")
         monkeypatch.setattr(bm, "BACKUP_DIR", backup_dir)
+        monkeypatch.setattr(bm, "cfg", _fake_cfg(temp_dir))
         result = bm.create_backup()
         assert os.path.exists(result["path"])
 
     def test_backup_creates_under_backup_dir(self, temp_dir, monkeypatch):
         backup_dir = os.path.join(temp_dir, "backups")
         monkeypatch.setattr(bm, "BACKUP_DIR", backup_dir)
+        monkeypatch.setattr(bm, "cfg", _fake_cfg(temp_dir))
         result = bm.create_backup()
         assert result["path"].startswith(backup_dir)
 

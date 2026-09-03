@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState } from 'react'
-import { Send, Square, HelpCircle, ArrowRight, BookOpen, Files, ShieldCheck, Download, X } from 'lucide-react'
+import { Send, Square, HelpCircle, ArrowRight, BookOpen, Files, ShieldCheck, Download, X, ThumbsUp, ThumbsDown } from 'lucide-react'
 import { useTheme } from '../../hooks/useTheme'
 import { InlineMarkdown } from './InlineMarkdown'
 import type { Message } from '../../types'
@@ -60,12 +60,27 @@ export default function ChatArea({
   const { t } = useTheme()
   const chatEndRef = useRef<HTMLDivElement>(null)
   const [activeCitation, setActiveCitation] = useState<{ source: Source; marker: number } | null>(null)
+  const [feedbackState, setFeedbackState] = useState<Record<string, number>>({})
 
   useEffect(() => {
     if (typeof chatEndRef.current?.scrollIntoView === 'function') {
       chatEndRef.current.scrollIntoView({ behavior: 'smooth' })
     }
   }, [messages, isGenerating])
+
+  const handleFeedback = async (messageId: string, rating: 1 | -1) => {
+    try {
+      setFeedbackState(prev => ({ ...prev, [messageId]: rating }))
+      await fetch('/api/analytics/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ event_id: messageId, rating }),
+        credentials: 'include',
+      })
+    } catch {
+      // silent fallback
+    }
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -161,6 +176,35 @@ export default function ChatArea({
                     </div>
                     <p className="mt-1 text-slate-400"><InlineMarkdown text={source.excerpt} /></p>
                   </div>)}</div></div>}
+                {m.role === 'assistant' && m.content !== '' && (
+                  <div className="mt-3 flex items-center justify-end gap-2 border-t border-white/5 pt-2 text-xs text-slate-400">
+                    <span className="text-[11px] text-slate-500">Risposta utile?</span>
+                    <button
+                      type="button"
+                      onClick={() => handleFeedback(m.id, 1)}
+                      className={`p-1.5 rounded-lg border transition ${
+                        feedbackState[m.id] === 1
+                          ? 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300'
+                          : 'border-white/5 hover:border-white/20 text-slate-400 hover:text-white'
+                      }`}
+                      title="Utile"
+                    >
+                      <ThumbsUp className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleFeedback(m.id, -1)}
+                      className={`p-1.5 rounded-lg border transition ${
+                        feedbackState[m.id] === -1
+                          ? 'border-rose-500/40 bg-rose-500/20 text-rose-300'
+                          : 'border-white/5 hover:border-white/20 text-slate-400 hover:text-white'
+                      }`}
+                      title="Non utile"
+                    >
+                      <ThumbsDown className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
                 {m.role === 'assistant' && m.content === '' && (
                   <div className="flex flex-col gap-2 py-1">
                     <div className="flex items-center gap-3">

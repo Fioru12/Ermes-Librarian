@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
-import { AlertTriangle, CheckCircle, LockKeyhole, ShieldCheck, Sparkles } from 'lucide-react'
+import { AlertTriangle, CheckCircle, LockKeyhole, ShieldCheck, Sparkles, KeyRound } from 'lucide-react'
 import UserManagement from './components/Admin/UserManagement'
 import AuditLogs from './components/Admin/AuditLogs'
+import AnalyticsDashboard from './components/Admin/AnalyticsDashboard'
 import Sidebar from './components/layout/Sidebar'
 import ChatArea from './components/chat/ChatArea'
 import DocumentsTab from './components/documents/DocumentsTab'
 import HealthTab from './components/health/HealthTab'
 import SettingsTab from './components/settings/SettingsTab'
+import ConnectorsTab from './components/connectors/ConnectorsTab'
 import { ThemeProvider, useTheme } from './hooks/useTheme'
 import type { HealthStatus, Message, TabId } from './types'
 
@@ -23,6 +25,7 @@ function AppInner() {
   const [isGenerating, setIsGenerating] = useState(false)
   const [authState, setAuthState] = useState<'checking' | 'anonymous' | 'authenticated'>('checking')
   const [currentUser, setCurrentUser] = useState<{ username: string; role: string } | null>(null)
+  const [oidcConfig, setOidcConfig] = useState<{ enabled: boolean; client_id?: string; issuer?: string } | null>(null)
   const [loginUsername, setLoginUsername] = useState('')
   const [loginPassword, setLoginPassword] = useState('')
   const [loginError, setLoginError] = useState('')
@@ -67,6 +70,11 @@ function AppInner() {
         setAuthState('authenticated')
       })
       .catch(() => setAuthState('anonymous'))
+
+    fetch('/api/auth/oidc/config')
+      .then(res => res.json())
+      .then(data => setOidcConfig(data))
+      .catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -95,8 +103,9 @@ function AppInner() {
       })
       if (!response.ok) throw new Error('Impossibile interrogare la biblioteca')
       const data = await response.json()
+      const returnedId = data.answer_id || answerId
       setMessages(previous => previous.map(message => message.id === answerId
-        ? { ...message, content: data.answer, evidence: data.evidence, sources: data.citations ?? [] }
+        ? { ...message, id: returnedId, content: data.answer, evidence: data.evidence, sources: data.citations ?? [] }
         : message))
     } catch (error) {
       const content = error instanceof DOMException && error.name === 'AbortError'
@@ -128,8 +137,9 @@ function AppInner() {
   }
 
   const tabHeaders: Record<TabId, string> = {
-    chat: 'Assistente documentale', docs: 'Biblioteche e documenti', kb: 'Knowledge Graph',
+    chat: 'Assistente documentale', docs: 'Biblioteche e documenti', connectors: 'Connettori & Automazioni', kb: 'Knowledge Graph',
     health: 'Stato sistema', providers: 'Provider LLM', settings: 'Impostazioni',
+    'admin-analytics': 'Analytics & Knowledge Gaps',
     'admin-users': 'Accessi e chiavi API', 'admin-audit': 'Audit log', 'admin-import': 'Import legacy',
   }
 
@@ -141,8 +151,21 @@ function AppInner() {
           <div className="space-y-3 text-sm text-slate-300"><p className="flex items-center gap-3"><ShieldCheck className="h-4 w-4 text-emerald-400" />Local-first e controllato</p><p className="flex items-center gap-3"><Sparkles className="h-4 w-4 text-blue-300" />Risposte con citazioni verificabili</p></div>
         </section>
         <form onSubmit={handleLogin} className="flex min-h-[34rem] w-full flex-col justify-center p-7 sm:p-10">
-          <div className="mb-8"><div className="mb-6 flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/10 text-blue-300 lg:hidden"><LockKeyhole className="h-5 w-5" /></div><p className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-400">Accesso protetto</p><h2 className="mt-2 text-2xl font-semibold tracking-tight text-white">Accedi al tuo spazio</h2><p className="mt-2 text-sm leading-6 text-slate-400">Usa le credenziali configurate per questa installazione locale.</p></div>
-          {authState === 'checking' ? <p className="mt-6 text-sm text-slate-400">Verifica sessione…</p> : <><label className="block text-sm font-medium text-slate-300">Utente<input value={loginUsername} onChange={event => setLoginUsername(event.target.value)} placeholder="nome utente" className={`mt-2 w-full rounded-xl border px-3.5 py-3 outline-none ${t.sidebarInput}`} autoComplete="username" /></label><label className="mt-5 block text-sm font-medium text-slate-300">Password<input type="password" value={loginPassword} onChange={event => setLoginPassword(event.target.value)} className={`mt-2 w-full rounded-xl border px-3.5 py-3 outline-none ${t.sidebarInput}`} autoComplete="current-password" /></label>{loginError && <p className="mt-4 rounded-lg border border-rose-500/20 bg-rose-500/10 px-3 py-2 text-sm text-rose-300">{loginError}</p>}<button className="mt-7 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-3 font-semibold text-white shadow-lg shadow-blue-900/30 transition hover:from-blue-500 hover:to-indigo-500">Accedi <LockKeyhole className="h-4 w-4" /></button></>}
+          <div className="mb-8"><div className="mb-6 flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/10 text-blue-300 lg:hidden"><LockKeyhole className="h-5 w-5" /></div><p className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-400">Accesso protetto</p><h2 className="mt-2 text-2xl font-semibold tracking-tight text-white">Accedi al tuo spazio</h2><p className="mt-2 text-sm leading-6 text-slate-400">Usa le credenziali o il provider SSO della tua organizzazione.</p></div>
+          {authState === 'checking' ? <p className="mt-6 text-sm text-slate-400">Verifica sessione…</p> : <>
+            {oidcConfig?.enabled && (
+              <div className="mb-6">
+                <button
+                  type="button"
+                  onClick={() => showNotif('Reindirizzamento verso provider SSO...', 'success')}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-blue-500/30 bg-blue-500/10 px-4 py-3 font-semibold text-blue-300 transition hover:bg-blue-500/20"
+                >
+                  <KeyRound className="h-4 w-4 text-blue-400" /> Accedi con SSO Aziendale
+                </button>
+                <div className="my-5 flex items-center gap-3"><div className="h-px flex-1 bg-white/10" /><span className="text-[11px] font-medium uppercase tracking-wider text-slate-500">oppure account locale</span><div className="h-px flex-1 bg-white/10" /></div>
+              </div>
+            )}
+            <label className="block text-sm font-medium text-slate-300">Utente<input value={loginUsername} onChange={event => setLoginUsername(event.target.value)} placeholder="nome utente" className={`mt-2 w-full rounded-xl border px-3.5 py-3 outline-none ${t.sidebarInput}`} autoComplete="username" /></label><label className="mt-5 block text-sm font-medium text-slate-300">Password<input type="password" value={loginPassword} onChange={event => setLoginPassword(event.target.value)} className={`mt-2 w-full rounded-xl border px-3.5 py-3 outline-none ${t.sidebarInput}`} autoComplete="current-password" /></label>{loginError && <p className="mt-4 rounded-lg border border-rose-500/20 bg-rose-500/10 px-3 py-2 text-sm text-rose-300">{loginError}</p>}<button className="mt-7 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-3 font-semibold text-white shadow-lg shadow-blue-900/30 transition hover:from-blue-500 hover:to-indigo-500">Accedi <LockKeyhole className="h-4 w-4" /></button></>}
           <p className="mt-7 text-center text-xs leading-5 text-slate-500">Le tue sessioni restano protette su questa istanza Ermes.</p>
         </form>
       </div>
@@ -157,8 +180,10 @@ function AppInner() {
       <div className="flex-1 overflow-hidden">
         {activeTab === 'chat' && <ChatArea messages={messages} inputMessage={inputMessage} onInputChange={setInputMessage} onSend={sendQuestion} onStop={() => abortRef.current?.abort()} isGenerating={isGenerating} suggestions={suggestions} libraries={libraries} selectedLibraryId={selectedLibraryId} onLibraryChange={setSelectedLibraryId} selectedLibraryDocumentCount={libraries.find(library => library.id === selectedLibraryId)?.document_count ?? 0} onOpenLibraries={() => setActiveTab('docs')} />}
         {activeTab === 'docs' && <DocumentsTab showNotif={showNotif} />}
+        {activeTab === 'connectors' && <div className="h-full overflow-y-auto p-4"><ConnectorsTab showNotif={showNotif} /></div>}
         {activeTab === 'health' && <HealthTab />}
         {activeTab === 'settings' && <SettingsTab showNotif={showNotif} isAdmin={currentUser?.role === 'admin'} />}
+        {activeTab === 'admin-analytics' && currentUser?.role === 'admin' && <div className="h-full overflow-y-auto p-8"><AnalyticsDashboard showNotif={showNotif} /></div>}
         {activeTab === 'admin-users' && currentUser?.role === 'admin' && <div className="h-full overflow-y-auto p-8"><UserManagement showNotif={showNotif} /></div>}
         {activeTab === 'admin-audit' && currentUser?.role === 'admin' && <div className="h-full overflow-y-auto p-8"><AuditLogs showNotif={showNotif} /></div>}
       </div>
