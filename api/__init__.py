@@ -261,6 +261,7 @@ from api.health import router as health_router
 from api.libraries import router as libraries_router
 from api.mcp_server import router as mcp_server_router
 from api.models import router as models_router
+from api.pii import router as pii_router
 from api.providers import router as providers_router
 from api.shutdown import router as shutdown_router
 from api.users import router as users_router
@@ -283,6 +284,7 @@ if getattr(cfg, "ENABLE_LEGACY_WINSARP", False):
 
 app.include_router(auth_router)
 app.include_router(health_router)
+app.include_router(pii_router)
 app.include_router(backup_router)
 app.include_router(users_router)
 app.include_router(audit_router)

@@ -1,0 +1,15 @@
+{
+  "enabled_patterns": {
+    "email": true,
+    "iban": true
+  },
+  "custom_rules": [
+    {
+      "id": "custom_1",
+      "name": "ID Ordine",
+      "pattern": "\\bORD-\\d{4}\\b",
+      "replacement": "[ID_ORDINE]",
+      "enabled": true
+    }
+  ]
+}
