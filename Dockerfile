@@ -41,11 +41,13 @@ COPY --from=builder /root/.local /root/.local
 ENV PATH=/root/.local/bin:$PATH
 
 # Copy application code.
-# Copy config.py explicitly rather than globbing *.py: a glob silently ships
-# whatever happens to sit in the repository root into the production image.
-# data/ is deliberately NOT copied — it holds the runtime SQLite database,
-# is untracked, and is created empty below; copying it broke clean-clone builds.
-COPY config.py ./
+# Copy the config package explicitly rather than globbing *.py: a glob silently
+# ships whatever happens to sit in the repository root into the production
+# image. config_legacy.py is a reference-only file and is deliberately NOT
+# copied. data/ is deliberately NOT copied — it holds the runtime SQLite
+# database, is untracked, and is created empty below; copying it broke
+# clean-clone builds.
+COPY config/ ./config/
 COPY api/ ./api/
 COPY core/ ./core/
 COPY evaluation/ ./evaluation/

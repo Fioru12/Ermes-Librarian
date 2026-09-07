@@ -59,7 +59,18 @@ services:
       - ERMES_OIDC_CLIENT_SECRET=${ERMES_OIDC_CLIENT_SECRET:-}
       - ERMES_OIDC_AUDIENCE=${ERMES_OIDC_AUDIENCE:-}
       - ERMES_RERANKER_ENABLED=${ERMES_RERANKER_ENABLED:-1}
+      # Reranker neurale: richiede sentence-transformers nell'immagine
+      # (pip install .[neural]); senza, ripiega sul reranker lessicale.
+      - ERMES_RERANKER_MODEL=${ERMES_RERANKER_MODEL:-}
+      - ERMES_RERANKER_NEURAL=${ERMES_RERANKER_NEURAL:-1}
+      - ERMES_SEARCH_CACHE_TTL_SECONDS=${ERMES_SEARCH_CACHE_TTL_SECONDS:-300}
+      - ERMES_SEARCH_CACHE_MAX_ENTRIES=${ERMES_SEARCH_CACHE_MAX_ENTRIES:-200}
       - ERMES_DLP_AUDIT_ENABLED=${ERMES_DLP_AUDIT_ENABLED:-1}
+      # Database backend: vuoto = SQLite (default). Con il profilo "postgres"
+      # impostare la URL del servizio postgres (vedi .env.example).
+      - ERMES_DATABASE_URL=${ERMES_DATABASE_URL:-}
+      # Token per l'endpoint /metrics: vuoto = /metrics riservata agli admin.
+      - ERMES_METRICS_TOKEN=${ERMES_METRICS_TOKEN:-}
       - LANGFUSE_PUBLIC_KEY=${LANGFUSE_PUBLIC_KEY:-}
       - LANGFUSE_SECRET_KEY=${LANGFUSE_SECRET_KEY:-}
       - LANGFUSE_HOST=${LANGFUSE_HOST:-http://langfuse:3000}
@@ -83,6 +94,35 @@ services:
           memory: 4G
         reservations:
           memory: 2G
+
+  # Backend PostgreSQL opzionale (deploy multi-utente).
+  # Attivazione: docker compose --profile postgres up -d
+  # e impostare nel .env:
+  #   ERMES_DATABASE_URL=postgresql://ermes:${POSTGRES_PASSWORD:-ermes_change_me}@postgres:5432/ermes
+  # Senza questo profilo l'app usa SQLite (nessuna altra configurazione).
+  postgres:
+    profiles: ["postgres"]
+    image: postgres:16-alpine
+    container_name: ermes-postgres
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-ermes}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-ermes_change_me}
+      - POSTGRES_DB=${POSTGRES_DB:-ermes}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ermes} -d ${POSTGRES_DB:-ermes}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - ermes-network
+    # Il DB non deve essere esposto su porte pubbliche: solo la rete interna.
+    # Per accesso dal host (debug): scommentare
+    # ports:
+    #   - "127.0.0.1:5432:5432"
 
   # Reverse proxy per esposizione pubblica (SSL automatico con Let's Encrypt)
   # Sostituisci il dominio in scripts/Caddyfile prima di avviare
@@ -111,3 +151,4 @@ volumes:
   ollama_data:
   caddy_data:
   caddy_config:
+  postgres_data:

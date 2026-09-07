@@ -3,6 +3,22 @@
 > Documento vivo che traccia stato attuale, miglioramenti pianificati e progresso.
 > Ultimo aggiornamento: 2026-09-07
 
+## 🆕 2026-09-07 — Docker riparato e validato live + profilo postgres in compose
+
+**Trovato e corretto**
+- **La build Docker era rotta dalla migrazione del config**: il Dockerfile faceva `COPY config.py ./`, ma `config.py` non esiste più (rinominato in `config_legacy.py`, sostituito dal package `config/`). Corretto in `COPY config/ ./config/`, con `config_legacy.py` deliberatamente **non** copiato nell'immagine (solo riferimento locale).
+- **Lo smoke test del container ha beccato un secondo bug**: `ModuleNotFoundError: No module named 'prometheus_client'`. Il docstring di `core/metrics.py` e il commento in `pyproject.toml` dichiaravano una "degradazione silenziosa" senza l'extra `metrics`, ma l'import a livello modulo è incondizionato (`api/__init__.py` importa `core.metrics` all'avvio) — la degradazione non era mai stata implementata. Risolto includendo `prometheus-client==0.26.0` in `requirements.txt` (puro Python, zero dipendenze obbligatorie): le metriche sono parte della superficie prodotto e il degrado parziale era solo una trappola.
+
+**Aggiornamenti deploy**
+- `docker-compose.yml`: nuovo servizio **postgres** (postgres:16-alpine, healthcheck, volume persistente) sotto `--profile postgres`, NON esposto su porte pubbliche (solo rete interna; porta host commentata per debug). Nuove variabili passthrough: `ERMES_DATABASE_URL`, `ERMES_METRICS_TOKEN`, `ERMES_RERANKER_MODEL/NEURAL`, `ERMES_SEARCH_CACHE_TTL_SECONDS/MAX_ENTRIES`.
+- `.env.example`: nuove sezioni documentate (reranker neurale, cache, database backend, metrics).
+- Compose valido (`docker compose config`) sia base sia con `--profile postgres`.
+
+**Validazione live (smoke test del container reale)**
+- `docker build` → OK; `docker run` → `/health` 200
+- Login admin → 200; `/metrics` senza token → **401** (default-secure confermato nell'immagine di produzione); frontend servito correttamente
+- Nessun traceback nei log del container
+
 ## 🆕 2026-09-07 — Check finale complessivo: lint gate riportato a zero, bug corretti
 
 **Scopo**: certificare che tutto ciò che è stato costruito nelle sessioni precedenti regga insieme, con il gate di qualità del progetto (ruff) nuovamente verde.
