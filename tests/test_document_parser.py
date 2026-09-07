@@ -46,6 +46,61 @@ def test_rejects_unsupported_file_type():
         extract_text("immagine.png", b"not an image")
 
 
+def _write_minimal_pptx(archive: ZipFile) -> None:
+    """Build a deterministic two-slide PPTX skeleton for tests."""
+    a = "http://schemas.openxmlformats.org/drawingml/2006/main"
+    archive.writestr("[Content_Types].xml", "<Types />")
+    archive.writestr("ppt/presentation.xml", '<presentation xmlns="http://schemas.openxmlformats.org/presentationml/2006/main" />')
+    archive.writestr(
+        "ppt/slides/slide1.xml",
+        f'<p:sld xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" xmlns:a="{a}">'
+        f'<p:txBody><a:p><a:r><a:t>Policy Ferie</a:t></a:r></a:p>'
+        f'<a:p><a:r><a:t>Massimo </a:t></a:r><a:r><a:t>15 giorni</a:t></a:r></a:p></p:txBody></p:sld>',
+    )
+    archive.writestr(
+        "ppt/slides/slide2.xml",
+        f'<p:sld xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" xmlns:a="{a}">'
+        f'<p:txBody><a:p><a:r><a:t>Note spese</a:t></a:r></a:p></p:txBody></p:sld>',
+    )
+
+
+def test_extracts_pptx_slides_with_locators():
+    buffer = BytesIO()
+    with ZipFile(buffer, "w", ZIP_DEFLATED) as archive:
+        _write_minimal_pptx(archive)
+
+    units = extract_source_units("presentazione.pptx", buffer.getvalue())
+
+    assert len(units) == 2
+    assert units[0].locator == "Slide 1"
+    assert units[0].text == "Policy Ferie\nMassimo 15 giorni"  # runs della stessa riga uniti
+    assert units[1].locator == "Slide 2"
+    assert units[1].text == "Note spese"
+
+
+def test_rejects_a_zip_disguised_as_pptx():
+    buffer = BytesIO()
+    with ZipFile(buffer, "w", ZIP_DEFLATED) as archive:
+        archive.writestr("note.txt", "non è una presentazione")
+
+    with pytest.raises(DocumentParseError):
+        extract_text("falsa.pptx", buffer.getvalue())
+
+
+def test_pptx_with_entity_declarations_is_rejected():
+    buffer = BytesIO()
+    with ZipFile(buffer, "w", ZIP_DEFLATED) as archive:
+        _write_minimal_pptx(archive)
+        archive.writestr(
+            "ppt/slides/slide9.xml",
+            '<p:sld xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main">'
+            "<!DOCTYPE p:sld [<!ENTITY xxe \"boom\">]></p:sld>",
+        )
+
+    with pytest.raises(DocumentParseError):
+        extract_text("maligna.pptx", buffer.getvalue())
+
+
 def test_rejects_a_zip_disguised_as_xlsx():
     buffer = BytesIO()
     with ZipFile(buffer, "w", ZIP_DEFLATED) as archive:

@@ -120,6 +120,9 @@ def extract_source_units(filename: str, content: bytes) -> list[SourceUnit]:
         if suffix == ".xlsx":
             _validate_office_archive(content, "xlsx")
             return _extract_xlsx_units(content)
+        if suffix == ".pptx":
+            _validate_office_archive(content, "pptx")
+            return _extract_pptx_units(content)
         if suffix == ".csv":
             return _extract_csv_units(content)
         if suffix == ".rtf":
@@ -292,6 +295,33 @@ def _extract_xlsx_units(content: bytes) -> list[SourceUnit]:
         return units
 
 
+def _extract_pptx_units(content: bytes) -> list[SourceUnit]:
+    """Read a PPTX without adding an office-suite dependency.
+
+    Same approach as `_extract_xlsx_units`: raw OOXML parsing guarded by
+    `_parse_office_xml` (entity-expansion safe). Each slide becomes a unit
+    so citations point at "Slide N". Notes slides are included as part of
+    the slide unit because they carry presenter context.
+    """
+    with ZipFile(BytesIO(content)) as archive:
+        slide_paths = sorted(
+            (name for name in archive.namelist() if re.fullmatch(r"ppt/slides/slide\d+\.xml", name)),
+            key=lambda name: int(re.search(r"slide(\d+)\.xml", name).group(1)),  # type: ignore[union-attr]
+        )
+        units: list[SourceUnit] = []
+        for index, slide_path in enumerate(slide_paths, start=1):
+            root = _parse_office_xml(archive.read(slide_path))
+            a = "{http://schemas.openxmlformats.org/drawingml/2006/main}"
+            paragraphs: list[str] = []
+            for paragraph in root.iter(f"{a}p"):
+                text = " ".join(run.text.strip() for run in paragraph.iter(f"{a}t") if run.text and run.text.strip())
+                if text:
+                    paragraphs.append(text)
+            if paragraphs:
+                units.append(SourceUnit("\n".join(paragraphs), f"Slide {index}"))
+        return units
+
+
 def _validate_office_archive(content: bytes, kind: str) -> None:
     """Reject malformed or suspicious Office ZIP archives before extraction."""
     try:
@@ -307,7 +337,12 @@ def _validate_office_archive(content: bytes, kind: str) -> None:
                     raise DocumentParseError("Archivio Office con rapporto di compressione non sicuro")
             names = set(archive.namelist())
             required = {"[Content_Types].xml"}
-            required.add("word/document.xml" if kind == "docx" else "xl/workbook.xml")
+            required_for_kind = {
+                "docx": "word/document.xml",
+                "xlsx": "xl/workbook.xml",
+                "pptx": "ppt/presentation.xml",
+            }
+            required.add(required_for_kind[kind])
             if not required.issubset(names):
                 raise DocumentParseError("Il file ZIP non è un documento Office valido")
     except DocumentParseError:

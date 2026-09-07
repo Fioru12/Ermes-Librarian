@@ -5,7 +5,6 @@ Tests for LocalFolderConnector (NAS / local folder scanner).
 from __future__ import annotations
 
 from pathlib import Path
-import pytest
 
 from core.connectors.local_folder import LocalFolderConnector
 

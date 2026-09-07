@@ -15,7 +15,7 @@ from core.connectors.base import BaseConnector, RemoteDocument
 
 _logger = logging.getLogger(__name__)
 
-SUPPORTED_EXTENSIONS = {".pdf", ".docx", ".txt", ".md", ".markdown"}
+SUPPORTED_EXTENSIONS = {".pdf", ".docx", ".txt", ".md", ".markdown", ".xlsx", ".pptx", ".csv", ".rtf"}
 
 
 class LocalFolderConnector(BaseConnector):
@@ -35,16 +35,16 @@ class LocalFolderConnector(BaseConnector):
     def test_connection(self) -> tuple[bool, str]:
         if not str(self.folder_path):
             return False, "Percorso cartella non specificato"
-        
+
         if not self.folder_path.exists():
             return False, f"Il percorso non esiste: {self.folder_path}"
-        
+
         if not self.folder_path.is_dir():
             return False, f"Il percorso non è una directory: {self.folder_path}"
-        
+
         if not os.access(self.folder_path, os.R_OK):
             return False, f"Permesso di lettura negato per: {self.folder_path}"
-        
+
         return True, f"Cartella raggiungibile e leggibile ({self.folder_path})"
 
     def fetch_documents(self) -> list[RemoteDocument]:

@@ -20,7 +20,6 @@ scripts/run_demo_validation.py, l'E2E su browser) ma mai su questo percorso.
 Riprodotto empiricamente prima di correggere: vedi
 test_editor_member_cannot_use_another_librarys_storage_as_a_source qui sotto.
 """
-from dataclasses import replace
 
 from fastapi.testclient import TestClient
 
@@ -35,7 +34,7 @@ def api_client_factory(tmp_path, monkeypatch):
     # questo file verifica non verrebbe mai davvero esercitato.
     app_dir = tmp_path / "app"
     app_dir.mkdir()
-    test_cfg = replace(cfg, BASE_DIR=str(app_dir), ADMIN_USERNAME="owner", ADMIN_PASSWORD="StrongPassword!123", API_KEY="")
+    test_cfg = cfg.replace(BASE_DIR=str(app_dir), ADMIN_USERNAME="owner", ADMIN_PASSWORD="StrongPassword!123", API_KEY="")
     monkeypatch.setattr("config.cfg", test_cfg)
     monkeypatch.setattr("api.auth.cfg", test_cfg)
     monkeypatch.setattr("api.libraries.cfg", test_cfg)
@@ -67,7 +66,30 @@ def test_scan_imports_supported_files_and_deduplicates_by_content(tmp_path, monk
     folder.mkdir()
     (folder / "contratto.txt").write_text("Il contratto scade a dicembre.", encoding="utf-8")
     (folder / "stesso_contenuto.txt").write_text("Il contratto scade a dicembre.", encoding="utf-8")  # duplicato
-    (folder / "foglio.xlsx").write_bytes(b"not supported")  # estensione non supportata
+    (folder / "archivio.zip").write_bytes(b"PK\x03\x04 not a document")  # estensione non supportata
+
+    # Un vero xlsx (stesso skeleton deterministico del parser) deve essere
+    # importato e arrivare a "ready" come i .txt: la whitelist del connettore
+    # cartella è allineata a quella degli upload.
+    from io import BytesIO
+    from zipfile import ZIP_DEFLATED, ZipFile
+
+    xlsx_buffer = BytesIO()
+    with ZipFile(xlsx_buffer, "w", ZIP_DEFLATED) as archive:
+        archive.writestr("[Content_Types].xml", "<Types />")
+        archive.writestr(
+            "xl/sharedStrings.xml",
+            '<sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><si><t>Scadenza</t></si></sst>',
+        )
+        archive.writestr(
+            "xl/workbook.xml",
+            '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheets><sheet name="Scadenze" sheetId="1" /></sheets></workbook>',
+        )
+        archive.writestr(
+            "xl/worksheets/sheet1.xml",
+            '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData><row r="1"><c r="A1" t="s"><v>0</v></c></row></sheetData></worksheet>',
+        )
+    (folder / "foglio.xlsx").write_bytes(xlsx_buffer.getvalue())
 
     added = client.post(f"/api/libraries/{library['id']}/sources", json={"path": str(folder)})
     assert added.status_code == 201
@@ -76,9 +98,9 @@ def test_scan_imports_supported_files_and_deduplicates_by_content(tmp_path, monk
     scan = client.post(f"/api/libraries/{library['id']}/sources/{source_id}/scan")
     assert scan.status_code == 200
     body = scan.json()
-    assert [item["filename"] for item in body["imported"]] == ["contratto.txt"]
+    assert sorted(item["filename"] for item in body["imported"]) == ["contratto.txt", "foglio.xlsx"]
     assert body["skipped_duplicates"] == ["stesso_contenuto.txt"]
-    assert body["skipped_unsupported"] == ["foglio.xlsx"]
+    assert body["skipped_unsupported"] == ["archivio.zip"]
 
     # Il documento importato è realmente nella biblioteca, e la sua
     # ingestione e' arrivata a "ready", non solo la riga creata in stato
@@ -89,17 +111,17 @@ def test_scan_imports_supported_files_and_deduplicates_by_content(tmp_path, monk
     # "Originale non disponibile", pur risultando "imported" nella risposta
     # della scansione qui sopra.
     documents = store.list_documents(library["id"])
-    assert [d["filename"] for d in documents] == ["contratto.txt"]
-    assert documents[0]["status"] == "ready", documents[0].get("status")
+    assert sorted(d["filename"] for d in documents) == ["contratto.txt", "foglio.xlsx"]
+    assert all(d["status"] == "ready" for d in documents), [d.get("status") for d in documents]
     from core.library_store import resolve_storage_path
-    stored_path = resolve_storage_path(documents[0]["storage_path"], tmp_path / "app" / "storage" / "libraries")
-    assert stored_path.is_file()
-    assert stored_path.read_text(encoding="utf-8") == "Il contratto scade a dicembre."
+    for document in documents:
+        stored_path = resolve_storage_path(document["storage_path"], tmp_path / "app" / "storage" / "libraries")
+        assert stored_path.is_file()
 
-    # Seconda scansione: nessun nuovo import; entrambi i file sono già noti.
+    # Seconda scansione: nessun nuovo import; tutti i file sono già noti.
     rescan = client.post(f"/api/libraries/{library['id']}/sources/{source_id}/scan").json()
     assert rescan["imported"] == []
-    assert sorted(rescan["skipped_duplicates"]) == ["contratto.txt", "stesso_contenuto.txt"]
+    assert sorted(rescan["skipped_duplicates"]) == ["contratto.txt", "foglio.xlsx", "stesso_contenuto.txt"]
 
 
 def test_source_registration_requires_ownership_not_just_a_role(tmp_path, monkeypatch):

@@ -2,7 +2,8 @@
 
 Filosofia: i diritti sulle cartelle li ha l'account con cui gira Ermes, NON
 gli utenti. Qui non vengono mai salvate credenziali: solo il percorso. La
-scansione importa i file supportati (.txt/.pdf/.docx), salta i duplicati per
+scansione importa i file supportati (.txt/.pdf/.docx/.md/.xlsx/.pptx/.csv/.rtf),
+salta i duplicati per
 hash del contenuto e registra gli errori senza interrompere il batch.
 """
 from __future__ import annotations
@@ -12,12 +13,18 @@ from pathlib import Path
 
 from core.library_store import storage_relative_path
 
-SUPPORTED_EXTENSIONS = {".txt", ".pdf", ".docx"}
+SUPPORTED_EXTENSIONS = {".txt", ".md", ".markdown", ".pdf", ".docx", ".xlsx", ".pptx", ".csv", ".rtf"}
 
 MEDIA_TYPES = {
     ".pdf": "application/pdf",
     ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     ".txt": "text/plain",
+    ".md": "text/markdown",
+    ".markdown": "text/markdown",
+    ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    ".pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    ".csv": "text/csv",
+    ".rtf": "application/rtf",
 }
 
 MAX_IMPORT_FILE_BYTES = 50 * 1024 * 1024  # allineato a un limite prudenziale
