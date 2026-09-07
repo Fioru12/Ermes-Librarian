@@ -18,8 +18,17 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from config import cfg
+from core.database_backend import Backend, SqliteBackend, create_backend
 from core.library_embeddings import cosine_similarity, embed_texts, min_semantic_score
 from core.query_expander import expand_query
+from core.search_cache import get_search_cache
+
+
+def _resolve_backend(database_path: str | Path | None) -> Backend:
+    """Scegli il backend in base a ERMES_DATABASE_URL, con fallback sul path SQLite."""
+    if database_path is not None:
+        return SqliteBackend(str(database_path))
+    return create_backend(cfg.DATABASE_URL)
 
 # Common function words must not become the only "evidence" for a RAG answer.
 # This compact local-first baseline deliberately keeps a conservative bilingual
@@ -89,34 +98,59 @@ class LibraryAccessError(PermissionError):
 
 
 class LibraryStore:
-    def __init__(self, database_path: str | Path) -> None:
-        self.database_path = Path(database_path)
+    def __init__(self, database_path: str | Path | None = None) -> None:
         self._lock = threading.RLock()
-        self.database_path.parent.mkdir(parents=True, exist_ok=True)
+        self._backend = _resolve_backend(database_path)
+        self._is_postgres = self._backend.__class__.__name__ == "PostgresBackend"
         self._initialize()
+
+    @property
+    def database_path(self) -> Path:
+        if isinstance(self._backend, SqliteBackend):
+            return Path(self._backend._path)
+        return Path(".")
+
+    def _exec(self, sql: str, params: tuple | dict | None = None) -> list[dict]:
+        """Esegui una query SELECT e ritorna tutte le righe."""
+        return self._backend.execute(sql, params)
+
+    def _exec_one(self, sql: str, params: tuple | dict | None = None) -> dict | None:
+        """Esegui una query SELECT e ritorna la prima riga."""
+        return self._backend.execute_one(sql, params)
+
+    def _exec_write(self, sql: str, params: tuple | dict | None = None) -> int:
+        """Esegui INSERT/UPDATE/DELETE e ritorna il rowcount."""
+        return self._backend.execute_write(sql, params)
+
+    def _exec_returning(self, sql: str, params: tuple | dict | None = None) -> dict | None:
+        """Esegui INSERT/UPDATE/DELETE ... RETURNING e ritorna la riga."""
+        return self._backend.execute_returning(sql, params)
 
     @contextmanager
     def _connection(self):
-        """Open, commit/rollback, and always close a SQLite connection.
+        """Context manager legacy: delega al backend transaction().
 
-        `sqlite3.Connection.__exit__` commits but does not close; leaving it
-        open keeps Windows file handles alive and blocks cleanup/backup.
+        Mantiene la signature storica per i pochi chiamatori che fanno
+        `with self._connection() as connection: connection.execute(...)`.
+        SQLite: restituisce la connessione cruda (sqlite3.Row, accesso per nome).
+        Postgres: restituisce un adapter dict-based.
         """
-        connection = sqlite3.connect(self.database_path, timeout=10.0)
-        connection.row_factory = sqlite3.Row
-        connection.execute("PRAGMA foreign_keys = ON")
-        connection.execute("PRAGMA busy_timeout = 10000")
-        connection.execute("PRAGMA synchronous = NORMAL")
-        try:
+        with self._backend.transaction() as connection:
             yield connection
-            connection.commit()
-        except Exception:
-            connection.rollback()
-            raise
-        finally:
-            connection.close()
 
     def _initialize(self) -> None:
+        if self._is_postgres:
+            self._initialize_postgres()
+        else:
+            self._initialize_sqlite()
+
+    def _initialize_postgres(self) -> None:
+        """Inizializza lo schema PostgreSQL usando il DDL di postgres_backend."""
+        from core.postgres_backend import POSTGRES_SCHEMA
+        self._backend.execute_script(POSTGRES_SCHEMA)
+
+    def _initialize_sqlite(self) -> None:
+        """Inizializza lo schema SQLite (comportamento storico)."""
         with self._lock, self._connection() as connection:
             connection.execute("PRAGMA journal_mode = WAL")
             connection.executescript(
@@ -371,6 +405,27 @@ class LibraryStore:
         return row["role"] if row else None
 
     @staticmethod
+    def _effective_member_role(direct_role: str | None, library_id: str, actor: dict | None) -> str | None:
+        """Ruolo efficace = max(membership diretta, gruppi OIDC mappati).
+
+        I gruppi SSO NON possono mai degradare una membership esplicita:
+        se il proprietario ha dato editor a un utente, resta editor anche
+        se il suo gruppo mappa solo viewer. Il valore admin non deriva mai
+        dai gruppi (solo dai ruoli del token o da account espliciti).
+        """
+        if actor is None or actor.get("provider") != "oidc":
+            return direct_role
+        from core.governance import resolve_oidc_group_role
+        group_role = resolve_oidc_group_role(actor.get("groups"), library_id)
+        if group_role is None:
+            return direct_role
+        if direct_role == "editor" or group_role == "editor":
+            return "editor"
+        if direct_role == "viewer" or group_role == "viewer":
+            return "viewer"
+        return direct_role
+
+    @staticmethod
     def _can_manage_members(library: dict, actor: dict | None) -> bool:
         return bool(actor and (actor.get("role") == "admin" or library.get("owner_id") == actor.get("username")))
 
@@ -399,12 +454,23 @@ class LibraryStore:
                 """
             ).fetchall()
         memberships = self._membership_roles(actor["username"]) if actor and actor.get("role") != "admin" else {}
+        # Propagazione ACL: le biblioteche raggiungibili SOLO via gruppi SSO
+        # appaiono nell'elenco anche senza membership diretta (scoperta via OIDC).
+        group_roles: dict[str, str] = {}
+        if actor and actor.get("provider") == "oidc" and actor.get("role") != "admin":
+            from core.governance import oidc_group_roles_for_user
+            group_roles = oidc_group_roles_for_user(actor.get("groups"))
         visible: list[dict] = []
         for row in rows:
             library = self._row(row)
             member_role = memberships.get(library["id"])
-            if self._can_access(library, actor, member_role=member_role):
-                library["access_role"] = self._access_role(library, actor, member_role)
+            effective_role = self._effective_member_role(member_role, library["id"], actor)
+            if group_roles.get(library["id"]) and effective_role is None:
+                effective_role = group_roles[library["id"]]
+            if self._can_access(library, actor, member_role=member_role) or (
+                effective_role is not None and library["id"] in group_roles
+            ):
+                library["access_role"] = self._access_role(library, actor, effective_role)
                 visible.append(library)
         return visible
 
@@ -481,6 +547,7 @@ class LibraryStore:
             raise LibraryNotFoundError(library_id)
         library = self._row(row)
         member_role = self._membership_role(library_id, actor["username"]) if actor and actor.get("role") != "admin" else None
+        member_role = self._effective_member_role(member_role, library_id, actor)
         if not self._can_access(library, actor, write, member_role):
             raise LibraryAccessError(library_id)
         library["access_role"] = self._access_role(library, actor, member_role)
@@ -984,55 +1051,41 @@ class LibraryStore:
                 )
         return self.get_document(library_id, document_id)
 
-    def search_documents(self, library_id: str, query: str, limit: int = 20) -> list[dict]:
-        """Return only the result list for callers that do not need retrieval metadata."""
-        results, _ = self.search_with_profile(library_id, query, limit)
-        return results
+    def _keyword_candidates(self, connection, library_id: str, query: str, hidden: set[str]) -> set[str]:
+        """Trova i chunk_id candidati via keyword search (FTS5 su SQLite, tsvector su Postgres)."""
+        tokens = [
+            self._search_token(token)
+            for token in re.findall(r"[\wÀ-ÿ]{3,}", query.lower())
+            if token not in _QUERY_STOPWORDS
+        ]
+        if not tokens:
+            for token in re.findall(r"[\wÀ-ÿ]{2,}", query.lower()):
+                if token not in _QUERY_STOPWORDS:
+                    clean = re.sub(r"[^\wÀ-ÿ]", "", token)
+                    if clean:
+                        tokens.append(clean)
+        if not tokens:
+            return set()
 
-    def search_with_profile(self, library_id: str, query: str, limit: int = 20, actor: dict | None = None) -> tuple[list[dict], dict]:
-        """Retrieve chunks with a truthful local retrieval profile.
-
-        Keyword matches are indexed via SQLite FTS5 for sub-millisecond retrieval.
-        When the index and the current query both have embeddings from the local
-        Ollama endpoint, cosine similarity is added as a second signal.
-        No external provider is ever used for retrieval.
-
-        The optional actor filters out documents restricted by a document ACL:
-        filtering happens here, before any citation can be built, so a hidden
-        document cannot leak through search results either.
-        """
-        library = self.get_library(library_id, actor)
-        normalized = query.strip()
-        if not normalized:
-            return [], {"mode": "keyword", "semantic_indexed_chunks": 0, "semantic_used": False}
-
-        with self._connection() as connection:
-            hidden = self._hidden_document_ids(connection, library, actor)
-
-            indexed_chunks = connection.execute(
+        if self._is_postgres:
+            # PostgreSQL: usa search_tsv (generated column) con plainto_tsquery
+            clean_phrase = re.sub(r"[^\wÀ-ÿ\s]", " ", query).strip()
+            # Costruisci una query tsquery con AND tra i token
+            tsquery = " & ".join(f"{t}:*" for t in tokens)
+            if len(clean_phrase.split()) > 1:
+                tsquery = f"\"{clean_phrase}\" | ({tsquery})"
+            rows = connection.execute(
                 """
-                SELECT COUNT(c.id) FROM document_chunks c
+                SELECT c.id AS chunk_id FROM document_chunks c
                 JOIN documents d ON d.id = c.document_id
-                WHERE d.library_id = ? AND c.embedding_json <> ''
+                WHERE d.library_id = ? AND c.search_tsv @@ to_tsquery('simple', ?)
                 """,
-                (library_id,),
-            ).fetchone()[0]
-
-            query_embeddings = embed_texts([normalized]) if indexed_chunks else []
-            query_embedding = query_embeddings[0] if query_embeddings else []
-            semantic_used = bool(query_embedding and indexed_chunks)
-
-            tokens = [
-                self._search_token(token)
-                for token in re.findall(r"[\wÀ-ÿ]{3,}", normalized.lower())
-                if token not in _QUERY_STOPWORDS
-            ]
-
-            candidate_chunk_ids: set[str] = set()
-
-            # FTS5 search
+                (library_id, tsquery),
+            ).fetchall()
+        else:
+            # SQLite: FTS5
             fts_query_parts = []
-            clean_phrase = re.sub(r"[^\wÀ-ÿ\s]", " ", normalized).strip()
+            clean_phrase = re.sub(r"[^\wÀ-ÿ\s]", " ", query).strip()
             phrase_words = clean_phrase.split()
             if len(phrase_words) > 1:
                 fts_query_parts.append('"' + " ".join(phrase_words) + '"')
@@ -1040,113 +1093,139 @@ class LibraryStore:
                 clean_token = re.sub(r"[^\wÀ-ÿ]", "", token)
                 if len(clean_token) >= 3:
                     fts_query_parts.append(f"{clean_token}*")
-            # Also consider 2-letter tokens if no 3+ letter tokens are found
-            if not tokens:
-                for token in re.findall(r"[\wÀ-ÿ]{2,}", normalized.lower()):
-                    if token not in _QUERY_STOPWORDS:
-                        clean_token = re.sub(r"[^\wÀ-ÿ]", "", token)
-                        if clean_token:
-                            fts_query_parts.append(f"{clean_token}*")
+            fts_match_query = " OR ".join(fts_query_parts)
+            if not fts_match_query:
+                return set()
+            rows = connection.execute(
+                "SELECT chunk_id FROM document_chunks_fts WHERE document_chunks_fts MATCH ?",
+                (fts_match_query,),
+            ).fetchall()
 
-            # Aggiunge sinonimi e acronimi aziendali espansi
-            expanded_queries = expand_query(normalized)
-            for eq in expanded_queries[1:]:
-                for syn_token in re.findall(r"[\wÀ-ÿ]{3,}", eq.lower()):
-                    if syn_token not in _QUERY_STOPWORDS and syn_token not in tokens:
-                        clean_syn = re.sub(r"[^\wÀ-ÿ]", "", syn_token)
-                        if clean_syn and f"{clean_syn}*" not in fts_query_parts:
-                            fts_query_parts.append(f"{clean_syn}*")
+        return {row["chunk_id"] for row in rows if row["chunk_id"] not in hidden}
 
-            fts_match_query = " OR ".join(fts_query_parts) if fts_query_parts else ""
-            if fts_match_query:
-                try:
-                    fts_rows = connection.execute(
-                        """
-                        SELECT chunk_id FROM document_chunks_fts
-                        WHERE document_chunks_fts MATCH ? AND library_id = ?
-                        LIMIT 300
-                        """,
-                        (fts_match_query, library_id),
-                    ).fetchall()
-                    candidate_chunk_ids.update(r["chunk_id"] for r in fts_rows)
-                except sqlite3.OperationalError:
-                    candidate_chunk_ids = set()
+    def search_documents(self, library_id: str, query: str, limit: int = 20) -> list[dict]:
+        """Return only the result list for callers that do not need retrieval metadata."""
+        results, _ = self.search_with_profile(library_id, query, limit)
+        return results
+
+    def search_with_profile(self, library_id: str, query: str, limit: int = 20, actor: dict | None = None) -> tuple[list[dict], dict]:
+        """Retrieve chunks with a truthful local retrieval profile."""
+        library = self.get_library(library_id, actor)
+        normalized = query.strip()
+        if not normalized:
+            return [], {"mode": "keyword", "semantic_indexed_chunks": 0, "semantic_used": False}
+
+        # Check semantic cache (invalidated when doc_count changes).
+        # Lo scope = username: con ACL attive utenti diversi devono vedere
+        # risultati diversi, quindi la cache è partizionata per utente per
+        # evitare leak/falsi negativi tra chi ha permessi differenti.
+        cache = get_search_cache()
+        doc_count = library.get("document_count", 0)
+        scope = actor.get("username", "") if actor else ""
+        cached = cache.get(library_id, normalized, doc_count, scope)
+        if cached is not None:
+            return cached
+
+        with self._connection() as connection:
+            hidden = self._hidden_document_ids(connection, library, actor)
+
+            if self._is_postgres:
+                emb_filter = "(c.embedding_json IS NOT NULL AND c.embedding_json::text <> 'null')"
+            else:
+                emb_filter = "c.embedding_json <> ''"
+
+            row = connection.execute(
+                f"SELECT COUNT(c.id) AS count FROM document_chunks c JOIN documents d ON d.id = c.document_id WHERE d.library_id = ? AND {emb_filter}",
+                (library_id,),
+            ).fetchone()
+            indexed_count = row.get("count", 0) if isinstance(row, dict) else row[0]
+
+            query_embeddings = embed_texts([normalized]) if indexed_count else []
+            query_embedding = query_embeddings[0] if query_embeddings else []
+            semantic_used = bool(query_embedding and indexed_count)
+
+            tokens = [self._search_token(t) for t in re.findall(r"[\wÀ-ÿ]{3,}", normalized.lower()) if t not in _QUERY_STOPWORDS]
+            candidate_chunk_ids = self._keyword_candidates(connection, library_id, normalized, hidden)
+
+            for eq in expand_query(normalized)[1:]:
+                candidate_chunk_ids.update(self._keyword_candidates(connection, library_id, eq, hidden))
 
             if semantic_used:
                 emb_rows = connection.execute(
-                    """
-                    SELECT c.id FROM document_chunks c
-                    JOIN documents d ON d.id = c.document_id
-                    WHERE d.library_id = ? AND c.embedding_json <> ''
-                    """,
+                    f"SELECT c.id FROM document_chunks c JOIN documents d ON d.id = c.document_id WHERE d.library_id = ? AND {emb_filter}",
                     (library_id,),
                 ).fetchall()
-                candidate_chunk_ids.update(r["id"] for r in emb_rows)
+                for r in emb_rows:
+                    cid = r.get("id") if isinstance(r, dict) else r[0]
+                    candidate_chunk_ids.add(cid)
 
             if not candidate_chunk_ids and not semantic_used:
-                return [], {
-                    "mode": "keyword",
-                    "semantic_indexed_chunks": indexed_chunks,
-                    "semantic_used": False,
-                }
+                return [], {"mode": "keyword", "semantic_indexed_chunks": indexed_count, "semantic_used": False}
 
             if candidate_chunk_ids:
                 placeholders = ",".join("?" for _ in candidate_chunk_ids)
                 rows = connection.execute(
-                    f"""
-                    SELECT documents.id AS document_id, documents.filename, documents.version, documents.content_hash,
-                           document_chunks.id AS chunk_id, document_chunks.ordinal, document_chunks.text AS excerpt,
-                           document_chunks.source_locator, document_chunks.embedding_json
-                    FROM document_chunks
-                    JOIN documents ON documents.id = document_chunks.document_id
-                    WHERE document_chunks.id IN ({placeholders}) AND documents.library_id = ?
-                    ORDER BY documents.created_at DESC, document_chunks.ordinal ASC
-                    """,
+                    f"SELECT documents.id AS document_id, documents.filename, documents.version, documents.content_hash, document_chunks.id AS chunk_id, document_chunks.ordinal, document_chunks.text AS excerpt, document_chunks.source_locator, document_chunks.embedding_json FROM document_chunks JOIN documents ON documents.id = document_chunks.document_id WHERE document_chunks.id IN ({placeholders}) AND documents.library_id = ? ORDER BY documents.created_at DESC, document_chunks.ordinal ASC",
                     (*candidate_chunk_ids, library_id),
                 ).fetchall()
             else:
                 rows = []
 
-        rows = [row for row in rows if row["document_id"] not in hidden]
+        def _get(row, key):
+            if isinstance(row, dict):
+                return row.get(key)
+            keys = ["document_id", "filename", "version", "content_hash", "chunk_id", "ordinal", "excerpt", "source_locator", "embedding_json"]
+            return row[keys.index(key)]
 
-        ranked: list[tuple[float, sqlite3.Row]] = []
+        rows = [r for r in rows if _get(r, "document_id") not in hidden]
+
+        ranked = []
         for row in rows:
-            haystack = f"{row['filename']} {row['excerpt']}".lower()
+            filename, excerpt = _get(row, "filename"), _get(row, "excerpt")
+            document_id = _get(row, "document_id")
+            version = _get(row, "version")
+            content_hash = _get(row, "content_hash")
+            chunk_id = _get(row, "chunk_id")
+            source_locator = _get(row, "source_locator")
+            embedding_json = _get(row, "embedding_json")
+            ordinal = _get(row, "ordinal")
+            haystack = f"{filename} {excerpt}".lower()
             phrase_score = 100 if normalized.lower() in haystack else 0
-            haystack_tokens = {self._search_token(token) for token in re.findall(r"[\wÀ-ÿ]{3,}", haystack)}
-            token_score = sum(10 for token in tokens if token in haystack_tokens)
+            haystack_tokens = {self._search_token(t) for t in re.findall(r"[\wÀ-ÿ]{3,}", haystack)}
+            token_score = sum(10 for t in tokens if t in haystack_tokens)
             semantic_score = 0.0
-            if query_embedding and row["embedding_json"]:
+            if query_embedding and embedding_json:
                 try:
-                    semantic_score = max(0.0, cosine_similarity(query_embedding, json.loads(row["embedding_json"])))
+                    emb = json.loads(embedding_json) if isinstance(embedding_json, str) else embedding_json
+                    semantic_score = max(0.0, cosine_similarity(query_embedding, emb))
                 except (TypeError, ValueError):
                     semantic_score = 0.0
             if phrase_score or token_score or semantic_score >= min_semantic_score():
-                ranked.append((phrase_score + token_score + (semantic_score * 40), row))
+                ranked.append((phrase_score + token_score + (semantic_score * 40), {
+                    "document_id": document_id, "filename": filename, "version": version,
+                    "content_hash": content_hash, "chunk_id": chunk_id, "ordinal": ordinal,
+                    "excerpt": excerpt, "source_locator": source_locator,
+                }))
         ranked.sort(key=lambda item: (-item[0], item[1]["ordinal"]))
         results = [
             {
-                **self._row(row),
-                "relevance_score": round(score, 4),
+                **d,
+                "relevance_score": round(s, 4),
                 "citation": {
-                    "document_id": row["document_id"],
-                    "filename": row["filename"],
-                    "version": row["version"],
-                    "content_hash": f"sha256:{row['content_hash']}",
-                    "chunk_id": row["chunk_id"],
-                    "locator": row["source_locator"] or f"Passaggio {row['ordinal'] + 1}",
+                    "document_id": d["document_id"], "filename": d["filename"],
+                    "version": d["version"], "content_hash": f"sha256:{d['content_hash']}",
+                    "chunk_id": d["chunk_id"],
+                    "locator": d["source_locator"] or f"Passaggio {d['ordinal'] + 1}",
                 },
             }
-            for score, row in ranked[:max(1, min(limit, 50))]
+            for s, d in ranked[:max(1, min(limit, 50))]
         ]
         if getattr(cfg, "RERANKER_ENABLED", True) and results:
             from core.reranker import rerank_candidates
             results = rerank_candidates(query=normalized, candidates=results, limit=max(1, min(limit, 50)))
-        profile = {
-            "mode": "hybrid_local" if semantic_used else "keyword",
-            "semantic_indexed_chunks": indexed_chunks,
-            "semantic_used": semantic_used,
-        }
+        profile = {"mode": "hybrid_local" if semantic_used else "keyword", "semantic_indexed_chunks": indexed_count, "semantic_used": semantic_used}
+        # Store in semantic cache (per-user scope, come sopra)
+        cache.put(library_id, normalized, doc_count, results, profile, scope)
         return results, profile
 
     def store_chunk_embeddings(
@@ -1204,6 +1283,8 @@ class LibraryStore:
             connection.execute(
                 "DELETE FROM documents WHERE id = ? AND library_id = ?", (document_id, library_id),
             )
+        # Invalidate search cache (document count changed)
+        get_search_cache().invalidate(library_id)
         return paths
 
     def delete_library(self, library_id: str) -> list[str]:
@@ -1254,6 +1335,8 @@ class LibraryStore:
             connection.execute("DELETE FROM library_members WHERE library_id = ?", (library_id,))
             connection.execute("DELETE FROM documents WHERE library_id = ?", (library_id,))
             connection.execute("DELETE FROM libraries WHERE id = ?", (library_id,))
+        # Invalidate search cache (library deleted)
+        get_search_cache().invalidate(library_id)
         return paths
 
     def add_document(
@@ -1335,4 +1418,6 @@ class LibraryStore:
                     """,
                     (str(uuid.uuid4()), document["id"], ordinal, text, locator, now),
                 )
+        # Invalidate search cache (document count changed)
+        get_search_cache().invalidate(library_id)
         return document
