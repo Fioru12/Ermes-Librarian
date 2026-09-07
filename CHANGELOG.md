@@ -1,6 +1,19 @@
 # Changelog
 
-Registro leggibile del lavoro su questo progetto. Per il dettaglio fase-per-fase con motivazioni, vedi [docs/ROADMAP_V2.md](docs/ROADMAP_V2.md); per i finding tecnici completi, [docs/AUDIT_2026-08-19.md](docs/AUDIT_2026-08-19.md) e [docs/CODE_REVIEW.md](docs/CODE_REVIEW.md).
+Registro leggibile del lavoro su questo progetto. Per il dettaglio fase-per-fase con motivazioni, vedi [docs/ROADMAP_V2.md](docs/ROADMAP_V2.md); per i finding tecnici completi, [docs/AUDIT_2026-08-19.md](docs/AUDIT_2026-08-19.md) e [docs/CODE_REVIEW.md](docs/CODE_REVIEW.md); per il registro operativo delle sessioni, [docs/WORK_PROGRESS.md](docs/WORK_PROGRESS.md).
+
+## 2026-09-07 — v2.1.0: RAG più preciso, multi-backend, sicurezza SSO e osservabilità
+
+- **Config modulare**: `config.py` monolite diviso nel package `config/` (server, security, storage, integrations, rag) con parità completa degli attributi verificata via confronto automatico. Durante la migrazione trovate e corrette tre regressioni silenziose, la più grave: **il `.env` non veniva più caricato** (in produzione si sarebbe perso `ADMIN_PASSWORD` e i segreti Slack/Teams/Telegram senza accorgersene).
+- **Reranker neurale (cross-encoder)**: `ms-marco-MiniLM-L-6-v2` valuta (query, passaggio) insieme; blend 60/40 col reranker lessicale esistente, lazy-load thread-safe e fallback trasparente se `sentence-transformers` non è installato (`pip install .[neural]`). Discriminazione reale misurata: 0.999 sull'estratto pertinente, 0.0 su quello fuori tema.
+- **Parser PowerPoint**: `.pptx` supportato con parsing OOXML diretto (zero nuove dipendenze, stessi guard di sicurezza del parser xlsx: DTD rifiutati, limiti zip). Ogni slide diventa un'unità citabile con locator "Slide N". Whitelist dei connettori cartella/NAS allineata agli upload (ora anche `.md/.xlsx/.pptx/.csv/.rtf`), con test end-to-end di un xlsx importato da cartella fino a "ready".
+- **OIDC → ACL**: i gruppi SSO possono concedere ruoli viewer/editor sulle biblioteche via mapping amministrabile (`/api/admin/oidc/group-mappings`, con audit log). La membership diretta vince sempre sui gruppi; i gruppi non possono mai dare admin. Un utente vede anche le biblioteche raggiungibili solo via gruppo (scoperta SSO).
+- **Fix di sicurezza nella cache di ricerca**: la cache era condivisa per `(library_id, query)` a prescindere dall'utente — con ACL attive chi vedeva di più poteva "servire" risultati a chi vede di meno. Ora lo scope è per utente.
+- **Dual-backend SQLite/PostgreSQL**: `ERMES_DATABASE_URL` commuta il backend (psycopg 3, jsonb per gli embedding, tsvector per il full-text, `FOR UPDATE SKIP LOCKED` sui job). SQLite resta il default: i deploy esistenti non cambiano nulla. Piano di migrazione completo in [docs/POSTGRES_MIGRATION_PLAN.md](docs/POSTGRES_MIGRATION_PLAN.md), parità verificata con test live (auto-skip senza DB).
+- **Monitoring Prometheus**: metriche native (latenze, domande RAG, modalità rerank, esiti ingestion) su `/metrics`, che ora **richiede autenticazione** — prima era pubblico ed esponeva percorsi, errori e latenze.
+- **Load testing**: scenario Locust (search/listing/upload con utenti auto-registrati) e benchmark pytest: ricerca ~70ms, 14.5 q/s single-thread, 28 q/s concorrenti con 0 errori, ~800 chunk/s in insert.
+- **UX**: wizard di onboarding al primo accesso; card connettore Microsoft 365 (SharePoint/OneDrive) con test connessione e sync; barra di stato del Folder Watcher con sync globale. Fix: il selettore "Biblioteca di destinazione" era sempre vuoto (leggiva `data.libraries` invece di `data.items`).
+- **Gate di qualità riportato a zero**: 169 violazioni ruff → 0. Nel passaggio trovati due bug reali: il locustfile era sintatticamente rotto (mai visto da pytest) e `core/governance.py` conteneva un blocco OIDC duplicato (la seconda definizione oscurava la prima; rimosso il dead code).
 
 ## 2026-09-03 — Integrazioni Enterprise & Agenti AI
 
