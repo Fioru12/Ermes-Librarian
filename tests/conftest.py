@@ -2,6 +2,7 @@
 conftest.py
 Fixtures e configurazione pytest per il progetto Ermes.
 """
+
 import os
 import sys
 
@@ -24,8 +25,7 @@ from core.rate_limiter import RateLimitConfig, RateLimiter
 def pytest_configure(config):
     config.addinivalue_line(
         "markers",
-        "llm: mark test as LLM-dependent (requires Ollama or OpenRouter). "
-        "Use --llm to run, or skip by default.",
+        "llm: mark test as LLM-dependent (requires Ollama or OpenRouter). Use --llm to run, or skip by default.",
     )
 
 
@@ -49,6 +49,7 @@ def pytest_collection_modifyitems(config, items):
 
 
 # ── Fixtures ──
+
 
 @pytest.fixture
 def temp_dir() -> Generator[Path, None, None]:
@@ -104,13 +105,16 @@ def temp_catalogo(temp_dir: Path) -> Generator[Path, None, None]:
     Non tocca il catalogo reale (WinSarp_Formule.txt).
     """
     cat_path = temp_dir / "catalogo_test.txt"
-    cat_path.write_text("""## [1](#1) | Formula Test | Inizio Giornata | inizio
+    cat_path.write_text(
+        """## [1](#1) | Formula Test | Inizio Giornata | inizio
 **Scopo:** Formula di test
 ```
 ( 800 = '1' )
 VF
 ```
-""", encoding="utf-8")
+""",
+        encoding="utf-8",
+    )
     yield cat_path
 
 

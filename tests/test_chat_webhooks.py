@@ -5,6 +5,7 @@ Le firme sono calcolate qui con lo stesso algoritmo standard delle due
 piattaforme (HMAC-SHA256), non copiando la funzione che le verifica — un test
 che ricalcola con la funzione stessa non proverebbe nulla.
 """
+
 import base64
 import hashlib
 import hmac
@@ -23,8 +24,13 @@ def _client(tmp_path, monkeypatch, *, slack_secret="slack-test-secret", teams_se
     if teams_secret is None:
         teams_secret = base64.b64encode(b"teams-raw-secret-bytes").decode()
     test_cfg = cfg.replace(
-        BASE_DIR=str(app_dir), ADMIN_USERNAME="owner", ADMIN_PASSWORD="StrongPassword!123", API_KEY="",
-        SLACK_SIGNING_SECRET=slack_secret, TEAMS_WEBHOOK_SECRET=teams_secret, SLACK_BOT_TOKEN="",
+        BASE_DIR=str(app_dir),
+        ADMIN_USERNAME="owner",
+        ADMIN_PASSWORD="StrongPassword!123",
+        API_KEY="",
+        SLACK_SIGNING_SECRET=slack_secret,
+        TEAMS_WEBHOOK_SECRET=teams_secret,
+        SLACK_BOT_TOKEN="",
     )
     monkeypatch.setattr("config.cfg", test_cfg)
     monkeypatch.setattr("api.auth.cfg", test_cfg)
@@ -33,9 +39,12 @@ def _client(tmp_path, monkeypatch, *, slack_secret="slack-test-secret", teams_se
     _SESSIONS.clear()
     client = TestClient(app)
     import api.libraries
+
     monkeypatch.setattr(api.libraries, "_store", None)
     store = api.libraries.get_library_store()
-    assert client.post("/api/auth/login", json={"username": "owner", "password": "StrongPassword!123"}).status_code == 200
+    assert (
+        client.post("/api/auth/login", json={"username": "owner", "password": "StrongPassword!123"}).status_code == 200
+    )
     library = store.create_library("Archivio", "", "private", owner_id="owner")
     return client, store, library, test_cfg
 
@@ -86,6 +95,7 @@ def test_slack_webhook_rejects_a_stale_timestamp(monkeypatch):
     (protezione replay): senza questo controllo una richiesta intercettata una
     sola volta resterebbe valida per sempre."""
     from api.chat_webhooks import _verify_slack_signature
+
     monkeypatch.setattr("api.chat_webhooks.cfg", cfg.replace(SLACK_SIGNING_SECRET="some-secret"))
 
     body = b"text=ciao"
@@ -104,8 +114,12 @@ def test_teams_webhook_with_valid_hmac_answers_from_the_bound_library(tmp_path, 
     client.post(f"/api/libraries/{library['id']}/integrations", json={"platform": "teams", "external_channel_id": "T1"})
 
     import json as jsonlib
+
     body = jsonlib.dumps({"text": "A che ora apre l'ufficio?", "conversation": {"id": "T1"}}).encode()
-    headers = {"Authorization": _teams_authorization(test_cfg.TEAMS_WEBHOOK_SECRET, body), "Content-Type": "application/json"}
+    headers = {
+        "Authorization": _teams_authorization(test_cfg.TEAMS_WEBHOOK_SECRET, body),
+        "Content-Type": "application/json",
+    }
     response = client.post("/api/integrations/teams", content=body, headers=headers)
 
     assert response.status_code == 200
@@ -120,7 +134,11 @@ def test_teams_webhook_rejects_basic_auth_the_legacy_scheme_is_not_accepted(tmp_
     client, store, library, test_cfg = _client(tmp_path, monkeypatch)
     body = b'{"text": "ciao", "conversation": {"id": "T1"}}'
     basic = base64.b64encode(f":{test_cfg.TEAMS_WEBHOOK_SECRET}".encode()).decode()
-    response = client.post("/api/integrations/teams", content=body, headers={"Authorization": f"Basic {basic}", "Content-Type": "application/json"})
+    response = client.post(
+        "/api/integrations/teams",
+        content=body,
+        headers={"Authorization": f"Basic {basic}", "Content-Type": "application/json"},
+    )
     assert response.status_code == 403
 
 
@@ -136,11 +154,15 @@ def test_slack_webhook_refuses_every_request_when_no_secret_is_configured(tmp_pa
         f"/api/libraries/{library['id']}/documents",
         files={"file": ("segreto.txt", b"Stipendio CEO: 950000 EUR - CONFIDENZIALE", "text/plain")},
     )
-    client.post(f"/api/libraries/{library['id']}/integrations", json={"platform": "slack", "external_channel_id": "PUBLIC"})
+    client.post(
+        f"/api/libraries/{library['id']}/integrations", json={"platform": "slack", "external_channel_id": "PUBLIC"}
+    )
 
     attacker = TestClient(app)
     body = "text=Qual+e%27+lo+stipendio+del+CEO%3F&channel_id=PUBLIC"
-    response = attacker.post("/api/integrations/slack", content=body, headers={"Content-Type": "application/x-www-form-urlencoded"})
+    response = attacker.post(
+        "/api/integrations/slack", content=body, headers={"Content-Type": "application/x-www-form-urlencoded"}
+    )
 
     assert response.status_code == 503
     assert "CEO" not in response.text
@@ -153,7 +175,9 @@ def test_teams_webhook_refuses_every_request_when_no_secret_is_configured(tmp_pa
         f"/api/libraries/{library['id']}/documents",
         files={"file": ("segreto.txt", b"Stipendio CEO: 950000 EUR - CONFIDENZIALE", "text/plain")},
     )
-    client.post(f"/api/libraries/{library['id']}/integrations", json={"platform": "teams", "external_channel_id": "PUBLIC"})
+    client.post(
+        f"/api/libraries/{library['id']}/integrations", json={"platform": "teams", "external_channel_id": "PUBLIC"}
+    )
 
     attacker = TestClient(app)
     body = b'{"text": "Qual e lo stipendio del CEO?", "conversation": {"id": "PUBLIC"}}'
@@ -169,7 +193,10 @@ def test_teams_webhook_survives_a_null_conversation_field(tmp_path, monkeypatch)
     far crashare l'handler con AttributeError (.get su None)."""
     client, store, library, test_cfg = _client(tmp_path, monkeypatch)
     body = b'{"text": "ciao", "conversation": null}'
-    headers = {"Authorization": _teams_authorization(test_cfg.TEAMS_WEBHOOK_SECRET, body), "Content-Type": "application/json"}
+    headers = {
+        "Authorization": _teams_authorization(test_cfg.TEAMS_WEBHOOK_SECRET, body),
+        "Content-Type": "application/json",
+    }
     response = client.post("/api/integrations/teams", content=body, headers=headers)
     assert response.status_code == 200
     assert "non è collegato" in response.json()["text"]
@@ -210,15 +237,12 @@ def test_telegram_webhook_answers_from_bound_library(tmp_path, monkeypatch):
         f"/api/libraries/{library['id']}/documents",
         files={"file": ("ferie.txt", b"La pausa pranzo dura 60 minuti.", "text/plain")},
     )
-    client.post(f"/api/libraries/{library['id']}/integrations", json={"platform": "telegram", "external_channel_id": "123456789"})
+    client.post(
+        f"/api/libraries/{library['id']}/integrations",
+        json={"platform": "telegram", "external_channel_id": "123456789"},
+    )
 
-    payload = {
-        "update_id": 1,
-        "message": {
-            "chat": {"id": 123456789},
-            "text": "Quanto dura la pausa pranzo?"
-        }
-    }
+    payload = {"update_id": 1, "message": {"chat": {"id": 123456789}, "text": "Quanto dura la pausa pranzo?"}}
     headers = {"X-Telegram-Bot-Api-Secret-Token": "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11"}
     response = client.post("/api/integrations/telegram", json=payload, headers=headers)
     assert response.status_code == 200

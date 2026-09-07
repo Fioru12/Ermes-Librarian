@@ -15,7 +15,9 @@ from config import cfg
 
 def api_client_factory(tmp_path, monkeypatch):
     """Client API con cfg isolata in tmp_path; ritorna (client, test_cfg)."""
-    test_cfg = cfg.replace(BASE_DIR=str(tmp_path), ADMIN_USERNAME="owner", ADMIN_PASSWORD="StrongPassword!123", API_KEY="")
+    test_cfg = cfg.replace(
+        BASE_DIR=str(tmp_path), ADMIN_USERNAME="owner", ADMIN_PASSWORD="StrongPassword!123", API_KEY=""
+    )
     monkeypatch.setattr("config.cfg", test_cfg)
     monkeypatch.setattr("api.auth.cfg", test_cfg)
     monkeypatch.setattr("api.libraries.cfg", test_cfg)
@@ -39,13 +41,18 @@ def _add_doc(store, library_id: str, filename: str, text: str) -> dict:
 def test_document_scoped_search_returns_only_that_document(tmp_path, monkeypatch):
     client, _ = api_client_factory(tmp_path, monkeypatch)
     import api.libraries
+
     monkeypatch.setattr(api.libraries, "_store", None)
     store = api.libraries.get_library_store()
     library = store.create_library("Contratti", "", "private", owner_id="owner")
-    contratto = _add_doc(store, library["id"], "contratto.txt", "Il contratto scade a dicembre con preavviso di trenta giorni.")
+    contratto = _add_doc(
+        store, library["id"], "contratto.txt", "Il contratto scade a dicembre con preavviso di trenta giorni."
+    )
     altro = _add_doc(store, library["id"], "manuale.txt", "Il manuale di avvio descrive la procedura di dicembre.")
 
-    assert client.post("/api/auth/login", json={"username": "owner", "password": "StrongPassword!123"}).status_code == 200
+    assert (
+        client.post("/api/auth/login", json={"username": "owner", "password": "StrongPassword!123"}).status_code == 200
+    )
     response = client.get(f"/api/libraries/{library['id']}/documents/{contratto['id']}/search?q=dicembre")
     assert response.status_code == 200
     body = response.json()

@@ -41,6 +41,7 @@ def check_openrouter() -> tuple[bool, str]:
 
     try:
         import httpx
+
         response = httpx.get(
             f"{cfg.OPENROUTER_BASE_URL.rstrip('/')}/models",
             headers={

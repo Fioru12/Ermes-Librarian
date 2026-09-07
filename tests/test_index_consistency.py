@@ -5,6 +5,7 @@ fallito a metà può produrre quattro derive. Ogni test ne copre una, più il
 caso sano: il report deve dire esplicitamente cosa non torna, invece di
 lasciare scoprire al download fallito che qualcosa era storto.
 """
+
 from pathlib import Path
 
 from core.library_store import LibraryStore
@@ -34,8 +35,10 @@ def test_a_consistent_index_reports_ok(tmp_path: Path):
     store = LibraryStore(tmp_path / "ok.sqlite3")
     seeded = _seed_healthy_document(store, tmp_path / "storage")
     store.store_chunk_embeddings(
-        seeded["library"]["id"], seeded["document"]["id"],
-        [[0.1, 0.2]], "test-embed-model",
+        seeded["library"]["id"],
+        seeded["document"]["id"],
+        [[0.1, 0.2]],
+        "test-embed-model",
     )
 
     report = store.verify_index_consistency(tmp_path / "storage", expected_embed_model="test-embed-model")
@@ -90,9 +93,14 @@ def test_partially_embedded_and_model_mismatch_are_reported(tmp_path: Path):
     document_id = seeded["document"]["id"]
     # Due chunk ma embedding su uno solo, e con un modello diverso dall'atteso.
     with store._connection() as connection:
-        connection.execute("INSERT INTO document_chunks (id, document_id, ordinal, text, created_at) VALUES (?, ?, ?, ?, ?)",
-                           ("chunk-extra", document_id, 1, "Secondo passaggio.", "2026-01-01"))
-        connection.execute("UPDATE document_chunks SET embedding_json = '[0.1]', embedding_model = 'vecchio-modello' WHERE document_id = ? AND ordinal = 0", (document_id,))
+        connection.execute(
+            "INSERT INTO document_chunks (id, document_id, ordinal, text, created_at) VALUES (?, ?, ?, ?, ?)",
+            ("chunk-extra", document_id, 1, "Secondo passaggio.", "2026-01-01"),
+        )
+        connection.execute(
+            "UPDATE document_chunks SET embedding_json = '[0.1]', embedding_model = 'vecchio-modello' WHERE document_id = ? AND ordinal = 0",
+            (document_id,),
+        )
 
     report = store.verify_index_consistency(tmp_path / "storage", expected_embed_model="modello-attuale")
 

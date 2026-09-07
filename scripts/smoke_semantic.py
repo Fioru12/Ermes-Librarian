@@ -4,6 +4,7 @@ Richiede Ollama online e il modello di embedding installato. La domanda usa
 una PARAFFRASE senza sovrapposizione lessicale col documento: solo il percorso
 semantico puo' trovarla — se risponde la keyword search, il test non vale.
 """
+
 import io
 import os
 import sys
@@ -39,31 +40,37 @@ def main() -> int:
     vectors = embed_texts(["Le note spese viaggiano veloci."])
     step("embeddings prodotti da Ollama", bool(vectors), f"dimensione vettore: {len(vectors[0]) if vectors else 0}")
 
-    vec_a, vec_b = embed_texts([
-        "Il rimborso chilometrico usa la tariffa ACI per ogni chilometro.",
-        "La ferie va richiesta almeno dieci giorni prima sul portale HR.",
-    ])
+    vec_a, vec_b = embed_texts(
+        [
+            "Il rimborso chilometrico usa la tariffa ACI per ogni chilometro.",
+            "La ferie va richiesta almeno dieci giorni prima sul portale HR.",
+        ]
+    )
     import math
 
     def cos(u, v):
-        return sum(a * b for a, b in zip(u, v)) / (
-            math.sqrt(sum(a * a for a in u)) * math.sqrt(sum(b * b for b in v))
-        )
+        return sum(a * b for a, b in zip(u, v)) / (math.sqrt(sum(a * a for a in u)) * math.sqrt(sum(b * b for b in v)))
 
     from core.library_embeddings import cosine_similarity
+
     same_pair = cosine_similarity(vec_a, embed_texts(["rimborso chilometrico tariffa aci"])[0])
     diff_pair = cosine_similarity(vec_a, vec_b)
-    step("similarita' coseno distingue testi attinenti vs estranei", same_pair > diff_pair,
-         f"attinente={same_pair:.3f} > estraneo={diff_pair:.3f}")
+    step(
+        "similarita' coseno distingue testi attinenti vs estranei",
+        same_pair > diff_pair,
+        f"attinente={same_pair:.3f} > estraneo={diff_pair:.3f}",
+    )
 
     # ── 2. Pipeline completa via API ──
     from fastapi.testclient import TestClient
 
     from api import app
 
-    doc_text = ("Indennita' di trasferto. Il rimborso chilometrico si calcola applicando "
-                "la tariffa ACI vigente per ogni chilometro percorso con l'auto privata. "
-                "Le spese di parcheggio e pedaggio sono rimborsate su presentazione della ricevuta.")
+    doc_text = (
+        "Indennita' di trasferto. Il rimborso chilometrico si calcola applicando "
+        "la tariffa ACI vigente per ogni chilometro percorso con l'auto privata. "
+        "Le spese di parcheggio e pedaggio sono rimborsate su presentazione della ricevuta."
+    )
 
     with TestClient(app) as client:
         client.post("/api/auth/login", json={"username": "owner", "password": "StrongSmoke!123"})
@@ -85,6 +92,7 @@ def main() -> int:
 
         # ── 3. I vettori sono davvero nel database? ──
         from api.libraries import get_library_store
+
         store = get_library_store()
         with store._connection() as connection:
             row = connection.execute(
@@ -94,23 +102,33 @@ def main() -> int:
                    FROM document_chunks WHERE document_id = ?""",
                 (doc_id,),
             ).fetchone()
-        step("vettori persistiti nei chunk",
-             row["total"] > 0 and row["embedded"] == row["total"],
-             f"{row['embedded']}/{row['total']} chunk, modello: {row['model']}")
+        step(
+            "vettori persistiti nei chunk",
+            row["total"] > 0 and row["embedded"] == row["total"],
+            f"{row['embedded']}/{row['total']} chunk, modello: {row['model']}",
+        )
 
         # ── 4. La DOMANDA PARAFFRASATA: zero parole in comune col documento ──
-        hits, profile = store.search_with_profile(library_id, "come viene liquidata l'indennita dei trasferti?", actor=None)
-        step("profilo retrieval: semantica usata",
-             profile["mode"] == "hybrid_local" and profile["semantic_used"] is True,
-             f"mode={profile['mode']}, chunk indicizzati={profile['semantic_indexed_chunks']}")
-        step("la parafrasi trova il documento giusto (solo la semantica puo')",
-             bool(hits) and hits[0]["document_id"] == doc_id,
-             f"score={hits[0]['relevance_score'] if hits else '—'}")
+        hits, profile = store.search_with_profile(
+            library_id, "come viene liquidata l'indennita dei trasferti?", actor=None
+        )
+        step(
+            "profilo retrieval: semantica usata",
+            profile["mode"] == "hybrid_local" and profile["semantic_used"] is True,
+            f"mode={profile['mode']}, chunk indicizzati={profile['semantic_indexed_chunks']}",
+        )
+        step(
+            "la parafrasi trova il documento giusto (solo la semantica puo')",
+            bool(hits) and hits[0]["document_id"] == doc_id,
+            f"score={hits[0]['relevance_score'] if hits else '—'}",
+        )
 
         # ── 5. Coerenza: nessun problema di embedding segnalato ──
         rep = store.verify_index_consistency(cfg.LIBRARY_STORAGE_DIR, cfg.EMBED_MODEL_ID)
-        step("report coerenza senza problemi di embedding",
-             rep["partially_embedded_documents"] == [] and rep["embedding_model_mismatch_documents"] == [])
+        step(
+            "report coerenza senza problemi di embedding",
+            rep["partially_embedded_documents"] == [] and rep["embedding_model_mismatch_documents"] == [],
+        )
 
     print(f"\nRISULTATO: {PASS} passati, {FAIL} falliti")
     return 0 if FAIL == 0 else 1

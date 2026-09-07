@@ -2,6 +2,7 @@
 tests/test_query_expander.py
 Unit tests for core/query_expander.py (Enterprise Query Expansion & Synonym Disambiguation).
 """
+
 from __future__ import annotations
 
 from core.query_expander import expand_query

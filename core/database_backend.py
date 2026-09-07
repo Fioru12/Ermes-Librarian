@@ -1,4 +1,5 @@
 """Astrazione di database per Ermes Knowledge (Fase 2 del piano PostgreSQL)."""
+
 from __future__ import annotations
 
 import logging
@@ -53,6 +54,7 @@ class SqliteBackend:
 
     def _connect(self):
         import sqlite3
+
         conn = sqlite3.connect(str(self._path), timeout=30)
         conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA journal_mode=WAL")
@@ -120,6 +122,7 @@ class PostgresBackend:
     def __init__(self, url: str) -> None:
         import psycopg
         from psycopg.rows import dict_row
+
         self._connection = psycopg.connect(url, row_factory=dict_row, autocommit=False)
 
     def _translate(self, sql: str, params: tuple | dict | None) -> tuple[str, tuple | dict | None]:

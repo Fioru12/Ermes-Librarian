@@ -4,7 +4,13 @@ from zipfile import ZIP_DEFLATED, ZipFile
 
 import pytest
 
-from core.document_parser import DocumentParseError, chunk_source_units, extract_source_units, extract_text, split_into_chunks
+from core.document_parser import (
+    DocumentParseError,
+    chunk_source_units,
+    extract_source_units,
+    extract_text,
+    split_into_chunks,
+)
 
 
 def test_extracts_text_and_markdown():
@@ -50,17 +56,19 @@ def _write_minimal_pptx(archive: ZipFile) -> None:
     """Build a deterministic two-slide PPTX skeleton for tests."""
     a = "http://schemas.openxmlformats.org/drawingml/2006/main"
     archive.writestr("[Content_Types].xml", "<Types />")
-    archive.writestr("ppt/presentation.xml", '<presentation xmlns="http://schemas.openxmlformats.org/presentationml/2006/main" />')
+    archive.writestr(
+        "ppt/presentation.xml", '<presentation xmlns="http://schemas.openxmlformats.org/presentationml/2006/main" />'
+    )
     archive.writestr(
         "ppt/slides/slide1.xml",
         f'<p:sld xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" xmlns:a="{a}">'
-        f'<p:txBody><a:p><a:r><a:t>Policy Ferie</a:t></a:r></a:p>'
-        f'<a:p><a:r><a:t>Massimo </a:t></a:r><a:r><a:t>15 giorni</a:t></a:r></a:p></p:txBody></p:sld>',
+        f"<p:txBody><a:p><a:r><a:t>Policy Ferie</a:t></a:r></a:p>"
+        f"<a:p><a:r><a:t>Massimo </a:t></a:r><a:r><a:t>15 giorni</a:t></a:r></a:p></p:txBody></p:sld>",
     )
     archive.writestr(
         "ppt/slides/slide2.xml",
         f'<p:sld xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" xmlns:a="{a}">'
-        f'<p:txBody><a:p><a:r><a:t>Note spese</a:t></a:r></a:p></p:txBody></p:sld>',
+        f"<p:txBody><a:p><a:r><a:t>Note spese</a:t></a:r></a:p></p:txBody></p:sld>",
     )
 
 
@@ -94,7 +102,7 @@ def test_pptx_with_entity_declarations_is_rejected():
         archive.writestr(
             "ppt/slides/slide9.xml",
             '<p:sld xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main">'
-            "<!DOCTYPE p:sld [<!ENTITY xxe \"boom\">]></p:sld>",
+            '<!DOCTYPE p:sld [<!ENTITY xxe "boom">]></p:sld>',
         )
 
     with pytest.raises(DocumentParseError):
@@ -118,7 +126,9 @@ def test_chunks_keep_paragraphs_and_bound_size():
 
 
 def test_markdown_sections_are_preserved_as_chunk_citations():
-    units = extract_source_units("policy.md", b"# Ferie\nRichiedere ferie via portale.\n\n# Spese\nConservare la ricevuta.")
+    units = extract_source_units(
+        "policy.md", b"# Ferie\nRichiedere ferie via portale.\n\n# Spese\nConservare la ricevuta."
+    )
     chunks = chunk_source_units(units)
 
     assert chunks[0][1] == "Sezione: Ferie"
@@ -190,8 +200,9 @@ def test_extracts_csv_units_with_header_mapping():
 
 
 def test_extracts_rtf_units():
-    rtf_bytes = b"{\\rtf1\\ansi\\deff0 {\\fonttbl {\\f0 Courier;}}\\f0\\fs24 Procedura di emergenza: evacuare l'edificio.\\par}"
+    rtf_bytes = (
+        b"{\\rtf1\\ansi\\deff0 {\\fonttbl {\\f0 Courier;}}\\f0\\fs24 Procedura di emergenza: evacuare l'edificio.\\par}"
+    )
     text, units = extract_text("emergenza.rtf", rtf_bytes)
     assert units == 1
     assert "evacuare l'edificio" in text
-

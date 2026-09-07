@@ -4,6 +4,7 @@ A differenza dei test di suite (TestClient senza context manager, lifespan
 mai attivato), qui partono davvero: caricamento sessioni persistite, recovery
 job, sweeper ingestion in thread. Poi l'intero flusso utente.
 """
+
 import io
 import os
 import sys
@@ -47,10 +48,16 @@ def main() -> int:
         step("login owner", r.status_code == 200 and r.json()["role"] == "admin")
 
         from api.auth import _SESSIONS
-        step("sessione persistita su SQLite",
-             len(_SESSIONS) >= 1 and (Path(TMP) / "security" / "sessions.sqlite3").exists())
 
-        codes = [client.post("/api/auth/login", json={"username": "victim", "password": "sbagliata"}).status_code for _ in range(5)]
+        step(
+            "sessione persistita su SQLite",
+            len(_SESSIONS) >= 1 and (Path(TMP) / "security" / "sessions.sqlite3").exists(),
+        )
+
+        codes = [
+            client.post("/api/auth/login", json={"username": "victim", "password": "sbagliata"}).status_code
+            for _ in range(5)
+        ]
         locked = client.post("/api/auth/login", json={"username": "victim", "password": "qualsiasi"}).status_code
         step("lockout dopo 5 tentativi", codes.count(401) == 5 and locked == 429)
 
@@ -77,19 +84,29 @@ def main() -> int:
 
         hits = client.get(f"/api/libraries/{library_id}/search", params={"q": "note spese"}).json()
         step("ricerca trova passaggi", len(hits["items"]) >= 1)
-        answer = client.post(f"/api/libraries/{library_id}/ask", json={"question": "Entro quando si inviano le note spese?"}).json()
-        step("ask produce evidenze citate",
-             answer["status"] in {"answered", "abstained"},
-             f"coverage={answer['evidence']['coverage']}, citazioni={len(answer['citations'])}")
-        step("citazione ha documento/versione/locator",
-             bool(answer["citations"]) and all(k in answer["citations"][0] for k in ("document_id", "version", "locator")))
+        answer = client.post(
+            f"/api/libraries/{library_id}/ask", json={"question": "Entro quando si inviano le note spese?"}
+        ).json()
+        step(
+            "ask produce evidenze citate",
+            answer["status"] in {"answered", "abstained"},
+            f"coverage={answer['evidence']['coverage']}, citazioni={len(answer['citations'])}",
+        )
+        step(
+            "citazione ha documento/versione/locator",
+            bool(answer["citations"])
+            and all(k in answer["citations"][0] for k in ("document_id", "version", "locator")),
+        )
 
         dl = client.get(f"/api/libraries/{library_id}/documents/{doc_id}/download")
         step("download originale", dl.status_code == 200 and dl.content == content)
 
         rep = client.get("/health/index-consistency").json()
-        step("report coerenza admin ok", rep["ok"] is True and rep["checked_documents"] >= 1,
-             f"problemi: {rep['issue_count']}")
+        step(
+            "report coerenza admin ok",
+            rep["ok"] is True and rep["checked_documents"] >= 1,
+            f"problemi: {rep['issue_count']}",
+        )
 
         client.post("/api/auth/logout")
         step("logout invalida la sessione", client.get("/api/libraries").status_code == 401)

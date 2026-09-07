@@ -55,6 +55,7 @@ def _get_modules():
         with _modules_lock:
             if modules_cache is None:
                 from modules import discover_modules
+
                 modules_cache = discover_modules()
     return modules_cache
 
@@ -63,8 +64,7 @@ def _list_available_modules() -> list[str]:
     if not os.path.exists(cfg.DOCS_DIR):
         return []
     return sorted(
-        d for d in os.listdir(cfg.DOCS_DIR)
-        if os.path.isdir(os.path.join(cfg.DOCS_DIR, d)) and d.lower() != "libraries"
+        d for d in os.listdir(cfg.DOCS_DIR) if os.path.isdir(os.path.join(cfg.DOCS_DIR, d)) and d.lower() != "libraries"
     )
 
 
@@ -84,6 +84,7 @@ def _get_http_client() -> httpx.AsyncClient:  # noqa: F821
     global _http_client
     if _http_client is None:
         import httpx
+
         _http_client = httpx.AsyncClient(timeout=30.0)
     return _http_client
 
@@ -97,11 +98,16 @@ async def lifespan(app: FastAPI):
     from importlib import metadata
 
     from core.metrics import init_system_info
+
     try:
         app_version = metadata.version("ermes")
     except metadata.PackageNotFoundError:
         app_version = "unknown"
-    init_system_info(version=app_version, python_version=platform.python_version(), environment=getattr(cfg, "ENVIRONMENT", "production"))
+    init_system_info(
+        version=app_version,
+        python_version=platform.python_version(),
+        environment=getattr(cfg, "ENVIRONMENT", "production"),
+    )
 
     if getattr(cfg, "ENABLE_LEGACY_WINSARP", False):
         _logger.warning(
@@ -111,6 +117,7 @@ async def lifespan(app: FastAPI):
             "Vedi legacy_winsarp/README.md e docs/AUDIT_2026-08-19.md."
         )
         from legacy_winsarp.core.rag_engine import init_llama_settings
+
         init_llama_settings()
 
     # Recover uploads accepted before a local restart. Jobs are persisted in
@@ -119,15 +126,19 @@ async def lifespan(app: FastAPI):
     try:
         from api.libraries import get_library_store
         from core.ingestion_service import process_ingestion_job
+
         ingestion_store = get_library_store()
         for job in ingestion_store.pending_ingestion_jobs():
-            asyncio.create_task(asyncio.to_thread(process_ingestion_job, ingestion_store, job["id"], cfg.LIBRARY_STORAGE_DIR))
+            asyncio.create_task(
+                asyncio.to_thread(process_ingestion_job, ingestion_store, job["id"], cfg.LIBRARY_STORAGE_DIR)
+            )
     except Exception as error:
         _logger.warning("Recupero job ingestion fallito: %s", error)
 
     # ── Rotazione log audit all'avvio ──
     try:
         from api.audit import _rotate_audit_logs
+
         _rotate_audit_logs(cfg.AUDIT_FILE, retention_days=90)
     except Exception as e:
         _logger.warning("Audit rotation startup fallita: %s", e)
@@ -142,6 +153,7 @@ async def lifespan(app: FastAPI):
             try:
                 await asyncio.sleep(interval_hours * 3600)
                 from core.backup_manager import create_backup
+
                 result = create_backup(label="scheduled")
                 _logger.info("Backup schedulato completato: %s", result.get("name", "?"))
                 append_audit(cfg.AUDIT_FILE, "backup_scheduled", "system", {"name": result.get("name", "")})
@@ -159,6 +171,7 @@ async def lifespan(app: FastAPI):
     try:
         from api.libraries import get_library_store
         from core.folder_watcher import start_folder_watcher_thread
+
         _watcher_thread = start_folder_watcher_thread(
             store=get_library_store(),
             storage_dir=cfg.LIBRARY_STORAGE_DIR,
@@ -207,14 +220,17 @@ async def prometheus_metrics_middleware(request: Request, call_next):
     if path == "/metrics":
         return await call_next(request)
 
-    normalized_path = re.sub(r'/[0-9a-fA-F-]{36}', '/{uuid}', path)
-    normalized_path = re.sub(r'/api/users/[a-zA-Z0-9_\-]+', '/api/users/{username}', normalized_path)
-    normalized_path = re.sub(r'/api/documents/[a-zA-Z0-9_\-\.]+', '/api/documents/{filename}', normalized_path)
-    normalized_path = re.sub(r'/api/formula/cancel/[a-zA-Z0-9_\-]+', '/api/formula/cancel/{request_id}', normalized_path)
-    normalized_path = re.sub(r'/api/winsarp/catalog/[a-zA-Z0-9_\-]+', '/api/winsarp/catalog/{formula_id}', normalized_path)
+    normalized_path = re.sub(r"/[0-9a-fA-F-]{36}", "/{uuid}", path)
+    normalized_path = re.sub(r"/api/users/[a-zA-Z0-9_\-]+", "/api/users/{username}", normalized_path)
+    normalized_path = re.sub(r"/api/documents/[a-zA-Z0-9_\-\.]+", "/api/documents/{filename}", normalized_path)
+    normalized_path = re.sub(
+        r"/api/formula/cancel/[a-zA-Z0-9_\-]+", "/api/formula/cancel/{request_id}", normalized_path
+    )
+    normalized_path = re.sub(
+        r"/api/winsarp/catalog/[a-zA-Z0-9_\-]+", "/api/winsarp/catalog/{formula_id}", normalized_path
+    )
 
-
-    start_time = __import__('time').perf_counter()
+    start_time = __import__("time").perf_counter()
     try:
         response = await call_next(request)
         status_code = response.status_code
@@ -224,6 +240,7 @@ async def prometheus_metrics_middleware(request: Request, call_next):
         raise e
     finally:
         import time
+
         duration = time.perf_counter() - start_time
         method = request.method
         HTTP_REQUESTS.labels(method=method, path=normalized_path, status=str(status_code)).inc()
@@ -248,7 +265,9 @@ def prometheus_metrics(request: Request):
     else:
         client_host = request.client.host if request.client else ""
         if client_host not in {"127.0.0.1", "::1", "testclient"}:
-            raise HTTPException(status_code=401, detail="Configurare ERMES_METRICS_TOKEN per l'accesso remoto a /metrics")
+            raise HTTPException(
+                status_code=401, detail="Configurare ERMES_METRICS_TOKEN per l'accesso remoto a /metrics"
+            )
     return Response(content=expose(), media_type="text/plain; version=0.0.4")
 
 
@@ -314,12 +333,19 @@ if integrations_router is not None:
 # ── v1 routing retrocompatibilità ──
 try:
     from fastapi.routing import APIRoute
+
     _v1_routes_added = 0
     _current_routes = list(app.routes)
     for _route in _current_routes:
         if isinstance(_route, APIRoute):
             _path = _route.path
-            if _path.startswith("/v1") or _path == "/" or _path.startswith("/docs") or _path.startswith("/openapi") or _path == "/metrics":
+            if (
+                _path.startswith("/v1")
+                or _path == "/"
+                or _path.startswith("/docs")
+                or _path.startswith("/openapi")
+                or _path == "/metrics"
+            ):
                 continue
             _v1_path = f"/v1{_path}"
             if not any(isinstance(r, APIRoute) and r.path == _v1_path for r in app.routes):

@@ -4,6 +4,7 @@ Generatore avanzato per la Presentazione PowerPoint (.pptx) dell'Esame Finale IT
 Design Modern Enterprise (Dark Slate & Electric Cyan), layout a card, metric tiles,
 badge colorati, diagrammi di flusso e screenshot applicativi incorniciati.
 """
+
 import os
 
 from pptx import Presentation
@@ -20,26 +21,26 @@ def create_presentation():
     blank_layout = prs.slide_layouts[6]
 
     # Palette Cromatica Enterprise
-    BG_DARK = RGBColor(11, 17, 32)         # #0b1120 - Dark Slate Base
-    CARD_DARK = RGBColor(22, 30, 49)       # #161e31 - Dark Card
-    CARD_BORDER = RGBColor(51, 65, 85)     # #334155 - Card Border Slate
+    BG_DARK = RGBColor(11, 17, 32)  # #0b1120 - Dark Slate Base
+    CARD_DARK = RGBColor(22, 30, 49)  # #161e31 - Dark Card
+    CARD_BORDER = RGBColor(51, 65, 85)  # #334155 - Card Border Slate
 
-    _BG_LIGHT = RGBColor(248, 250, 252)     # #f8fafc - Light Base
-    CARD_LIGHT = RGBColor(255, 255, 255)   # #ffffff - White Card
-    CARD_LIGHT_BORDER = RGBColor(226, 232, 240) # #e2e8f0
+    _BG_LIGHT = RGBColor(248, 250, 252)  # #f8fafc - Light Base
+    CARD_LIGHT = RGBColor(255, 255, 255)  # #ffffff - White Card
+    CARD_LIGHT_BORDER = RGBColor(226, 232, 240)  # #e2e8f0
 
-    HEADER_NAVY = RGBColor(15, 23, 42)     # #0f172a
-    CYAN_ACCENT = RGBColor(14, 165, 233)   # #0ea5e9
-    INDIGO_ACCENT = RGBColor(99, 102, 241) # #6366f1
-    EMERALD = RGBColor(16, 185, 129)       # #10b981 - Success
-    ROSE = RGBColor(244, 63, 94)           # #f43f5e - Risk/Danger
-    AMBER = RGBColor(245, 158, 11)         # #f59e0b - Warning
+    HEADER_NAVY = RGBColor(15, 23, 42)  # #0f172a
+    CYAN_ACCENT = RGBColor(14, 165, 233)  # #0ea5e9
+    INDIGO_ACCENT = RGBColor(99, 102, 241)  # #6366f1
+    EMERALD = RGBColor(16, 185, 129)  # #10b981 - Success
+    ROSE = RGBColor(244, 63, 94)  # #f43f5e - Risk/Danger
+    AMBER = RGBColor(245, 158, 11)  # #f59e0b - Warning
 
-    TEXT_MAIN_DARK = RGBColor(241, 245, 249) # #f1f5f9
-    TEXT_MUTED_DARK = RGBColor(148, 163, 184) # #94a3b8
+    TEXT_MAIN_DARK = RGBColor(241, 245, 249)  # #f1f5f9
+    TEXT_MUTED_DARK = RGBColor(148, 163, 184)  # #94a3b8
 
-    _TEXT_MAIN_LIGHT = RGBColor(15, 23, 42)   # #0f172a
-    TEXT_MUTED_LIGHT = RGBColor(71, 85, 105) # #475569
+    _TEXT_MAIN_LIGHT = RGBColor(15, 23, 42)  # #0f172a
+    TEXT_MUTED_LIGHT = RGBColor(71, 85, 105)  # #475569
 
     # Risorse Grafiche
     icon_path = "assets/ermes-knowledge-icon.png"
@@ -62,7 +63,9 @@ def create_presentation():
 
     # Helper: Aggiunge una card con bordo arrotondato o rettangolare
     def add_card(slide, left, top, width, height, bg_color=CARD_LIGHT, border_color=CARD_LIGHT_BORDER):
-        card = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(left), Inches(top), Inches(width), Inches(height))
+        card = slide.shapes.add_shape(
+            MSO_SHAPE.ROUNDED_RECTANGLE, Inches(left), Inches(top), Inches(width), Inches(height)
+        )
         card.fill.solid()
         card.fill.fore_color.rgb = bg_color
         card.line.color.rgb = border_color
@@ -133,7 +136,9 @@ def create_presentation():
     p1.font.color.rgb = RGBColor(255, 255, 255)
 
     p1_sub = tf1.add_paragraph()
-    p1_sub.text = "Sistema RAG Enterprise Local-First con Garanzie di Sicurezza, Data Loss Prevention e Isolamento del Contesto"
+    p1_sub.text = (
+        "Sistema RAG Enterprise Local-First con Garanzie di Sicurezza, Data Loss Prevention e Isolamento del Contesto"
+    )
     p1_sub.font.size = Pt(18)
     p1_sub.font.color.rgb = CYAN_ACCENT
     p1_sub.space_before = Pt(8)
@@ -143,7 +148,7 @@ def create_presentation():
         ("CANDIDATO", "[Nome e Cognome]", INDIGO_ACCENT),
         ("PERCORSO ITS", "Sviluppo Software & AI", CYAN_ACCENT),
         ("AZIENDA PARTNER", "[Nome Azienda / Stage]", EMERALD),
-        ("TUTOR & ANNO", "Tutor Aziendale & ITS | 2025/2026", AMBER)
+        ("TUTOR & ANNO", "Tutor Aziendale & ITS | 2025/2026", AMBER),
     ]
     for idx, (label, val, col) in enumerate(meta_items):
         cx = 0.9 + idx * 2.95
@@ -183,7 +188,7 @@ def create_presentation():
     bullets_l = [
         "<b>Silos Informativi:</b> Dati sparsi in cartelle di rete, PDF non indicizzati, archivi storici e chat private.",
         "<b>Tempo Perso:</b> I dipendenti impiegano ore per individuare l'ultima versione di regolamenti e manuali.",
-        "<b>Ricerca Tradizionale Limitata:</b> Il keyword-matching classico fallisce se l'utente cerca per concetto o sinonimi."
+        "<b>Ricerca Tradizionale Limitata:</b> Il keyword-matching classico fallisce se l'utente cerca per concetto o sinonimi.",
     ]
     for b in bullets_l:
         p_b = tf2_l.add_paragraph()
@@ -206,7 +211,7 @@ def create_presentation():
     bullets_r = [
         "<b>Allucinazioni Gravi:</b> I modelli generano risposte inventate con estrema sicurezza e senza alcuna fonte.",
         "<b>Violazioni Privacy & GDPR:</b> Caricare dati sensibili su API esterne espone l'azienda a fughe di dati e sanzioni.",
-        "<b>Zero Tracciabilità:</b> Impossibile verificare chi ha consultato cosa e quale versione del file ha generato l'output."
+        "<b>Zero Tracciabilità:</b> Impossibile verificare chi ha consultato cosa e quale versione del file ha generato l'output.",
     ]
     for b in bullets_r:
         p_b = tf2_r.add_paragraph()
@@ -223,9 +228,18 @@ def create_presentation():
 
     # Left: 3 Value Cards
     v_cards = [
-        ("🛡️ Local-First & Sicuro", "Nessun dato riservato lascia il perimetro aziendale. Embedding e retrieval eseguiti in locale."),
-        ("📑 Evidenza Reale & Citazioni", "Ogni singola affermazione cita espressamente il documento originale con download immediato in 1 click."),
-        ("🚫 Zero Allucinazioni", "Se il documento non contiene la risposta, il sistema si astiene dichiarando espressamente l'assenza di evidenza.")
+        (
+            "🛡️ Local-First & Sicuro",
+            "Nessun dato riservato lascia il perimetro aziendale. Embedding e retrieval eseguiti in locale.",
+        ),
+        (
+            "📑 Evidenza Reale & Citazioni",
+            "Ogni singola affermazione cita espressamente il documento originale con download immediato in 1 click.",
+        ),
+        (
+            "🚫 Zero Allucinazioni",
+            "Se il documento non contiene la risposta, il sistema si astiene dichiarando espressamente l'assenza di evidenza.",
+        ),
     ]
     for idx, (title, desc) in enumerate(v_cards):
         cy = 1.45 + idx * 1.85
@@ -266,10 +280,25 @@ def create_presentation():
 
     rules = [
         ("1", "LOCAL FIRST", "Una chiave API cloud da sola non attiva mai l'elaborazione cloud esterna.", CYAN_ACCENT),
-        ("2", "EVIDENZA PRIMA", "Ogni risposta cita un documento accessibile, oppure l'assistente si astiene.", INDIGO_ACCENT),
-        ("3", "ISOLAMENTO RIGIDO", "La ricerca è vincolata alla biblioteca prima che il testo arrivi all'assistente.", EMERALD),
+        (
+            "2",
+            "EVIDENZA PRIMA",
+            "Ogni risposta cita un documento accessibile, oppure l'assistente si astiene.",
+            INDIGO_ACCENT,
+        ),
+        (
+            "3",
+            "ISOLAMENTO RIGIDO",
+            "La ricerca è vincolata alla biblioteca prima che il testo arrivi all'assistente.",
+            EMERALD,
+        ),
         ("4", "INPUT NON FIDATO", "Il testo estratto dai documenti non può mai autorizzare azioni o comandi.", ROSE),
-        ("5", "ORIGINALI ACCESSIBILI", "Ogni citazione rimanda alla versione esatta del file, scaricabile con 1 click.", AMBER)
+        (
+            "5",
+            "ORIGINALI ACCESSIBILI",
+            "Ogni citazione rimanda alla versione esatta del file, scaricabile con 1 click.",
+            AMBER,
+        ),
     ]
     for idx, (num, title, desc, col) in enumerate(rules):
         cy = 1.45 + idx * 1.12
@@ -299,7 +328,7 @@ def create_presentation():
         p_rt.font.color.rgb = HEADER_NAVY
 
         # Description
-        _p_rt2 = tf_rt.paragraphs[0] # inline
+        _p_rt2 = tf_rt.paragraphs[0]  # inline
         p_desc = tf_rt.add_paragraph()
         p_desc.text = desc
         p_desc.font.size = Pt(13)
@@ -312,10 +341,26 @@ def create_presentation():
     add_header(slide5, "4. Architettura del Sistema & Tech Stack Enterprise")
 
     tech_quads = [
-        ("🌐 Frontend UI/UX", "React 18 · TypeScript · Vite · Tailwind CSS\nDesign System moderno, gestione responsive dello stato e visualizzazione citazioni in tempo reale.", CYAN_ACCENT),
-        ("⚡ Backend API Services", "Python 3.11 · FastAPI (ASGI Asincrono)\nValidazione automatica Pydantic, rotte RESTful sicure e documentazione interattiva OpenAPI / Swagger.", INDIGO_ACCENT),
-        ("🧠 AI & Vector Engine", "Ollama Embeddings · SQLite / JSON Store\nEmbedding on-device, ricerca vettoriale locale e storage isolato per biblioteca.", EMERALD),
-        ("🐳 DevOps & Testing", "Docker · Docker Compose · Pytest (241 Test)\nOrchestrazione scalabile, CI su GitHub Actions e suite completa contro le regressioni.", AMBER)
+        (
+            "🌐 Frontend UI/UX",
+            "React 18 · TypeScript · Vite · Tailwind CSS\nDesign System moderno, gestione responsive dello stato e visualizzazione citazioni in tempo reale.",
+            CYAN_ACCENT,
+        ),
+        (
+            "⚡ Backend API Services",
+            "Python 3.11 · FastAPI (ASGI Asincrono)\nValidazione automatica Pydantic, rotte RESTful sicure e documentazione interattiva OpenAPI / Swagger.",
+            INDIGO_ACCENT,
+        ),
+        (
+            "🧠 AI & Vector Engine",
+            "Ollama Embeddings · SQLite / JSON Store\nEmbedding on-device, ricerca vettoriale locale e storage isolato per biblioteca.",
+            EMERALD,
+        ),
+        (
+            "🐳 DevOps & Testing",
+            "Docker · Docker Compose · Pytest (241 Test)\nOrchestrazione scalabile, CI su GitHub Actions e suite completa contro le regressioni.",
+            AMBER,
+        ),
     ]
     for idx, (title, desc, col) in enumerate(tech_quads):
         row = idx // 2
@@ -349,7 +394,7 @@ def create_presentation():
         ("1. INGESTION", "Parsing PDF, DOCX, TXT, MD e Web scraping pulito.", CYAN_ACCENT),
         ("2. CHUNKING", "Segmentazione semantica con overlap per continuità contestuale.", INDIGO_ACCENT),
         ("3. HYBRID SEARCH", "Vettoriale (Sinonimi) + BM25 (Codici/Sigle esatte).", EMERALD),
-        ("4. RRF FUSION", "Fusione dei ranking tramite Reciprocal Rank Fusion.", AMBER)
+        ("4. RRF FUSION", "Fusione dei ranking tramite Reciprocal Rank Fusion.", AMBER),
     ]
     for idx, (st, desc, col) in enumerate(rag_steps):
         cx = 0.9 + idx * 2.95
@@ -404,10 +449,12 @@ def create_presentation():
     p.font.color.rgb = INDIGO_ACCENT
 
     p_body1 = tf7_l.add_paragraph()
-    p_body1.text = "Ricalcola il punteggio di rilevanza analizzando:\n\n" \
-                   "• <b>Vicinanza Posizionale:</b> Premia i documenti dove le parole chiave della query compaiono nella stessa frase anziché sparse nel testo.\n" \
-                   "• <b>Bi-grammi Consecutivi:</b> Riconosce sequenze di parole rilevanti.\n" \
-                   "• <b>Titolo & Header Matching:</b> Attribuisce un peso maggiore alle corrispondenze nel titolo della sezione."
+    p_body1.text = (
+        "Ricalcola il punteggio di rilevanza analizzando:\n\n"
+        "• <b>Vicinanza Posizionale:</b> Premia i documenti dove le parole chiave della query compaiono nella stessa frase anziché sparse nel testo.\n"
+        "• <b>Bi-grammi Consecutivi:</b> Riconosce sequenze di parole rilevanti.\n"
+        "• <b>Titolo & Header Matching:</b> Attribuisce un peso maggiore alle corrispondenze nel titolo della sezione."
+    )
     p_body1.text = p_body1.text.replace("<b>", "").replace("</b>", "")
     p_body1.font.size = Pt(14)
     p_body1.font.color.rgb = TEXT_MUTED_LIGHT
@@ -425,10 +472,12 @@ def create_presentation():
     p_r.font.color.rgb = CYAN_ACCENT
 
     p_body2 = tf7_r.add_paragraph()
-    p_body2.text = "Ottimizzazione del Context Window:\n\n" \
-                   "• <b>Indice di Jaccard su Shingle:</b> Analizza la sovrapposizione tra versioni simili dello stesso documento.\n" \
-                   "• <b>Raggruppamento Intelligente:</b> Rileva revisioni duplicate all'interno della stessa biblioteca.\n" \
-                   "• <b>Efficienza del Prompt:</b> Invia all'LLM solo l'estratto migliore, azzerando la ridondanza e riducendo i costi computazionali."
+    p_body2.text = (
+        "Ottimizzazione del Context Window:\n\n"
+        "• <b>Indice di Jaccard su Shingle:</b> Analizza la sovrapposizione tra versioni simili dello stesso documento.\n"
+        "• <b>Raggruppamento Intelligente:</b> Rileva revisioni duplicate all'interno della stessa biblioteca.\n"
+        "• <b>Efficienza del Prompt:</b> Invia all'LLM solo l'estratto migliore, azzerando la ridondanza e riducendo i costi computazionali."
+    )
     p_body2.text = p_body2.text.replace("<b>", "").replace("</b>", "")
     p_body2.font.size = Pt(14)
     p_body2.font.color.rgb = TEXT_MUTED_LIGHT
@@ -441,10 +490,26 @@ def create_presentation():
     add_header(slide8, "7. Data Loss Prevention: Il Filtro PII Guard Algoritmico")
 
     pii_cards = [
-        ("💳 Carte di Credito (Luhn Checksum)", "Verifica matematica di Luhn (mod 10). Riconosce e maschera carte reali come [CARTA_CREDITO], ignorando numeri casuali.", ROSE),
-        ("🏦 Coordinate Bancarie IBAN", "Validazione algebrica Modulo 97 (ISO 13616). Maschera solo IBAN strutturalmente validi come [IBAN].", EMERALD),
-        ("🪪 Codici Fiscali Italiani", "Pattern a 16 caratteri con verifica algoritmica del carattere di controllo (CIN). Mascherato come [CODICE_FISCALE].", CYAN_ACCENT),
-        ("🔑 Token JWT & API Keys", "Riconoscimento pattern di token crittografici e chiavi API (sk-live, Bearer), oscurati preventivamente.", INDIGO_ACCENT)
+        (
+            "💳 Carte di Credito (Luhn Checksum)",
+            "Verifica matematica di Luhn (mod 10). Riconosce e maschera carte reali come [CARTA_CREDITO], ignorando numeri casuali.",
+            ROSE,
+        ),
+        (
+            "🏦 Coordinate Bancarie IBAN",
+            "Validazione algebrica Modulo 97 (ISO 13616). Maschera solo IBAN strutturalmente validi come [IBAN].",
+            EMERALD,
+        ),
+        (
+            "🪪 Codici Fiscali Italiani",
+            "Pattern a 16 caratteri con verifica algoritmica del carattere di controllo (CIN). Mascherato come [CODICE_FISCALE].",
+            CYAN_ACCENT,
+        ),
+        (
+            "🔑 Token JWT & API Keys",
+            "Riconoscimento pattern di token crittografici e chiavi API (sk-live, Bearer), oscurati preventivamente.",
+            INDIGO_ACCENT,
+        ),
     ]
     for idx, (title, desc, col) in enumerate(pii_cards):
         row = idx // 2
@@ -489,7 +554,7 @@ def create_presentation():
         "<b>Admin:</b> Gestione globale utenti, permessi, biblioteche e audit log.",
         "<b>Editor:</b> Caricamento e modifica documenti nelle biblioteche autorizzate.",
         "<b>Viewer:</b> Ricerca e consultazione in sola lettura.",
-        "<b>Security-by-Design 404:</b> Tentare di accedere a una biblioteca privata restituisce HTTP 404 (non 403) per non rivelarne nemmeno l'esistenza."
+        "<b>Security-by-Design 404:</b> Tentare di accedere a una biblioteca privata restituisce HTTP 404 (non 403) per non rivelarne nemmeno l'esistenza.",
     ]
     for pt in rbac_points:
         p_pt = tf9_l.add_paragraph()
@@ -519,9 +584,24 @@ def create_presentation():
 
     # 3 Big Metric Tiles
     metric_tiles = [
-        ("100%", "Query Dirette (16)", "Parole della domanda vicine al testo sorgente: recupero perfetto con evidenza completa.", EMERALD),
-        ("50% → 90%+", "Query Parafrasate (8)", "Stesso concetto, zero parole condivise: la ricerca ibrida locale colma il divario del solo keyword.", INDIGO_ACCENT),
-        ("67% → 100%", "Astensione Controllata (3)", "Domande su argomenti assenti: il sistema dichiara l'assenza senza inventare.", CYAN_ACCENT)
+        (
+            "100%",
+            "Query Dirette (16)",
+            "Parole della domanda vicine al testo sorgente: recupero perfetto con evidenza completa.",
+            EMERALD,
+        ),
+        (
+            "50% → 90%+",
+            "Query Parafrasate (8)",
+            "Stesso concetto, zero parole condivise: la ricerca ibrida locale colma il divario del solo keyword.",
+            INDIGO_ACCENT,
+        ),
+        (
+            "67% → 100%",
+            "Astensione Controllata (3)",
+            "Domande su argomenti assenti: il sistema dichiara l'assenza senza inventare.",
+            CYAN_ACCENT,
+        ),
     ]
     for idx, (pct, title, desc, col) in enumerate(metric_tiles):
         cx = 0.9 + idx * 3.95
@@ -598,9 +678,21 @@ def create_presentation():
 
     # Right: 3 Feature Cards
     features_test = [
-        ("🔄 Continuous Integration (CI)", "Pipeline automatizzata su GitHub Actions per eseguire l'intera suite di test e bloccare le regressioni ad ogni commit.", CYAN_ACCENT),
-        ("🛡️ Guardie di Sicurezza sulle Route", "Test di conformità per garantire che nessun endpoint futuro possa essere rilasciato senza autenticazione obbligatoria.", INDIGO_ACCENT),
-        ("📖 Documentazione OpenAPI / Swagger", "Interfaccia API RESTful documentata ed esplorabile nativamente tramite FastAPI Swagger UI.", AMBER)
+        (
+            "🔄 Continuous Integration (CI)",
+            "Pipeline automatizzata su GitHub Actions per eseguire l'intera suite di test e bloccare le regressioni ad ogni commit.",
+            CYAN_ACCENT,
+        ),
+        (
+            "🛡️ Guardie di Sicurezza sulle Route",
+            "Test di conformità per garantire che nessun endpoint futuro possa essere rilasciato senza autenticazione obbligatoria.",
+            INDIGO_ACCENT,
+        ),
+        (
+            "📖 Documentazione OpenAPI / Swagger",
+            "Interfaccia API RESTful documentata ed esplorabile nativamente tramite FastAPI Swagger UI.",
+            AMBER,
+        ),
     ]
     for idx, (title, desc, col) in enumerate(features_test):
         cy = 1.45 + idx * 1.85
@@ -628,9 +720,21 @@ def create_presentation():
 
     # Left: 3 Value Cards
     gap_cards = [
-        ("📊 Tracciamento Query & Latenze", "Monitoraggio in tempo reale del volume di ricerche, tempo di risposta e tasso di successo delle consultazioni.", CYAN_ACCENT),
-        ("❓ Rilevamento Knowledge Gaps", "Identificazione automatica delle domande a cui il sistema non trova risposta nei documenti attuali.", INDIGO_ACCENT),
-        ("📈 Valore Strategico Management", "Fornisce all'azienda una guida chiara su quali regolamenti o procedure interne mancano e devono essere redatte.", EMERALD)
+        (
+            "📊 Tracciamento Query & Latenze",
+            "Monitoraggio in tempo reale del volume di ricerche, tempo di risposta e tasso di successo delle consultazioni.",
+            CYAN_ACCENT,
+        ),
+        (
+            "❓ Rilevamento Knowledge Gaps",
+            "Identificazione automatica delle domande a cui il sistema non trova risposta nei documenti attuali.",
+            INDIGO_ACCENT,
+        ),
+        (
+            "📈 Valore Strategico Management",
+            "Fornisce all'azienda una guida chiara su quali regolamenti o procedure interne mancano e devono essere redatte.",
+            EMERALD,
+        ),
     ]
     for idx, (title, desc, col) in enumerate(gap_cards):
         cy = 1.45 + idx * 1.85
@@ -670,9 +774,21 @@ def create_presentation():
     add_header(slide13, "12. Esperienza di Tirocinio Aziendale / Stage: Attività e Metodologia")
 
     stage_cards1 = [
-        ("🏢 Contesto Operativo", "Inserimento attivo nel team di sviluppo software dell'azienda partner [Nome Azienda]. Comprensione delle esigenze reali di gestione documentale.", CYAN_ACCENT),
-        ("🚀 Attività Svolte", "• Progettazione dell'architettura RAG modulare.\n• Sviluppo endpoint FastAPI e interfacce React.\n• Implementazione algoritmi DLP e re-ranking.", INDIGO_ACCENT),
-        ("🔄 Metodologia Agile", "Adozione di pratiche Scrum/Kanban, stand-up giornalieri, code review e versionamento del codice con Git.", EMERALD)
+        (
+            "🏢 Contesto Operativo",
+            "Inserimento attivo nel team di sviluppo software dell'azienda partner [Nome Azienda]. Comprensione delle esigenze reali di gestione documentale.",
+            CYAN_ACCENT,
+        ),
+        (
+            "🚀 Attività Svolte",
+            "• Progettazione dell'architettura RAG modulare.\n• Sviluppo endpoint FastAPI e interfacce React.\n• Implementazione algoritmi DLP e re-ranking.",
+            INDIGO_ACCENT,
+        ),
+        (
+            "🔄 Metodologia Agile",
+            "Adozione di pratiche Scrum/Kanban, stand-up giornalieri, code review e versionamento del codice con Git.",
+            EMERALD,
+        ),
     ]
     for idx, (title, desc, col) in enumerate(stage_cards1):
         cx = 0.9 + idx * 3.95
@@ -700,9 +816,21 @@ def create_presentation():
     add_header(slide14, "13. Esperienza di Tirocinio Aziendale: Impatto e Risultati")
 
     stage_cards2 = [
-        ("⚡ -70% Tempo di Ricerca", "I dipendenti rintracciano procedure e schede tecniche in secondi anziché navigare cartelle complesse.", EMERALD),
-        ("🔒 100% Dati al Sicuro", "Adozione dell'AI senza rischi di fughe di dati o non conformità GDPR grazie all'approccio Local-First e al DLP.", CYAN_ACCENT),
-        ("🎓 Crescita Professionale", "Consolidamento di competenze di livello enterprise in Software Architecture, AI Engineering e DevOps.", INDIGO_ACCENT)
+        (
+            "⚡ -70% Tempo di Ricerca",
+            "I dipendenti rintracciano procedure e schede tecniche in secondi anziché navigare cartelle complesse.",
+            EMERALD,
+        ),
+        (
+            "🔒 100% Dati al Sicuro",
+            "Adozione dell'AI senza rischi di fughe di dati o non conformità GDPR grazie all'approccio Local-First e al DLP.",
+            CYAN_ACCENT,
+        ),
+        (
+            "🎓 Crescita Professionale",
+            "Consolidamento di competenze di livello enterprise in Software Architecture, AI Engineering e DevOps.",
+            INDIGO_ACCENT,
+        ),
     ]
     for idx, (title, desc, col) in enumerate(stage_cards2):
         cx = 0.9 + idx * 3.95
@@ -743,9 +871,21 @@ def create_presentation():
 
     # 3 Roadmap Cards
     roadmap_phases = [
-        ("FASE 1: ENTERPRISE IAM", "Integrazione Single Sign-On (SSO) con Microsoft Entra ID / Keycloak e SCIM.", CYAN_ACCENT),
-        ("FASE 2: SCALABILITÀ CLOUD", "Migrazione a Vector DB distribuiti (Qdrant cluster) e code asincrone Redis.", INDIGO_ACCENT),
-        ("FASE 3: OSSERVABILITÀ", "Tracciamento distribuito con OpenTelemetry, metriche Prometheus e Grafana.", EMERALD)
+        (
+            "FASE 1: ENTERPRISE IAM",
+            "Integrazione Single Sign-On (SSO) con Microsoft Entra ID / Keycloak e SCIM.",
+            CYAN_ACCENT,
+        ),
+        (
+            "FASE 2: SCALABILITÀ CLOUD",
+            "Migrazione a Vector DB distribuiti (Qdrant cluster) e code asincrone Redis.",
+            INDIGO_ACCENT,
+        ),
+        (
+            "FASE 3: OSSERVABILITÀ",
+            "Tracciamento distribuito con OpenTelemetry, metriche Prometheus e Grafana.",
+            EMERALD,
+        ),
     ]
     for idx, (ph, desc, col) in enumerate(roadmap_phases):
         cx = 0.9 + idx * 3.95
@@ -780,6 +920,7 @@ def create_presentation():
     output_path = "docs/PRESENTAZIONE_ITS_ERMES.pptx"
     prs.save(output_path)
     print(f"File PowerPoint Enterprise creato con successo in: {output_path}")
+
 
 if __name__ == "__main__":
     create_presentation()

@@ -4,6 +4,7 @@ Filtro Enterprise DLP (Data Loss Prevention) e PII per contesto RAG.
 Rileva e oscura dati sensibili prima dell'invio all'LLM e protegge le risposte in uscita.
 Supporta la configurazione dinamica dei pattern e regole Regex personalizzate.
 """
+
 from __future__ import annotations
 
 import json
@@ -128,13 +129,15 @@ def update_pii_config(new_config: dict[str, Any]) -> dict[str, Any]:
                 # Testa se la regex e' valida
                 try:
                     re.compile(r["pattern"])
-                    sanitized_rules.append({
-                        "id": str(r.get("id") or f"custom_{len(sanitized_rules)+1}"),
-                        "name": str(r["name"]).strip(),
-                        "pattern": str(r["pattern"]).strip(),
-                        "replacement": str(r["replacement"]).strip(),
-                        "enabled": bool(r.get("enabled", True)),
-                    })
+                    sanitized_rules.append(
+                        {
+                            "id": str(r.get("id") or f"custom_{len(sanitized_rules) + 1}"),
+                            "name": str(r["name"]).strip(),
+                            "pattern": str(r["pattern"]).strip(),
+                            "replacement": str(r["replacement"]).strip(),
+                            "enabled": bool(r.get("enabled", True)),
+                        }
+                    )
                 except re.error as reg_err:
                     _logger.warning("Regex personalizzata non valida '%s': %s", r.get("name"), reg_err)
 
@@ -208,6 +211,7 @@ def filter_pii(text: str, enabled: bool = True) -> str:
 
         try:
             if pid == "carta_credito":
+
                 def _replace_cc(match: re.Match[str]) -> str:
                     nonlocal detected
                     matched = match.group(0)
@@ -218,6 +222,7 @@ def filter_pii(text: str, enabled: bool = True) -> str:
 
                 result = re.sub(pattern, _replace_cc, result)
             elif pid == "iban":
+
                 def _replace_iban(match: re.Match[str]) -> str:
                     nonlocal detected
                     matched = match.group(0)
@@ -228,6 +233,7 @@ def filter_pii(text: str, enabled: bool = True) -> str:
 
                 result = re.sub(pattern, _replace_iban, result, flags=re.IGNORECASE)
             elif pid == "api_key_generic":
+
                 def _replace_api_key(match: re.Match[str]) -> str:
                     nonlocal detected
                     detected += 1
@@ -292,12 +298,14 @@ def detect_pii(text: str) -> list[dict[str, Any]]:
                 continue
             if pid == "iban" and not _validate_iban(val):
                 continue
-            results.append({
-                "type": pid,
-                "label": meta["label"],
-                "value": val,
-                "position": match.start(),
-            })
+            results.append(
+                {
+                    "type": pid,
+                    "label": meta["label"],
+                    "value": val,
+                    "position": match.start(),
+                }
+            )
 
     # Custom rules
     for rule in custom_rules:
@@ -308,12 +316,14 @@ def detect_pii(text: str) -> list[dict[str, Any]]:
             continue
         try:
             for match in re.finditer(pattern, text, re.IGNORECASE):
-                results.append({
-                    "type": f"custom_{rule.get('id')}",
-                    "label": f"Custom: {rule.get('name')}",
-                    "value": match.group(0),
-                    "position": match.start(),
-                })
+                results.append(
+                    {
+                        "type": f"custom_{rule.get('id')}",
+                        "label": f"Custom: {rule.get('name')}",
+                        "value": match.group(0),
+                        "position": match.start(),
+                    }
+                )
         except re.error:
             pass
 

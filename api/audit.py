@@ -2,6 +2,7 @@
 api/audit.py
 Audit log endpoints.
 """
+
 import json
 import logging
 import os
@@ -80,13 +81,14 @@ async def audit_logs(
 
     total = len(entries)
     entries.reverse()
-    sliced = entries[offset:offset + limit]
+    sliced = entries[offset : offset + limit]
     return {"entries": sliced, "total": total, "offset": offset, "limit": limit, "returned": len(sliced)}
 
 
 @router.get("/api/audit/verify", summary="Verifica l'integrità del log di audit")
 async def audit_verify(_auth: dict = Depends(_require_role("admin"))):
     from core.governance import verify_audit_log_integrity
+
     total, valid = verify_audit_log_integrity(cfg.AUDIT_FILE)
     return {"total": total, "valid": valid, "tampered": total - valid, "integrity_ok": total == valid}
 
@@ -94,6 +96,7 @@ async def audit_verify(_auth: dict = Depends(_require_role("admin"))):
 @router.get("/api/audit/stats", summary="Statistiche del log di audit")
 async def audit_stats(days: int = 30, _auth: dict = Depends(_require_role("admin"))):
     from core.monitoring import analyze_audit
+
     return analyze_audit(cfg.AUDIT_FILE, days=days)
 
 

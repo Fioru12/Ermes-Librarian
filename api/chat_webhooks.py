@@ -8,6 +8,7 @@ api/libraries.py: add_library_chat_integration, solo proprietario/admin) prima
 di poter fare domande — non esiste un percorso che lasci un webhook scegliere
 quale biblioteca interrogare.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -43,11 +44,14 @@ def _verify_slack_signature(body: bytes, timestamp: str, signature: str) -> bool
         if abs(time.time() - int(timestamp)) > _SLACK_TIMESTAMP_TOLERANCE_SECONDS:
             return False
         sig_basestring = f"v0:{timestamp}:{body.decode('utf-8')}"
-        expected = "v0=" + hmac.new(
-            cfg.SLACK_SIGNING_SECRET.encode(),
-            sig_basestring.encode(),
-            hashlib.sha256,
-        ).hexdigest()
+        expected = (
+            "v0="
+            + hmac.new(
+                cfg.SLACK_SIGNING_SECRET.encode(),
+                sig_basestring.encode(),
+                hashlib.sha256,
+            ).hexdigest()
+        )
         return hmac.compare_digest(expected, signature)
     except (ValueError, UnicodeDecodeError):
         return False
@@ -64,7 +68,7 @@ def _verify_teams_signature(body: bytes, authorization_header: str) -> bool:
     try:
         key = base64.b64decode(cfg.TEAMS_WEBHOOK_SECRET)
         expected = base64.b64encode(hmac.new(key, body, hashlib.sha256).digest()).decode()
-        received = authorization_header[len("HMAC "):].strip()
+        received = authorization_header[len("HMAC ") :].strip()
         return hmac.compare_digest(expected, received)
     except (ValueError, TypeError):
         return False

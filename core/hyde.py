@@ -6,6 +6,7 @@ Genera un documento o passaggio ipotetico in risposta a una domanda utente,
 consentendo di effettuare la ricerca per similarita tra l'embedding del documento ipotetico
 e i chunk memorizzati nella libreria, riducendo lo scostamento semantico (domain shift).
 """
+
 from __future__ import annotations
 
 import logging

@@ -2,6 +2,7 @@
 tests/test_local_folder_connector.py
 Tests for LocalFolderConnector (NAS / local folder scanner).
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -41,11 +42,13 @@ def test_local_folder_connector_fetch_documents(tmp_path: Path):
     ignored = folder / "script.py"
     ignored.write_text("print('hello')", encoding="utf-8")
 
-    connector = LocalFolderConnector({
-        "folder_path": str(folder),
-        "recursive": True,
-        "max_files": 100,
-    })
+    connector = LocalFolderConnector(
+        {
+            "folder_path": str(folder),
+            "recursive": True,
+            "max_files": 100,
+        }
+    )
 
     docs = connector.fetch_documents()
     assert len(docs) == 2

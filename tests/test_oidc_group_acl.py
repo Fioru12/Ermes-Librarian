@@ -8,6 +8,7 @@ Regole verificate:
 - nessun gruppo puo' dare admin: solo viewer/editor;
 - un utente OIDC senza gruppi mappati non vede nulla di nuovo.
 """
+
 from fastapi.testclient import TestClient
 
 from api import app
@@ -52,6 +53,7 @@ def _login_oidc(client, monkeypatch, groups):
 # Unitari su core/governance
 # ============================================================
 
+
 def test_mapping_crud_and_resolution(tmp_path, monkeypatch):
     import pytest
 
@@ -86,14 +88,18 @@ def test_mapping_crud_and_resolution(tmp_path, monkeypatch):
 # E2E: sessione OIDC -> accesso alle biblioteche
 # ============================================================
 
+
 def test_oidc_group_grants_access_without_membership(tmp_path, monkeypatch):
     client, _ = api_client_factory(tmp_path, monkeypatch)
     import api.libraries
+
     monkeypatch.setattr(api.libraries, "_store", None)
     store = api.libraries.get_library_store()
     library = store.create_library("Riservata HR", "", "private", owner_id="owner")
     set_oidc_group_mapping("hr", library["id"], "viewer")
-    assert client.post("/api/auth/login", json={"username": "owner", "password": "StrongPassword!123"}).status_code == 200
+    assert (
+        client.post("/api/auth/login", json={"username": "owner", "password": "StrongPassword!123"}).status_code == 200
+    )
 
     # Utente SSO nel gruppo hr: vede la biblioteca privata nell'elenco
     # e puo' leggerla, senza nessuna membership diretta.
@@ -108,6 +114,7 @@ def test_oidc_group_grants_access_without_membership(tmp_path, monkeypatch):
 def test_oidc_user_without_mapped_group_sees_nothing(tmp_path, monkeypatch):
     client, _ = api_client_factory(tmp_path, monkeypatch)
     import api.libraries
+
     monkeypatch.setattr(api.libraries, "_store", None)
     store = api.libraries.get_library_store()
     library = store.create_library("Riservata", "", "private", owner_id="owner")
@@ -122,18 +129,25 @@ def test_oidc_user_without_mapped_group_sees_nothing(tmp_path, monkeypatch):
 def test_group_mapping_apis_require_admin(tmp_path, monkeypatch):
     client, _ = api_client_factory(tmp_path, monkeypatch)
     import api.libraries
+
     monkeypatch.setattr(api.libraries, "_store", None)
     store = api.libraries.get_library_store()
     library = store.create_library("B", "", "private", owner_id="owner")
-    assert client.post("/api/auth/login", json={"username": "owner", "password": "StrongPassword!123"}).status_code == 200
+    assert (
+        client.post("/api/auth/login", json={"username": "owner", "password": "StrongPassword!123"}).status_code == 200
+    )
 
-    created = client.put("/api/admin/oidc/group-mappings", json={"group": "hr", "library_id": library["id"], "role": "editor"})
+    created = client.put(
+        "/api/admin/oidc/group-mappings", json={"group": "hr", "library_id": library["id"], "role": "editor"}
+    )
     assert created.status_code == 200, created.text
 
     listed = client.get("/api/admin/oidc/group-mappings").json()["mappings"]
     assert listed[0]["group"] == "hr" and listed[0]["role"] == "editor"
 
-    deleted = client.request("DELETE", "/api/admin/oidc/group-mappings", json={"group": "hr", "library_id": library["id"]})
+    deleted = client.request(
+        "DELETE", "/api/admin/oidc/group-mappings", json={"group": "hr", "library_id": library["id"]}
+    )
     assert deleted.status_code == 200
 
     # Utente OIDC non-admin: gestione mapping vietata.

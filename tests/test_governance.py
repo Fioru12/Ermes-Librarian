@@ -3,10 +3,19 @@ import os
 
 
 from core.governance import (
-    _load_users, _save_users, _sign_audit_entry, _verify_audit_signature,
-    _hash_password, authenticate_user, validate_admin_user,
-    validate_password_strength, create_or_update_user, list_users,
-    ensure_default_admin, append_audit, verify_audit_log_integrity,
+    _load_users,
+    _save_users,
+    _sign_audit_entry,
+    _verify_audit_signature,
+    _hash_password,
+    authenticate_user,
+    validate_admin_user,
+    validate_password_strength,
+    create_or_update_user,
+    list_users,
+    ensure_default_admin,
+    append_audit,
+    verify_audit_log_integrity,
 )
 
 

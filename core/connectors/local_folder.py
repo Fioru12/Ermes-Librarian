@@ -3,6 +3,7 @@ core/connectors/local_folder.py
 Local Shared Folder / NAS Network Drive Connector for Ermes Knowledge.
 Scans local directories or mounted SMB/NFS network drives for supported documents.
 """
+
 from __future__ import annotations
 
 import logging
@@ -28,9 +29,7 @@ class LocalFolderConnector(BaseConnector):
         self.folder_path = Path(config.get("folder_path", "")).expanduser().resolve()
         self.max_files = int(config.get("max_files", 200))
         self.recursive = bool(config.get("recursive", True))
-        self.allowed_extensions = set(
-            config.get("extensions", list(SUPPORTED_EXTENSIONS))
-        )
+        self.allowed_extensions = set(config.get("extensions", list(SUPPORTED_EXTENSIONS)))
 
     def test_connection(self) -> tuple[bool, str]:
         if not str(self.folder_path):

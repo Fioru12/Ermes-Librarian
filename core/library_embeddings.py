@@ -3,6 +3,7 @@
 The module deliberately supports only the configured Ollama endpoint. Failure
 is normal in a lightweight install and callers must retain keyword retrieval.
 """
+
 from __future__ import annotations
 
 import math
@@ -31,7 +32,9 @@ def embed_texts(texts: list[str]) -> list[list[float]]:
     base_url = cfg.OLLAMA_HOST.rstrip("/")
     try:
         response = httpx.post(
-            f"{base_url}/api/embed", json={"model": cfg.EMBED_MODEL_ID, "input": texts}, timeout=10,
+            f"{base_url}/api/embed",
+            json={"model": cfg.EMBED_MODEL_ID, "input": texts},
+            timeout=10,
         )
         response.raise_for_status()
         embeddings = response.json().get("embeddings", [])

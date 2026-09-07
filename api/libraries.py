@@ -1,4 +1,5 @@
 """Libraries and document inventory endpoints for Ermes Knowledge."""
+
 from __future__ import annotations
 
 import contextlib
@@ -90,7 +91,9 @@ class DocumentAclRequest(BaseModel):
 def _require_library_member_manager(store: LibraryStore, library_id: str, actor: dict) -> None:
     try:
         if not store.can_manage_library_members(library_id, actor):
-            raise HTTPException(status_code=403, detail="Solo il proprietario o un amministratore possono gestire i collaboratori")
+            raise HTTPException(
+                status_code=403, detail="Solo il proprietario o un amministratore possono gestire i collaboratori"
+            )
     except (LibraryNotFoundError, LibraryAccessError) as error:
         raise HTTPException(status_code=404, detail="Biblioteca non trovata") from error
 
@@ -113,6 +116,7 @@ def create_library(
         return store.create_library(request.name, request.description, request.visibility, owner_id=_auth["username"])
     except ValueError as error:
         raise HTTPException(status_code=422, detail=str(error)) from error
+
 
 @router.get("/index-consistency")
 def library_index_consistency(
@@ -200,8 +204,15 @@ def download_document(
     if not source_path.is_file():
         raise HTTPException(status_code=404, detail="Originale non disponibile")
     append_audit(
-        cfg.AUDIT_FILE, "document_downloaded", _auth["username"],
-        {"library_id": library_id, "document_id": document_id, "filename": document["filename"], "version": document["version"]},
+        cfg.AUDIT_FILE,
+        "document_downloaded",
+        _auth["username"],
+        {
+            "library_id": library_id,
+            "document_id": document_id,
+            "filename": document["filename"],
+            "version": document["version"],
+        },
     )
     return FileResponse(source_path, media_type=document["media_type"], filename=document["filename"])
 
@@ -252,8 +263,13 @@ async def upload_document(
         raise HTTPException(status_code=500, detail="Impossibile salvare il file originale") from error
     try:
         document = store.add_document(
-            library_id=library_id, filename=safe_name, media_type=file.content_type or "", content=content,
-            storage_path=storage_relative_path(library_id, destination.name), status="queued", chunks=[],
+            library_id=library_id,
+            filename=safe_name,
+            media_type=file.content_type or "",
+            content=content,
+            storage_path=storage_relative_path(library_id, destination.name),
+            status="queued",
+            chunks=[],
         )
     except Exception as error:
         destination.unlink(missing_ok=True)
@@ -290,12 +306,14 @@ def _answer_question(store: LibraryStore, library_id: str, question: str, top_k:
     guarantee, so this is the only place that logic is allowed to live.
     """
     import time
+
     t0 = time.perf_counter()
     try:
         library = store.get_library(library_id, actor)
         citations, retrieval_profile = store.search_with_profile(library_id, question, limit=top_k, actor=actor)
         if not citations:
             from core.query_expander import expand_query
+
             expanded_queries = expand_query(question)
             for eq in expanded_queries[1:]:
                 citations, retrieval_profile = store.search_with_profile(library_id, eq, limit=top_k, actor=actor)
@@ -303,15 +321,19 @@ def _answer_question(store: LibraryStore, library_id: str, question: str, top_k:
                     break
         if not citations:
             from core.hyde import generate_hypothetical_document
+
             hyde_passage = generate_hypothetical_document(question, mode=library.get("assistant_mode"))
             if hyde_passage and hyde_passage != question:
-                citations, retrieval_profile = store.search_with_profile(library_id, hyde_passage, limit=top_k, actor=actor)
+                citations, retrieval_profile = store.search_with_profile(
+                    library_id, hyde_passage, limit=top_k, actor=actor
+                )
     except (LibraryNotFoundError, LibraryAccessError) as error:
         raise HTTPException(status_code=404, detail="Biblioteca non trovata") from error
     if not citations:
         latency_ms = (time.perf_counter() - t0) * 1000.0
         from core.analytics import record_query_event
         from core.metrics import rag_question_recorded
+
         rag_question_recorded(library_id, "abstained", result_count=0)
         ans_id = record_query_event(
             query=question,
@@ -331,14 +353,23 @@ def _answer_question(store: LibraryStore, library_id: str, question: str, top_k:
             "status": "abstained",
             "evidence": {"coverage": "insufficient_evidence", "reason": "Nessun passaggio corrispondente recuperato."},
             "citations": [],
-            "meta": {"assistant_mode": library["assistant_mode"], "assistant_provider": library.get("assistant_provider", ""), "retrieval_profile": retrieval_profile, "created_at": datetime.now(UTC).isoformat()},
+            "meta": {
+                "assistant_mode": library["assistant_mode"],
+                "assistant_provider": library.get("assistant_provider", ""),
+                "retrieval_profile": retrieval_profile,
+                "created_at": datetime.now(UTC).isoformat(),
+            },
         }
     answer, coverage, reason = answer_from_evidence(
-        question, citations, mode=library["assistant_mode"], provider_name=library.get("assistant_provider", ""),
+        question,
+        citations,
+        mode=library["assistant_mode"],
+        provider_name=library.get("assistant_provider", ""),
     )
     latency_ms = (time.perf_counter() - t0) * 1000.0
     from core.analytics import record_query_event
     from core.metrics import rag_question_recorded, record_rerank_mode
+
     rag_question_recorded(
         library_id,
         "answered" if coverage == "supported" else "abstained",
@@ -356,8 +387,17 @@ def _answer_question(store: LibraryStore, library_id: str, question: str, top_k:
         fallback_reason=reason,
     )
     append_audit(
-        cfg.AUDIT_FILE, "library_answer", actor["username"],
-        {"library_id": library_id, "assistant_mode": library["assistant_mode"], "assistant_provider": library.get("assistant_provider", ""), "retrieval_profile": retrieval_profile["mode"], "citation_count": len(citations), "coverage": coverage},
+        cfg.AUDIT_FILE,
+        "library_answer",
+        actor["username"],
+        {
+            "library_id": library_id,
+            "assistant_mode": library["assistant_mode"],
+            "assistant_provider": library.get("assistant_provider", ""),
+            "retrieval_profile": retrieval_profile["mode"],
+            "citation_count": len(citations),
+            "coverage": coverage,
+        },
     )
     return {
         "answer_id": ans_id,
@@ -366,8 +406,16 @@ def _answer_question(store: LibraryStore, library_id: str, question: str, top_k:
         "answer": answer,
         "status": "answered" if coverage == "supported" else "abstained",
         "evidence": {"coverage": coverage, "reason": reason},
-        "citations": [item["citation"] | {"excerpt": item["excerpt"], "marker": index, "relevance_score": item["relevance_score"]} for index, item in enumerate(citations, start=1)],
-        "meta": {"assistant_mode": library["assistant_mode"], "assistant_provider": library.get("assistant_provider", ""), "retrieval_profile": retrieval_profile, "created_at": datetime.now(UTC).isoformat()},
+        "citations": [
+            item["citation"] | {"excerpt": item["excerpt"], "marker": index, "relevance_score": item["relevance_score"]}
+            for index, item in enumerate(citations, start=1)
+        ],
+        "meta": {
+            "assistant_mode": library["assistant_mode"],
+            "assistant_provider": library.get("assistant_provider", ""),
+            "retrieval_profile": retrieval_profile,
+            "created_at": datetime.now(UTC).isoformat(),
+        },
     }
 
 
@@ -391,20 +439,32 @@ def set_library_assistant_policy(
     """Set the explicit generation/data-egress policy for one library."""
     try:
         library = store.get_library(library_id, _auth, write=True)
-        if request.mode in {"approved_openrouter", "approved_provider"} and not store.can_manage_library_members(library_id, _auth):
-            raise HTTPException(status_code=403, detail="Solo il proprietario o un amministratore possono autorizzare un provider cloud")
+        if request.mode in {"approved_openrouter", "approved_provider"} and not store.can_manage_library_members(
+            library_id, _auth
+        ):
+            raise HTTPException(
+                status_code=403, detail="Solo il proprietario o un amministratore possono autorizzare un provider cloud"
+            )
         if request.mode == "approved_openrouter" and (not cfg.LIBRARY_CLOUD_CONSENT or not cfg.OPENROUTER_API_KEY):
             raise HTTPException(status_code=409, detail="OpenRouter non e autorizzato o configurato per questa istanza")
         if request.mode == "approved_provider" and _get_approved_cloud_provider(request.provider_name) is None:
-            raise HTTPException(status_code=409, detail="Provider cloud non autorizzato o non configurato per questa istanza")
+            raise HTTPException(
+                status_code=409, detail="Provider cloud non autorizzato o non configurato per questa istanza"
+            )
         updated = store.set_assistant_policy(library_id, request.mode, request.provider_name)
     except (LibraryNotFoundError, LibraryAccessError) as error:
         raise HTTPException(status_code=404, detail="Biblioteca non trovata") from error
     append_audit(
-        cfg.AUDIT_FILE, "library_assistant_policy_changed", _auth["username"],
+        cfg.AUDIT_FILE,
+        "library_assistant_policy_changed",
+        _auth["username"],
         {"library_id": library["id"], "mode": request.mode, "provider_name": updated.get("assistant_provider", "")},
     )
-    return {"id": updated["id"], "assistant_mode": updated["assistant_mode"], "assistant_provider": updated.get("assistant_provider", "")}
+    return {
+        "id": updated["id"],
+        "assistant_mode": updated["assistant_mode"],
+        "assistant_provider": updated.get("assistant_provider", ""),
+    }
 
 
 def _get_approved_cloud_provider(name: str):
@@ -412,6 +472,7 @@ def _get_approved_cloud_provider(name: str):
     if not cfg.LIBRARY_CLOUD_CONSENT or not name:
         return None
     from core.ai.providers.registry import get_registry
+
     provider = get_registry().get_provider(name)
     if provider is None or not provider.config.enabled or provider.config.type == "ollama":
         return None
@@ -434,11 +495,18 @@ def library_assistant_options(
     if not cfg.LIBRARY_CLOUD_CONSENT:
         return {"items": [], "cloud_enabled": False}
     from core.ai.providers.registry import get_registry
+
     items = []
     for item in get_registry().list_providers():
         provider = _get_approved_cloud_provider(str(item.get("name", "")))
         if provider:
-            items.append({"name": provider.config.name, "type": provider.config.type, "default_model": provider.config.default_model})
+            items.append(
+                {
+                    "name": provider.config.name,
+                    "type": provider.config.type,
+                    "default_model": provider.config.default_model,
+                }
+            )
     return {"items": items, "cloud_enabled": True}
 
 
@@ -478,7 +546,9 @@ def remove_library_member(
     _require_library_member_manager(store, library_id, _auth)
     if not store.remove_library_member(library_id, username):
         raise HTTPException(status_code=404, detail="Collaboratore non trovato")
-    append_audit(cfg.AUDIT_FILE, "library_member_removed", _auth["username"], {"library_id": library_id, "username": username})
+    append_audit(
+        cfg.AUDIT_FILE, "library_member_removed", _auth["username"], {"library_id": library_id, "username": username}
+    )
 
 
 def _unlink_storage_paths(paths: list[str], root: str | Path | None = None) -> None:
@@ -524,7 +594,12 @@ def delete_library_document(
     except (LibraryNotFoundError, LibraryAccessError) as error:
         raise HTTPException(status_code=404, detail="Documento non trovato") from error
     _unlink_storage_paths(paths)
-    append_audit(cfg.AUDIT_FILE, "library_document_deleted", _auth["username"], {"library_id": library_id, "document_id": document_id})
+    append_audit(
+        cfg.AUDIT_FILE,
+        "library_document_deleted",
+        _auth["username"],
+        {"library_id": library_id, "document_id": document_id},
+    )
 
 
 @router.delete("/{library_id}", status_code=204)
@@ -542,7 +617,9 @@ def delete_library(
         raise HTTPException(status_code=403, detail="Solo il proprietario puo' eliminare la biblioteca")
     paths = store.delete_library(library_id)
     _unlink_storage_paths(paths)
-    append_audit(cfg.AUDIT_FILE, "library_deleted", _auth["username"], {"library_id": library_id, "name": library["name"]})
+    append_audit(
+        cfg.AUDIT_FILE, "library_deleted", _auth["username"], {"library_id": library_id, "name": library["name"]}
+    )
 
 
 @router.get("/{library_id}/sources")
@@ -597,7 +674,9 @@ def _require_library_owner_or_admin(store: LibraryStore, library_id: str, actor:
     """
     library = store.get_library(library_id, actor, write=True)
     if library["access_role"] != "owner" and actor.get("role") != "admin":
-        raise HTTPException(status_code=403, detail="Solo il proprietario o un amministratore possono gestire le sorgenti cartella")
+        raise HTTPException(
+            status_code=403, detail="Solo il proprietario o un amministratore possono gestire le sorgenti cartella"
+        )
     return library
 
 
@@ -620,7 +699,9 @@ def add_library_source(
         raise HTTPException(status_code=409, detail=str(error)) from error
     except (LibraryNotFoundError, LibraryAccessError) as error:
         raise HTTPException(status_code=404, detail="Biblioteca non trovata") from error
-    append_audit(cfg.AUDIT_FILE, "import_source_added", _auth["username"], {"library_id": library_id, "path": source["path"]})
+    append_audit(
+        cfg.AUDIT_FILE, "import_source_added", _auth["username"], {"library_id": library_id, "path": source["path"]}
+    )
     return source
 
 
@@ -638,7 +719,9 @@ def remove_library_source(
         raise HTTPException(status_code=404, detail="Biblioteca non trovata") from error
     if not removed:
         raise HTTPException(status_code=404, detail="Sorgente non trovata")
-    append_audit(cfg.AUDIT_FILE, "import_source_removed", _auth["username"], {"library_id": library_id, "source_id": source_id})
+    append_audit(
+        cfg.AUDIT_FILE, "import_source_removed", _auth["username"], {"library_id": library_id, "source_id": source_id}
+    )
     return {"removed": True}
 
 
@@ -660,9 +743,16 @@ def scan_library_source(
     for imported in result["imported"]:
         background_tasks.add_task(process_ingestion_job, store, imported["job_id"], cfg.LIBRARY_STORAGE_DIR)
     append_audit(
-        cfg.AUDIT_FILE, "import_source_scanned", _auth["username"],
-        {"library_id": library_id, "source_id": source_id, "imported": len(result["imported"]),
-         "skipped_duplicates": len(result["skipped_duplicates"]), "failed": len(result["failed"])},
+        cfg.AUDIT_FILE,
+        "import_source_scanned",
+        _auth["username"],
+        {
+            "library_id": library_id,
+            "source_id": source_id,
+            "imported": len(result["imported"]),
+            "skipped_duplicates": len(result["skipped_duplicates"]),
+            "failed": len(result["failed"]),
+        },
     )
     return result
 
@@ -691,15 +781,24 @@ def add_library_chat_integration(
     try:
         _require_library_owner_or_admin(store, library_id, _auth)
         integration = store.add_chat_integration(
-            library_id, request.platform, request.external_channel_id, created_by=_auth["username"],
+            library_id,
+            request.platform,
+            request.external_channel_id,
+            created_by=_auth["username"],
         )
     except ValueError as error:
         raise HTTPException(status_code=409, detail=str(error)) from error
     except (LibraryNotFoundError, LibraryAccessError) as error:
         raise HTTPException(status_code=404, detail="Biblioteca non trovata") from error
     append_audit(
-        cfg.AUDIT_FILE, "chat_integration_added", _auth["username"],
-        {"library_id": library_id, "platform": integration["platform"], "external_channel_id": integration["external_channel_id"]},
+        cfg.AUDIT_FILE,
+        "chat_integration_added",
+        _auth["username"],
+        {
+            "library_id": library_id,
+            "platform": integration["platform"],
+            "external_channel_id": integration["external_channel_id"],
+        },
     )
     return integration
 
@@ -718,7 +817,12 @@ def remove_library_chat_integration(
         raise HTTPException(status_code=404, detail="Biblioteca non trovata") from error
     if not removed:
         raise HTTPException(status_code=404, detail="Collegamento non trovato")
-    append_audit(cfg.AUDIT_FILE, "chat_integration_removed", _auth["username"], {"library_id": library_id, "integration_id": integration_id})
+    append_audit(
+        cfg.AUDIT_FILE,
+        "chat_integration_removed",
+        _auth["username"],
+        {"library_id": library_id, "integration_id": integration_id},
+    )
     return {"removed": True}
 
 
@@ -770,7 +874,9 @@ def summarize_library_document(
     use_local_llm = use_llm and library["assistant_mode"] != "evidence_only"
     result = summarize_document(document["filename"], chunks, use_local_llm=use_local_llm)
     append_audit(
-        cfg.AUDIT_FILE, "document_summary", _auth["username"],
+        cfg.AUDIT_FILE,
+        "document_summary",
+        _auth["username"],
         {"library_id": library_id, "document_id": document_id, "status": result["status"], "mode": result["mode"]},
     )
     return {
@@ -789,7 +895,10 @@ def get_document_acl(
     """Allow-list di un documento. Solo proprietario o amministratore."""
     try:
         if not store.can_manage_library_members(library_id, _auth):
-            raise HTTPException(status_code=403, detail="Solo il proprietario o un amministratore possono vedere le restrizioni del documento")
+            raise HTTPException(
+                status_code=403,
+                detail="Solo il proprietario o un amministratore possono vedere le restrizioni del documento",
+            )
         return {"items": store.list_document_acl(library_id, document_id)}
     except (LibraryNotFoundError, LibraryAccessError) as error:
         raise HTTPException(status_code=404, detail="Documento non trovato") from error
@@ -807,6 +916,7 @@ def set_document_acl(
     _require_library_member_manager(store, library_id, _auth)
     requested = sorted({username.strip() for username in request.usernames if username and username.strip()})
     from core.governance import list_users
+
     known = {item["username"] for item in list_users(cfg.USERS_FILE)}
     unknown = [username for username in requested if username not in known]
     if unknown:
@@ -816,7 +926,9 @@ def set_document_acl(
     except (LibraryNotFoundError, LibraryAccessError) as error:
         raise HTTPException(status_code=404, detail="Documento non trovato") from error
     append_audit(
-        cfg.AUDIT_FILE, "document_acl_changed", _auth["username"],
+        cfg.AUDIT_FILE,
+        "document_acl_changed",
+        _auth["username"],
         {"library_id": library_id, "document_id": document_id, "usernames": requested},
     )
     return result
@@ -951,7 +1063,9 @@ def export_library_endpoint(
         )
         safe_name = "".join(c for c in library["name"] if c.isalnum() or c in "._ -").strip() or "biblioteca"
         filename = f"{safe_name}.ermes"
-        append_audit(cfg.AUDIT_FILE, "library_exported", _auth["username"], {"library_id": library_id, "name": library["name"]})
+        append_audit(
+            cfg.AUDIT_FILE, "library_exported", _auth["username"], {"library_id": library_id, "name": library["name"]}
+        )
         return FileResponse(
             path=pack_path,
             filename=filename,
@@ -989,7 +1103,12 @@ async def import_library_pack_endpoint(
             owner_id=_auth["username"],
             override_name=name,
         )
-        append_audit(cfg.AUDIT_FILE, "library_pack_imported", _auth["username"], {"library_id": library["id"], "name": library["name"]})
+        append_audit(
+            cfg.AUDIT_FILE,
+            "library_pack_imported",
+            _auth["username"],
+            {"library_id": library["id"], "name": library["name"]},
+        )
         return library
     except KnowledgePackError as error:
         raise HTTPException(status_code=400, detail=str(error)) from error
@@ -1021,13 +1140,13 @@ def get_library_duplicates_endpoint(
         if full_doc:
             chunks = full_doc.get("chunks", [])
             text = " ".join(c[0] for c in chunks if isinstance(c, (list, tuple)) and c)
-            enriched_docs.append({
-                "id": d["id"],
-                "filename": d.get("filename", ""),
-                "text": text,
-            })
+            enriched_docs.append(
+                {
+                    "id": d["id"],
+                    "filename": d.get("filename", ""),
+                    "text": text,
+                }
+            )
 
     duplicates = find_library_duplicates(enriched_docs)
     return {"duplicates": duplicates, "total_groups": len(duplicates)}
-
-

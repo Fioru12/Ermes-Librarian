@@ -5,6 +5,7 @@ Ri-ordina i passaggi recuperati (ibridi FTS5 + Vettori) calcolando un punteggio
 di rilevanza contestuale multi-fattoriale per massimizzare la precisione e
 ridurre allucinazioni.
 """
+
 from __future__ import annotations
 
 import logging
@@ -19,18 +20,62 @@ logger = logging.getLogger(__name__)
 
 # Stopwords base per non sovrastimare parole vuote
 _STOPWORDS = {
-    "a", "ad", "al", "alla", "alle", "che", "chi", "come", "con", "cosa", "dei", "del", "della", "delle",
-    "di", "dove", "e", "gli", "i", "il", "in", "la", "le", "lo", "nei", "nelle", "per", "quali", "quando",
-    "quale", "sono", "sul", "sulla", "the", "and", "are", "for", "from", "how", "is", "it",
-    "of", "on", "or", "to", "what", "when", "where", "who", "why", "with",
+    "a",
+    "ad",
+    "al",
+    "alla",
+    "alle",
+    "che",
+    "chi",
+    "come",
+    "con",
+    "cosa",
+    "dei",
+    "del",
+    "della",
+    "delle",
+    "di",
+    "dove",
+    "e",
+    "gli",
+    "i",
+    "il",
+    "in",
+    "la",
+    "le",
+    "lo",
+    "nei",
+    "nelle",
+    "per",
+    "quali",
+    "quando",
+    "quale",
+    "sono",
+    "sul",
+    "sulla",
+    "the",
+    "and",
+    "are",
+    "for",
+    "from",
+    "how",
+    "is",
+    "it",
+    "of",
+    "on",
+    "or",
+    "to",
+    "what",
+    "when",
+    "where",
+    "who",
+    "why",
+    "with",
 }
 
 
 def _tokenize(text: str) -> list[str]:
-    return [
-        w.lower() for w in re.findall(r"[\wÀ-ÿ]+", text)
-        if len(w) >= 2 and w.lower() not in _STOPWORDS
-    ]
+    return [w.lower() for w in re.findall(r"[\wÀ-ÿ]+", text) if len(w) >= 2 and w.lower() not in _STOPWORDS]
 
 
 def calculate_rerank_score(
@@ -64,7 +109,7 @@ def calculate_rerank_score(
         score += 0.40
     elif len(query_tokens) > 1:
         # Check per bi-grammi consecutivi
-        bigrams = [f"{query_tokens[i]} {query_tokens[i+1]}" for i in range(len(query_tokens) - 1)]
+        bigrams = [f"{query_tokens[i]} {query_tokens[i + 1]}" for i in range(len(query_tokens) - 1)]
         matched_bigrams = sum(1 for bg in bigrams if bg in normalized_excerpt)
         if matched_bigrams > 0:
             score += 0.20 * (matched_bigrams / len(bigrams))

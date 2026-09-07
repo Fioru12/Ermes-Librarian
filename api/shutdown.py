@@ -2,6 +2,7 @@
 api/shutdown.py
 Shutdown endpoint.
 """
+
 import logging
 import os
 import signal

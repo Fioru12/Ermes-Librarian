@@ -5,6 +5,7 @@ path traversal. The defences existed in the code but none of them was covered
 by a test: they were asserted, not verified. These tests exercise each one
 against hostile input.
 """
+
 from io import BytesIO
 from zipfile import ZIP_DEFLATED, ZipFile
 
@@ -31,16 +32,19 @@ def _office_zip(entries: dict, kind: str = "docx") -> bytes:
 
 
 class TestPathTraversalAndExtensions:
-    @pytest.mark.parametrize("hostile", [
-        "../../etc/passwd",
-        "..\\..\\windows\\system32\\config\\sam",
-        "/etc/shadow",
-        "C:\\Windows\\win.ini",
-        "..",
-        ".",
-        "",
-        "   ",
-    ])
+    @pytest.mark.parametrize(
+        "hostile",
+        [
+            "../../etc/passwd",
+            "..\\..\\windows\\system32\\config\\sam",
+            "/etc/shadow",
+            "C:\\Windows\\win.ini",
+            "..",
+            ".",
+            "",
+            "   ",
+        ],
+    )
     def test_traversal_and_empty_names_are_refused(self, hostile):
         assert sanitize_upload_name(hostile) is None
 

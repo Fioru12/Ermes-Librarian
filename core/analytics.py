@@ -4,6 +4,7 @@ Enterprise Analytics & Knowledge Gap Tracker per Ermes Librarian.
 Traccia latenza, soddisfazione utente (feedback), frequenza query e
 rileva automaticamente i "buchi di conoscenza" (Knowledge Gaps).
 """
+
 from __future__ import annotations
 
 import json
@@ -203,7 +204,8 @@ def get_knowledge_gaps(days: int = 30, limit: int = 20) -> list[dict[str, Any]]:
                     "count": 0,
                     "library_id": q.get("library_id", ""),
                     "last_seen": q.get("timestamp", ""),
-                    "reason": q.get("fallback_reason") or ("Nessun risultato" if res_count == 0 else "Evidenza insufficiente"),
+                    "reason": q.get("fallback_reason")
+                    or ("Nessun risultato" if res_count == 0 else "Evidenza insufficiente"),
                     "negative_feedback": 1 if has_negative_fb else 0,
                 }
             frequency_map[normalized_q]["count"] += 1

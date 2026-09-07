@@ -2,6 +2,7 @@
 tests/test_deduplication.py
 Unit tests for core/deduplication.py (Document Fingerprinting and Deduplication Engine).
 """
+
 from __future__ import annotations
 
 from core.deduplication import (

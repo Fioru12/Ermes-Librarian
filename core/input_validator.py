@@ -3,6 +3,7 @@ input_validator.py
 Validazione e sanitizzazione dei nomi caricati dagli utenti; verifica che il
 contenuto di un file corrisponda al tipo dichiarato prima del parsing.
 """
+
 import os
 import re
 

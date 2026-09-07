@@ -9,6 +9,7 @@ BLUE = (15, 18, 37)
 GOLD = (212, 175, 55)
 GOLD2 = (240, 210, 100)
 
+
 def radial_gradient(draw, size, cx, cy):
     for x in range(size):
         for y in range(size):
@@ -19,13 +20,14 @@ def radial_gradient(draw, size, cx, cy):
             b = int(DARK[2] + (BLUE[2] - DARK[2]) * (1 - t))
             draw.point((x, y), fill=(r, g, b))
 
+
 # Background circle with gradient
-bg = Image.new('RGBA', (SIZE, SIZE), (0, 0, 0, 0))
+bg = Image.new("RGBA", (SIZE, SIZE), (0, 0, 0, 0))
 dr = ImageDraw.Draw(bg)
 radial_gradient(dr, SIZE, CENTER, CENTER)
 
 # Circle clip
-msk = Image.new('L', (SIZE, SIZE), 0)
+msk = Image.new("L", (SIZE, SIZE), 0)
 ImageDraw.Draw(msk).ellipse((10, 10, SIZE - 10, SIZE - 10), fill=255)
 bg.putalpha(msk)
 
@@ -56,7 +58,7 @@ if font is None:
     font = ImageFont.load_default()
 
 # Get text mask to calculate exact center of mass
-txt = Image.new('L', (SIZE, SIZE), 0)
+txt = Image.new("L", (SIZE, SIZE), 0)
 tdr = ImageDraw.Draw(txt)
 bbox = tdr.textbbox((0, 0), "E", font=font)
 tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
@@ -85,7 +87,7 @@ tx += adjust_x
 ty += adjust_y
 
 # Gold "E" with shadow
-E_layer = Image.new('RGBA', (SIZE, SIZE), (0, 0, 0, 0))
+E_layer = Image.new("RGBA", (SIZE, SIZE), (0, 0, 0, 0))
 edr = ImageDraw.Draw(E_layer)
 edr.text((tx + 3, ty + 3), "E", font=font, fill=(0, 0, 0, 60))
 edr.text((tx, ty), "E", font=font, fill=GOLD2)
@@ -97,7 +99,7 @@ edr.text((tx, ty), "E", font=font, fill=GOLD2)
 img = Image.alpha_composite(bg, E_layer)
 
 # Gloss top half
-gl = Image.new('RGBA', (SIZE, SIZE), (0, 0, 0, 0))
+gl = Image.new("RGBA", (SIZE, SIZE), (0, 0, 0, 0))
 gdr = ImageDraw.Draw(gl)
 for y in range(SIZE // 2):
     a = int(15 * (1 - y / (SIZE // 2)))

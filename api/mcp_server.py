@@ -4,6 +4,7 @@ Model Context Protocol (MCP) Server Endpoint for Ermes Knowledge.
 Exposes Ermes document libraries, vector search, and evidence Q&A as standard MCP tools
 for AI agent frameworks (Claude Desktop, Cursor, Antigravity, LangChain, etc.).
 """
+
 from __future__ import annotations
 
 import logging

@@ -2,6 +2,7 @@
 tests/test_hyde.py
 Test suite per il motore HyDE (Hypothetical Document Embeddings) e integrazione RAG.
 """
+
 from unittest.mock import patch, MagicMock
 from core.hyde import generate_hypothetical_document
 
@@ -19,7 +20,9 @@ def test_generate_hypothetical_document_empty():
 def test_generate_hypothetical_document_mock_ollama():
     mock_response = MagicMock()
     mock_response.json.return_value = {
-        "message": {"content": "I permessi ROL si richiedono inserendo il giustificativo nel portale presenze aziendale."}
+        "message": {
+            "content": "I permessi ROL si richiedono inserendo il giustificativo nel portale presenze aziendale."
+        }
     }
     mock_response.raise_for_status.return_value = None
 

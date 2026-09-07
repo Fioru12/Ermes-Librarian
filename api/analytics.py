@@ -2,6 +2,7 @@
 api/analytics.py
 Enterprise Analytics and Knowledge Gaps API endpoints.
 """
+
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -27,7 +28,10 @@ async def analytics_overview(
     return get_analytics_summary(days=days)
 
 
-@router.get("/api/analytics/knowledge-gaps", summary="Rilevamento Knowledge Gaps (domande senza risposta o con feedback negativo)")
+@router.get(
+    "/api/analytics/knowledge-gaps",
+    summary="Rilevamento Knowledge Gaps (domande senza risposta o con feedback negativo)",
+)
 async def analytics_knowledge_gaps(
     days: int = 30,
     limit: int = 20,
@@ -68,14 +72,16 @@ async def export_knowledge_gaps_csv(
     writer = csv.writer(output)
     writer.writerow(["Domanda", "Frequenza", "Biblioteca", "Motivo Esito", "Feedback Negativi", "Ultima Ricerca"])
     for g in gaps:
-        writer.writerow([
-            g.get("query", ""),
-            g.get("count", 0),
-            g.get("library_id", ""),
-            g.get("reason", ""),
-            g.get("negative_feedback", 0),
-            g.get("last_seen", ""),
-        ])
+        writer.writerow(
+            [
+                g.get("query", ""),
+                g.get("count", 0),
+                g.get("library_id", ""),
+                g.get("reason", ""),
+                g.get("negative_feedback", 0),
+                g.get("last_seen", ""),
+            ]
+        )
 
     csv_bytes = output.getvalue().encode("utf-8-sig")
     return Response(
@@ -83,4 +89,3 @@ async def export_knowledge_gaps_csv(
         media_type="text/csv",
         headers={"Content-Disposition": f"attachment; filename=ermes_knowledge_gaps_{days}d.csv"},
     )
-

@@ -2,6 +2,7 @@
 core/connectors/base.py
 Base abstractions for Enterprise Cloud Connectors in Ermes.
 """
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod

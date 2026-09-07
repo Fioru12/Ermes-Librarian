@@ -90,19 +90,24 @@ def test_library_pack_api_endpoints(tmp_path: Path, monkeypatch):
 
     app_dir = tmp_path / "app"
     app_dir.mkdir()
-    test_cfg = cfg.replace(BASE_DIR=str(app_dir), ADMIN_USERNAME="admin", ADMIN_PASSWORD="admin_password_123!", API_KEY="")
+    test_cfg = cfg.replace(
+        BASE_DIR=str(app_dir), ADMIN_USERNAME="admin", ADMIN_PASSWORD="admin_password_123!", API_KEY=""
+    )
     monkeypatch.setattr("config.cfg", test_cfg)
     monkeypatch.setattr("api.auth.cfg", test_cfg)
     monkeypatch.setattr("api.libraries.cfg", test_cfg)
     _SESSIONS.clear()
 
     import api.libraries
+
     monkeypatch.setattr(api.libraries, "_store", None)
     store = api.libraries.get_library_store()
     lib = store.create_library("Catalogo", "Catalogo Ricambi", "shared", owner_id="admin")
 
     client = TestClient(app)
-    assert client.post("/api/auth/login", json={"username": "admin", "password": "admin_password_123!"}).status_code == 200
+    assert (
+        client.post("/api/auth/login", json={"username": "admin", "password": "admin_password_123!"}).status_code == 200
+    )
 
     # Test export API
     export_resp = client.get(f"/api/libraries/{lib['id']}/export")
@@ -119,4 +124,3 @@ def test_library_pack_api_endpoints(tmp_path: Path, monkeypatch):
     assert import_resp.status_code == 201
     imported_data = import_resp.json()
     assert imported_data["name"] == "Catalogo Clonato"
-

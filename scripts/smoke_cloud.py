@@ -7,6 +7,7 @@ Cancelli attesi:
 2. consenso globale acceso -> l'owner imposta la policy per biblioteca;
 3. ask genera con il modello cloud CITANDO le evidenze locali.
 """
+
 import io
 import os
 import sys
@@ -45,15 +46,19 @@ def main() -> int:
     import core.evidence_assistant as evidence_assistant
     from api import app
 
-    doc_text = ("Politica viaggi. Il rimborso chilometrico si calcola con la tariffa ACI "
-                "per ogni chilometro percorso. Le ricevute vanno conservate cinque anni.")
+    doc_text = (
+        "Politica viaggi. Il rimborso chilometrico si calcola con la tariffa ACI "
+        "per ogni chilometro percorso. Le ricevute vanno conservate cinque anni."
+    )
 
     with TestClient(app) as client:
         client.post("/api/auth/login", json={"username": "owner", "password": "StrongSmoke!123"})
         lib = client.post("/api/libraries", json={"name": "Cloud"}).json()
         library_id = lib["id"]
-        up = client.post(f"/api/libraries/{library_id}/documents",
-                         files={"file": ("viaggi.md", io.BytesIO(doc_text.encode()), "text/markdown")})
+        up = client.post(
+            f"/api/libraries/{library_id}/documents",
+            files={"file": ("viaggi.md", io.BytesIO(doc_text.encode()), "text/markdown")},
+        )
         deadline, status = time.time() + 60, ""
         while time.time() < deadline:
             items = client.get(f"/api/libraries/{library_id}/documents").json()["items"]
@@ -68,8 +73,7 @@ def main() -> int:
         no_consent = replace(config.cfg, LIBRARY_CLOUD_CONSENT=False)
         saved = (config.cfg, api_libraries.cfg, evidence_assistant.cfg)
         config.cfg = api_libraries.cfg = evidence_assistant.cfg = no_consent
-        r = client.put(f"{base}/assistant-policy",
-                       json={"mode": "approved_openrouter", "provider_name": ""})
+        r = client.put(f"{base}/assistant-policy", json={"mode": "approved_openrouter", "provider_name": ""})
         step("cancello 1: chiave sola NON abilita il cloud (409)", r.status_code == 409)
         answer = client.post(f"{base}/ask", json={"question": "Con quale tariffa si calcola il rimborso?"}).json()
         step("ask resta evidence-only senza consenso", answer["meta"]["assistant_mode"] == "evidence_only")
@@ -77,20 +81,25 @@ def main() -> int:
 
         # ── Cancello 2+3: consenso globale + scelta per biblioteca ──
         options = client.get(f"{base}/assistant-options").json()
-        step("assistant-options raggiungibile col consenso", options.get("cloud_enabled") is True,
-             f"provider approvati: {[i['name'] for i in options.get('items', [])]}")
+        step(
+            "assistant-options raggiungibile col consenso",
+            options.get("cloud_enabled") is True,
+            f"provider approvati: {[i['name'] for i in options.get('items', [])]}",
+        )
 
-        r = client.put(f"{base}/assistant-policy",
-                       json={"mode": "approved_openrouter", "provider_name": ""})
+        r = client.put(f"{base}/assistant-policy", json={"mode": "approved_openrouter", "provider_name": ""})
         step("policy approved_openrouter impostata dall'owner", r.status_code == 200)
 
-        answer = client.post(f"{base}/ask",
-                             json={"question": "Con quale tariffa si calcola il rimborso chilometrico?"}).json()
+        answer = client.post(
+            f"{base}/ask", json={"question": "Con quale tariffa si calcola il rimborso chilometrico?"}
+        ).json()
         reason = answer["evidence"].get("reason") or ""
         generated = answer["answer"] != "" and not answer["answer"].startswith("Ho trovato questi passaggi")
-        step("ask in modalita' cloud: risposta generata O fallback sicuro alle evidenze",
-             answer["status"] == "answered" and bool(answer["citations"]),
-             f"generata={generated}, motivo fallback={reason!r}")
+        step(
+            "ask in modalita' cloud: risposta generata O fallback sicuro alle evidenze",
+            answer["status"] == "answered" and bool(answer["citations"]),
+            f"generata={generated}, motivo fallback={reason!r}",
+        )
 
     print(f"\nRISULTATO: {PASS} passati, {FAIL} falliti")
     return 0 if FAIL == 0 else 1

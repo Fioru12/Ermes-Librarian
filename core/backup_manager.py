@@ -3,6 +3,7 @@ backup_manager.py
 Sistema di backup e recovery per Ermes.
 Esegue backup incrementali di KG, ChromaDB, logs, e configurazioni.
 """
+
 import json
 import logging
 import os
@@ -118,6 +119,7 @@ def create_backup(label: str = "") -> dict:
             }
             meta_json = json.dumps(metadata, indent=2)
             import io
+
             meta_bytes = meta_json.encode("utf-8")
             info = tarfile.TarInfo(name="backup_metadata.json")
             info.size = len(meta_bytes)
@@ -142,12 +144,14 @@ def list_backups() -> list[dict]:
     backups = []
     for f in sorted(Path(BACKUP_DIR).glob("ermes_backup_*.tar.gz"), reverse=True):
         size_mb = f.stat().st_size / (1024 * 1024)
-        backups.append({
-            "name": f.stem,
-            "path": str(f),
-            "size_mb": round(size_mb, 2),
-            "created": datetime.fromtimestamp(f.stat().st_mtime).isoformat(),
-        })
+        backups.append(
+            {
+                "name": f.stem,
+                "path": str(f),
+                "size_mb": round(size_mb, 2),
+                "created": datetime.fromtimestamp(f.stat().st_mtime).isoformat(),
+            }
+        )
     return backups
 
 
@@ -185,6 +189,7 @@ def restore_backup(backup_name: str, dry_run: bool = False) -> dict:
                     os.makedirs(target, exist_ok=True)
                 elif member.isfile():
                     import tempfile
+
                     os.makedirs(os.path.dirname(target), exist_ok=True)
                     extracted = tar.extractfile(member)
                     if extracted is None:

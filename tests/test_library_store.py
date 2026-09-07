@@ -59,7 +59,11 @@ def test_local_search_matches_simple_singular_plural_variants(tmp_path: Path):
     store = LibraryStore(tmp_path / "morphology.sqlite3")
     library = store.create_library("Procedure")
     store.add_document(
-        library["id"], "ferie.md", "text/markdown", b"ferie", "/tmp/ferie",
+        library["id"],
+        "ferie.md",
+        "text/markdown",
+        b"ferie",
+        "/tmp/ferie",
         chunks=[("Le richieste vengono inviate cinque giorni prima.", "Sezione: Ferie")],
     )
 
@@ -78,8 +82,14 @@ def test_local_search_does_not_collapse_unrelated_words_ending_in_different_vowe
     store = LibraryStore(tmp_path / "false_stem_collision.sqlite3")
     library = store.create_library("Procedure")
     store.add_document(
-        library["id"], "assenze.md", "text/markdown", b"assenze", "/tmp/assenze",
-        chunks=[("Il certificato di malattia va caricato entro tre giorni dal primo giorno di lavoro.", "Sezione: Assenze")],
+        library["id"],
+        "assenze.md",
+        "text/markdown",
+        b"assenze",
+        "/tmp/assenze",
+        chunks=[
+            ("Il certificato di malattia va caricato entro tre giorni dal primo giorno di lavoro.", "Sezione: Assenze")
+        ],
     )
 
     results = store.search_documents(library["id"], "Che cosa succede se un collega lavora sempre da casa?")
@@ -91,17 +101,36 @@ def test_local_search_does_not_treat_common_question_words_as_evidence(tmp_path:
     store = LibraryStore(tmp_path / "abstention.sqlite3")
     library = store.create_library("Procedure")
     store.add_document(
-        library["id"], "expense-policy.md", "text/markdown", b"policy", "/tmp/policy",
+        library["id"],
+        "expense-policy.md",
+        "text/markdown",
+        b"policy",
+        "/tmp/policy",
         chunks=[("The report must include a receipt.", "Section: Expenses")],
     )
 
     assert store.search_documents(library["id"], "What is the warranty period for customer hardware?") == []
 
+
 def test_uploading_same_filename_creates_a_new_version(tmp_path: Path):
     store = LibraryStore(tmp_path / "versions.sqlite3")
     library = store.create_library("Qualità")
-    first = store.add_document(library["id"], "policy.md", "text/markdown", b"versione uno", "/tmp/v1", chunks=[("versione uno", "Sezione: Uno")])
-    second = store.add_document(library["id"], "policy.md", "text/markdown", b"versione due", "/tmp/v2", chunks=[("versione due", "Sezione: Due")])
+    first = store.add_document(
+        library["id"],
+        "policy.md",
+        "text/markdown",
+        b"versione uno",
+        "/tmp/v1",
+        chunks=[("versione uno", "Sezione: Uno")],
+    )
+    second = store.add_document(
+        library["id"],
+        "policy.md",
+        "text/markdown",
+        b"versione due",
+        "/tmp/v2",
+        chunks=[("versione due", "Sezione: Due")],
+    )
 
     assert second["id"] == first["id"]
     assert second["version"] == 2
@@ -114,7 +143,11 @@ def test_semantic_score_can_return_a_chunk_without_keyword_overlap(tmp_path: Pat
     store = LibraryStore(tmp_path / "semantic.sqlite3")
     library = store.create_library("Procedure")
     document = store.add_document(
-        library["id"], "ferie.md", "text/markdown", b"ferie", "/tmp/ferie",
+        library["id"],
+        "ferie.md",
+        "text/markdown",
+        b"ferie",
+        "/tmp/ferie",
         chunks=[("Le assenze programmate richiedono approvazione.", "Sezione: Assenze")],
     )
     assert store.store_chunk_embeddings(library["id"], document["id"], [[1.0, 0.0]], "test") == 1
@@ -131,7 +164,11 @@ def test_keyword_profile_is_reported_without_a_local_vector_index(tmp_path: Path
     store = LibraryStore(tmp_path / "keyword-profile.sqlite3")
     library = store.create_library("Procedure")
     store.add_document(
-        library["id"], "ferie.md", "text/markdown", b"ferie", "/tmp/ferie",
+        library["id"],
+        "ferie.md",
+        "text/markdown",
+        b"ferie",
+        "/tmp/ferie",
         chunks=[("Le richieste ferie passano dal portale.", "Sezione: Ferie")],
     )
 
@@ -158,9 +195,20 @@ def test_library_assistant_policy_is_local_by_default_and_persisted(tmp_path: Pa
 def test_restored_content_can_be_saved_as_a_new_version(tmp_path: Path):
     store = LibraryStore(tmp_path / "restore.sqlite3")
     library = store.create_library("Manuali")
-    first = store.add_document(library["id"], "manuale.md", "text/markdown", b"prima", "/tmp/first", chunks=[("prima", "Sezione: Prima")])
-    store.add_document(library["id"], "manuale.md", "text/markdown", b"seconda", "/tmp/second", chunks=[("seconda", "Sezione: Seconda")])
-    restored = store.add_document(library["id"], "manuale.md", "text/markdown", b"prima", "/tmp/first", chunks=[("prima", "Sezione: Prima")])
+    first = store.add_document(
+        library["id"], "manuale.md", "text/markdown", b"prima", "/tmp/first", chunks=[("prima", "Sezione: Prima")]
+    )
+    store.add_document(
+        library["id"],
+        "manuale.md",
+        "text/markdown",
+        b"seconda",
+        "/tmp/second",
+        chunks=[("seconda", "Sezione: Seconda")],
+    )
+    restored = store.add_document(
+        library["id"], "manuale.md", "text/markdown", b"prima", "/tmp/first", chunks=[("prima", "Sezione: Prima")]
+    )
 
     assert restored["id"] == first["id"]
     assert restored["version"] == 3
@@ -251,7 +299,9 @@ def test_library_api_creates_and_uploads_a_document(tmp_path: Path, monkeypatch)
         assert documents.status_code == 200
         assert len(documents.json()["items"]) == 1
 
-        downloaded = client.get(f"/api/libraries/{library['id']}/documents/{documents.json()['items'][0]['id']}/download")
+        downloaded = client.get(
+            f"/api/libraries/{library['id']}/documents/{documents.json()['items'][0]['id']}/download"
+        )
         assert downloaded.status_code == 200
         assert downloaded.content == b"# Procedura\nContenuto demo"
 
@@ -301,8 +351,7 @@ def test_download_is_denied_to_a_non_member_of_a_private_library(tmp_path: Path,
             call for call in audit_calls if len(call[0]) >= 2 and call[0][1] == "document_downloaded"
         ]
         assert any(
-            call[0][2] == "alice" and call[0][3].get("document_id") == document_id
-            for call in download_audit_entries
+            call[0][2] == "alice" and call[0][3].get("document_id") == document_id for call in download_audit_entries
         )
 
         # A user with no membership on this library (and no global admin
@@ -358,6 +407,7 @@ def test_viewer_cannot_change_a_library(tmp_path: Path):
     finally:
         app.dependency_overrides.clear()
 
+
 def test_reindex_recomputes_embeddings_instead_of_silently_dropping_them(tmp_path: Path, monkeypatch):
     """Regressione: replace_document_index ricrea i chunk da zero, quindi un
     reindex che non ricalcola gli embedding degrada la biblioteca da
@@ -401,7 +451,6 @@ def test_reindex_recomputes_embeddings_instead_of_silently_dropping_them(tmp_pat
         assert all(row[0] for row in rows), "dopo il reindex ogni chunk deve avere un embedding"
     finally:
         app.dependency_overrides.clear()
-
 
 
 class TestStoragePathPortability:

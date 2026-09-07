@@ -45,12 +45,10 @@ class BaseProvider(ABC):
         temp: float = 0.1,
         json_mode: bool = False,
         timeout: int = 120,
-    ) -> str:
-        ...
+    ) -> str: ...
 
     @abstractmethod
-    def test_connection(self) -> tuple[bool, str]:
-        ...
+    def test_connection(self) -> tuple[bool, str]: ...
 
     def get_models(self) -> list[str]:
         return self.config.models or [self.config.default_model] if self.config.default_model else []

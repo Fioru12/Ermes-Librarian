@@ -19,6 +19,7 @@ class OpenAICompatProvider(BaseProvider):
         timeout: int = 120,
     ) -> str:
         import httpx
+
         model_id = model or self.config.default_model
         if not model_id:
             raise ValueError("Nessun modello specificato per il provider OpenAI-compatibile")
@@ -92,6 +93,7 @@ class OpenAICompatProvider(BaseProvider):
 
     def test_connection(self) -> tuple[bool, str]:
         import httpx
+
         base_url = (self.config.base_url or "https://api.openai.com/v1").rstrip("/")
         headers = {"Authorization": f"Bearer {self.config.api_key}"}
         try:

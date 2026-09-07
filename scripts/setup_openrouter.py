@@ -35,6 +35,7 @@ def main():
         print("Nessun .env trovato. Copiando da .env.example...")
         if env_example.exists():
             import shutil
+
             shutil.copy(env_example, env_path)
             print("  .env creato!")
 
@@ -61,9 +62,11 @@ def main():
 
     # Verifica se API key esiste
     from config import cfg
+
     if cfg.OPENROUTER_API_KEY:
         print("[OK] OPENROUTER_API_KEY gia' configurata!")
         from core.ai.llm_bridge import _map_to_openrouter_model, check_openrouter
+
         ok, msg = check_openrouter()
         print(f"  Status: {msg}")
         print(f"  Modello mappato: {cfg.DEFAULT_MODEL_ID} → {_map_to_openrouter_model(cfg.DEFAULT_MODEL_ID)}")
@@ -72,6 +75,7 @@ def main():
 
     print()
     print("=" * 60)
+
 
 if __name__ == "__main__":
     main()

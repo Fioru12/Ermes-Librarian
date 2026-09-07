@@ -4,6 +4,7 @@ Enterprise Query Expansion and Synonym Disambiguation.
 Expands business terminology, Italian labor/corporate acronyms, and common synonyms
 to maximize recall in BM25/FTS5 and dense semantic search.
 """
+
 from __future__ import annotations
 
 import re

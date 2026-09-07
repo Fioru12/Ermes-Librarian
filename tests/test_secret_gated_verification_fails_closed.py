@@ -26,6 +26,7 @@ should look at the specific code and confirm the missing branch is safe
 be silenced by loosening the pattern, only by fixing or explicitly
 allowlisting the specific line with a comment explaining why it is safe.
 """
+
 from __future__ import annotations
 
 import ast
@@ -51,8 +52,11 @@ def _cfg_secret_attr(node: ast.expr) -> str | None:
     if isinstance(node, ast.BoolOp) and isinstance(node.op, ast.And) and node.values:
         node = node.values[0]
     if (
-        isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name) and node.value.id == "cfg"
-        and node.attr.isupper() and any(node.attr.endswith(suffix) for suffix in SECRET_LIKE_SUFFIXES)
+        isinstance(node, ast.Attribute)
+        and isinstance(node.value, ast.Name)
+        and node.value.id == "cfg"
+        and node.attr.isupper()
+        and any(node.attr.endswith(suffix) for suffix in SECRET_LIKE_SUFFIXES)
     ):
         return node.attr
     return None
@@ -85,7 +89,9 @@ def _find_violations(tree: ast.AST, path: Path) -> list[str]:
         if secret_name is None:
             continue
         if _body_calls_something_verify_like(node.body):
-            violations.append(f"{path}:{node.lineno}: `if cfg.{secret_name}:` guards a verification call with no else — fails open when {secret_name} is unset")
+            violations.append(
+                f"{path}:{node.lineno}: `if cfg.{secret_name}:` guards a verification call with no else — fails open when {secret_name} is unset"
+            )
     return violations
 
 

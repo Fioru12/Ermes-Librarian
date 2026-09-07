@@ -10,6 +10,7 @@ Uso:
 
 Dopo aver avviato il server con `uvicorn api:app`.
 """
+
 import random
 import tempfile
 from pathlib import Path
@@ -58,9 +59,9 @@ class ErmesAPIUser(HttpUser):
         # Crea utente direttamente nel governance
         try:
             from core.governance import create_or_update_user
+
             create_or_update_user(
-                Path(tempfile.gettempdir()) / "ermes_loadtest_users.json",
-                self.username, "admin", self.password
+                Path(tempfile.gettempdir()) / "ermes_loadtest_users.json", self.username, "admin", self.password
             )
         except Exception:
             pass
@@ -161,7 +162,7 @@ class ErmesAPIUser(HttpUser):
         content = f"Documento di test numerato {random.randint(1, 10000)} per load testing.".encode()
         with self.client.post(
             f"/api/libraries/{self.library_id}/documents",
-            files={"file": (f"load_{random.randint(1,100000)}.txt", content, "text/plain")},
+            files={"file": (f"load_{random.randint(1, 100000)}.txt", content, "text/plain")},
             headers=headers,
             catch_response=True,
             name="/api/libraries/[id]/documents",

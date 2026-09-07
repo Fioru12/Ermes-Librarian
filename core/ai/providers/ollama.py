@@ -19,6 +19,7 @@ class OllamaProvider(BaseProvider):
         timeout: int = 120,
     ) -> str:
         import httpx
+
         model_id = model or self.config.default_model
         if not model_id:
             raise ValueError("Nessun modello specificato per Ollama")
@@ -59,6 +60,7 @@ class OllamaProvider(BaseProvider):
 
     def test_connection(self) -> tuple[bool, str]:
         import httpx
+
         base_url = (self.config.base_url or "http://127.0.0.1:11434").rstrip("/")
         try:
             resp = httpx.get(f"{base_url}/api/tags", timeout=10)
@@ -72,6 +74,7 @@ class OllamaProvider(BaseProvider):
 
     def get_models(self) -> list[str]:
         import httpx
+
         base_url = (self.config.base_url or "http://127.0.0.1:11434").rstrip("/")
         try:
             resp = httpx.get(f"{base_url}/api/tags", timeout=5)

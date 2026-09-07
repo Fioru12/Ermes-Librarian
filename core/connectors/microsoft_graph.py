@@ -3,6 +3,7 @@ core/connectors/microsoft_graph.py
 Microsoft 365 SharePoint and OneDrive Enterprise Connector.
 Interacts with Microsoft Graph API using OAuth2 Client Credentials flow.
 """
+
 from __future__ import annotations
 
 import logging

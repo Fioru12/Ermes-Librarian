@@ -2,6 +2,7 @@
 api/models.py
 Models listing endpoint.
 """
+
 import logging
 
 from fastapi import APIRouter, Depends
@@ -21,7 +22,7 @@ OPENROUTER_MODEL_LABELS: dict[str, str] = {
 
 
 @router.get("/api/models", summary="Elenco modelli disponibili")
-async def list_models(_auth: None = Depends(__import__('api.auth', fromlist=['_verify_api_key'])._verify_api_key)):
+async def list_models(_auth: None = Depends(__import__("api.auth", fromlist=["_verify_api_key"])._verify_api_key)):
     from config import cfg as _cfg
 
     models: list[str] = []
@@ -30,6 +31,7 @@ async def list_models(_auth: None = Depends(__import__('api.auth', fromlist=['_v
     # Provider registry: models grouped by provider
     try:
         from core.ai.providers.registry import get_registry
+
         registry = get_registry()
         providers = registry.list_providers()
     except Exception as error:
@@ -60,6 +62,7 @@ async def list_models(_auth: None = Depends(__import__('api.auth', fromlist=['_v
     # Aggiungiamo SEMPRE OpenRouter se la chiave è presente
     if getattr(_cfg, "OPENROUTER_API_KEY", ""):
         from core.ai.utils import _OPENROUTER_FREE_MODELS as _FREE_MODELS
+
         openrouter_models = []
         for m in _FREE_MODELS:
             if m not in models:
@@ -75,6 +78,7 @@ async def list_models(_auth: None = Depends(__import__('api.auth', fromlist=['_v
         if getattr(_cfg, "ENABLE_LEGACY_WINSARP", False):
             try:
                 from legacy_winsarp.core.rag_engine import AVAILABLE_MODELS, fetch_ollama_models
+
                 ollama_models = fetch_ollama_models() or list(AVAILABLE_MODELS.values())
             except Exception as error:
                 _logger.info("Catalogo legacy Ollama non disponibile: %s", error)

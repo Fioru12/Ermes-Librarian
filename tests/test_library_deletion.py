@@ -1,4 +1,5 @@
 """Cancellazione di documenti e biblioteche: righe DB, file storage, permessi."""
+
 from pathlib import Path
 
 from core.library_store import LibraryNotFoundError, LibraryStore

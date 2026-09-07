@@ -3,6 +3,7 @@ core/deduplication.py
 Enterprise Document Deduplication and Near-Duplicate Detection Engine.
 Identifies identical content, near-duplicate documents, and obsolete revisions across libraries.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -69,13 +70,15 @@ def find_library_duplicates(
     # Gruppi di duplicati esatti
     for fp, docs in fingerprints.items():
         if len(docs) > 1:
-            duplicate_groups.append({
-                "type": "exact",
-                "similarity": 1.0,
-                "document_ids": [d["id"] for d in docs],
-                "filenames": [d.get("filename", "") for d in docs],
-                "recommendation": "Contenuto identico. Si consiglia di archiviare le versioni precedenti.",
-            })
+            duplicate_groups.append(
+                {
+                    "type": "exact",
+                    "similarity": 1.0,
+                    "document_ids": [d["id"] for d in docs],
+                    "filenames": [d.get("filename", "") for d in docs],
+                    "recommendation": "Contenuto identico. Si consiglia di archiviare le versioni precedenti.",
+                }
+            )
             for i in range(len(docs)):
                 for j in range(i + 1, len(docs)):
                     seen_pairs.add((docs[i]["id"], docs[j]["id"]))
@@ -95,13 +98,15 @@ def find_library_duplicates(
             sim = jaccard_similarity(shingles_a, shingles_b)
 
             if sim >= similarity_threshold:
-                duplicate_groups.append({
-                    "type": "near_duplicate",
-                    "similarity": round(sim, 2),
-                    "document_ids": [doc_a["id"], doc_b["id"]],
-                    "filenames": [doc_a.get("filename", ""), doc_b.get("filename", "")],
-                    "recommendation": f"Contenuto quasi identico ({int(sim * 100)}% somiglianza). Verificare se si tratta di una revisione.",
-                })
+                duplicate_groups.append(
+                    {
+                        "type": "near_duplicate",
+                        "similarity": round(sim, 2),
+                        "document_ids": [doc_a["id"], doc_b["id"]],
+                        "filenames": [doc_a.get("filename", ""), doc_b.get("filename", "")],
+                        "recommendation": f"Contenuto quasi identico ({int(sim * 100)}% somiglianza). Verificare se si tratta di una revisione.",
+                    }
+                )
                 seen_pairs.add(pair)
                 seen_pairs.add((doc_b["id"], doc_a["id"]))
 

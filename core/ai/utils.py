@@ -4,6 +4,7 @@ Funzioni di supporto: hash documenti, validazione file,
 log JSON/TXT, pulizia log vecchi, pulizia ChromaDB orfani.
 Nessuna dipendenza da Streamlit o LlamaIndex.
 """
+
 import contextlib
 import logging
 
@@ -11,7 +12,7 @@ import logging
 # CONFIGURAZIONE
 # ============================================================
 LOG_RETENTION_DAYS = 30
-_HASH_CHUNK_SIZE   = 65536  # 64 KB — lettura a blocchi, evita OOM su file grandi
+_HASH_CHUNK_SIZE = 65536  # 64 KB — lettura a blocchi, evita OOM su file grandi
 _logger = logging.getLogger(__name__)
 
 
@@ -23,12 +24,12 @@ _logger = logging.getLogger(__name__)
 # qwen2.5-72b, llama-3.2-90b, deepseek-chat, mistral-small-3.1) davano 404.
 # Se uno va in 429 (rate-limit) o fallisce, si passa al successivo.
 _OPENROUTER_FREE_MODELS = [
-    "google/gemma-4-31b-it:free",                      # 31B Gemma 4, più veloce (~1s)
-    "tencent/hy3:free",                                # 295B MoE, multilingua, ottimo per italiano
-    "qwen/qwen3-next-80b-a3b-instruct:free",           # 80B MoE Qwen3
-    "meta-llama/llama-3.3-70b-instruct:free",          # 70B Llama, buon italiano
-    "openai/gpt-oss-120b:free",                        # 120B open-weight
-    "nousresearch/hermes-3-llama-3.1-405b:free",       # 405B, massima qualità (fallback)
+    "google/gemma-4-31b-it:free",  # 31B Gemma 4, più veloce (~1s)
+    "tencent/hy3:free",  # 295B MoE, multilingua, ottimo per italiano
+    "qwen/qwen3-next-80b-a3b-instruct:free",  # 80B MoE Qwen3
+    "meta-llama/llama-3.3-70b-instruct:free",  # 70B Llama, buon italiano
+    "openai/gpt-oss-120b:free",  # 120B open-weight
+    "nousresearch/hermes-3-llama-3.1-405b:free",  # 405B, massima qualità (fallback)
 ]
 
 # ============================================================
@@ -36,13 +37,16 @@ _OPENROUTER_FREE_MODELS = [
 # ============================================================
 _langfuse_client = None
 
+
 def _get_langfuse():
     global _langfuse_client
     if _langfuse_client is None:
         try:
             from config import cfg as _cfg
+
             if _cfg.LANGFUSE_PUBLIC_KEY and _cfg.LANGFUSE_SECRET_KEY:
                 from langfuse import Langfuse
+
                 _langfuse_client = Langfuse(
                     public_key=_cfg.LANGFUSE_PUBLIC_KEY,
                     secret_key=_cfg.LANGFUSE_SECRET_KEY,
@@ -53,7 +57,14 @@ def _get_langfuse():
     return _langfuse_client
 
 
-def call_llm(prompt: str, model_id: str, system_prompt: str = None, temp: float = 0.1, json_mode: bool = False, timeout: int = 120) -> str:
+def call_llm(
+    prompt: str,
+    model_id: str,
+    system_prompt: str = None,
+    temp: float = 0.1,
+    json_mode: bool = False,
+    timeout: int = 120,
+) -> str:
     """Helper centralizzato per chiamare LLM.
 
     Usa il provider registry se ci sono provider configurati;
@@ -81,6 +92,7 @@ def call_llm(prompt: str, model_id: str, system_prompt: str = None, temp: float 
         # Tenta via provider registry
         try:
             from core.ai.providers.registry import get_registry
+
             registry = get_registry()
             if registry.list_providers():
                 result = registry.call_llm(
@@ -137,7 +149,9 @@ def call_llm(prompt: str, model_id: str, system_prompt: str = None, temp: float 
                 try:
                     resp = _httpx.post(
                         f"{_cfg.OPENROUTER_BASE_URL.rstrip('/')}/chat/completions",
-                        headers=headers, json=payload, timeout=timeout,
+                        headers=headers,
+                        json=payload,
+                        timeout=timeout,
                     )
                     resp.raise_for_status()
                     data = resp.json()
@@ -164,7 +178,9 @@ def call_llm(prompt: str, model_id: str, system_prompt: str = None, temp: float 
                         try:
                             resp = _httpx.post(
                                 f"{_cfg.OPENROUTER_BASE_URL.rstrip('/')}/chat/completions",
-                                headers=headers, json=payload, timeout=timeout,
+                                headers=headers,
+                                json=payload,
+                                timeout=timeout,
                             )
                             resp.raise_for_status()
                             data = resp.json()
@@ -184,7 +200,9 @@ def call_llm(prompt: str, model_id: str, system_prompt: str = None, temp: float 
                             last_error = e2
                             continue
                     if status in (429, 502, 503, 504) or status >= 500:
-                        _logger.warning("call_llm: %s -> %s (%s), provo prossimo modello", models_to_try[0], api_model, status)
+                        _logger.warning(
+                            "call_llm: %s -> %s (%s), provo prossimo modello", models_to_try[0], api_model, status
+                        )
                         last_error = e
                         _time.sleep(2)
                         continue

@@ -10,6 +10,7 @@ Scelte di traduzione (documentate nel piano):
 - `embedding_json` TEXT -> JSONB (lettura identica in Python; pgvector è Fase 2).
 - Timestamp ISO-8601 restano TEXT per non cambiare la semantica dei confronti.
 """
+
 from __future__ import annotations
 
 import logging
@@ -181,10 +182,7 @@ def ensure_schema(connection) -> None:
     attaccate allo statement seguente.
     """
     for raw_statement in POSTGRES_SCHEMA.split(";"):
-        lines = [
-            line for line in raw_statement.splitlines()
-            if not line.strip().startswith("--")
-        ]
+        lines = [line for line in raw_statement.splitlines() if not line.strip().startswith("--")]
         statement = "\n".join(lines).strip()
         if statement:
             connection.execute(statement)

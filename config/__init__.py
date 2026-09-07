@@ -9,6 +9,7 @@ Utilizzo:
     from config import cfg
     print(cfg.PORT)
 """
+
 import os as _os
 
 from config.integrations import IntegrationsConfig
@@ -23,9 +24,7 @@ from config.storage import StorageConfig
 try:
     from dotenv import load_dotenv as _load_dotenv
 
-    _env_path = _os.path.join(
-        _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))), ".env"
-    )
+    _env_path = _os.path.join(_os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))), ".env")
     if _os.path.exists(_env_path):
         _load_dotenv(_env_path, encoding="utf-8")
         _load_dotenv(_env_path)  # fallback senza encoding specifico
@@ -51,17 +50,13 @@ class Config:
     def __getattr__(self, name: str):
         """Delega l'accesso agli attributi alle sottoconfigurazioni."""
         # Cerca in ogni sottoconfigurazione
-        for config in (self._server, self._security, self._storage,
-                       self._integrations, self._rag):
+        for config in (self._server, self._security, self._storage, self._integrations, self._rag):
             if hasattr(config, name):
                 return getattr(config, name)
         raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
 
     def __repr__(self) -> str:
-        return (
-            f"Config(HOST={self.HOST!r}, PORT={self.PORT!r}, "
-            f"BASE_DIR={self.BASE_DIR!r})"
-        )
+        return f"Config(HOST={self.HOST!r}, PORT={self.PORT!r}, BASE_DIR={self.BASE_DIR!r})"
 
     def replace(self, **changes) -> "Config":
         """Crea una nuova istanza con modifiche selezionata.
@@ -77,8 +72,7 @@ class Config:
 
         # Raccogli i campi (non le property derivate) di ogni sottoconfig
         current: dict[str, object] = {}
-        for sub in (self._server, self._security, self._storage,
-                    self._integrations, self._rag):
+        for sub in (self._server, self._security, self._storage, self._integrations, self._rag):
             for f in dataclasses.fields(sub):
                 if hasattr(self, f.name):
                     current[f.name] = getattr(self, f.name)

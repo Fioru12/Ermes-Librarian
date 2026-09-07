@@ -3,6 +3,7 @@
 The script reads local credentials from the untracked environment only. It never
 prints credentials, sends documents outside localhost, or enables cloud AI.
 """
+
 from __future__ import annotations
 
 import os
@@ -83,7 +84,9 @@ def find_or_create_library(client: httpx.Client, name: str, description: str) ->
 def wait_for_ingestion(client: httpx.Client, library_id: str, filenames: set[str]) -> None:
     deadline = time.monotonic() + 30
     while time.monotonic() < deadline:
-        jobs = require_ok(client.get(f"/api/libraries/{library_id}/ingestion-jobs"), "Impossibile leggere i job")["items"]
+        jobs = require_ok(client.get(f"/api/libraries/{library_id}/ingestion-jobs"), "Impossibile leggere i job")[
+            "items"
+        ]
         latest = {job["filename"]: job for job in jobs if job["filename"] in filenames}
         if filenames <= latest.keys() and all(job["status"] == "ready" for job in latest.values()):
             return
@@ -103,7 +106,9 @@ def ensure_library_with_documents(client: httpx.Client, name: str, description: 
         client.put(f"/api/libraries/{library_id}/assistant-policy", json={"mode": "evidence_only"}),
         "Impossibile impostare la policy evidence_only",
     )
-    existing = require_ok(client.get(f"/api/libraries/{library_id}/documents"), "Impossibile leggere i documenti")["items"]
+    existing = require_ok(client.get(f"/api/libraries/{library_id}/documents"), "Impossibile leggere i documenti")[
+        "items"
+    ]
     existing_names = {document["filename"] for document in existing if document["status"] == "ready"}
     for item in files:
         if item.name in existing_names:
@@ -121,7 +126,9 @@ def ensure_library_with_documents(client: httpx.Client, name: str, description: 
 
 
 def ask(client: httpx.Client, library_id: str, question: str) -> dict:
-    return require_ok(client.post(f"/api/libraries/{library_id}/ask", json={"question": question}), "Domanda demo fallita")
+    return require_ok(
+        client.post(f"/api/libraries/{library_id}/ask", json={"question": question}), "Domanda demo fallita"
+    )
 
 
 def main() -> int:
@@ -133,11 +140,15 @@ def main() -> int:
         authenticate(client)
 
         northstar_id = ensure_library_with_documents(
-            client, LIBRARY_NAME, "Corpus fittizio per dimostrare citazioni e astensione di Ermes Knowledge.",
+            client,
+            LIBRARY_NAME,
+            "Corpus fittizio per dimostrare citazioni e astensione di Ermes Knowledge.",
             [CORPUS / "employee-handbook.md", CORPUS / "expense-policy.md", CORPUS / "it-access-policy.md"],
         )
         quality_id = ensure_library_with_documents(
-            client, QUALITY_LIBRARY_NAME, "Corpus fittizio per dimostrare l'isolamento tra biblioteche.",
+            client,
+            QUALITY_LIBRARY_NAME,
+            "Corpus fittizio per dimostrare l'isolamento tra biblioteche.",
             [QUALITY_CORPUS / "nonconformity-procedure.md", QUALITY_CORPUS / "document-review-policy.md"],
         )
 
@@ -162,7 +173,9 @@ def main() -> int:
         # boundary — this is what proves library isolation, not just states it.
         isolation = ask(client, quality_id, ISOLATION_QUESTION)
         if isolation.get("status") != "abstained" or isolation.get("citations"):
-            raise RuntimeError("Isolamento tra biblioteche non verificato: la biblioteca Meridian ha risposto a una domanda Northstar")
+            raise RuntimeError(
+                "Isolamento tra biblioteche non verificato: la biblioteca Meridian ha risposto a una domanda Northstar"
+            )
 
     print("DEMO_VALIDATION_OK")
     print(f"library={LIBRARY_NAME}; library={QUALITY_LIBRARY_NAME}")

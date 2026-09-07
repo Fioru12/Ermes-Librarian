@@ -5,6 +5,7 @@ bookkeeping (start/finish_ingestion_job) directly, but never the real
 parse -> chunk -> embed -> index pipeline, including its failure-path
 status transitions users see as "document failed to index".
 """
+
 from pathlib import Path
 
 from core.ingestion_service import process_ingestion_job
@@ -30,7 +31,9 @@ def _seed_document(store: LibraryStore, storage_root: Path, filename: str, conte
 def test_process_ingestion_job_indexes_a_real_document_and_marks_it_ready(tmp_path: Path):
     store = LibraryStore(tmp_path / "jobs.sqlite3")
     library, document = _seed_document(
-        store, tmp_path, "procedura.md",
+        store,
+        tmp_path,
+        "procedura.md",
         b"# Procedura\nLe richieste vanno inviate al responsabile entro cinque giorni.",
     )
 

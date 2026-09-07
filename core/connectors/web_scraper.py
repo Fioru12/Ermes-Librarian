@@ -3,6 +3,7 @@ core/connectors/web_scraper.py
 Enterprise Web / Intranet Wiki Scraper and Crawler.
 Fetches web pages, extracts clean readable text and converts them into searchable markdown.
 """
+
 from __future__ import annotations
 
 import logging
@@ -32,7 +33,13 @@ def _html_to_markdown(html_text: str) -> str:
     # Remove remaining HTML tags
     clean = re.sub(r"<[^>]+>", " ", clean)
     # Unescape common entities
-    clean = clean.replace("&nbsp;", " ").replace("&amp;", "&").replace("&lt;", "<").replace("&gt;", ">").replace("&quot;", '"')
+    clean = (
+        clean.replace("&nbsp;", " ")
+        .replace("&amp;", "&")
+        .replace("&lt;", "<")
+        .replace("&gt;", ">")
+        .replace("&quot;", '"')
+    )
     # Collapse extra whitespace
     lines = [line.strip() for line in clean.splitlines() if line.strip()]
     return "\n\n".join(lines)
@@ -84,7 +91,9 @@ class WebScraperConnector(BaseConnector):
 
                     # Estrae titolo
                     title_match = re.search(r"<title[^>]*>(.*?)</title>", res.text, re.IGNORECASE)
-                    title = title_match.group(1).strip() if title_match else urlparse(current_url).path.strip("/") or "Home"
+                    title = (
+                        title_match.group(1).strip() if title_match else urlparse(current_url).path.strip("/") or "Home"
+                    )
                     safe_title = re.sub(r"[^\w\s-]", "", title).strip() or "pagina_web"
 
                     markdown_content = _html_to_markdown(res.text)

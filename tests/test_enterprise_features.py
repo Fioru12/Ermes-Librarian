@@ -7,6 +7,7 @@ Test suite per le funzionalità Enterprise:
 - Enterprise Analytics & Knowledge Gaps (event tracking, metriche, gap detection, feedback)
 - Document ACL isolation durante la ricerca RAG
 """
+
 from __future__ import annotations
 
 import base64
@@ -38,6 +39,7 @@ def _make_jwt(payload: dict) -> str:
 # ============================================================================
 # 1. Enterprise DLP & PII Guard
 # ============================================================================
+
 
 def test_dlp_filters_iban():
     valid_iban = "IT60X0542811101000000123456"
@@ -83,6 +85,7 @@ def test_dlp_detect_pii():
 # 2. Enterprise Reranker
 # ============================================================================
 
+
 def test_reranker_scoring_phrase_match():
     query = "politica di sicurezza aziendale"
     excerpt1 = "Questo documento definisce la politica di sicurezza aziendale per tutti i dipendenti."
@@ -109,8 +112,16 @@ def test_reranker_proximity_bonus():
 def test_rerank_candidates_filtering_and_ordering():
     query = "orari mensa"
     candidates = [
-        {"filename": "privacy.docx", "excerpt": "Trattamento dei dati personali e conservazione.", "relevance_score": 10.0},
-        {"filename": "regolamento_mensa.pdf", "excerpt": "Gli orari della mensa aziendale sono dalle 12:30 alle 14:30.", "relevance_score": 15.0},
+        {
+            "filename": "privacy.docx",
+            "excerpt": "Trattamento dei dati personali e conservazione.",
+            "relevance_score": 10.0,
+        },
+        {
+            "filename": "regolamento_mensa.pdf",
+            "excerpt": "Gli orari della mensa aziendale sono dalle 12:30 alle 14:30.",
+            "relevance_score": 15.0,
+        },
     ]
     reranked = rerank_candidates(query, candidates, min_score=0.1, limit=5)
     assert len(reranked) > 0
@@ -121,6 +132,7 @@ def test_rerank_candidates_filtering_and_ordering():
 # ============================================================================
 # 3. Enterprise Analytics & Knowledge Gaps
 # ============================================================================
+
 
 def test_analytics_query_recording_and_gap_detection(tmp_path, monkeypatch):
     test_analytics_file = str(tmp_path / "analytics_test.jsonl")
@@ -167,8 +179,10 @@ def test_analytics_query_recording_and_gap_detection(tmp_path, monkeypatch):
 # 4. Enterprise OIDC / SSO Authentication
 # ============================================================================
 
+
 def test_oidc_token_validation(monkeypatch):
     from api.auth import _authenticate_token
+
     new_cfg = config.cfg.replace(
         OIDC_ENABLED=True,
         OIDC_ISSUER="https://login.microsoftonline.com/tenant-id",
@@ -223,13 +237,15 @@ def test_oidc_api_endpoints(monkeypatch):
     assert data["client_id"] == "ermes-client"
 
     # 2. Session login via OIDC ID Token
-    token = _make_jwt({
-        "sub": "emp-999",
-        "preferred_username": "giovanni.rossi@company.com",
-        "iss": "https://auth.company.com",
-        "exp": time.time() + 3600,
-        "roles": ["editor"],
-    })
+    token = _make_jwt(
+        {
+            "sub": "emp-999",
+            "preferred_username": "giovanni.rossi@company.com",
+            "iss": "https://auth.company.com",
+            "exp": time.time() + 3600,
+            "roles": ["editor"],
+        }
+    )
     session_res = client.post("/api/auth/oidc/session", json={"id_token": token})
     assert session_res.status_code == 200
     assert session_res.json()["username"] == "giovanni.rossi@company.com"
@@ -240,6 +256,7 @@ def test_oidc_api_endpoints(monkeypatch):
 # ============================================================================
 # 5. Document ACL & Granular Security
 # ============================================================================
+
 
 def test_document_acl_isolation_in_search(tmp_path):
     db_file = str(tmp_path / "test_acl.sqlite3")
@@ -296,8 +313,10 @@ def test_document_acl_isolation_in_search(tmp_path):
 # 6. Enterprise Cloud Connectors & Web Scraper
 # ============================================================================
 
+
 def test_web_scraper_html_to_markdown():
     from core.connectors.web_scraper import _html_to_markdown, WebScraperConnector
+
     html = """
     <html>
       <head><title>Test Page</title></head>
@@ -326,6 +345,7 @@ def test_web_scraper_html_to_markdown():
 # 7. Query Expansion, Deduplication & CSV Export Tests
 # ============================================================================
 
+
 def test_query_expansion_enterprise():
     from core.query_expander import expand_query
 
@@ -341,10 +361,26 @@ def test_document_deduplication_exact_and_near():
     from core.deduplication import find_library_duplicates
 
     docs = [
-        {"id": "doc1", "filename": "Policy_v1.pdf", "text": "Questa e' la policy aziendale sui permessi retribuiti e ferie annuali."},
-        {"id": "doc2", "filename": "Policy_v1_copia.pdf", "text": "Questa e' la policy aziendale sui permessi retribuiti e ferie annuali."},
-        {"id": "doc3", "filename": "Policy_v2.pdf", "text": "Questa e' la policy aziendale sui permessi retribuiti e ferie annuali con una piccola modifica finale."},
-        {"id": "doc4", "filename": "Contratto.pdf", "text": "Documento completamente diverso riguardante la fornitura di energia elettrica."},
+        {
+            "id": "doc1",
+            "filename": "Policy_v1.pdf",
+            "text": "Questa e' la policy aziendale sui permessi retribuiti e ferie annuali.",
+        },
+        {
+            "id": "doc2",
+            "filename": "Policy_v1_copia.pdf",
+            "text": "Questa e' la policy aziendale sui permessi retribuiti e ferie annuali.",
+        },
+        {
+            "id": "doc3",
+            "filename": "Policy_v2.pdf",
+            "text": "Questa e' la policy aziendale sui permessi retribuiti e ferie annuali con una piccola modifica finale.",
+        },
+        {
+            "id": "doc4",
+            "filename": "Contratto.pdf",
+            "text": "Documento completamente diverso riguardante la fornitura di energia elettrica.",
+        },
     ]
 
     dups = find_library_duplicates(docs, similarity_threshold=0.55)
@@ -380,6 +416,7 @@ def test_export_analytics_csv_endpoint(tmp_path, monkeypatch):
 
 def test_library_duplicates_api_endpoint(tmp_path):
     from core.library_store import LibraryStore
+
     db_file = str(tmp_path / "test_dup.sqlite3")
     store = LibraryStore(db_file)
     lib = store.create_library(name="Test Dup Lib", visibility="shared", owner_id="admin")
@@ -405,5 +442,3 @@ def test_library_duplicates_api_endpoint(tmp_path):
 
     docs = store.list_documents(lib["id"], actor={"role": "admin", "username": "admin"})
     assert len(docs) == 2
-
-

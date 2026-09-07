@@ -2,6 +2,7 @@
 config/server.py
 Configurazione server, path base e timeout.
 """
+
 import os
 from dataclasses import dataclass, field
 
@@ -19,8 +20,7 @@ class ServerConfig:
     # ---------------------------------------------------------
     # PATH BASE
     # ---------------------------------------------------------
-    BASE_DIR: str = field(default_factory=lambda: os.path.abspath(
-        os.environ.get("ERMES_BASE_DIR", ".")))
+    BASE_DIR: str = field(default_factory=lambda: os.path.abspath(os.environ.get("ERMES_BASE_DIR", ".")))
 
     @property
     def DOCS_DIR(self) -> str:
@@ -60,11 +60,13 @@ class ServerConfig:
     # ---------------------------------------------------------
     # CORS
     # ---------------------------------------------------------
-    CORS_ORIGINS: tuple = field(default_factory=lambda: tuple(
-        origin.strip() for origin in os.environ.get(
-            "ERMES_CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000"
-        ).split(",") if origin.strip()
-    ))
+    CORS_ORIGINS: tuple = field(
+        default_factory=lambda: tuple(
+            origin.strip()
+            for origin in os.environ.get("ERMES_CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000").split(",")
+            if origin.strip()
+        )
+    )
 
     @property
     def LOGS_DIR(self) -> str:
@@ -80,15 +82,7 @@ class ServerConfig:
     LIBRARY_ASSISTANT_TIMEOUT_SEC: int = field(
         default_factory=lambda: int(os.environ.get("ERMES_ASSISTANT_TIMEOUT_SEC", "60"))
     )
-    PROMPT_MAX_CHARS: int = field(
-        default_factory=lambda: int(os.environ.get("ERMES_PROMPT_MAX_CHARS", "8000"))
-    )
-    TYPING_TIMEOUT_SEC: int = field(
-        default_factory=lambda: int(os.environ.get("ERMES_TYPING_TIMEOUT_SEC", "15"))
-    )
-    TOKEN_TIMEOUT_SEC: int = field(
-        default_factory=lambda: int(os.environ.get("ERMES_TOKEN_TIMEOUT_SEC", "2"))
-    )
-    LOG_RETENTION_DAYS: int = field(
-        default_factory=lambda: int(os.environ.get("ERMES_LOG_RETENTION_DAYS", "30"))
-    )
+    PROMPT_MAX_CHARS: int = field(default_factory=lambda: int(os.environ.get("ERMES_PROMPT_MAX_CHARS", "8000")))
+    TYPING_TIMEOUT_SEC: int = field(default_factory=lambda: int(os.environ.get("ERMES_TYPING_TIMEOUT_SEC", "15")))
+    TOKEN_TIMEOUT_SEC: int = field(default_factory=lambda: int(os.environ.get("ERMES_TOKEN_TIMEOUT_SEC", "2")))
+    LOG_RETENTION_DAYS: int = field(default_factory=lambda: int(os.environ.get("ERMES_LOG_RETENTION_DAYS", "30")))

@@ -3,6 +3,7 @@ test_integration.py
 Test di integrazione per Ermes - Enterprise Knowledge Hub.
 Test flussi critici end-to-end.
 """
+
 import os
 import sys
 from pathlib import Path
@@ -135,6 +136,7 @@ class TestRealOllama:
 
     def test_ollama_available(self):
         import requests
+
         try:
             r = requests.get("http://127.0.0.1:11434/api/tags", timeout=5)
             assert r.status_code == 200
@@ -155,6 +157,7 @@ class TestRealChromaDB:
         import tempfile
 
         import chromadb
+
         tmpdir = tempfile.mkdtemp()
         try:
             client = chromadb.PersistentClient(path=tmpdir)
@@ -164,6 +167,7 @@ class TestRealChromaDB:
             assert len(results["ids"][0]) == 2
         finally:
             import shutil
+
             shutil.rmtree(tmpdir, ignore_errors=True)
 
 

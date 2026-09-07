@@ -19,6 +19,7 @@ class GoogleProvider(BaseProvider):
         timeout: int = 120,
     ) -> str:
         import httpx
+
         model_id = model or self.config.default_model
         if not model_id:
             raise ValueError("Nessun modello specificato per Google Gemini")
@@ -72,6 +73,7 @@ class GoogleProvider(BaseProvider):
 
     def test_connection(self) -> tuple[bool, str]:
         import httpx
+
         api_key = self.config.api_key
         base_url = (self.config.base_url or "https://generativelanguage.googleapis.com").rstrip("/")
         url = f"{base_url}/v1beta/models?key={api_key}"

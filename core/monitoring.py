@@ -2,6 +2,7 @@
 monitoring.py
 Metriche di audit per Ermes.
 """
+
 import json
 import os
 from collections import defaultdict
@@ -42,4 +43,8 @@ def analyze_audit(audit_file: str, days: int = 30) -> dict:
     except OSError:
         pass
     top_users = sorted(users_count.items(), key=lambda x: x[1], reverse=True)[:5]
-    return {"total_actions": total, "actions_by_type": dict(actions_by_type), "top_users": [{"username": u, "actions": c} for u, c in top_users]}
+    return {
+        "total_actions": total,
+        "actions_by_type": dict(actions_by_type),
+        "top_users": [{"username": u, "actions": c} for u, c in top_users],
+    }

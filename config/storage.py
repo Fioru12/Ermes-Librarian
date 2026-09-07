@@ -2,6 +2,7 @@
 config/storage.py
 Configurazione storage, database, percorsi librerie.
 """
+
 import os
 from dataclasses import dataclass, field
 
@@ -11,8 +12,7 @@ class StorageConfig:
     # ---------------------------------------------------------
     # STORAGE LIBRERIE
     # ---------------------------------------------------------
-    BASE_DIR: str = field(default_factory=lambda: os.path.abspath(
-        os.environ.get("ERMES_BASE_DIR", ".")))
+    BASE_DIR: str = field(default_factory=lambda: os.path.abspath(os.environ.get("ERMES_BASE_DIR", ".")))
 
     @property
     def LIBRARY_DB_PATH(self) -> str:
@@ -32,9 +32,7 @@ class StorageConfig:
     # Backend database: vuoto = SQLite locale (default, zero-config);
     # "postgresql://user:pass@host:5432/ermes" = PostgreSQL multi-utente.
     # La selezione è documentata in docs/POSTGRES_MIGRATION_PLAN.md.
-    DATABASE_URL: str = field(
-        default_factory=lambda: os.environ.get("ERMES_DATABASE_URL", "")
-    )
+    DATABASE_URL: str = field(default_factory=lambda: os.environ.get("ERMES_DATABASE_URL", ""))
 
     @property
     def LIBRARY_STORAGE_DIR(self) -> str:
@@ -54,19 +52,21 @@ class StorageConfig:
         return os.path.join(self.BASE_DIR, "logs")
 
     BACKUP_ENABLED: bool = field(
-        default_factory=lambda: os.environ.get("ERMES_BACKUP_ENABLED", "1").strip().lower()
-        in {"1", "true", "yes", "on"}
+        default_factory=lambda: (
+            os.environ.get("ERMES_BACKUP_ENABLED", "1").strip().lower() in {"1", "true", "yes", "on"}
+        )
     )
-    BACKUP_INTERVAL_HOURS: int = field(
-        default_factory=lambda: int(os.environ.get("ERMES_BACKUP_INTERVAL_HOURS", "24"))
-    )
+    BACKUP_INTERVAL_HOURS: int = field(default_factory=lambda: int(os.environ.get("ERMES_BACKUP_INTERVAL_HOURS", "24")))
 
     # ---------------------------------------------------------
     # PROVIDER LLM (allowlist endpoint approvati)
     # ---------------------------------------------------------
-    PROVIDERS_CONFIG_PATH: str = field(default_factory=lambda: os.environ.get(
-        "ERMES_PROVIDERS_CONFIG", os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "config", "providers.json")
-    ))
+    PROVIDERS_CONFIG_PATH: str = field(
+        default_factory=lambda: os.environ.get(
+            "ERMES_PROVIDERS_CONFIG",
+            os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "config", "providers.json"),
+        )
+    )
 
     @property
     def ANALYTICS_FILE(self) -> str:
@@ -79,9 +79,7 @@ class StorageConfig:
     # ---------------------------------------------------------
     # BACKUP
     # ---------------------------------------------------------
-    BACKUP_DIR: str = field(
-        default_factory=lambda: os.environ.get("ERMES_BACKUP_DIR", "backups")
-    )
+    BACKUP_DIR: str = field(default_factory=lambda: os.environ.get("ERMES_BACKUP_DIR", "backups"))
     BACKUP_RETENTION_COUNT: int = field(
         default_factory=lambda: int(os.environ.get("ERMES_BACKUP_RETENTION_COUNT", "10"))
     )

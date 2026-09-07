@@ -4,6 +4,7 @@ Automation Webhook Gateway for n8n, Zapier, Make, and Custom Microservices.
 Provides clean REST webhook endpoints for asking questions and ingesting documents
 into Ermes Knowledge libraries via API Key authentication.
 """
+
 from __future__ import annotations
 
 import base64
@@ -69,9 +70,7 @@ def automation_ask(
     citations = res.get("citations", [])
 
     sources_summary = [
-        f"{c.get('filename')} (v{c.get('version', 1)})"
-        for c in citations
-        if isinstance(c, dict) and c.get("filename")
+        f"{c.get('filename')} (v{c.get('version', 1)})" for c in citations if isinstance(c, dict) and c.get("filename")
     ]
 
     return {

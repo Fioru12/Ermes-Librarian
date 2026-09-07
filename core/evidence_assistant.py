@@ -3,6 +3,7 @@
 Cloud generation is explicit opt-in. This service never uses the generic legacy
 LLM fallback because that could move library content to a provider unexpectedly.
 """
+
 from __future__ import annotations
 
 import logging
@@ -23,14 +24,13 @@ Scrivi in italiano in modo conciso e cita ogni affermazione con [1], [2], ecc.""
 
 
 def _fallback(citations: list[dict]) -> str:
-    excerpts = "\n\n".join(
-        f"[{index}] {item['excerpt']}" for index, item in enumerate(citations, start=1)
-    )
+    excerpts = "\n\n".join(f"[{index}] {item['excerpt']}" for index, item in enumerate(citations, start=1))
     return f"Ho trovato questi passaggi nella biblioteca selezionata:\n\n{excerpts}"
 
 
 def _prompt(question: str, citations: list[dict]) -> str:
     from core.pii_filter import filter_pii
+
     clean_question = filter_pii(question, enabled=cfg.PII_FILTER_ENABLED)
     evidence = "\n\n".join(
         f"[{index}] File: {item['citation']['filename']} — {item['citation']['locator']}\n"
@@ -43,9 +43,12 @@ def _prompt(question: str, citations: list[dict]) -> str:
 def _call_ollama(prompt: str) -> str:
     response = httpx.post(
         f"{cfg.OLLAMA_HOST.rstrip('/')}/api/chat",
-        json={"model": cfg.DEFAULT_MODEL_ID, "stream": False, "messages": [
-            {"role": "system", "content": _SYSTEM_PROMPT}, {"role": "user", "content": prompt}
-        ], "options": {"temperature": 0.1}},
+        json={
+            "model": cfg.DEFAULT_MODEL_ID,
+            "stream": False,
+            "messages": [{"role": "system", "content": _SYSTEM_PROMPT}, {"role": "user", "content": prompt}],
+            "options": {"temperature": 0.1},
+        },
         timeout=cfg.LIBRARY_ASSISTANT_TIMEOUT_SEC,
     )
     response.raise_for_status()
@@ -58,9 +61,11 @@ def _call_approved_openrouter(prompt: str) -> str:
     response = httpx.post(
         f"{cfg.OPENROUTER_BASE_URL.rstrip('/')}/chat/completions",
         headers={"Authorization": f"Bearer {cfg.OPENROUTER_API_KEY}", "Content-Type": "application/json"},
-        json={"model": cfg.DEFAULT_MODEL_ID, "messages": [
-            {"role": "system", "content": _SYSTEM_PROMPT}, {"role": "user", "content": prompt}
-        ], "temperature": 0.1},
+        json={
+            "model": cfg.DEFAULT_MODEL_ID,
+            "messages": [{"role": "system", "content": _SYSTEM_PROMPT}, {"role": "user", "content": prompt}],
+            "temperature": 0.1,
+        },
         timeout=cfg.LIBRARY_ASSISTANT_TIMEOUT_SEC,
     )
     response.raise_for_status()
@@ -96,7 +101,10 @@ def _call_approved_provider(prompt: str, provider_name: str) -> str:
 
 
 def answer_from_evidence(
-    question: str, citations: list[dict], mode: str | None = None, provider_name: str = "",
+    question: str,
+    citations: list[dict],
+    mode: str | None = None,
+    provider_name: str = "",
 ) -> tuple[str, str, str | None]:
     """Return answer, coverage and a non-sensitive fallback reason."""
     fallback = _fallback(citations)
@@ -115,10 +123,19 @@ def answer_from_evidence(
             raise RuntimeError("Modalita assistente non valida")
         markers = {int(marker) for marker in re.findall(r"\[(\d+)\]", answer)}
         if not answer or answer.strip() == "NON_EVIDENCE":
-            return "Non trovo evidenza sufficiente per rispondere alla domanda.", "insufficient_evidence", "Il modello non ha confermato evidenza sufficiente."
+            return (
+                "Non trovo evidenza sufficiente per rispondere alla domanda.",
+                "insufficient_evidence",
+                "Il modello non ha confermato evidenza sufficiente.",
+            )
         if not markers or not markers.issubset(set(range(1, len(citations) + 1))):
-            return fallback, "supported", "Risposta generata senza citazioni valide: mostro direttamente le evidenze recuperate."
+            return (
+                fallback,
+                "supported",
+                "Risposta generata senza citazioni valide: mostro direttamente le evidenze recuperate.",
+            )
         from core.pii_filter import filter_pii
+
         return filter_pii(answer, enabled=cfg.PII_FILTER_ENABLED), "supported", None
     except Exception as error:
         logger.warning("Library assistant generation unavailable (%s): %s", mode, type(error).__name__)

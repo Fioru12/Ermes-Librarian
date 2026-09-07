@@ -5,6 +5,7 @@ Genera la tesina in formato A4 con impaginazione accademica,
 copertina, indice compatto su 1 pagina, numeri di pagina "Pagina X di Y",
 box di approfondimento tecnico e formattazione rigorosa di ~15 pagine.
 """
+
 import os
 import re
 from typing import Any
@@ -19,6 +20,7 @@ from reportlab.platypus import HRFlowable, PageBreak, Paragraph, SimpleDocTempla
 
 class NumberedCanvas(canvas.Canvas):
     """Canvas two-pass per numerazione 'Pagina X di Y' e intestazioni istituzionali."""
+
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self._saved_page_states: list[dict[str, Any]] = []
@@ -36,7 +38,7 @@ class NumberedCanvas(canvas.Canvas):
         super().save()
 
     def draw_page_decorations(self, page_count: int) -> None:
-        page_num = getattr(self, '_pageNumber', 1)
+        page_num = getattr(self, "_pageNumber", 1)
         if page_num == 1:
             return  # La copertina non ha intestazione e piè di pagina
 
@@ -67,14 +69,18 @@ class NumberedCanvas(canvas.Canvas):
 
 def sanitize_text(text: str) -> str:
     replacements = {
-        "’": "'", "‘": "'",
-        "“": '"', "”": '"',
-        "—": " - ", "–": "-",
+        "’": "'",
+        "‘": "'",
+        "“": '"',
+        "”": '"',
+        "—": " - ",
+        "–": "-",
         "…": "...",
     }
     for k, v in replacements.items():
         text = text.replace(k, v)
     return text
+
 
 def build_pdf() -> None:
     md_path = "docs/TESINA_FINALE_ITS_ERMES.md"
@@ -88,149 +94,129 @@ def build_pdf() -> None:
         md_text = f.read()
 
     doc = SimpleDocTemplate(
-        pdf_path,
-        pagesize=A4,
-        leftMargin=2.0 * cm,
-        rightMargin=2.0 * cm,
-        topMargin=2.4 * cm,
-        bottomMargin=2.2 * cm
+        pdf_path, pagesize=A4, leftMargin=2.0 * cm, rightMargin=2.0 * cm, topMargin=2.4 * cm, bottomMargin=2.2 * cm
     )
 
     styles = getSampleStyleSheet()
 
-    color_primary = colors.HexColor("#0f172a")    # Dark Slate Navy
-    color_accent = colors.HexColor("#0284c7")     # Sky / Blue Accent
-    color_text = colors.HexColor("#1e293b")       # Dark Charcoal
-    color_muted = colors.HexColor("#475569")      # Muted Text
+    color_primary = colors.HexColor("#0f172a")  # Dark Slate Navy
+    color_accent = colors.HexColor("#0284c7")  # Sky / Blue Accent
+    color_text = colors.HexColor("#1e293b")  # Dark Charcoal
+    color_muted = colors.HexColor("#475569")  # Muted Text
 
     style_cover_inst = ParagraphStyle(
-        'CoverInst',
-        parent=styles['Normal'],
-        fontName='Helvetica-Bold',
+        "CoverInst",
+        parent=styles["Normal"],
+        fontName="Helvetica-Bold",
         fontSize=14,
         leading=18,
         textColor=color_primary,
-        alignment=1, # Center
-        spaceAfter=6
+        alignment=1,  # Center
+        spaceAfter=6,
     )
 
     style_cover_course = ParagraphStyle(
-        'CoverCourse',
-        parent=styles['Normal'],
-        fontName='Helvetica',
+        "CoverCourse",
+        parent=styles["Normal"],
+        fontName="Helvetica",
         fontSize=11,
         leading=15,
         textColor=color_accent,
         alignment=1,
-        spaceAfter=25
+        spaceAfter=25,
     )
 
     style_cover_type = ParagraphStyle(
-        'CoverType',
-        parent=styles['Normal'],
-        fontName='Helvetica-Bold',
+        "CoverType",
+        parent=styles["Normal"],
+        fontName="Helvetica-Bold",
         fontSize=16,
         leading=20,
-        textColor=colors.HexColor("#dc2626"), # Crimson red badge
+        textColor=colors.HexColor("#dc2626"),  # Crimson red badge
         alignment=1,
-        spaceAfter=15
+        spaceAfter=15,
     )
 
     style_cover_title = ParagraphStyle(
-        'CoverTitle',
-        parent=styles['Normal'],
-        fontName='Helvetica-Bold',
+        "CoverTitle",
+        parent=styles["Normal"],
+        fontName="Helvetica-Bold",
         fontSize=20,
         leading=26,
         textColor=color_primary,
         alignment=1,
-        spaceAfter=35
+        spaceAfter=35,
     )
 
     style_cover_meta_label = ParagraphStyle(
-        'CoverMetaLabel',
-        parent=styles['Normal'],
-        fontName='Helvetica-Bold',
+        "CoverMetaLabel",
+        parent=styles["Normal"],
+        fontName="Helvetica-Bold",
         fontSize=10.5,
         leading=15,
-        textColor=color_accent
+        textColor=color_accent,
     )
 
     style_cover_meta_val = ParagraphStyle(
-        'CoverMetaVal',
-        parent=styles['Normal'],
-        fontName='Helvetica',
+        "CoverMetaVal",
+        parent=styles["Normal"],
+        fontName="Helvetica",
         fontSize=10.5,
         leading=15,
-        textColor=color_primary
+        textColor=color_primary,
     )
 
     style_h1 = ParagraphStyle(
-        'Heading1_Custom',
-        parent=styles['Normal'],
-        fontName='Helvetica-Bold',
+        "Heading1_Custom",
+        parent=styles["Normal"],
+        fontName="Helvetica-Bold",
         fontSize=14.5,
         leading=19,
         textColor=color_primary,
         spaceBefore=16,
         spaceAfter=9,
-        keepWithNext=True
+        keepWithNext=True,
     )
 
     style_h2 = ParagraphStyle(
-        'Heading2_Custom',
-        parent=styles['Normal'],
-        fontName='Helvetica-Bold',
+        "Heading2_Custom",
+        parent=styles["Normal"],
+        fontName="Helvetica-Bold",
         fontSize=12,
         leading=16,
         textColor=color_accent,
         spaceBefore=12,
         spaceAfter=6,
-        keepWithNext=True
+        keepWithNext=True,
     )
 
     style_body = ParagraphStyle(
-        'Body_Custom',
-        parent=styles['Normal'],
-        fontName='Helvetica',
+        "Body_Custom",
+        parent=styles["Normal"],
+        fontName="Helvetica",
         fontSize=10.2,
         leading=15.2,
         textColor=color_text,
         spaceAfter=8,
-        alignment=4 # Justified
+        alignment=4,  # Justified
     )
 
     style_toc_num = ParagraphStyle(
-        'TOCNum',
-        parent=styles['Normal'],
-        fontName='Helvetica-Bold',
-        fontSize=9.5,
-        leading=13,
-        textColor=color_accent
+        "TOCNum", parent=styles["Normal"], fontName="Helvetica-Bold", fontSize=9.5, leading=13, textColor=color_accent
     )
 
     style_toc_text = ParagraphStyle(
-        'TOCText',
-        parent=styles['Normal'],
-        fontName='Helvetica',
-        fontSize=9.5,
-        leading=13,
-        textColor=color_primary
+        "TOCText", parent=styles["Normal"], fontName="Helvetica", fontSize=9.5, leading=13, textColor=color_primary
     )
 
     style_toc_sub = ParagraphStyle(
-        'TOCSub',
-        parent=styles['Normal'],
-        fontName='Helvetica',
-        fontSize=8.5,
-        leading=11.5,
-        textColor=color_muted
+        "TOCSub", parent=styles["Normal"], fontName="Helvetica", fontSize=8.5, leading=11.5, textColor=color_muted
     )
 
     story: list[Any] = []
-    lines = md_text.split('\n')
+    lines = md_text.split("\n")
 
-    state = "COVER" # COVER -> TOC -> BODY
+    state = "COVER"  # COVER -> TOC -> BODY
     cover_meta_rows = []
 
     for line in lines:
@@ -253,7 +239,11 @@ def build_pdf() -> None:
         if stripped.startswith("---"):
             if state == "COVER":
                 story.append(Spacer(1, 0.4 * cm))
-                story.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor("#cbd5e1"), spaceBefore=5, spaceAfter=15))
+                story.append(
+                    HRFlowable(
+                        width="100%", thickness=1, color=colors.HexColor("#cbd5e1"), spaceBefore=5, spaceAfter=15
+                    )
+                )
             continue
 
         if not stripped:
@@ -272,7 +262,13 @@ def build_pdf() -> None:
             elif stripped.startswith("*Progettazione"):
                 title_clean = stripped.replace("*", "").strip()
                 story.append(Paragraph(title_clean, style_cover_title))
-            elif ":" in stripped and ("Candidato" in stripped or "Corso" in stripped or "Azienda" in stripped or "Tutor" in stripped or "Anno" in stripped):
+            elif ":" in stripped and (
+                "Candidato" in stripped
+                or "Corso" in stripped
+                or "Azienda" in stripped
+                or "Tutor" in stripped
+                or "Anno" in stripped
+            ):
                 clean_line = stripped.replace("**", "").replace("*", "").strip()
                 parts = clean_line.split(":", 1)
                 lbl = parts[0].strip() + ":"
@@ -281,40 +277,63 @@ def build_pdf() -> None:
                 if len(cover_meta_rows) == 5:
                     story.append(Spacer(1, 1.0 * cm))
                     t_meta = Table(cover_meta_rows, colWidths=[5.5 * cm, 11.5 * cm])
-                    t_meta.setStyle(TableStyle([
-                        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-                        ('BOTTOMPADDING', (0,0), (-1,-1), 5),
-                        ('TOPPADDING', (0,0), (-1,-1), 5),
-                        ('LINEBELOW', (0,0), (-1,-1), 0.5, colors.HexColor("#f1f5f9")),
-                    ]))
+                    t_meta.setStyle(
+                        TableStyle(
+                            [
+                                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                                ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+                                ("TOPPADDING", (0, 0), (-1, -1), 5),
+                                ("LINEBELOW", (0, 0), (-1, -1), 0.5, colors.HexColor("#f1f5f9")),
+                            ]
+                        )
+                    )
                     story.append(t_meta)
 
         elif state == "TOC":
             if stripped.startswith("## "):
                 story.append(Paragraph(stripped[3:].strip(), style_h1))
                 story.append(Spacer(1, 0.2 * cm))
-            elif re.match(r'^\d+\.\s', stripped):
+            elif re.match(r"^\d+\.\s", stripped):
                 # Capitolo principale
-                clean = re.sub(r'^\d+\.\s', '', stripped).replace('**', '').strip()
-                match = re.match(r'^(\d+)\.\s', stripped)
+                clean = re.sub(r"^\d+\.\s", "", stripped).replace("**", "").strip()
+                match = re.match(r"^(\d+)\.\s", stripped)
                 num = match.group(1) if match else ""
                 story.append(Spacer(1, 0.15 * cm))
-                t_row = Table([[Paragraph(f"<b>Capitolo {num}</b>", style_toc_num), Paragraph(f"<b>{clean}</b>", style_toc_text)]], colWidths=[2.6 * cm, 14.4 * cm])
-                t_row.setStyle(TableStyle([
-                    ('VALIGN', (0,0), (-1,-1), 'TOP'),
-                    ('PADDING', (0,0), (-1,-1), 2),
-                ]))
+                t_row = Table(
+                    [
+                        [
+                            Paragraph(f"<b>Capitolo {num}</b>", style_toc_num),
+                            Paragraph(f"<b>{clean}</b>", style_toc_text),
+                        ]
+                    ],
+                    colWidths=[2.6 * cm, 14.4 * cm],
+                )
+                t_row.setStyle(
+                    TableStyle(
+                        [
+                            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                            ("PADDING", (0, 0), (-1, -1), 2),
+                        ]
+                    )
+                )
                 story.append(t_row)
             elif stripped.startswith("- "):
-                sub_clean = stripped[2:].replace('**', '').strip()
-                t_sub = Table([[Paragraph("", style_toc_sub), Paragraph(sub_clean, style_toc_sub)]], colWidths=[2.6 * cm, 14.4 * cm])
-                t_sub.setStyle(TableStyle([
-                    ('VALIGN', (0,0), (-1,-1), 'TOP'),
-                    ('PADDING', (0,0), (-1,-1), 1),
-                ]))
+                sub_clean = stripped[2:].replace("**", "").strip()
+                t_sub = Table(
+                    [[Paragraph("", style_toc_sub), Paragraph(sub_clean, style_toc_sub)]],
+                    colWidths=[2.6 * cm, 14.4 * cm],
+                )
+                t_sub.setStyle(
+                    TableStyle(
+                        [
+                            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                            ("PADDING", (0, 0), (-1, -1), 1),
+                        ]
+                    )
+                )
                 story.append(t_sub)
 
-        else: # BODY
+        else:  # BODY
             if stripped.startswith("# "):
                 story.append(Spacer(1, 0.4 * cm))
                 story.append(Paragraph(stripped[2:].strip(), style_h1))
@@ -324,19 +343,19 @@ def build_pdf() -> None:
                 story.append(Paragraph(stripped[4:].strip(), style_h2))
             elif stripped.startswith("- ") or stripped.startswith("* "):
                 text = stripped[2:].strip()
-                text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', text)
-                text = re.sub(r'\*(.*?)\*', r'<i>\1</i>', text)
+                text = re.sub(r"\*\*(.*?)\*\*", r"<b>\1</b>", text)
+                text = re.sub(r"\*(.*?)\*", r"<i>\1</i>", text)
                 story.append(Paragraph(f"• {text}", style_body))
-            elif re.match(r'^\d+\.\s', stripped):
-                text = re.sub(r'^\d+\.\s', '', stripped)
-                text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', text)
-                text = re.sub(r'\*(.*?)\*', r'<i>\1</i>', text)
+            elif re.match(r"^\d+\.\s", stripped):
+                text = re.sub(r"^\d+\.\s", "", stripped)
+                text = re.sub(r"\*\*(.*?)\*\*", r"<b>\1</b>", text)
+                text = re.sub(r"\*(.*?)\*", r"<i>\1</i>", text)
                 story.append(Paragraph(f"• {text}", style_body))
             else:
                 text = stripped
-                text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', text)
-                text = re.sub(r'\*(.*?)\*', r'<i>\1</i>', text)
-                text = re.sub(r'`(.*?)`', r'<font face="Courier" color="#0284c7">\1</font>', text)
+                text = re.sub(r"\*\*(.*?)\*\*", r"<b>\1</b>", text)
+                text = re.sub(r"\*(.*?)\*", r"<i>\1</i>", text)
+                text = re.sub(r"`(.*?)`", r'<font face="Courier" color="#0284c7">\1</font>', text)
                 story.append(Paragraph(text, style_body))
 
     doc.build(story, canvasmaker=NumberedCanvas)

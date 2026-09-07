@@ -1,4 +1,5 @@
 """Test per la cache semantica di ricerca."""
+
 import time
 
 import pytest

@@ -3,6 +3,7 @@ rate_limiter.py
 Sistema di rate limiting semplice in-memory per proteggere da abusi.
 Limita richieste per IP/sessione per evitare DOS e abusi.
 """
+
 import logging
 import threading
 import time
@@ -13,6 +14,7 @@ from dataclasses import dataclass
 @dataclass
 class RateLimitConfig:
     """Configurazione limiti rate."""
+
     max_requests_per_minute: int = 300
     max_uploads_per_hour: int = 100
     max_upload_mb_per_hour: int = 2000
@@ -79,9 +81,7 @@ class RateLimiter:
         now - 60
 
         # Pulisci richieste vecchie
-        self._requests[identifier] = self._cleanup_old_entries(
-            self._requests[identifier], 60
-        )
+        self._requests[identifier] = self._cleanup_old_entries(self._requests[identifier], 60)
 
         # Conta richieste nell'ultimo minuto
         recent_count = len(self._requests[identifier])
@@ -119,15 +119,12 @@ class RateLimiter:
             self._upload_sizes_log[identifier] = {}
 
         # Pulisci upload vecchi basandoti sui timestamp
-        self._uploads[identifier] = self._cleanup_old_entries(
-            self._uploads.get(identifier, []), 3600
-        )
+        self._uploads[identifier] = self._cleanup_old_entries(self._uploads.get(identifier, []), 3600)
 
         # Rimuovi entry di size per timestamp scaduti
         cutoff = now - 3600
         self._upload_sizes_log[identifier] = {
-            ts_str: sz for ts_str, sz in self._upload_sizes_log[identifier].items()
-            if float(ts_str) > cutoff
+            ts_str: sz for ts_str, sz in self._upload_sizes_log[identifier].items() if float(ts_str) > cutoff
         }
 
         # Calcola size corrente
@@ -164,9 +161,7 @@ class RateLimiter:
         Utile per debug e monitoring.
         """
         time.time()
-        self._uploads[identifier] = self._cleanup_old_entries(
-            self._uploads.get(identifier, []), 3600
-        )
+        self._uploads[identifier] = self._cleanup_old_entries(self._uploads.get(identifier, []), 3600)
         return {
             "upload_count": len(self._uploads.get(identifier, [])),
             "total_size_mb": self._upload_sizes.get(identifier, 0.0),

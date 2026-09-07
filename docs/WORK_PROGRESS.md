@@ -3,6 +3,13 @@
 > Documento vivo che traccia stato attuale, miglioramenti pianificati e progresso.
 > Ultimo aggiornamento: 2026-09-07
 
+## 🆕 2026-09-07 — `ruff format` applicato in commit dedicato
+
+- 117 file Python riformattati con `ruff format` (diff puramente di stile, AST-equivalente).
+- Validazione completa dopo il format: `ruff check .` → All checks passed; `ruff format --check .` → 157 file già formattati; suite backend → **291 passed, 10 skipped** (invariata).
+- Da qui in poi il gate qualità è completo: lint **e** formato. PerContributori: `ruff format .` prima del commit (o aggiungere un hook pre-commit).
+- Frontend non toccato (ruff agisce solo su Python).
+
 ## 🆕 2026-09-07 — Docker riparato e validato live + profilo postgres in compose
 
 **Trovato e corretto**

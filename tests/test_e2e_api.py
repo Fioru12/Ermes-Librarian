@@ -2,6 +2,7 @@
 End-to-end integration test for the REST API RBAC flow.
 Tests: create user via API -> authenticate -> audit -> revoke -> 403
 """
+
 import os
 import sys
 import tempfile
@@ -69,10 +70,12 @@ def _scoped_global_config():
     for name, value in originals.items():
         object.__setattr__(_config_module.cfg, name, value)
 
+
 # Override lifespan to skip expensive startup (model download, backup scheduler)
 @asynccontextmanager
 async def noop_lifespan(_app):
     yield
+
 
 app.router.lifespan_context = noop_lifespan
 
@@ -159,4 +162,3 @@ def test_e2e_v1_versioned_routes(client):
 
     resp = client.get("/v1/api/users")
     assert resp.status_code in (401, 403), "il prefisso v1 non deve aggirare l'autenticazione"
-

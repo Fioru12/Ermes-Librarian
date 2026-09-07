@@ -27,7 +27,8 @@ class ProviderRegistry:
         self._active_name: str | None = None
         self._config_path = config_path or os.path.join(
             os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
-            "config", "providers.json",
+            "config",
+            "providers.json",
         )
         self._lock = threading.Lock()
 
@@ -55,7 +56,8 @@ class ProviderRegistry:
                     self._active_name = None
                 _logger.info(
                     "Caricati %d provider (attivo: %s)",
-                    len(self._providers), self._active_name or "nessuno",
+                    len(self._providers),
+                    self._active_name or "nessuno",
                 )
             except Exception as e:
                 _logger.error("Errore caricamento config provider: %s", e)
@@ -75,7 +77,9 @@ class ProviderRegistry:
     def add_provider(self, config: ProviderConfig) -> BaseProvider:
         provider_cls = PROVIDER_TYPES.get(config.type)
         if not provider_cls:
-            raise ValueError(f"Tipo provider sconosciuto: {config.type}. Tipi supportati: {list(PROVIDER_TYPES.keys())}")
+            raise ValueError(
+                f"Tipo provider sconosciuto: {config.type}. Tipi supportati: {list(PROVIDER_TYPES.keys())}"
+            )
         provider = provider_cls(config)
         with self._lock:
             self._providers[config.name] = provider
@@ -149,7 +153,12 @@ class ProviderRegistry:
 
         if not providers_to_try:
             return _legacy_call_llm(
-                prompt, model_id or "", system_prompt, temp, json_mode, timeout,
+                prompt,
+                model_id or "",
+                system_prompt,
+                temp,
+                json_mode,
+                timeout,
             )
 
         last_error = None
@@ -168,7 +177,8 @@ class ProviderRegistry:
             except Exception as e:
                 _logger.warning(
                     "Provider %s fallito: %s, provo successivo...",
-                    provider.config.name, e,
+                    provider.config.name,
+                    e,
                 )
                 last_error = e
                 continue
@@ -195,6 +205,7 @@ class ProviderRegistry:
 
 
 # ---- Legacy fallback (preserva il comportamento attuale) ----
+
 
 def _legacy_call_llm(
     prompt: str,
@@ -251,7 +262,9 @@ def _legacy_call_llm(
             try:
                 resp = httpx.post(
                     f"{cfg.OPENROUTER_BASE_URL.rstrip('/')}/chat/completions",
-                    headers=headers, json=payload, timeout=timeout,
+                    headers=headers,
+                    json=payload,
+                    timeout=timeout,
                 )
                 resp.raise_for_status()
                 data = resp.json()
@@ -270,7 +283,9 @@ def _legacy_call_llm(
                     try:
                         resp = httpx.post(
                             f"{cfg.OPENROUTER_BASE_URL.rstrip('/')}/chat/completions",
-                            headers=headers, json=payload, timeout=timeout,
+                            headers=headers,
+                            json=payload,
+                            timeout=timeout,
                         )
                         resp.raise_for_status()
                         data = resp.json()
@@ -301,6 +316,7 @@ def _legacy_ollama(prompt, model_id, system_prompt, temp, json_mode, timeout):
     import httpx
 
     from config import cfg
+
     url = f"{cfg.OLLAMA_HOST.rstrip('/')}/api/generate"
     payload = {
         "model": model_id,

@@ -85,19 +85,24 @@ def test_empty_acl_removes_the_restriction(tmp_path):
 
 
 def test_acl_api_is_owner_admin_only_and_validates_usernames(tmp_path, monkeypatch):
-    test_cfg = cfg.replace(BASE_DIR=str(tmp_path), ADMIN_USERNAME="owner", ADMIN_PASSWORD="StrongPassword!123", API_KEY="")
+    test_cfg = cfg.replace(
+        BASE_DIR=str(tmp_path), ADMIN_USERNAME="owner", ADMIN_PASSWORD="StrongPassword!123", API_KEY=""
+    )
     monkeypatch.setattr("config.cfg", test_cfg)
     monkeypatch.setattr("api.auth.cfg", test_cfg)
     monkeypatch.setattr("api.libraries.cfg", test_cfg)
     _SESSIONS.clear()
     client = TestClient(app)
 
-    assert client.post("/api/auth/login", json={"username": "owner", "password": "StrongPassword!123"}).status_code == 200
+    assert (
+        client.post("/api/auth/login", json={"username": "owner", "password": "StrongPassword!123"}).status_code == 200
+    )
     create_or_update_user(test_cfg.USERS_FILE, "maria", "editor", "StrongEditor!123")
 
     # Usa lo stesso store singleton dell'API: altrimenti la libreria finirebbe
     # in un altro database rispetto a quello interrogato dagli endpoint.
     import api.libraries
+
     monkeypatch.setattr(api.libraries, "_store", None)
     store = api.libraries.get_library_store()
     library = store.create_library("Demo", "", "private", owner_id="owner")

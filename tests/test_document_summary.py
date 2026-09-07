@@ -37,7 +37,9 @@ def _add_doc(store: LibraryStore, library_id: str, filename: str, text: str) -> 
 
 def api_client_factory(tmp_path, monkeypatch):
     """Client API con cfg isolata in tmp_path; ritorna (client, test_cfg)."""
-    test_cfg = cfg.replace(BASE_DIR=str(tmp_path), ADMIN_USERNAME="owner", ADMIN_PASSWORD="StrongPassword!123", API_KEY="")
+    test_cfg = cfg.replace(
+        BASE_DIR=str(tmp_path), ADMIN_USERNAME="owner", ADMIN_PASSWORD="StrongPassword!123", API_KEY=""
+    )
     monkeypatch.setattr("config.cfg", test_cfg)
     monkeypatch.setattr("api.auth.cfg", test_cfg)
     monkeypatch.setattr("api.libraries.cfg", test_cfg)
@@ -48,7 +50,10 @@ def api_client_factory(tmp_path, monkeypatch):
 
 def test_extractive_summary_is_deterministic_and_cites_locators():
     chunks = [
-        {"text": "Le note spese si inviano entro il dieci del mese. Il rimborso arriva dopo la verifica.", "source_locator": "Pagina 1"},
+        {
+            "text": "Le note spese si inviano entro il dieci del mese. Il rimborso arriva dopo la verifica.",
+            "source_locator": "Pagina 1",
+        },
         {"text": "Gli stipendi vengono erogati il ventisette. ", "source_locator": "Pagina 2"},
     ]
     result = summarize_document("policy.txt", chunks, use_local_llm=False)
@@ -70,6 +75,7 @@ def test_summary_endpoint_respects_document_acl(tmp_path, monkeypatch):
     # in un altro database rispetto a quello interrogato dagli endpoint.
     api_client, test_cfg = api_client_factory(tmp_path, monkeypatch)
     import api.libraries
+
     monkeypatch.setattr(api.libraries, "_store", None)
     store = api.libraries.get_library_store()
     library = store.create_library("Riservate", "", "private", owner_id="owner")
@@ -84,7 +90,10 @@ def test_summary_endpoint_respects_document_acl(tmp_path, monkeypatch):
     with pytest.raises(LibraryAccessError):
         store.get_document_chunks(library["id"], riservato["id"], bob)
 
-    assert api_client.post("/api/auth/login", json={"username": "owner", "password": "StrongPassword!123"}).status_code == 200
+    assert (
+        api_client.post("/api/auth/login", json={"username": "owner", "password": "StrongPassword!123"}).status_code
+        == 200
+    )
 
     ok = api_client.get(f"/api/libraries/{library['id']}/documents/{visibile['id']}/summary?use_llm=false")
     assert ok.status_code == 200
@@ -109,6 +118,7 @@ def test_evidence_only_library_never_calls_the_model_even_if_asked(tmp_path, mon
     """
     api_client, test_cfg = api_client_factory(tmp_path, monkeypatch)
     import api.libraries
+
     monkeypatch.setattr(api.libraries, "_store", None)
     store = api.libraries.get_library_store()
     library = store.create_library("Evidenza", "", "private", owner_id="owner")
@@ -117,9 +127,15 @@ def test_evidence_only_library_never_calls_the_model_even_if_asked(tmp_path, mon
     document = store.list_documents(library["id"])[0]
 
     called = {"n": 0}
-    monkeypatch.setattr("core.document_summary._call_ollama_summary", lambda prompt: called.__setitem__("n", called["n"] + 1) or "non dovrebbe mai arrivare qui")
+    monkeypatch.setattr(
+        "core.document_summary._call_ollama_summary",
+        lambda prompt: called.__setitem__("n", called["n"] + 1) or "non dovrebbe mai arrivare qui",
+    )
 
-    assert api_client.post("/api/auth/login", json={"username": "owner", "password": "StrongPassword!123"}).status_code == 200
+    assert (
+        api_client.post("/api/auth/login", json={"username": "owner", "password": "StrongPassword!123"}).status_code
+        == 200
+    )
 
     # use_llm=true esplicito: il client non deve poter forzare il modello
     # oltre quanto la biblioteca permette.
@@ -140,6 +156,7 @@ def test_local_ollama_library_can_still_use_the_model(tmp_path, monkeypatch):
     """Il fix non deve disattivare il generativo dove la policy lo permette."""
     api_client, test_cfg = api_client_factory(tmp_path, monkeypatch)
     import api.libraries
+
     monkeypatch.setattr(api.libraries, "_store", None)
     store = api.libraries.get_library_store()
     library = store.create_library("Locale", "", "private", owner_id="owner")
@@ -149,9 +166,11 @@ def test_local_ollama_library_can_still_use_the_model(tmp_path, monkeypatch):
 
     monkeypatch.setattr("core.document_summary._call_ollama_summary", lambda prompt: "Riassunto generato localmente.")
 
-    assert api_client.post("/api/auth/login", json={"username": "owner", "password": "StrongPassword!123"}).status_code == 200
+    assert (
+        api_client.post("/api/auth/login", json={"username": "owner", "password": "StrongPassword!123"}).status_code
+        == 200
+    )
     r = api_client.get(f"/api/libraries/{library['id']}/documents/{document['id']}/summary")
     assert r.status_code == 200
     assert r.json()["mode"] == "local_llm"
     assert r.json()["summary"] == "Riassunto generato localmente."
-

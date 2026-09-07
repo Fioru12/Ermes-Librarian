@@ -1,4 +1,5 @@
 """Local persistent ingestion worker for the Ermes v0.1 library flow."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -28,8 +29,11 @@ def process_ingestion_job(store: LibraryStore, job_id: str, storage_root: str | 
             raise DocumentParseError("Il documento non contiene testo estraibile")
         chunks = chunk_source_units(units)
         store.replace_document_index(
-            job["library_id"], document_id,
-            "\n\n".join(unit.text for unit in units), len(units), chunks,
+            job["library_id"],
+            document_id,
+            "\n\n".join(unit.text for unit in units),
+            len(units),
+            chunks,
         )
         embeddings = embed_texts([text for text, _ in chunks])
         if embeddings:
@@ -48,6 +52,7 @@ def _record_job_metric(status: str) -> None:
     """Metrica best-effort: un problema di observability non deve rompere l'ingestione."""
     try:
         from core.metrics import INGESTION_JOBS
+
         INGESTION_JOBS.labels(status=status).inc()
     except Exception:  # pragma: no cover - solo se prometheus_client manca
         pass

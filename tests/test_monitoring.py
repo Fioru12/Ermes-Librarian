@@ -7,6 +7,7 @@ prodotto attuale non scrive piu' da nessuna parte: rimosso il 21 agosto 2026
 insieme a questo file, che testava esclusivamente quel codice morto senza
 coprire mai analyze_audit stessa.
 """
+
 import json
 
 from core import monitoring

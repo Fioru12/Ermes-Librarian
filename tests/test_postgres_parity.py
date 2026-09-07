@@ -4,6 +4,7 @@ Gira live contro il container `ermes-pg` (postgres:16-alpine su :5433).
 Se il database non è raggiungibile, i test vengono saltati con una
 ragione chiara: la parità va verificata, non presunta.
 """
+
 import pytest
 
 from core.postgres_backend import DEFAULT_PG_DSN, EXPECTED_TABLES, connect, ensure_schema
@@ -31,8 +32,15 @@ def pg_connection():
     yield connection
     connection.rollback()
     for table in [
-        "chat_integrations", "import_sources", "ingestion_jobs", "document_acls",
-        "document_versions", "document_chunks", "library_members", "documents", "libraries",
+        "chat_integrations",
+        "import_sources",
+        "ingestion_jobs",
+        "document_acls",
+        "document_versions",
+        "document_chunks",
+        "library_members",
+        "documents",
+        "libraries",
     ]:
         connection.execute(f"DELETE FROM {table}")
     connection.commit()
@@ -41,9 +49,7 @@ def pg_connection():
 
 @requires_pg
 def test_schema_contains_all_sqlite_tables(pg_connection):
-    rows = pg_connection.execute(
-        "SELECT tablename FROM pg_tables WHERE schemaname = 'public'"
-    ).fetchall()
+    rows = pg_connection.execute("SELECT tablename FROM pg_tables WHERE schemaname = 'public'").fetchall()
     tables = {row["tablename"] for row in rows}
     missing = EXPECTED_TABLES - tables
     assert not missing, f"Tabelle mancanti in PG: {missing}"
@@ -80,8 +86,7 @@ def test_cascade_delete_documents(pg_connection):
         ("doc-1", "lib-casc", "a.txt", 10, "h", "lib-casc/a.txt", now, now),
     )
     pg_connection.execute(
-        "INSERT INTO document_chunks (id, document_id, ordinal, text, created_at)"
-        " VALUES (%s, %s, %s, %s, %s)",
+        "INSERT INTO document_chunks (id, document_id, ordinal, text, created_at) VALUES (%s, %s, %s, %s, %s)",
         ("ch-1", "doc-1", 0, "Il contratto scade a dicembre.", now),
     )
     pg_connection.commit()
@@ -108,8 +113,7 @@ def test_fts_generated_column_matches_simple_tokenizer(pg_connection):
         ("doc-fts", "lib-fts", "policy.txt", 10, "h", "lib-fts/policy.txt", now, now),
     )
     pg_connection.execute(
-        "INSERT INTO document_chunks (id, document_id, ordinal, text, created_at)"
-        " VALUES (%s, %s, %s, %s, %s)",
+        "INSERT INTO document_chunks (id, document_id, ordinal, text, created_at) VALUES (%s, %s, %s, %s, %s)",
         ("ch-fts", "doc-fts", 0, "La pausa pranzo dura sessanta minuti.", now),
     )
     pg_connection.commit()
@@ -137,9 +141,7 @@ def test_embedding_jsonb_roundtrip(pg_connection):
         ("ch-emb", "doc-emb", 0, "test", "[0.1, 0.2, 0.3]", now),
     )
     pg_connection.commit()
-    row = pg_connection.execute(
-        "SELECT embedding_json FROM document_chunks WHERE id = 'ch-emb'"
-    ).fetchone()
+    row = pg_connection.execute("SELECT embedding_json FROM document_chunks WHERE id = 'ch-emb'").fetchone()
     assert row["embedding_json"] == [0.1, 0.2, 0.3]  # psycopg decodifica JSONB nativamente
 
 
@@ -157,12 +159,15 @@ def pg_store(tmp_path):
     if not _pg_available():
         pytest.skip("PostgreSQL non raggiungibile")
     from core.database_backend import PostgresBackend
+
     backend = PostgresBackend(dsn)
     from core.postgres_backend import POSTGRES_SCHEMA
+
     backend.execute_script(POSTGRES_SCHEMA)
     backend.close()
     _os.environ["ERMES_DATABASE_URL"] = dsn
     from core.library_store import LibraryStore
+
     store = LibraryStore(database_path=None)
     yield store
     if "ERMES_TEST_DATABASE_URL" not in _os.environ:
@@ -212,4 +217,3 @@ def test_pg_search_case_insensitive(pg_store):
     )
     results, _ = pg_store.search_with_profile(lib["id"], "SICUREZZA")
     assert len(results) == 1
-

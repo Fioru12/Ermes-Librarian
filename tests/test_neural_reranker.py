@@ -4,6 +4,7 @@ Il modello non viene mai scaricato nei test: si usa un finto cross-encoder
 iniettato via reset_neural_model + monkeypatch, verificando blend,
 fallback e profili di modalità.
 """
+
 import pytest
 
 from core import reranker as reranker_mod
@@ -57,7 +58,8 @@ def test_neural_blend_promotes_semantically_relevant_result(monkeypatch):
     # Il candidato "sbagliato" per il lessicale riceve un giudizio
     # neurale altissimo: il blend deve promuoverlo sopra l'altro.
     results = rerank_candidates(
-        query="accessi", candidates=[dict(c) for c in CANDIDATES],
+        query="accessi",
+        candidates=[dict(c) for c in CANDIDATES],
         min_score=0.0,
     )
     assert results[0]["rerank_mode"] == "neural"

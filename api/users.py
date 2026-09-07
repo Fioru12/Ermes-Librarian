@@ -2,6 +2,7 @@
 api/users.py
 User management (admin) — RBAC.
 """
+
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -54,6 +55,7 @@ def _validated_username_and_role(username_value: str, role_value: str) -> tuple[
 async def list_local_accounts(user: dict = Depends(_require_role("admin"))):
     """List password-based local accounts without exposing authentication data."""
     from core.governance import list_users
+
     return {"users": list_users(cfg.USERS_FILE)}
 
 
@@ -69,12 +71,16 @@ async def create_local_account(req: CreateLocalAccountRequest, user: dict = Depe
     if not valid:
         raise HTTPException(422, reason)
     create_or_update_user(cfg.USERS_FILE, username, role, req.password, active=True)
-    append_audit(cfg.AUDIT_FILE, "local_account_created", user.get("username", "admin"), {"username": username, "role": role})
+    append_audit(
+        cfg.AUDIT_FILE, "local_account_created", user.get("username", "admin"), {"username": username, "role": role}
+    )
     return {"success": True, "username": username, "role": role, "message": "Account locale creato"}
 
 
 @router.patch("/api/accounts/{username}", summary="Aggiorna un account web locale")
-async def update_local_account(username: str, req: UpdateLocalAccountRequest, user: dict = Depends(_require_role("admin"))):
+async def update_local_account(
+    username: str, req: UpdateLocalAccountRequest, user: dict = Depends(_require_role("admin"))
+):
     """Change role, password or active state without ever returning credentials."""
     from core.governance import append_audit, create_or_update_user, list_users, validate_password_strength
     from core.input_validator import sanitize_username
@@ -121,23 +127,34 @@ async def update_local_account(username: str, req: UpdateLocalAccountRequest, us
         actor_username or "admin",
         {"username": username, "role": role, "active": active, "password_changed": req.password is not None},
     )
-    return {"success": True, "username": username, "role": role, "active": active, "message": "Account locale aggiornato"}
+    return {
+        "success": True,
+        "username": username,
+        "role": role,
+        "active": active,
+        "message": "Account locale aggiornato",
+    }
 
 
 @router.get("/api/users", summary="Elenco utenti con API key")
 async def list_api_users(user: dict = Depends(_require_role("admin"))):
     from core.governance import list_api_keys
+
     return {"users": list_api_keys()}
 
 
 @router.post("/api/users", summary="Crea un nuovo utente con API key")
 async def create_api_user(req: CreateUserRequest, user: dict = Depends(_require_role("admin"))):
     from core.governance import set_user_api_key
+
     username, role = _validated_username_and_role(req.username, req.role)
 
     api_key = set_user_api_key(username, role=role)
     from core.governance import append_audit
-    append_audit(cfg.AUDIT_FILE, "user_api_key_created", user.get("username", "admin"), {"username": username, "role": role})
+
+    append_audit(
+        cfg.AUDIT_FILE, "user_api_key_created", user.get("username", "admin"), {"username": username, "role": role}
+    )
 
     return ApiKeyResponse(
         success=True,
@@ -164,6 +181,7 @@ async def rotate_api_key(username: str, user: dict = Depends(_require_role("admi
     role = existing_user.get("role", "viewer")
     new_key = set_user_api_key(username, role=role)
     from core.governance import append_audit
+
     append_audit(cfg.AUDIT_FILE, "user_api_key_rotated", user.get("username", "admin"), {"username": username})
 
     return {
@@ -184,6 +202,7 @@ async def delete_api_user(username: str, user: dict = Depends(_require_role("adm
         raise HTTPException(404, f"Utente '{username}' non trovato")
 
     from core.governance import append_audit
+
     append_audit(cfg.AUDIT_FILE, "user_api_key_revoked", user.get("username", "admin"), {"username": username})
     _clear_rbac_cache()
 

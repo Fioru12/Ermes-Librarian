@@ -7,6 +7,7 @@ A Knowledge Pack is a self-contained, portable archive (.ermes / tar.gz) contain
 
 Allows seamless offline backup, sharing, and cross-instance distribution.
 """
+
 from __future__ import annotations
 
 import contextlib
@@ -56,11 +57,13 @@ def export_library_pack(
         doc_id = doc["id"]
         chunks = store.get_document_chunks(library_id, doc_id, actor)
         versions = store.list_document_versions(library_id, doc_id, actor)
-        doc_records.append({
-            "document": doc,
-            "chunks": chunks,
-            "versions": versions,
-        })
+        doc_records.append(
+            {
+                "document": doc,
+                "chunks": chunks,
+                "versions": versions,
+            }
+        )
 
     out_file = Path(output_path)
     out_file.parent.mkdir(parents=True, exist_ok=True)

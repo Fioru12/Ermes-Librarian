@@ -6,6 +6,7 @@ scansione importa i file supportati (.txt/.pdf/.docx/.md/.xlsx/.pptx/.csv/.rtf),
 salta i duplicati per
 hash del contenuto e registra gli errori senza interrompere il batch.
 """
+
 from __future__ import annotations
 
 import hashlib

@@ -2,6 +2,7 @@
 api/providers.py
 Provider management (CRUD, detect, fetch-models).
 """
+
 import logging
 from urllib.parse import urlparse
 
@@ -74,7 +75,9 @@ def validate_provider_base_url(base_url: str) -> str:
         raise HTTPException(400, "Base URL del provider non valida")
     allowed_hosts = set(getattr(cfg, "PROVIDER_ALLOWED_HOSTS", ()))
     if hostname not in allowed_hosts:
-        raise HTTPException(403, "Endpoint provider non approvato: aggiungilo esplicitamente a ERMES_PROVIDER_ALLOWED_HOSTS")
+        raise HTTPException(
+            403, "Endpoint provider non approvato: aggiungilo esplicitamente a ERMES_PROVIDER_ALLOWED_HOSTS"
+        )
     if hostname not in _LOCAL_PROVIDER_HOSTS and parsed.scheme != "https":
         raise HTTPException(400, "I provider esterni devono usare HTTPS")
     return normalized
@@ -83,6 +86,7 @@ def validate_provider_base_url(base_url: str) -> str:
 @router.get("/api/providers")
 async def list_providers(_auth: dict = Depends(_require_role("admin"))):
     from core.ai.providers.registry import get_registry
+
     registry = get_registry()
     return {"providers": registry.list_providers(), "active": registry.get_active_name()}
 
@@ -91,6 +95,7 @@ async def list_providers(_auth: dict = Depends(_require_role("admin"))):
 async def add_provider(request: ProviderConfigRequest, _auth: dict = Depends(_require_role("admin"))):
     from core.ai.providers.base import ProviderConfig
     from core.ai.providers.registry import get_registry
+
     registry = get_registry()
     base_url = validate_provider_base_url(request.base_url)
     config = ProviderConfig(
@@ -114,6 +119,7 @@ async def add_provider(request: ProviderConfigRequest, _auth: dict = Depends(_re
 async def test_provider(request: ProviderTestRequest, _auth: dict = Depends(_require_role("admin"))):
     from core.ai.providers.base import ProviderConfig
     from core.ai.providers.registry import get_registry
+
     registry = get_registry()
     base_url = validate_provider_base_url(request.base_url)
     config = ProviderConfig(
@@ -133,6 +139,7 @@ async def test_provider(request: ProviderTestRequest, _auth: dict = Depends(_req
 async def update_provider(name: str, request: ProviderConfigRequest, _auth: dict = Depends(_require_role("admin"))):
     from core.ai.providers.base import ProviderConfig
     from core.ai.providers.registry import get_registry
+
     registry = get_registry()
     existing = registry.get_provider(name)
     if not existing:
@@ -156,6 +163,7 @@ async def update_provider(name: str, request: ProviderConfigRequest, _auth: dict
 @router.delete("/api/providers/{name}")
 async def delete_provider(name: str, _auth: dict = Depends(_require_role("admin"))):
     from core.ai.providers.registry import get_registry
+
     registry = get_registry()
     existing = registry.get_provider(name)
     if not existing:
@@ -167,6 +175,7 @@ async def delete_provider(name: str, _auth: dict = Depends(_require_role("admin"
 @router.put("/api/providers/active")
 async def set_active_provider(request: SetActiveProviderRequest, _auth: dict = Depends(_require_role("admin"))):
     from core.ai.providers.registry import get_registry
+
     registry = get_registry()
     try:
         registry.set_active(request.name)
@@ -208,7 +217,9 @@ async def detect_provider(request: DetectProviderRequest, _auth: dict = Depends(
                     if "data" in data:
                         models = [m.get("id", "") for m in data["data"] if m.get("id")]
                     elif "models" in data:
-                        models = [m.get("id") or m.get("name", "") for m in data["models"] if m.get("id") or m.get("name")]
+                        models = [
+                            m.get("id") or m.get("name", "") for m in data["models"] if m.get("id") or m.get("name")
+                        ]
                     models = [m for m in models if m]
                     break
         except Exception:

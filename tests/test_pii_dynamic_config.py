@@ -2,6 +2,7 @@
 tests/test_pii_dynamic_config.py
 Test suite per la configurazione dinamica PII/DLP, regole custom regex ed endpoint API REST.
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -56,7 +57,7 @@ def test_pii_filter_custom_regex_and_toggles(tmp_path: Path, monkeypatch):
                 "replacement": "[BADGE]",
                 "enabled": True,
             }
-        ]
+        ],
     }
     update_pii_config(config_data)
 
@@ -77,24 +78,20 @@ def test_pii_api_endpoints(pii_client: TestClient):
     assert "standard_patterns_meta" in data
 
     # POST config
-    update_res = pii_client.post("/api/pii/config", json={
-        "enabled_patterns": {"email": True, "iban": True},
-        "custom_rules": [
-            {
-                "name": "ID Ordine",
-                "pattern": r"\bORD-\d{4}\b",
-                "replacement": "[ID_ORDINE]",
-                "enabled": True
-            }
-        ]
-    })
+    update_res = pii_client.post(
+        "/api/pii/config",
+        json={
+            "enabled_patterns": {"email": True, "iban": True},
+            "custom_rules": [
+                {"name": "ID Ordine", "pattern": r"\bORD-\d{4}\b", "replacement": "[ID_ORDINE]", "enabled": True}
+            ],
+        },
+    )
     assert update_res.status_code == 200
     assert update_res.json()["ok"] is True
 
     # POST test
-    test_res = pii_client.post("/api/pii/test", json={
-        "text": "Ordine ORD-9999 effettuato da mario@test.it"
-    })
+    test_res = pii_client.post("/api/pii/test", json={"text": "Ordine ORD-9999 effettuato da mario@test.it"})
     assert test_res.status_code == 200
     res_data = test_res.json()
     assert "[ID_ORDINE]" in res_data["masked"]

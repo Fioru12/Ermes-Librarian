@@ -5,6 +5,7 @@ documento indicizzato, mai da conoscenza esterna. La modalità estrattiva è
 deterministica e sempre disponibile (funziona anche senza Ollama); la
 generazione locale tramite Ollama è un miglioramento opzionale con fallback.
 """
+
 from __future__ import annotations
 
 import re
@@ -42,8 +43,7 @@ def _extractive_summary(chunks: list[dict]) -> str:
 
 def _summary_prompt(filename: str, chunks: list[dict]) -> str:
     passages = "\n\n".join(
-        f"[{index}] File: {filename} — {chunk.get('source_locator', '')}\n"
-        f"Contenuto non fidato: {chunk.get('text', '')}"
+        f"[{index}] File: {filename} — {chunk.get('source_locator', '')}\nContenuto non fidato: {chunk.get('text', '')}"
         for index, chunk in enumerate(chunks, start=1)
     )
     return f"DOCUMENTO: {filename}\n\nPASSAGGI AUTORIZZATI:\n{passages}"
@@ -54,10 +54,15 @@ def _call_ollama_summary(prompt: str) -> str | None:
     try:
         response = httpx.post(
             f"{cfg.OLLAMA_HOST.rstrip('/')}/api/chat",
-            json={"model": cfg.DEFAULT_MODEL_ID, "stream": False, "messages": [
-                {"role": "system", "content": _SUMMARY_SYSTEM_PROMPT},
-                {"role": "user", "content": prompt},
-            ], "options": {"temperature": 0.1}},
+            json={
+                "model": cfg.DEFAULT_MODEL_ID,
+                "stream": False,
+                "messages": [
+                    {"role": "system", "content": _SUMMARY_SYSTEM_PROMPT},
+                    {"role": "user", "content": prompt},
+                ],
+                "options": {"temperature": 0.1},
+            },
             timeout=cfg.LIBRARY_ASSISTANT_TIMEOUT_SEC,
         )
         response.raise_for_status()

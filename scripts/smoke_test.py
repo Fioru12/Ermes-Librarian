@@ -6,29 +6,29 @@ import time
 import urllib.error
 import urllib.request
 
-API_PORT = int(os.environ.get('ERMES_API_PORT', '8502'))
-HEALTH_URL = f'http://127.0.0.1:{API_PORT}/health'
-QUERY_URL = f'http://127.0.0.1:{API_PORT}/query'
+API_PORT = int(os.environ.get("ERMES_API_PORT", "8502"))
+HEALTH_URL = f"http://127.0.0.1:{API_PORT}/health"
+QUERY_URL = f"http://127.0.0.1:{API_PORT}/query"
 
 
 def http_get(url, timeout=5):
     req = urllib.request.Request(url)
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:
-            return resp.read().decode('utf-8'), resp.getcode()
+            return resp.read().decode("utf-8"), resp.getcode()
     except Exception as e:
         return None, e
 
 
 def http_post_json(url, payload, headers=None, timeout=15):
-    data = json.dumps(payload).encode('utf-8')
-    hdrs = { 'Content-Type': 'application/json' }
+    data = json.dumps(payload).encode("utf-8")
+    hdrs = {"Content-Type": "application/json"}
     if headers:
         hdrs.update(headers)
-    req = urllib.request.Request(url, data=data, headers=hdrs, method='POST')
+    req = urllib.request.Request(url, data=data, headers=hdrs, method="POST")
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:
-            return resp.read().decode('utf-8'), resp.getcode()
+            return resp.read().decode("utf-8"), resp.getcode()
     except Exception as e:
         return None, e
 
@@ -55,7 +55,7 @@ def wait_for_health(url, wait_seconds=30):
 def run_pytest(test_path):
     print(f"Running pytest: {test_path}")
     try:
-        rc = subprocess.call([sys.executable, '-m', 'pytest', test_path, '-q'])
+        rc = subprocess.call([sys.executable, "-m", "pytest", test_path, "-q"])
         print(f"pytest exit code: {rc}")
         return rc == 0
     except Exception as e:
@@ -64,13 +64,15 @@ def run_pytest(test_path):
 
 
 def run_query_sample(query_text, module_name):
-    api_key = os.environ.get('ERMES_API_KEY')
+    api_key = os.environ.get("ERMES_API_KEY")
     if not api_key:
-        print("ERMES_API_KEY not set in environment — skipping API query. To test API set ERMES_API_KEY in environment.")
+        print(
+            "ERMES_API_KEY not set in environment — skipping API query. To test API set ERMES_API_KEY in environment."
+        )
         return False
-    payload = { 'query': query_text, 'module': module_name }
+    payload = {"query": query_text, "module": module_name}
     print(f"Sending sample query to {QUERY_URL} with module={module_name}")
-    body, status = http_post_json(QUERY_URL, payload, headers={'Authorization': f'Bearer {api_key}'})
+    body, status = http_post_json(QUERY_URL, payload, headers={"Authorization": f"Bearer {api_key}"})
     if body and isinstance(body, str):
         print("Query response:")
         try:
@@ -83,17 +85,17 @@ def run_query_sample(query_text, module_name):
         return False
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     ok = wait_for_health(HEALTH_URL, wait_seconds=30)
     if not ok:
         print("Health endpoint unavailable — aborting smoke test.")
         sys.exit(2)
 
     # Run WinSarp unit tests
-    run_pytest('tests/test_winsarp.py')
+    run_pytest("tests/test_winsarp.py")
 
     # Try a sample query if API key is configured
-    sample_query = 'Qual è la formula per azzerare le causali automatiche?'
-    run_query_sample(sample_query, 'WinSarp')
+    sample_query = "Qual è la formula per azzerare le causali automatiche?"
+    run_query_sample(sample_query, "WinSarp")
 
-    print('\nSmoke test completed.')
+    print("\nSmoke test completed.")

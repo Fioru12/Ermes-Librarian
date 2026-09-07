@@ -9,6 +9,7 @@ Uso:
     python -m pytest tests/test_performance.py -v -s
     ERMES_DATABASE_URL=postgresql://... python -m pytest tests/test_performance.py -v -s  # con PG
 """
+
 import random
 import time
 
@@ -24,9 +25,23 @@ def _make_store(tmp_path):
 
 def _populate_library(store, library_id, num_docs=50, chunks_per_doc=5):
     """Popola una biblioteca con documenti e chunk di test."""
-    words = ["contratto", "pagamento", "procedura", "sicurezza", "ferie",
-             "pausa", "lavoro", "dimissione", "assunzione", "formazione",
-             "fattura", "preavviso", "reclamo", "garanzia", "conferma"]
+    words = [
+        "contratto",
+        "pagamento",
+        "procedura",
+        "sicurezza",
+        "ferie",
+        "pausa",
+        "lavoro",
+        "dimissione",
+        "assunzione",
+        "formazione",
+        "fattura",
+        "preavviso",
+        "reclamo",
+        "garanzia",
+        "conferma",
+    ]
 
     for doc_idx in range(num_docs):
         content = f"Documento {doc_idx} di test per performance. "
@@ -35,9 +50,7 @@ def _populate_library(store, library_id, num_docs=50, chunks_per_doc=5):
 
         chunks = []
         for chunk_idx in range(chunks_per_doc):
-            chunk_text = f"Passaggio {chunk_idx}: " + " ".join(
-                random.choice(words) for _ in range(10)
-            )
+            chunk_text = f"Passaggio {chunk_idx}: " + " ".join(random.choice(words) for _ in range(10))
             chunks.append(chunk_text)
 
         store.add_document(
@@ -74,8 +87,17 @@ def test_search_throughput(tmp_path):
     library = store.create_library("PerfTest", "", "private", owner_id="perf_user")
     _populate_library(store, library["id"], num_docs=30, chunks_per_doc=4)
 
-    queries = ["contratto", "pagamento", "procedura", "sicurezza", "ferie",
-               "pausa pranzo", "lavoro", "dimissione", "assunzione"]
+    queries = [
+        "contratto",
+        "pagamento",
+        "procedura",
+        "sicurezza",
+        "ferie",
+        "pausa pranzo",
+        "lavoro",
+        "dimissione",
+        "assunzione",
+    ]
 
     start = time.perf_counter()
     num_queries = 100
@@ -86,9 +108,11 @@ def test_search_throughput(tmp_path):
 
     throughput = num_queries / elapsed
     avg_latency = elapsed / num_queries * 1000
-    print(f"\n  Throughput: {throughput:.1f} queries/s, "
-          f"avg latency: {avg_latency:.1f}ms, "
-          f"total: {elapsed:.2f}s for {num_queries} queries")
+    print(
+        f"\n  Throughput: {throughput:.1f} queries/s, "
+        f"avg latency: {avg_latency:.1f}ms, "
+        f"total: {elapsed:.2f}s for {num_queries} queries"
+    )
 
     assert throughput > 5, f"Throughput too low: {throughput:.1f} queries/s"
 
@@ -123,9 +147,11 @@ def test_concurrent_reads(tmp_path):
 
     total_queries = num_threads * queries_per_thread
     throughput = total_queries / elapsed
-    print(f"\n  Concurrent: {num_threads} threads x {queries_per_thread} queries = "
-          f"{total_queries} total, {throughput:.1f} queries/s, "
-          f"errors: {len(errors)}")
+    print(
+        f"\n  Concurrent: {num_threads} threads x {queries_per_thread} queries = "
+        f"{total_queries} total, {throughput:.1f} queries/s, "
+        f"errors: {len(errors)}"
+    )
 
     assert len(errors) == 0, f"Errors during concurrent reads: {errors[:3]}"
     assert throughput > 3, f"Concurrent throughput too low: {throughput:.1f}"
@@ -156,8 +182,6 @@ def test_chunk_insert_throughput(tmp_path):
     elapsed = time.perf_counter() - start
     total_chunks = num_docs * chunks_per_doc
     throughput = total_chunks / elapsed
-    print(f"\n  Chunk insert: {total_chunks} chunks in {elapsed:.2f}s, "
-          f"{throughput:.1f} chunks/s")
+    print(f"\n  Chunk insert: {total_chunks} chunks in {elapsed:.2f}s, {throughput:.1f} chunks/s")
 
     assert throughput > 100, f"Insert throughput too low: {throughput:.1f} chunks/s"
-

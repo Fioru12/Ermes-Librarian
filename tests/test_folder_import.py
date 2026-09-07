@@ -34,7 +34,9 @@ def api_client_factory(tmp_path, monkeypatch):
     # questo file verifica non verrebbe mai davvero esercitato.
     app_dir = tmp_path / "app"
     app_dir.mkdir()
-    test_cfg = cfg.replace(BASE_DIR=str(app_dir), ADMIN_USERNAME="owner", ADMIN_PASSWORD="StrongPassword!123", API_KEY="")
+    test_cfg = cfg.replace(
+        BASE_DIR=str(app_dir), ADMIN_USERNAME="owner", ADMIN_PASSWORD="StrongPassword!123", API_KEY=""
+    )
     monkeypatch.setattr("config.cfg", test_cfg)
     monkeypatch.setattr("api.auth.cfg", test_cfg)
     monkeypatch.setattr("api.libraries.cfg", test_cfg)
@@ -45,15 +47,19 @@ def api_client_factory(tmp_path, monkeypatch):
 def _setup_library(tmp_path, monkeypatch, *, visibility="private"):
     client, test_cfg = api_client_factory(tmp_path, monkeypatch)
     import api.libraries
+
     monkeypatch.setattr(api.libraries, "_store", None)
     store = api.libraries.get_library_store()
     library = store.create_library("Archivio", "", visibility, owner_id="owner")
-    assert client.post("/api/auth/login", json={"username": "owner", "password": "StrongPassword!123"}).status_code == 200
+    assert (
+        client.post("/api/auth/login", json={"username": "owner", "password": "StrongPassword!123"}).status_code == 200
+    )
     return client, store, library, test_cfg
 
 
 def _login_as(test_cfg, username, role, password):
     from core.governance import create_or_update_user
+
     create_or_update_user(test_cfg.USERS_FILE, username, role, password)
     client = TestClient(app)
     assert client.post("/api/auth/login", json={"username": username, "password": password}).status_code == 200
@@ -114,6 +120,7 @@ def test_scan_imports_supported_files_and_deduplicates_by_content(tmp_path, monk
     assert sorted(d["filename"] for d in documents) == ["contratto.txt", "foglio.xlsx"]
     assert all(d["status"] == "ready" for d in documents), [d.get("status") for d in documents]
     from core.library_store import resolve_storage_path
+
     for document in documents:
         stored_path = resolve_storage_path(document["storage_path"], tmp_path / "app" / "storage" / "libraries")
         assert stored_path.is_file()

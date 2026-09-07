@@ -2,6 +2,7 @@
 tests/test_integrations_mcp_automation.py
 Integration tests for MCP Server and Automation Webhook endpoints.
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -57,24 +58,14 @@ def test_mcp_info_and_tools(api_client: TestClient):
 
 
 def test_mcp_jsonrpc_initialize_and_tools_list(api_client: TestClient):
-    payload = {
-        "jsonrpc": "2.0",
-        "id": 1,
-        "method": "initialize",
-        "params": {}
-    }
+    payload = {"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}}
     res = api_client.post("/api/mcp/rpc", json=payload)
     assert res.status_code == 200
     data = res.json()
     assert data["id"] == 1
     assert data["result"]["serverInfo"]["name"] == "ermes-knowledge-mcp"
 
-    payload_list = {
-        "jsonrpc": "2.0",
-        "id": 2,
-        "method": "tools/list",
-        "params": {}
-    }
+    payload_list = {"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}}
     res_list = api_client.post("/api/mcp/rpc", json=payload_list)
     assert res_list.status_code == 200
     assert "tools" in res_list.json()["result"]
@@ -96,7 +87,7 @@ def test_automation_webhook_flow(api_client: TestClient):
         "filename": "procedura_vpn.txt",
         "content": "Per connettersi alla VPN aziendale usare il server vpn.azienda.local con porta 443.",
         "is_base64": False,
-        "media_type": "text/plain"
+        "media_type": "text/plain",
     }
 
     res_ingest = api_client.post("/api/integrations/automation/ingest", json=ingest_payload)
@@ -105,10 +96,7 @@ def test_automation_webhook_flow(api_client: TestClient):
     assert res_ingest.json()["filename"] == "procedura_vpn.txt"
 
     # 3. Interroga la biblioteca tramite il webhook /ask
-    ask_payload = {
-        "library_id": lib_id,
-        "question": "Qual è il server VPN aziendale?"
-    }
+    ask_payload = {"library_id": lib_id, "question": "Qual è il server VPN aziendale?"}
 
     res_ask = api_client.post("/api/integrations/automation/ask", json=ask_payload)
     assert res_ask.status_code == 200

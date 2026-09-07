@@ -3,6 +3,7 @@ backup.py
 Script per backup automatizzato di Ermes - Enterprise Knowledge Hub.
 Backup periodico di ChromaDB, documenti, configurazione e utenti.
 """
+
 import json
 import logging
 import tarfile
@@ -10,10 +11,7 @@ from datetime import datetime
 from pathlib import Path
 
 # Configurazione logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 
@@ -33,18 +31,10 @@ class BackupManager:
         self.backup_dir.mkdir(parents=True, exist_ok=True)
 
         # Directory da backuppare
-        self.dirs_to_backup = [
-            "chroma_db",
-            "documenti",
-            "security",
-            "logs"
-        ]
+        self.dirs_to_backup = ["chroma_db", "documenti", "security", "logs"]
 
         # File da backuppare
-        self.files_to_backup = [
-            ".env",
-            "config.py"
-        ]
+        self.files_to_backup = [".env", "config.py"]
 
     def create_backup_name(self) -> str:
         """
@@ -94,14 +84,14 @@ class BackupManager:
                 "backup_file": backup_name,
                 "backup_size": backup_path.stat().st_size,
                 "directories_backed": [d for d in self.dirs_to_backup if (self.base_dir / d).exists()],
-                "files_backed": [f for f in self.files_to_backup if (self.base_dir / f).exists()]
+                "files_backed": [f for f in self.files_to_backup if (self.base_dir / f).exists()],
             }
 
             manifest_path = self.backup_dir / f"{backup_name}.manifest.json"
             with open(manifest_path, "w") as f:
                 json.dump(manifest, f, indent=2)
 
-            logger.info(f"Backup completato: {backup_path} ({backup_path.stat().st_size / (1024*1024):.2f} MB)")
+            logger.info(f"Backup completato: {backup_path} ({backup_path.stat().st_size / (1024 * 1024):.2f} MB)")
             return str(backup_path)
 
         except Exception as e:
@@ -187,7 +177,7 @@ class BackupManager:
                 "file": backup_file.name,
                 "path": str(backup_file),
                 "size": backup_file.stat().st_size,
-                "created": datetime.fromtimestamp(backup_file.stat().st_mtime).isoformat()
+                "created": datetime.fromtimestamp(backup_file.stat().st_mtime).isoformat(),
             }
 
             # Carica manifest se esiste
@@ -235,7 +225,7 @@ def main():
         backups = manager.list_backups()
         print(f"\nBackup disponibili ({len(backups)}):")
         for backup in backups:
-            size_mb = backup["size"] / (1024*1024)
+            size_mb = backup["size"] / (1024 * 1024)
             print(f"  - {backup['file']} ({size_mb:.2f} MB, {backup['created']})")
 
     elif args.action == "cleanup":

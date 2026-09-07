@@ -3,6 +3,7 @@
 Default-secure: senza ERMES_METRICS_TOKEN solo loopback/testclient; con token,
 Bearer obbligatorio. Le metriche di business RAG sono incrementate dal flusso /ask.
 """
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -15,7 +16,9 @@ from config import cfg
 def env(tmp_path, monkeypatch):
     app_dir = tmp_path / "app"
     app_dir.mkdir()
-    test_cfg = cfg.replace(BASE_DIR=str(app_dir), ADMIN_USERNAME="owner", ADMIN_PASSWORD="StrongPassword!123", API_KEY="")
+    test_cfg = cfg.replace(
+        BASE_DIR=str(app_dir), ADMIN_USERNAME="owner", ADMIN_PASSWORD="StrongPassword!123", API_KEY=""
+    )
     for target in ("config", "api", "api.auth", "api.libraries"):
         monkeypatch.setattr(f"{target}.cfg", test_cfg)
     _SESSIONS.clear()
@@ -23,6 +26,7 @@ def env(tmp_path, monkeypatch):
     # già inizializzato il gauge prometheus su un'istanza distinta (reload moduli);
     # senza questo il sample manca anche se HELP/TYPE sono presenti.
     from core import metrics
+
     metrics.init_system_info(
         version=getattr(test_cfg, "APP_VERSION", "test"),
         python_version="3.12",
@@ -67,8 +71,14 @@ def test_metrics_denied_from_remote_without_token():
     from api import prometheus_metrics
     from starlette.requests import Request
 
-    scope = {"type": "http", "method": "GET", "path": "/metrics", "headers": [],
-             "client": ("10.1.2.3", 50000), "query_string": b""}
+    scope = {
+        "type": "http",
+        "method": "GET",
+        "path": "/metrics",
+        "headers": [],
+        "client": ("10.1.2.3", 50000),
+        "query_string": b"",
+    }
     request = Request(scope)
     with pytest.raises(HTTPException) as excinfo:
         prometheus_metrics(request)

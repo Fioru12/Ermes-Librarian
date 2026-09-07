@@ -178,6 +178,7 @@ class TestRestoreBackup:
             tar.addfile(special)
 
             import io
+
             content = b'{"nodes": []}'
             info = tarfile.TarInfo(name="data/winsarp_graph.json")
             info.size = len(content)

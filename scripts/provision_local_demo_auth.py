@@ -3,6 +3,7 @@
 This script is deliberately opt-in. It writes an administrator password to the
 untracked .env and a local reminder file that is also excluded from Git.
 """
+
 from __future__ import annotations
 
 import argparse

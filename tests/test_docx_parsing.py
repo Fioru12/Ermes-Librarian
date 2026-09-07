@@ -3,9 +3,12 @@ Test robustezza parser .docx per documenti Word.
 Verifica che python-docx (usato da LlamaIndex per i .docx)
 legga correttamente documenti Word di vario tipo.
 """
+
+
 def _read_docx_text(filepath):
     """Legge il testo da un file .docx usando python-docx."""
     from docx import Document
+
     doc = Document(str(filepath))
     paragraphs = [p.text for p in doc.paragraphs]
     # Aggiunge testo da tabelle

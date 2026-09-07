@@ -10,6 +10,7 @@ Sostituisce il contatore in-memory di api/__init__.py con:
 Il fallback in-memory resta come shim per i test esistenti che leggono
 ermes_http_requests_total via /metrics.
 """
+
 from __future__ import annotations
 
 import contextlib

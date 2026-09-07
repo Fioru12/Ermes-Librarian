@@ -3,6 +3,7 @@
 Continuously monitors all registered folder sources across libraries and
 automatically ingests new or updated documents.
 """
+
 from __future__ import annotations
 
 import logging
@@ -69,6 +70,7 @@ def start_folder_watcher_thread(
     stop_event: threading.Event | None = None,
 ) -> threading.Thread:
     """Start a background daemon thread that periodically synchronizes watched folders."""
+
     def _worker():
         logger.info("Folder watcher avviato (intervallo: %ds)", interval_sec)
         while stop_event is None or not stop_event.is_set():

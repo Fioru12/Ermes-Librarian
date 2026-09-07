@@ -7,6 +7,7 @@ Utilizzo:
   # Monitoraggio continuo ogni N secondi (default 15):
   python scripts/sync_cartelle.py --watch --interval 10
 """
+
 from __future__ import annotations
 
 import argparse
@@ -47,7 +48,9 @@ def main():
         while True:
             summary = sync_all_sources(store, cfg.LIBRARY_STORAGE_DIR)
             if summary["total_imported"] > 0:
-                print(f"[{time.strftime('%H:%M:%S')}] Rilevati e importati {summary['total_imported']} nuovi documenti.")
+                print(
+                    f"[{time.strftime('%H:%M:%S')}] Rilevati e importati {summary['total_imported']} nuovi documenti."
+                )
             time.sleep(args.interval)
     except KeyboardInterrupt:
         print("\nMonitoraggio terminato.")

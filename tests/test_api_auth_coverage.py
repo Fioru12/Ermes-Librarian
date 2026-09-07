@@ -5,6 +5,7 @@ legacy_winsarp/) had no per-route auth check at all. This walks the live
 FastAPI route table instead of grepping source, so it also catches an
 endpoint that "looks" guarded but wires the dependency wrong.
 """
+
 from api import app
 from api.auth import _verify_api_key
 

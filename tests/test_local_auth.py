@@ -42,7 +42,9 @@ def test_disabled_local_account_loses_an_existing_browser_session(tmp_path, monk
     _SESSIONS.clear()
     client = TestClient(app)
 
-    assert client.post("/api/auth/login", json={"username": "owner", "password": "StrongPassword!123"}).status_code == 200
+    assert (
+        client.post("/api/auth/login", json={"username": "owner", "password": "StrongPassword!123"}).status_code == 200
+    )
     create_or_update_user(test_cfg.USERS_FILE, "owner", "admin", "", active=False)
     assert client.get("/api/libraries").status_code == 401
 
@@ -58,7 +60,9 @@ def test_sensitive_operations_are_admin_only_and_shutdown_is_disabled_without_ke
     monkeypatch.setattr("api.auth.cfg", test_cfg)
     _SESSIONS.clear()
     admin = TestClient(app)
-    assert admin.post("/api/auth/login", json={"username": "owner", "password": "StrongPassword!123"}).status_code == 200
+    assert (
+        admin.post("/api/auth/login", json={"username": "owner", "password": "StrongPassword!123"}).status_code == 200
+    )
     create_or_update_user(test_cfg.USERS_FILE, "maria", "editor", "StrongEditor!123")
 
     editor = TestClient(app)

@@ -11,6 +11,7 @@ Invalidazione:
 
 Thread-safe, memory-bound (max configurabile), con hit/miss stats.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -27,6 +28,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class _CacheEntry:
     """Una entry nella cache."""
+
     results: list[dict]
     profile: dict
     cached_at: float
@@ -38,6 +40,7 @@ class _CacheEntry:
 @dataclass
 class CacheStats:
     """Statistiche della cache."""
+
     hits: int = 0
     misses: int = 0
     evictions: int = 0
@@ -72,8 +75,9 @@ class SemanticSearchCache:
         raw = f"{library_id}:{scope}:{normalized}"
         return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:32]
 
-
-    def get(self, library_id: str, query: str, current_doc_count: int, scope: str = "") -> tuple[list[dict], dict] | None:
+    def get(
+        self, library_id: str, query: str, current_doc_count: int, scope: str = ""
+    ) -> tuple[list[dict], dict] | None:
         """Ritorna i risultati in cache se validi, altrimenti None."""
         if not self._enabled:
             return None
@@ -101,7 +105,9 @@ class SemanticSearchCache:
             self._stats.hits += 1
             return entry.results, entry.profile
 
-    def put(self, library_id: str, query: str, current_doc_count: int, results: list[dict], profile: dict, scope: str = "") -> None:
+    def put(
+        self, library_id: str, query: str, current_doc_count: int, results: list[dict], profile: dict, scope: str = ""
+    ) -> None:
         """Memoizza i risultati per la query."""
         if not self._enabled:
             return

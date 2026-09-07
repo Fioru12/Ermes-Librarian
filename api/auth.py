@@ -2,6 +2,7 @@
 api/auth.py
 Autenticazione JWT + RBAC + rate limiter.
 """
+
 import logging
 import secrets
 import threading
@@ -63,6 +64,7 @@ def _validate_oidc_jwt(token: str) -> dict | None:
     try:
         import base64
         import json
+
         parts = token.split(".")
         payload_b64 = parts[1]
         payload_b64 += "=" * ((4 - len(payload_b64) % 4) % 4)
@@ -120,6 +122,7 @@ def _authenticate_token(api_key: str) -> dict | None:
         if oidc_user:
             return oidc_user
     from core.governance import authenticate_by_api_key
+
     return authenticate_by_api_key(api_key)
 
 
@@ -132,7 +135,10 @@ def _verify_api_key(
     if user is not None and user.get("provider") != "oidc":
         # Browser sessions must follow the current local-account state.
         from core.governance import list_users
-        current = next((item for item in list_users(cfg.USERS_FILE) if item.get("username") == user.get("username")), None)
+
+        current = next(
+            (item for item in list_users(cfg.USERS_FILE) if item.get("username") == user.get("username")), None
+        )
         if current is None or not current.get("active", True):
             _invalidate_sessions_for_user(str(user.get("username", "")))
             user = None
@@ -238,8 +244,10 @@ def current_user(user: dict = Depends(_verify_api_key)) -> dict:
 
 def _require_role(min_role: str = "viewer"):
     """Factory per dependency che richiede un ruolo minimo."""
+
     def role_checker(user: dict = Depends(_verify_api_key)) -> dict:
         from core.governance import has_min_role
+
         user_role = user.get("role", "viewer")
         if not has_min_role(user_role, min_role):
             raise HTTPException(
@@ -247,6 +255,7 @@ def _require_role(min_role: str = "viewer"):
                 detail=f"Ruolo '{user_role}' non sufficiente. Serve almeno '{min_role}'.",
             )
         return user
+
     return role_checker
 
 
@@ -263,6 +272,7 @@ def _rate_limit(req: Request) -> str:
 # Admin: mapping gruppi OIDC -> ACL biblioteche
 # ============================================================
 
+
 class GroupMappingRequest(BaseModel):
     group: str = Field(min_length=1, max_length=200)
     library_id: str = Field(min_length=1, max_length=100)
@@ -277,12 +287,14 @@ class GroupMappingDeleteRequest(BaseModel):
 @router.get("/api/admin/oidc/group-mappings", include_in_schema=False)
 def list_group_mappings(_user: dict = Depends(_require_role("admin"))) -> dict:
     from core.governance import load_oidc_group_mappings
+
     return {"mappings": load_oidc_group_mappings()}
 
 
 @router.put("/api/admin/oidc/group-mappings", include_in_schema=False)
 def upsert_group_mapping(request: GroupMappingRequest, user: dict = Depends(_require_role("admin"))) -> dict:
     from core.governance import append_audit, set_oidc_group_mapping
+
     try:
         entry = set_oidc_group_mapping(request.group, request.library_id, request.role)
     except ValueError as error:
@@ -294,6 +306,7 @@ def upsert_group_mapping(request: GroupMappingRequest, user: dict = Depends(_req
 @router.delete("/api/admin/oidc/group-mappings", include_in_schema=False)
 def delete_group_mapping(request: GroupMappingDeleteRequest, user: dict = Depends(_require_role("admin"))) -> dict:
     from core.governance import append_audit, remove_oidc_group_mapping
+
     removed = remove_oidc_group_mapping(request.group, request.library_id)
     if not removed:
         raise HTTPException(status_code=404, detail="Mapping non trovato")

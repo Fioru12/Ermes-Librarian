@@ -2,6 +2,7 @@
 tests/test_folder_watcher_lifespan.py
 Test per l'endpoint di monitoraggio e la sincronizzazione manuale del Folder Watcher.
 """
+
 from __future__ import annotations
 
 from pathlib import Path

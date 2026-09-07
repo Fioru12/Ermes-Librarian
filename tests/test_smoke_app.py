@@ -8,6 +8,7 @@ sullo shortcut: se ``import api`` fallisce, nessun endpoint risponde.
 
 from __future__ import annotations
 
+
 def test_app_is_importable_and_has_routes():
     import api
 
@@ -22,6 +23,4 @@ def test_upload_route_accepts_background_tasks_dependency():
     import api
 
     paths = {getattr(r, "path", "") for r in api.app.routes if isinstance(r, APIRoute)}
-    assert "/api/libraries/{library_id}/documents" in paths or any(
-        p.endswith("/{library_id}/documents") for p in paths
-    )
+    assert "/api/libraries/{library_id}/documents" in paths or any(p.endswith("/{library_id}/documents") for p in paths)

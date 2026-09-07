@@ -2,6 +2,7 @@
 api/connectors.py
 Enterprise Cloud & Intranet Connectors API endpoints.
 """
+
 from __future__ import annotations
 
 import logging
@@ -159,6 +160,7 @@ def sync_watcher_now(
     store: LibraryStore = Depends(get_library_store),
 ) -> dict:
     from core.folder_watcher import sync_all_sources
+
     result = sync_all_sources(store=store)
     append_audit(
         cfg.AUDIT_FILE,
@@ -167,4 +169,3 @@ def sync_watcher_now(
         result,
     )
     return {"ok": True, "result": result}
-

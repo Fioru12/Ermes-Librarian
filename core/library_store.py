@@ -4,6 +4,7 @@ SQLite keeps the first local-first release easy to run. This module owns the
 domain contract so a later PostgreSQL implementation can replace it without
 changing the API surface.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -30,15 +31,72 @@ def _resolve_backend(database_path: str | Path | None) -> Backend:
         return SqliteBackend(str(database_path))
     return create_backend(cfg.DATABASE_URL)
 
+
 # Common function words must not become the only "evidence" for a RAG answer.
 # This compact local-first baseline deliberately keeps a conservative bilingual
 # list; a production language analyser can replace it behind this same method.
 _QUERY_STOPWORDS = {
-    "a", "ad", "al", "alla", "alle", "che", "chi", "come", "con", "cosa", "dei", "del", "della", "delle",
-    "di", "dove", "e", "gli", "i", "il", "in", "la", "le", "lo", "nei", "nelle", "per", "quali", "quando",
-    "quale", "sono", "sul", "sulla", "the", "and", "are", "before", "for", "from", "how", "is", "it",
-    "of", "on", "or", "to", "was", "what", "when", "where", "who", "why", "with", "your",
-    "document", "documents", "documenti", "library", "biblioteca", "policy", "procedure",
+    "a",
+    "ad",
+    "al",
+    "alla",
+    "alle",
+    "che",
+    "chi",
+    "come",
+    "con",
+    "cosa",
+    "dei",
+    "del",
+    "della",
+    "delle",
+    "di",
+    "dove",
+    "e",
+    "gli",
+    "i",
+    "il",
+    "in",
+    "la",
+    "le",
+    "lo",
+    "nei",
+    "nelle",
+    "per",
+    "quali",
+    "quando",
+    "quale",
+    "sono",
+    "sul",
+    "sulla",
+    "the",
+    "and",
+    "are",
+    "before",
+    "for",
+    "from",
+    "how",
+    "is",
+    "it",
+    "of",
+    "on",
+    "or",
+    "to",
+    "was",
+    "what",
+    "when",
+    "where",
+    "who",
+    "why",
+    "with",
+    "your",
+    "document",
+    "documents",
+    "documenti",
+    "library",
+    "biblioteca",
+    "policy",
+    "procedure",
 }
 
 
@@ -147,6 +205,7 @@ class LibraryStore:
     def _initialize_postgres(self) -> None:
         """Inizializza lo schema PostgreSQL usando il DDL di postgres_backend."""
         from core.postgres_backend import POSTGRES_SCHEMA
+
         self._backend.execute_script(POSTGRES_SCHEMA)
 
     def _initialize_sqlite(self) -> None:
@@ -320,7 +379,9 @@ class LibraryStore:
             if "owner_id" not in library_columns:
                 connection.execute("ALTER TABLE libraries ADD COLUMN owner_id TEXT NOT NULL DEFAULT 'system'")
             if "assistant_mode" not in library_columns:
-                connection.execute("ALTER TABLE libraries ADD COLUMN assistant_mode TEXT NOT NULL DEFAULT 'evidence_only'")
+                connection.execute(
+                    "ALTER TABLE libraries ADD COLUMN assistant_mode TEXT NOT NULL DEFAULT 'evidence_only'"
+                )
             if "assistant_provider" not in library_columns:
                 connection.execute("ALTER TABLE libraries ADD COLUMN assistant_provider TEXT NOT NULL DEFAULT ''")
             # Backfill the immutable snapshot for databases created before
@@ -416,6 +477,7 @@ class LibraryStore:
         if actor is None or actor.get("provider") != "oidc":
             return direct_role
         from core.governance import resolve_oidc_group_role
+
         group_role = resolve_oidc_group_role(actor.get("groups"), library_id)
         if group_role is None:
             return direct_role
@@ -459,6 +521,7 @@ class LibraryStore:
         group_roles: dict[str, str] = {}
         if actor and actor.get("provider") == "oidc" and actor.get("role") != "admin":
             from core.governance import oidc_group_roles_for_user
+
             group_roles = oidc_group_roles_for_user(actor.get("groups"))
         visible: list[dict] = []
         for row in rows:
@@ -474,7 +537,9 @@ class LibraryStore:
                 visible.append(library)
         return visible
 
-    def create_library(self, name: str, description: str = "", visibility: str = "private", owner_id: str = "system") -> dict:
+    def create_library(
+        self, name: str, description: str = "", visibility: str = "private", owner_id: str = "system"
+    ) -> dict:
         normalized_name = name.strip()
         if not normalized_name:
             raise ValueError("Il nome della biblioteca è obbligatorio.")
@@ -546,7 +611,9 @@ class LibraryStore:
         if row is None:
             raise LibraryNotFoundError(library_id)
         library = self._row(row)
-        member_role = self._membership_role(library_id, actor["username"]) if actor and actor.get("role") != "admin" else None
+        member_role = (
+            self._membership_role(library_id, actor["username"]) if actor and actor.get("role") != "admin" else None
+        )
         member_role = self._effective_member_role(member_role, library_id, actor)
         if not self._can_access(library, actor, write, member_role):
             raise LibraryAccessError(library_id)
@@ -560,7 +627,15 @@ class LibraryStore:
                 "SELECT username, role, created_at, updated_at FROM library_members WHERE library_id = ? ORDER BY username",
                 (library_id,),
             ).fetchall()
-        return [{"username": library["owner_id"], "role": "owner", "created_at": library["created_at"], "updated_at": library["updated_at"]}, *[self._row(row) for row in rows]]
+        return [
+            {
+                "username": library["owner_id"],
+                "role": "owner",
+                "created_at": library["created_at"],
+                "updated_at": library["updated_at"],
+            },
+            *[self._row(row) for row in rows],
+        ]
 
     def set_library_member(self, library_id: str, username: str, role: str) -> dict:
         self.get_library(library_id)
@@ -661,8 +736,16 @@ class LibraryStore:
 
     def start_ingestion_job(self, library_id: str, filename: str, document_id: str | None = None) -> dict:
         self.get_library(library_id)
-        job = {"id": str(uuid.uuid4()), "library_id": library_id, "document_id": document_id, "filename": filename,
-               "status": "queued", "error_message": "", "created_at": self._timestamp(), "completed_at": None}
+        job = {
+            "id": str(uuid.uuid4()),
+            "library_id": library_id,
+            "document_id": document_id,
+            "filename": filename,
+            "status": "queued",
+            "error_message": "",
+            "created_at": self._timestamp(),
+            "completed_at": None,
+        }
         with self._lock, self._connection() as connection:
             connection.execute(
                 """INSERT INTO ingestion_jobs (id, library_id, document_id, filename, status, error_message, created_at, completed_at)
@@ -671,7 +754,9 @@ class LibraryStore:
             )
         return job
 
-    def finish_ingestion_job(self, job_id: str, status: str, document_id: str | None = None, error_message: str = "") -> None:
+    def finish_ingestion_job(
+        self, job_id: str, status: str, document_id: str | None = None, error_message: str = ""
+    ) -> None:
         if status not in {"ready", "failed"}:
             raise ValueError("Stato job non valido")
         with self._lock, self._connection() as connection:
@@ -698,7 +783,9 @@ class LibraryStore:
 
     def pending_ingestion_jobs(self) -> list[dict]:
         with self._connection() as connection:
-            rows = connection.execute("SELECT * FROM ingestion_jobs WHERE status = 'queued' ORDER BY created_at ASC").fetchall()
+            rows = connection.execute(
+                "SELECT * FROM ingestion_jobs WHERE status = 'queued' ORDER BY created_at ASC"
+            ).fetchall()
         return [self._row(row) for row in rows]
 
     def verify_index_consistency(self, storage_root: str | Path, expected_embed_model: str | None = None) -> dict:
@@ -722,9 +809,7 @@ class LibraryStore:
         """
         root = Path(storage_root)
         with self._connection() as connection:
-            documents = connection.execute(
-                "SELECT id, filename, storage_path FROM documents"
-            ).fetchall()
+            documents = connection.execute("SELECT id, filename, storage_path FROM documents").fetchall()
             chunk_stats = connection.execute(
                 """
                 SELECT d.id AS document_id, d.status,
@@ -761,21 +846,27 @@ class LibraryStore:
                     orphan_files.append(path.relative_to(root).as_posix())
 
         ready_without_chunks = sorted(
-            row["document_id"] for row in chunk_stats
-            if row["status"] == "ready" and row["chunk_count"] == 0
+            row["document_id"] for row in chunk_stats if row["status"] == "ready" and row["chunk_count"] == 0
         )
         partially_embedded = sorted(
-            row["document_id"] for row in chunk_stats
+            row["document_id"]
+            for row in chunk_stats
             if row["chunk_count"] > 0 and 0 < (row["embedded_count"] or 0) < row["chunk_count"]
         )
-        mismatched_models = sorted({
-            row["document_id"] for row in models
-            if expected_embed_model and row["embedding_model"] != expected_embed_model
-        })
+        mismatched_models = sorted(
+            {
+                row["document_id"]
+                for row in models
+                if expected_embed_model and row["embedding_model"] != expected_embed_model
+            }
+        )
 
         issue_count = (
-            len(missing_originals) + len(orphan_files) + len(ready_without_chunks)
-            + len(partially_embedded) + len(mismatched_models)
+            len(missing_originals)
+            + len(orphan_files)
+            + len(ready_without_chunks)
+            + len(partially_embedded)
+            + len(mismatched_models)
         )
         return {
             "ok": issue_count == 0,
@@ -799,9 +890,7 @@ class LibraryStore:
         before a clean restart.
         """
         with self._lock, self._connection() as connection:
-            stuck = connection.execute(
-                "SELECT id FROM ingestion_jobs WHERE status = 'processing'"
-            ).fetchall()
+            stuck = connection.execute("SELECT id FROM ingestion_jobs WHERE status = 'processing'").fetchall()
             if stuck:
                 connection.execute(
                     """
@@ -956,7 +1045,9 @@ class LibraryStore:
                 (self._timestamp(), library_id, source_id),
             )
 
-    def add_chat_integration(self, library_id: str, platform: str, external_channel_id: str, created_by: str = "") -> dict:
+    def add_chat_integration(
+        self, library_id: str, platform: str, external_channel_id: str, created_by: str = ""
+    ) -> dict:
         """Bind one external chat channel to this library. A channel can point to only one library."""
         self.get_library(library_id)
         now = self._timestamp()
@@ -1073,7 +1164,7 @@ class LibraryStore:
             # Costruisci una query tsquery con AND tra i token
             tsquery = " & ".join(f"{t}:*" for t in tokens)
             if len(clean_phrase.split()) > 1:
-                tsquery = f"\"{clean_phrase}\" | ({tsquery})"
+                tsquery = f'"{clean_phrase}" | ({tsquery})'
             rows = connection.execute(
                 """
                 SELECT c.id AS chunk_id FROM document_chunks c
@@ -1108,7 +1199,9 @@ class LibraryStore:
         results, _ = self.search_with_profile(library_id, query, limit)
         return results
 
-    def search_with_profile(self, library_id: str, query: str, limit: int = 20, actor: dict | None = None) -> tuple[list[dict], dict]:
+    def search_with_profile(
+        self, library_id: str, query: str, limit: int = 20, actor: dict | None = None
+    ) -> tuple[list[dict], dict]:
         """Retrieve chunks with a truthful local retrieval profile."""
         library = self.get_library(library_id, actor)
         normalized = query.strip()
@@ -1144,7 +1237,11 @@ class LibraryStore:
             query_embedding = query_embeddings[0] if query_embeddings else []
             semantic_used = bool(query_embedding and indexed_count)
 
-            tokens = [self._search_token(t) for t in re.findall(r"[\wÀ-ÿ]{3,}", normalized.lower()) if t not in _QUERY_STOPWORDS]
+            tokens = [
+                self._search_token(t)
+                for t in re.findall(r"[\wÀ-ÿ]{3,}", normalized.lower())
+                if t not in _QUERY_STOPWORDS
+            ]
             candidate_chunk_ids = self._keyword_candidates(connection, library_id, normalized, hidden)
 
             for eq in expand_query(normalized)[1:]:
@@ -1174,7 +1271,17 @@ class LibraryStore:
         def _get(row, key):
             if isinstance(row, dict):
                 return row.get(key)
-            keys = ["document_id", "filename", "version", "content_hash", "chunk_id", "ordinal", "excerpt", "source_locator", "embedding_json"]
+            keys = [
+                "document_id",
+                "filename",
+                "version",
+                "content_hash",
+                "chunk_id",
+                "ordinal",
+                "excerpt",
+                "source_locator",
+                "embedding_json",
+            ]
             return row[keys.index(key)]
 
         rows = [r for r in rows if _get(r, "document_id") not in hidden]
@@ -1201,35 +1308,56 @@ class LibraryStore:
                 except (TypeError, ValueError):
                     semantic_score = 0.0
             if phrase_score or token_score or semantic_score >= min_semantic_score():
-                ranked.append((phrase_score + token_score + (semantic_score * 40), {
-                    "document_id": document_id, "filename": filename, "version": version,
-                    "content_hash": content_hash, "chunk_id": chunk_id, "ordinal": ordinal,
-                    "excerpt": excerpt, "source_locator": source_locator,
-                }))
+                ranked.append(
+                    (
+                        phrase_score + token_score + (semantic_score * 40),
+                        {
+                            "document_id": document_id,
+                            "filename": filename,
+                            "version": version,
+                            "content_hash": content_hash,
+                            "chunk_id": chunk_id,
+                            "ordinal": ordinal,
+                            "excerpt": excerpt,
+                            "source_locator": source_locator,
+                        },
+                    )
+                )
         ranked.sort(key=lambda item: (-item[0], item[1]["ordinal"]))
         results = [
             {
                 **d,
                 "relevance_score": round(s, 4),
                 "citation": {
-                    "document_id": d["document_id"], "filename": d["filename"],
-                    "version": d["version"], "content_hash": f"sha256:{d['content_hash']}",
+                    "document_id": d["document_id"],
+                    "filename": d["filename"],
+                    "version": d["version"],
+                    "content_hash": f"sha256:{d['content_hash']}",
                     "chunk_id": d["chunk_id"],
                     "locator": d["source_locator"] or f"Passaggio {d['ordinal'] + 1}",
                 },
             }
-            for s, d in ranked[:max(1, min(limit, 50))]
+            for s, d in ranked[: max(1, min(limit, 50))]
         ]
         if getattr(cfg, "RERANKER_ENABLED", True) and results:
             from core.reranker import rerank_candidates
+
             results = rerank_candidates(query=normalized, candidates=results, limit=max(1, min(limit, 50)))
-        profile = {"mode": "hybrid_local" if semantic_used else "keyword", "semantic_indexed_chunks": indexed_count, "semantic_used": semantic_used}
+        profile = {
+            "mode": "hybrid_local" if semantic_used else "keyword",
+            "semantic_indexed_chunks": indexed_count,
+            "semantic_used": semantic_used,
+        }
         # Store in semantic cache (per-user scope, come sopra)
         cache.put(library_id, normalized, doc_count, results, profile, scope)
         return results, profile
 
     def store_chunk_embeddings(
-        self, library_id: str, document_id: str, embeddings: list[list[float]], model_id: str,
+        self,
+        library_id: str,
+        document_id: str,
+        embeddings: list[list[float]],
+        model_id: str,
     ) -> int:
         """Persist vectors derived from the current chunks; originals remain the source of truth."""
         self.get_document(library_id, document_id)
@@ -1241,8 +1369,10 @@ class LibraryStore:
                 return 0
             connection.executemany(
                 "UPDATE document_chunks SET embedding_json = ?, embedding_model = ? WHERE id = ?",
-                [(json.dumps(embedding, separators=(",", ":")), model_id, row["id"])
-                 for row, embedding in zip(rows, embeddings)],
+                [
+                    (json.dumps(embedding, separators=(",", ":")), model_id, row["id"])
+                    for row, embedding in zip(rows, embeddings)
+                ],
             )
         return len(embeddings)
 
@@ -1281,7 +1411,8 @@ class LibraryStore:
             connection.execute("DELETE FROM document_acls WHERE document_id = ?", (document_id,))
             connection.execute("DELETE FROM ingestion_jobs WHERE document_id = ?", (document_id,))
             connection.execute(
-                "DELETE FROM documents WHERE id = ? AND library_id = ?", (document_id, library_id),
+                "DELETE FROM documents WHERE id = ? AND library_id = ?",
+                (document_id, library_id),
             )
         # Invalidate search cache (document count changed)
         get_search_cache().invalidate(library_id)
@@ -1406,8 +1537,16 @@ class LibraryStore:
                     (document_id, version, filename, media_type, size_bytes, content_hash, storage_path, created_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """,
-                (document["id"], document["version"], filename, document["media_type"], document["size_bytes"],
-                 document["content_hash"], storage_path, now),
+                (
+                    document["id"],
+                    document["version"],
+                    filename,
+                    document["media_type"],
+                    document["size_bytes"],
+                    document["content_hash"],
+                    storage_path,
+                    now,
+                ),
             )
             for ordinal, chunk in enumerate(chunks or []):
                 text, locator = chunk if isinstance(chunk, tuple) else (chunk, f"Passaggio {ordinal + 1}")

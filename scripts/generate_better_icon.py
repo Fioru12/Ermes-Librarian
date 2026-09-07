@@ -1,4 +1,3 @@
-
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 # Impostazioni
@@ -8,7 +7,7 @@ gold = (212, 175, 55)
 white = (255, 255, 255)
 
 # Crea base
-img = Image.new('RGBA', size, (0,0,0,0))
+img = Image.new("RGBA", size, (0, 0, 0, 0))
 d = ImageDraw.Draw(img)
 
 # Cerchio di base con gradiente (semplificato con bordo)
@@ -27,7 +26,7 @@ bbox = d.textbbox((0, 0), text, font=font)
 w = bbox[2] - bbox[0]
 h = bbox[3] - bbox[1]
 x = (size[0] - w) / 2
-y = (size[1] - h) / 2 - 20 # Offset per centratura visiva
+y = (size[1] - h) / 2 - 20  # Offset per centratura visiva
 
 d.text((x, y), text, font=font, fill=gold)
 

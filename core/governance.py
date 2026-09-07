@@ -2,6 +2,7 @@
 governance.py
 Gestione utenti admin/viewer e audit log amministrativo.
 """
+
 import contextlib
 import hashlib
 import hmac
@@ -24,8 +25,10 @@ _logger = logging.getLogger(__name__)
 # Formato: security/api_keys.json
 # {"keys": [{"key_hash": "...", "username": "...", "role": "admin|editor|viewer", "created_at": "..."}]}
 
+
 def _get_api_keys_file() -> str:
     from config import cfg
+
     return os.path.join(cfg.SECURITY_DIR, "api_keys.json")
 
 
@@ -53,7 +56,9 @@ def _save_api_keys(data: dict) -> None:
     path = _get_api_keys_file()
     os.makedirs(os.path.dirname(path), exist_ok=True)
     try:
-        with tempfile.NamedTemporaryFile(mode="w", dir=os.path.dirname(path), delete=False, encoding="utf-8", suffix=".tmp") as tmp:
+        with tempfile.NamedTemporaryFile(
+            mode="w", dir=os.path.dirname(path), delete=False, encoding="utf-8", suffix=".tmp"
+        ) as tmp:
             tmp_path = tmp.name
             json.dump(data, tmp, ensure_ascii=False, indent=2)
             tmp.flush()
@@ -91,12 +96,14 @@ def set_user_api_key(username: str, role: str = "viewer", api_key: str | None = 
             existing["role"] = role
             existing["updated_at"] = datetime.now().isoformat()
         else:
-            data["keys"].append({
-                "key_hash": key_hash,
-                "username": username,
-                "role": role,
-                "created_at": datetime.now().isoformat(),
-            })
+            data["keys"].append(
+                {
+                    "key_hash": key_hash,
+                    "username": username,
+                    "role": role,
+                    "created_at": datetime.now().isoformat(),
+                }
+            )
         _save_api_keys(data)
 
     return key
@@ -155,6 +162,7 @@ def has_min_role(user_role: str, min_role: str) -> bool:
 def _get_audit_secret() -> bytes:
     """Ritorna la secret key per HMAC audit. Usa cfg/env o persiste su security/.audit_secret."""
     from config import cfg
+
     if cfg.AUDIT_SECRET:
         return cfg.AUDIT_SECRET.encode("utf-8")
     env_secret = os.environ.get("ERMES_AUDIT_SECRET", "")
@@ -180,13 +188,11 @@ def _get_audit_secret() -> bytes:
         _logger.warning("Impossibile salvare .audit_secret persistente: %s", ex)
     return new_secret.encode("utf-8")
 
+
 def _sign_audit_entry(entry_str: str) -> str:
     """Crea firma HMAC-SHA256 per un entry di audit."""
-    return hmac.new(
-        _get_audit_secret(),
-        entry_str.encode('utf-8'),
-        hashlib.sha256
-    ).hexdigest()
+    return hmac.new(_get_audit_secret(), entry_str.encode("utf-8"), hashlib.sha256).hexdigest()
+
 
 def _verify_audit_signature(entry: dict) -> bool:
     """Verifica la firma HMAC di un entry di audit."""
@@ -196,6 +202,7 @@ def _verify_audit_signature(entry: dict) -> bool:
     entry_str = json.dumps(entry, ensure_ascii=False)
     expected_sig = _sign_audit_entry(entry_str)
     return hmac.compare_digest(stored_sig, expected_sig)
+
 
 # Lock per operazioni file users
 _users_lock = threading.RLock()
@@ -221,11 +228,7 @@ def _save_users(users_file: str, data: dict) -> None:
         tmp_path: str | None = None
         try:
             with tempfile.NamedTemporaryFile(
-                mode='w',
-                dir=os.path.dirname(users_file),
-                delete=False,
-                encoding='utf-8',
-                suffix='.tmp'
+                mode="w", dir=os.path.dirname(users_file), delete=False, encoding="utf-8", suffix=".tmp"
             ) as tmp:
                 tmp_path = tmp.name
                 json.dump(data, tmp, ensure_ascii=False, indent=2)
@@ -235,11 +238,11 @@ def _save_users(users_file: str, data: dict) -> None:
 
             # Atomic rename (even on Windows)
             if os.path.exists(users_file):
-                os.replace(users_file, users_file + '.bak')
+                os.replace(users_file, users_file + ".bak")
             os.replace(tmp_path, users_file)
-            if os.path.exists(users_file + '.bak'):
+            if os.path.exists(users_file + ".bak"):
                 with contextlib.suppress(BaseException):
-                    os.remove(users_file + '.bak')
+                    os.remove(users_file + ".bak")
         except Exception as e:
             if tmp_path is not None and os.path.exists(tmp_path):
                 with contextlib.suppress(BaseException):

@@ -4,6 +4,7 @@ The parser deliberately returns plain text and source locators only.  Vectorisat
 and LLM calls belong to later stages, so uploading a document never requires an
 external model or network connection.
 """
+
 from __future__ import annotations
 
 import re
@@ -57,7 +58,7 @@ def split_into_chunks(text: str, max_chars: int = 900, overlap_chars: int = 140)
             boundary = sentence_boundary if sentence_boundary != -1 else paragraph.rfind(" ", 0, max_chars)
             boundary = boundary if boundary > max_chars // 2 else max_chars
             chunks.append(paragraph[:boundary].strip())
-            paragraph = paragraph[max(0, boundary - overlap_chars):].strip()
+            paragraph = paragraph[max(0, boundary - overlap_chars) :].strip()
         current = paragraph
     if current:
         chunks.append(current)
@@ -155,6 +156,7 @@ def _try_ocr_images(images) -> str:
 def _extract_csv_units(content: bytes) -> list[SourceUnit]:
     import csv
     import io
+
     text = content.decode("utf-8-sig", errors="replace")
     reader = csv.reader(io.StringIO(text))
     rows = list(reader)
@@ -196,6 +198,7 @@ def _strip_rtf(rtf: str) -> str:
 def _extract_rtf_units(content: bytes) -> list[SourceUnit]:
     try:
         from striprtf.striprtf import rtf_to_text
+
         raw_text = content.decode("latin-1", errors="replace")
         clean_text = rtf_to_text(raw_text).strip()
     except Exception:
@@ -268,7 +271,9 @@ def _extract_xlsx_units(content: bytes) -> list[SourceUnit]:
             root = _parse_office_xml(archive.read("xl/sharedStrings.xml"))
             shared_strings = ["".join(item.itertext()).strip() for item in root.findall(f"{ns}si")]
         workbook = _parse_office_xml(archive.read("xl/workbook.xml"))
-        worksheet_paths = sorted(name for name in archive.namelist() if name.startswith("xl/worksheets/") and name.endswith(".xml"))
+        worksheet_paths = sorted(
+            name for name in archive.namelist() if name.startswith("xl/worksheets/") and name.endswith(".xml")
+        )
         units: list[SourceUnit] = []
         for index, sheet in enumerate(workbook.iter(f"{ns}sheet")):
             name = sheet.attrib.get("name", "Foglio")
