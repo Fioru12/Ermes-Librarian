@@ -1228,7 +1228,7 @@ class LibraryStore:
                 emb_filter = "c.embedding_json <> ''"
 
             row = connection.execute(
-                f"SELECT COUNT(c.id) AS count FROM document_chunks c JOIN documents d ON d.id = c.document_id WHERE d.library_id = ? AND {emb_filter}",
+                f"SELECT COUNT(c.id) AS count FROM document_chunks c JOIN documents d ON d.id = c.document_id WHERE d.library_id = ? AND {emb_filter}",  # nosec B608
                 (library_id,),
             ).fetchone()
             indexed_count = row.get("count", 0) if isinstance(row, dict) else row[0]
@@ -1249,7 +1249,7 @@ class LibraryStore:
 
             if semantic_used:
                 emb_rows = connection.execute(
-                    f"SELECT c.id FROM document_chunks c JOIN documents d ON d.id = c.document_id WHERE d.library_id = ? AND {emb_filter}",
+                    f"SELECT c.id FROM document_chunks c JOIN documents d ON d.id = c.document_id WHERE d.library_id = ? AND {emb_filter}",  # nosec B608
                     (library_id,),
                 ).fetchall()
                 for r in emb_rows:
@@ -1262,7 +1262,7 @@ class LibraryStore:
             if candidate_chunk_ids:
                 placeholders = ",".join("?" for _ in candidate_chunk_ids)
                 rows = connection.execute(
-                    f"SELECT documents.id AS document_id, documents.filename, documents.version, documents.content_hash, document_chunks.id AS chunk_id, document_chunks.ordinal, document_chunks.text AS excerpt, document_chunks.source_locator, document_chunks.embedding_json FROM document_chunks JOIN documents ON documents.id = document_chunks.document_id WHERE document_chunks.id IN ({placeholders}) AND documents.library_id = ? ORDER BY documents.created_at DESC, document_chunks.ordinal ASC",
+                    f"SELECT documents.id AS document_id, documents.filename, documents.version, documents.content_hash, document_chunks.id AS chunk_id, document_chunks.ordinal, document_chunks.text AS excerpt, document_chunks.source_locator, document_chunks.embedding_json FROM document_chunks JOIN documents ON documents.id = document_chunks.document_id WHERE document_chunks.id IN ({placeholders}) AND documents.library_id = ? ORDER BY documents.created_at DESC, document_chunks.ordinal ASC",  # nosec B608
                     (*candidate_chunk_ids, library_id),
                 ).fetchall()
             else:

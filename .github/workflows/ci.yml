@@ -42,10 +42,13 @@ jobs:
       # no signal that anything had gone wrong.
       - name: MyPy check (advisory)
         continue-on-error: true
-        run: mypy . --ignore-missing-imports
+        # Scoped to product dirs and --explicit-package-bases: su `mypy .`
+        # l'analisi si fermava subito su moduli duplicati (legacy_winsarp,
+        # evaluation) e non controllava nulla.
+        run: mypy api/ core/ config/ --ignore-missing-imports --explicit-package-bases
       - name: Bandit security scan (advisory)
         continue-on-error: true
-        run: bandit -r api/ config.py core/ -ll
+        run: bandit -r api/ config/ core/ -ll
       - name: pip-audit (vulnerability scan, advisory)
         continue-on-error: true
         run: pip-audit
@@ -102,7 +105,9 @@ jobs:
         run: |
           mkdir -p deploy-backup
           cp -r data/ermes_knowledge.sqlite3 deploy-backup/ 2>/dev/null || true
-          cp config.py deploy-backup/ 2>/dev/null || true
+          # Il config e' un package dalla migrazione modulare: il vecchio
+          # `cp config.py` con || true non copiava nulla, silenziosamente.
+          cp -r config/ deploy-backup/ 2>/dev/null || true
           cp .env deploy-backup/ 2>/dev/null || true
           tar czf deploy-backup.tar.gz deploy-backup/
       - uses: actions/upload-artifact@v4

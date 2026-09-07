@@ -225,16 +225,16 @@ def _dispatch_mcp_tool(
         if not lib:
             raise HTTPException(status_code=404, detail="Biblioteca non trovata")
 
-        results = store.search_library(lib_id, query, top_k=top_k)
+        results, _profile = store.search_with_profile(lib_id, query, limit=max(1, min(top_k, 50)), actor=user)
         return {
             "library_id": lib_id,
             "query": query,
             "matches": [
                 {
                     "filename": r.get("filename"),
-                    "score": r.get("score"),
-                    "excerpt": r.get("text"),
-                    "section": r.get("section"),
+                    "score": r.get("relevance_score"),
+                    "excerpt": r.get("excerpt"),
+                    "section": (r.get("citation") or {}).get("locator"),
                 }
                 for r in results
             ],
