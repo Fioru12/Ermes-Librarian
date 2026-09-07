@@ -24,7 +24,6 @@ import logging
 import os
 import re
 import threading
-from collections import defaultdict
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -40,9 +39,7 @@ from core.governance import append_audit
 _logger = logging.getLogger(__name__)
 
 # ── Prometheus metrics ──
-_metrics_lock = threading.Lock()
-_request_counts = defaultdict(int)
-_request_durations = defaultdict(float)
+from core.metrics import HTTP_DURATION, HTTP_REQUESTS  # noqa: F401 — usati nel middleware
 
 # ── HTTP client globale ──
 _http_client: httpx.AsyncClient | None = None  # noqa: F821 — importato dopo
@@ -95,6 +92,17 @@ def _get_http_client() -> httpx.AsyncClient:  # noqa: F821
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Gestisce il ciclo di vita dell'applicazione FastAPI."""
+    # Metriche: etichette di sistema (una sola serie, idempotente).
+    import platform
+    from importlib import metadata
+
+    from core.metrics import init_system_info
+    try:
+        app_version = metadata.version("ermes")
+    except metadata.PackageNotFoundError:
+        app_version = "unknown"
+    init_system_info(version=app_version, python_version=platform.python_version(), environment=getattr(cfg, "ENVIRONMENT", "production"))
+
     if getattr(cfg, "ENABLE_LEGACY_WINSARP", False):
         _logger.warning(
             "ENABLE_LEGACY_WINSARP e' attivo: gli endpoint WinSarp legacy in legacy_winsarp/api/ "
@@ -205,6 +213,7 @@ async def prometheus_metrics_middleware(request: Request, call_next):
     normalized_path = re.sub(r'/api/formula/cancel/[a-zA-Z0-9_\-]+', '/api/formula/cancel/{request_id}', normalized_path)
     normalized_path = re.sub(r'/api/winsarp/catalog/[a-zA-Z0-9_\-]+', '/api/winsarp/catalog/{formula_id}', normalized_path)
 
+
     start_time = __import__('time').perf_counter()
     try:
         response = await call_next(request)
@@ -217,37 +226,30 @@ async def prometheus_metrics_middleware(request: Request, call_next):
         import time
         duration = time.perf_counter() - start_time
         method = request.method
-        with _metrics_lock:
-            _request_counts[(method, normalized_path, str(status_code))] += 1
-            _request_durations[(method, normalized_path)] += duration
+        HTTP_REQUESTS.labels(method=method, path=normalized_path, status=str(status_code)).inc()
+        HTTP_DURATION.labels(method=method, path=normalized_path).observe(duration)
 
 
 @app.get("/metrics", tags=["Monitoring"], include_in_schema=True)
-def prometheus_metrics():
-    """Ritorna le metriche del sistema in formato Prometheus."""
-    lines = []
-    lines.append("# HELP ermes_http_requests_total Numero totale di richieste HTTP gestite.")
-    lines.append("# TYPE ermes_http_requests_total counter")
-    with _metrics_lock:
-        for (method, path, status), count in sorted(_request_counts.items()):
-            lines.append(f'ermes_http_requests_total{{method="{method}",path="{path}",status="{status}"}} {count}')
-    lines.append("# HELP ermes_http_request_duration_seconds_sum Somma totale del tempo di risposta.")
-    lines.append("# TYPE ermes_http_request_duration_seconds_sum counter")
-    with _metrics_lock:
-        for (method, path), total_time in sorted(_request_durations.items()):
-            lines.append(f'ermes_http_request_duration_seconds_sum{{method="{method}",path="{path}"}} {total_time:.6f}')
-    lines.append("# HELP ermes_http_request_duration_seconds_count Numero totale di campioni.")
-    lines.append("# TYPE ermes_http_request_duration_seconds_count counter")
-    with _metrics_lock:
-        path_counts = defaultdict(int)
-        for (method, path, status), count in _request_counts.items():
-            path_counts[(method, path)] += count
-        for (method, path), count in sorted(path_counts.items()):
-            lines.append(f'ermes_http_request_duration_seconds_count{{method="{method}",path="{path}"}} {count}')
-    lines.append("# HELP ermes_system_info Metadati di sistema dell'istanza Ermes.")
-    lines.append("# TYPE ermes_system_info gauge")
-    lines.append('ermes_system_info{version="2.1.0",python_version="3.11",environment="enterprise"} 1')
-    return Response(content="\n".join(lines) + "\n", media_type="text/plain; version=0.0.4")
+def prometheus_metrics(request: Request):
+    """Espone le metriche Prometheus.
+
+    Default-secure: con ERMES_METRICS_TOKEN impostato richiede
+    Authorization: Bearer <token>; senza token, l'accesso è consentito
+    solo dal loopback (scrape locale su singolo nodo).
+    """
+    from core.metrics import expose
+
+    expected_token = getattr(cfg, "METRICS_TOKEN", "")
+    if expected_token:
+        authorization = request.headers.get("authorization", "")
+        if authorization != f"Bearer {expected_token}":
+            raise HTTPException(status_code=401, detail="Token metrics mancante o non valido")
+    else:
+        client_host = request.client.host if request.client else ""
+        if client_host not in {"127.0.0.1", "::1", "testclient"}:
+            raise HTTPException(status_code=401, detail="Configurare ERMES_METRICS_TOKEN per l'accesso remoto a /metrics")
+    return Response(content=expose(), media_type="text/plain; version=0.0.4")
 
 
 # ── Import moduli ──

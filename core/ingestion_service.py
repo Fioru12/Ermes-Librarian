@@ -35,8 +35,19 @@ def process_ingestion_job(store: LibraryStore, job_id: str, storage_root: str | 
         if embeddings:
             store.store_chunk_embeddings(job["library_id"], document_id, embeddings, cfg.EMBED_MODEL_ID)
         store.finish_ingestion_job(job_id, "ready", document_id=document_id)
+        _record_job_metric("ready")
     except Exception as error:
         if document_id:
             store.mark_document_status(job["library_id"], document_id, "failed")
         message = str(error) if isinstance(error, DocumentParseError) else "Errore durante l'indicizzazione"
         store.finish_ingestion_job(job_id, "failed", document_id=document_id, error_message=message)
+        _record_job_metric("failed")
+
+
+def _record_job_metric(status: str) -> None:
+    """Metrica best-effort: un problema di observability non deve rompere l'ingestione."""
+    try:
+        from core.metrics import INGESTION_JOBS
+        INGESTION_JOBS.labels(status=status).inc()
+    except Exception:  # pragma: no cover - solo se prometheus_client manca
+        pass

@@ -1,6 +1,7 @@
 """Libraries and document inventory endpoints for Ermes Knowledge."""
 from __future__ import annotations
 
+import contextlib
 import os
 import uuid
 from datetime import UTC, datetime
@@ -121,6 +122,19 @@ def library_index_consistency(
     """Diagnostica di allineamento tra DB, originali e vettori (solo admin)."""
     report = store.verify_index_consistency(cfg.LIBRARY_STORAGE_DIR, cfg.EMBED_MODEL_ID)
     return report
+
+
+@router.get("/{library_id}")
+def get_library_detail(
+    library_id: str,
+    _auth: dict = Depends(_verify_api_key),
+    store: LibraryStore = Depends(get_library_store),
+):
+    """Dettaglio biblioteca con access_role effettivo dell'utente."""
+    try:
+        return store.get_library(library_id, _auth)
+    except (LibraryNotFoundError, LibraryAccessError) as error:
+        raise HTTPException(status_code=404, detail="Biblioteca non trovata") from error
 
 
 @router.get("/{library_id}/documents")
@@ -297,6 +311,8 @@ def _answer_question(store: LibraryStore, library_id: str, question: str, top_k:
     if not citations:
         latency_ms = (time.perf_counter() - t0) * 1000.0
         from core.analytics import record_query_event
+        from core.metrics import rag_question_recorded
+        rag_question_recorded(library_id, "abstained", result_count=0)
         ans_id = record_query_event(
             query=question,
             library_id=library_id,
@@ -322,6 +338,13 @@ def _answer_question(store: LibraryStore, library_id: str, question: str, top_k:
     )
     latency_ms = (time.perf_counter() - t0) * 1000.0
     from core.analytics import record_query_event
+    from core.metrics import rag_question_recorded, record_rerank_mode
+    rag_question_recorded(
+        library_id,
+        "answered" if coverage == "supported" else "abstained",
+        result_count=len(citations),
+    )
+    record_rerank_mode(citations[0].get("rerank_mode", "unknown"))
     ans_id = record_query_event(
         query=question,
         library_id=library_id,
@@ -905,7 +928,9 @@ def export_library_endpoint(
 ):
     """Export the entire library with documents and chunks as a downloadable .ermes pack."""
     import tempfile
+
     from fastapi.responses import FileResponse
+
     from core.library_pack import export_library_pack
 
     try:
@@ -934,10 +959,8 @@ def export_library_endpoint(
         )
     except Exception as error:
         if os.path.exists(temp_pack.name):
-            try:
+            with contextlib.suppress(OSError):
                 os.unlink(temp_pack.name)
-            except OSError:
-                pass
         raise HTTPException(status_code=500, detail=f"Errore durante l'esportazione: {error}") from error
 
 
@@ -950,7 +973,8 @@ async def import_library_pack_endpoint(
 ):
     """Import a .ermes knowledge pack and create a new library with full indexing."""
     import tempfile
-    from core.library_pack import import_library_pack, KnowledgePackError
+
+    from core.library_pack import KnowledgePackError, import_library_pack
 
     temp_pack = tempfile.NamedTemporaryFile(suffix=".ermes", delete=False)
     try:
@@ -973,10 +997,8 @@ async def import_library_pack_endpoint(
         raise HTTPException(status_code=500, detail=f"Errore durante l'importazione: {error}") from error
     finally:
         if os.path.exists(temp_pack.name):
-            try:
+            with contextlib.suppress(OSError):
                 os.unlink(temp_pack.name)
-            except OSError:
-                pass
 
 
 @router.get("/{library_id}/duplicates")
