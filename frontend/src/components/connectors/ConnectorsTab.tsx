@@ -9,6 +9,8 @@ import {
   AlertCircle,
   Copy,
   RefreshCw,
+  Cloud,
+  Layers,
 } from 'lucide-react'
 
 interface Library {
@@ -36,8 +38,23 @@ export default function ConnectorsTab({ showNotif }: ConnectorsTabProps) {
   const [isWebSyncing, setIsWebSyncing] = useState<boolean>(false)
   const [webStatus, setWebStatus] = useState<{ ok?: boolean; message?: string } | null>(null)
 
+  // Microsoft Graph (SharePoint / OneDrive) state
+  const [msTenantId, setMsTenantId] = useState<string>('')
+  const [msClientId, setMsClientId] = useState<string>('')
+  const [msClientSecret, setMsClientSecret] = useState<string>('')
+  const [msDriveId, setMsDriveId] = useState<string>('')
+  const [msFolderPath, setMsFolderPath] = useState<string>('/')
+  const [isMsTesting, setIsMsTesting] = useState<boolean>(false)
+  const [isMsSyncing, setIsMsSyncing] = useState<boolean>(false)
+  const [msStatus, setMsStatus] = useState<{ ok?: boolean; message?: string } | null>(null)
+
+  // Folder Watcher state
+  const [watcherStatus, setWatcherStatus] = useState<{ active?: boolean; monitored_sources_count?: number } | null>(null)
+  const [isWatcherSyncing, setIsWatcherSyncing] = useState<boolean>(false)
+
   useEffect(() => {
     fetchLibraries()
+    fetchWatcherStatus()
   }, [])
 
   const fetchLibraries = async () => {
@@ -45,11 +62,22 @@ export default function ConnectorsTab({ showNotif }: ConnectorsTabProps) {
       const res = await fetch('/api/libraries', { credentials: 'include' })
       if (res.ok) {
         const data = await res.json()
-        const libs = data.libraries || []
+        const libs = data.items || data.libraries || []
         setLibraries(libs)
         if (libs.length > 0) {
           setSelectedLibrary(libs[0].id)
         }
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  const fetchWatcherStatus = async () => {
+    try {
+      const res = await fetch('/api/connectors/watcher/status', { credentials: 'include' })
+      if (res.ok) {
+        setWatcherStatus(await res.json())
       }
     } catch {
       // ignore
@@ -179,7 +207,7 @@ export default function ConnectorsTab({ showNotif }: ConnectorsTabProps) {
       })
       const data = await res.json()
       if (res.ok) {
-        showNotif(`Scraping completato! Importate ${data.synced_count} pagine web.`, 'success')
+        showNotif(`Scraping completato! Importate ${data.imported_count ?? data.synced_count ?? 0} pagine web.`, 'success')
       } else {
         showNotif(data.detail || 'Errore durante lo scraping', 'error')
       }
@@ -187,6 +215,99 @@ export default function ConnectorsTab({ showNotif }: ConnectorsTabProps) {
       showNotif('Impossibile completare lo scraping', 'error')
     } finally {
       setIsWebSyncing(false)
+    }
+  }
+
+  const getMsConfig = () => ({
+    tenant_id: msTenantId,
+    client_id: msClientId,
+    client_secret: msClientSecret,
+    drive_id: msDriveId,
+    folder_path: msFolderPath || '/',
+  })
+
+  const handleTestMs = async () => {
+    if (!msTenantId.trim() || !msClientId.trim() || !msClientSecret.trim()) {
+      showNotif('Inserisci Tenant ID, Client ID e Client Secret Microsoft', 'error')
+      return
+    }
+    setIsMsTesting(true)
+    setMsStatus(null)
+    try {
+      const res = await fetch('/api/connectors/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ type: 'microsoft_graph', config: getMsConfig() }),
+      })
+      const data = await res.json()
+      if (res.ok && data.ok) {
+        setMsStatus({ ok: true, message: data.message })
+        showNotif('Connessione Microsoft Graph verificata!', 'success')
+      } else {
+        setMsStatus({ ok: false, message: data.message || data.detail || 'Errore durante la verifica' })
+        showNotif(data.message || data.detail || 'Verifica Microsoft Graph fallita', 'error')
+      }
+    } catch (err: any) {
+      setMsStatus({ ok: false, message: err.message || 'Errore di rete' })
+      showNotif('Impossibile verificare Microsoft Graph', 'error')
+    } finally {
+      setIsMsTesting(false)
+    }
+  }
+
+  const handleSyncMs = async () => {
+    if (!selectedLibrary) {
+      showNotif('Seleziona una biblioteca di destinazione', 'error')
+      return
+    }
+    if (!msTenantId.trim() || !msClientId.trim() || !msClientSecret.trim()) {
+      showNotif('Inserisci le credenziali Microsoft Graph', 'error')
+      return
+    }
+    setIsMsSyncing(true)
+    try {
+      const res = await fetch('/api/connectors/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          type: 'microsoft_graph',
+          target_library_id: selectedLibrary,
+          config: getMsConfig(),
+        }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        showNotif(`Sincronizzati ${data.imported_count} documenti Microsoft 365!`, 'success')
+      } else {
+        showNotif(data.detail || 'Errore durante la sincronizzazione', 'error')
+      }
+    } catch (err: any) {
+      showNotif('Impossibile completare la sincronizzazione Microsoft', 'error')
+    } finally {
+      setIsMsSyncing(false)
+    }
+  }
+
+  const handleWatcherSync = async () => {
+    setIsWatcherSyncing(true)
+    try {
+      const res = await fetch('/api/connectors/watcher/sync', {
+        method: 'POST',
+        credentials: 'include',
+      })
+      const data = await res.json()
+      if (res.ok) {
+        showNotif('Sincronizzazione forzata completata!', 'success')
+        fetchWatcherStatus()
+      } else {
+        showNotif(data.detail || 'Errore durante la sincronizzazione', 'error')
+      }
+    } catch (err: any) {
+      showNotif('Impossibile forzare la sincronizzazione', 'error')
+    } finally {
+      setIsWatcherSyncing(false)
     }
   }
 
@@ -243,6 +364,31 @@ export default function ConnectorsTab({ showNotif }: ConnectorsTabProps) {
             </option>
           ))}
         </select>
+      </div>
+
+      {/* Folder Watcher Status */}
+      <div className="rounded-xl border border-white/10 bg-slate-900/60 p-4 flex flex-col md:flex-row md:items-center gap-4 justify-between shadow-lg">
+        <div className="flex items-center gap-3">
+          <Layers className="w-6 h-6 text-indigo-400" />
+          <div>
+            <label className="text-xs font-semibold uppercase tracking-wider text-slate-300 block mb-1">
+              Folder Watcher — Monitoraggio automatico cartelle registrate
+            </label>
+            <p className="text-xs text-slate-400">
+              {watcherStatus
+                ? `${watcherStatus.active ? 'Attivo' : 'Inattivo'} — ${watcherStatus.monitored_sources_count ?? 0} sorgenti monitorate`
+                : 'Stato non disponibile'}
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={handleWatcherSync}
+          disabled={isWatcherSyncing}
+          className="px-4 py-2 text-xs font-medium rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition flex items-center gap-2 shadow-lg shadow-indigo-600/20"
+        >
+          {isWatcherSyncing && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+          Sincronizza ora tutte le cartelle
+        </button>
       </div>
 
       {/* Grid Connectors */}
@@ -347,6 +493,90 @@ export default function ConnectorsTab({ showNotif }: ConnectorsTabProps) {
             >
               {isWebSyncing && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
               Avvia Scraping
+            </button>
+          </div>
+        </div>
+
+        {/* M365 / SharePoint / OneDrive Connector */}
+        <div className="rounded-xl border border-white/10 bg-slate-900/50 p-6 flex flex-col justify-between space-y-5 hover:border-sky-500/30 transition-all shadow-md">
+          <div className="space-y-3">
+            <div className="flex items-center gap-3 text-sky-400 font-semibold text-lg">
+              <Cloud className="w-6 h-6" /> Microsoft 365 (SharePoint / OneDrive)
+            </div>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              Collegati a Microsoft Graph (OAuth2 client credentials) per indicizzare documenti da SharePoint e OneDrive for Business.
+            </p>
+            <div className="space-y-2 pt-2">
+              <label className="text-xs font-medium text-slate-300">Tenant ID</label>
+              <input
+                type="text"
+                placeholder="es. 12345678-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                value={msTenantId}
+                onChange={(e) => setMsTenantId(e.target.value)}
+                className="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500"
+              />
+              <label className="text-xs font-medium text-slate-300">Client ID</label>
+              <input
+                type="text"
+                placeholder="Azure Application (Client) ID"
+                value={msClientId}
+                onChange={(e) => setMsClientId(e.target.value)}
+                className="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500"
+              />
+              <label className="text-xs font-medium text-slate-300">Client Secret</label>
+              <input
+                type="password"
+                placeholder="Azure Application Secret"
+                value={msClientSecret}
+                onChange={(e) => setMsClientSecret(e.target.value)}
+                className="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500"
+              />
+              <label className="text-xs font-medium text-slate-300">Drive ID (opzionale)</label>
+              <input
+                type="text"
+                placeholder="es. 0B7g34... (lascia vuoto per OneDrive personale)"
+                value={msDriveId}
+                onChange={(e) => setMsDriveId(e.target.value)}
+                className="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500"
+              />
+              <label className="text-xs font-medium text-slate-300">Percorso cartella remota</label>
+              <input
+                type="text"
+                placeholder="es. /Documenti Condivisi"
+                value={msFolderPath}
+                onChange={(e) => setMsFolderPath(e.target.value)}
+                className="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500"
+              />
+            </div>
+            {msStatus && (
+              <div
+                className={`p-3 rounded-lg text-xs flex items-center gap-2 ${
+                  msStatus.ok
+                    ? 'bg-emerald-950/40 border border-emerald-500/30 text-emerald-300'
+                    : 'bg-rose-950/40 border border-rose-500/30 text-rose-300'
+                }`}
+              >
+                {msStatus.ok ? <CheckCircle2 className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+                {msStatus.message}
+              </div>
+            )}
+          </div>
+          <div className="flex gap-3 pt-2">
+            <button
+              onClick={handleTestMs}
+              disabled={isMsTesting}
+              className="px-4 py-2 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition border border-slate-700 flex items-center gap-2"
+            >
+              {isMsTesting && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+              Testa connessione
+            </button>
+            <button
+              onClick={handleSyncMs}
+              disabled={isMsSyncing}
+              className="px-4 py-2 text-xs font-medium rounded-lg bg-sky-600 hover:bg-sky-500 text-white transition flex items-center gap-2 shadow-lg shadow-sky-600/20"
+            >
+              {isMsSyncing && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+              Sincronizza ora
             </button>
           </div>
         </div>

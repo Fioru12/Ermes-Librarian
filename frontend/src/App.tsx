@@ -9,6 +9,7 @@ import DocumentsTab from './components/documents/DocumentsTab'
 import HealthTab from './components/health/HealthTab'
 import SettingsTab from './components/settings/SettingsTab'
 import ConnectorsTab from './components/connectors/ConnectorsTab'
+import OnboardingWizard from './components/OnboardingWizard/OnboardingWizard'
 import { ThemeProvider, useTheme } from './hooks/useTheme'
 import type { HealthStatus, Message, TabId } from './types'
 
@@ -23,7 +24,8 @@ function AppInner() {
   const [messages, setMessages] = useState<Message[]>([])
   const [inputMessage, setInputMessage] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
-  const [authState, setAuthState] = useState<'checking' | 'anonymous' | 'authenticated'>('checking')
+    const [authState, setAuthState] = useState<'checking' | 'anonymous' | 'authenticated'>('checking')
+  const [showOnboarding, setShowOnboarding] = useState(false)
   const [currentUser, setCurrentUser] = useState<{ username: string; role: string } | null>(null)
   const [oidcConfig, setOidcConfig] = useState<{ enabled: boolean; client_id?: string; issuer?: string } | null>(null)
   const [loginUsername, setLoginUsername] = useState('')
@@ -55,6 +57,10 @@ function AppInner() {
         const items: LibrarySummary[] = data.items ?? []
         setLibraries(items)
         setSelectedLibraryId(current => current && items.some(item => item.id === current) ? current : items[0]?.id ?? '')
+        if (items.length === 0 && authState === 'authenticated') {
+          const dismissed = localStorage.getItem('ermes_onboarding_dismissed')
+          if (!dismissed) setShowOnboarding(true)
+        }
       }
       if (healthResponse.ok) setHealth(await healthResponse.json())
     } catch {
@@ -80,6 +86,18 @@ function AppInner() {
   useEffect(() => {
     if (authState === 'authenticated') fetchData()
   }, [authState])
+
+  // Event listeners: il wizard può aprire la chat o chiudersi da App
+  useEffect(() => {
+    const openChat = () => { setShowOnboarding(false); setActiveTab('connectors') }
+    const closeOnboarding = () => { setShowOnboarding(false); localStorage.setItem('ermes_onboarding_dismissed', '1') }
+    window.addEventListener('openChat', openChat)
+    window.addEventListener('closeOnboarding', closeOnboarding)
+    return () => {
+      window.removeEventListener('openChat', openChat)
+      window.removeEventListener('closeOnboarding', closeOnboarding)
+    }
+  }, [])
 
   const sendQuestion = async (question: string) => {
     if (isGenerating || !question.trim()) return
@@ -173,6 +191,12 @@ function AppInner() {
   }
 
   return <div className={`ermes-app-shell flex h-screen overflow-hidden font-sans antialiased ${t.bg}`}>
+    {showOnboarding && currentUser && (
+      <OnboardingWizard
+        onLibraryCreated={libraryId => { setShowOnboarding(false); setSelectedLibraryId(libraryId) }}
+        showNotif={showNotif}
+      />
+    )}
     <Sidebar activeTab={activeTab} onTabChange={setActiveTab} healthStatus={health ? { status: health.status } : undefined} onRefresh={fetchData} isAdmin={currentUser?.role === 'admin'} username={currentUser?.username} />
     <main className="relative flex flex-1 flex-col overflow-hidden">
       {notif && <div className={`absolute right-4 top-4 z-50 flex items-center gap-2.5 rounded-xl border px-4 py-3 shadow-lg ${notif.type === 'error' ? 'border-rose-800 bg-rose-950/90 text-rose-200' : 'border-emerald-800 bg-emerald-950/90 text-emerald-200'}`}>{notif.type === 'error' ? <AlertTriangle className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}<span className="text-sm font-medium">{notif.message}</span></div>}
