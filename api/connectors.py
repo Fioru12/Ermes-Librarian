@@ -42,7 +42,7 @@ def test_connector(
     _auth: dict = Depends(_require_role("admin")),
 ) -> dict:
     if request.type == "microsoft_graph":
-        connector = MicrosoftGraphConnector(request.config)
+        connector: MicrosoftGraphConnector | WebScraperConnector | LocalFolderConnector = MicrosoftGraphConnector(request.config)
     elif request.type == "web_scraper":
         connector = WebScraperConnector(request.config)
     elif request.type == "local_folder":
@@ -66,7 +66,7 @@ def sync_connector(
         raise HTTPException(status_code=404, detail="Biblioteca non trovata")
 
     if request.type == "microsoft_graph":
-        connector = MicrosoftGraphConnector(request.config)
+        connector: MicrosoftGraphConnector | WebScraperConnector | LocalFolderConnector = MicrosoftGraphConnector(request.config)
     elif request.type == "web_scraper":
         connector = WebScraperConnector(request.config)
     elif request.type == "local_folder":
@@ -77,42 +77,51 @@ def sync_connector(
     try:
         remote_docs = connector.fetch_documents()
         imported = 0
+        skipped_duplicates = 0
         errors = []
 
-        import os
-        import tempfile
+        import hashlib
 
-        from core.document_parser import parse_document
+        from core.document_parser import extract_source_units
+        from core.library_store import resolve_storage_path, storage_relative_path
+
+        known_hashes = store.existing_content_hashes(request.target_library_id)
 
         for rdoc in remote_docs:
             try:
-                # Salva temporaneamente e parsa
-                suffix = f".{rdoc.name.split('.')[-1]}" if "." in rdoc.name else ".txt"
-                with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
-                    tmp.write(rdoc.content)
-                    tmp_path = tmp.name
+                # Estrazione diretta dai byte: extract_source_units non
+                # richiede file temporanei (parse_document non esiste piu').
+                units = extract_source_units(rdoc.name, rdoc.content)
+                chunks = [(u.text, u.locator) for u in units]
+                if not chunks or not chunks[0][0]:
+                    chunks = [(rdoc.name, "Titolo")]
 
-                try:
-                    parsed = parse_document(tmp_path)
-                    chunks = [(c, f"{rdoc.name} (remoto)") for c in parsed.get("chunks", [parsed.get("text", "")])]
-                    if not chunks or not chunks[0][0]:
-                        chunks = [(rdoc.name, "Titolo")]
+                # L'originale DEVE essere scritto su disco: add_document
+                # registra solo metadati, senza il file il download e la
+                # re-ingestione falliscono con "Originale non disponibile"
+                # (stessa classe di bug gia' trovata nel folder_importer).
+                digest = hashlib.sha256(rdoc.content).hexdigest()
+                if digest in known_hashes:
+                    skipped_duplicates += 1
+                    continue
+                stored_name = f"{digest[:12]}_{rdoc.name}"
+                stored_rel = storage_relative_path(request.target_library_id, stored_name)
+                destination = resolve_storage_path(stored_rel, cfg.LIBRARY_STORAGE_DIR)
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                destination.write_bytes(rdoc.content)
 
-                    # Inserisce documento nel library store
-                    stored_rel = f"{request.target_library_id}/{rdoc.name}"
-                    store.add_document(
-                        library_id=request.target_library_id,
-                        filename=rdoc.name,
-                        media_type=rdoc.media_type,
-                        content=rdoc.content,
-                        storage_path=stored_rel,
-                        status="ready",
-                        chunks=chunks,
-                    )
-                    imported += 1
-                finally:
-                    if os.path.exists(tmp_path):
-                        os.unlink(tmp_path)
+                # Inserisce documento nel library store
+                store.add_document(
+                    library_id=request.target_library_id,
+                    filename=rdoc.name,
+                    media_type=rdoc.media_type,
+                    content=rdoc.content,
+                    storage_path=stored_rel,
+                    status="ready",
+                    chunks=chunks,
+                )
+                known_hashes.add(digest)
+                imported += 1
 
             except Exception as e:
                 _logger.warning("Errore importazione documento remoto %s: %s", rdoc.name, e)
@@ -126,6 +135,7 @@ def sync_connector(
                 "connector_type": request.type,
                 "library_id": request.target_library_id,
                 "imported": imported,
+                "skipped_duplicates": skipped_duplicates,
                 "total_found": len(remote_docs),
             },
         )
@@ -133,6 +143,7 @@ def sync_connector(
         return {
             "ok": True,
             "imported_count": imported,
+            "skipped_duplicates": skipped_duplicates,
             "total_found": len(remote_docs),
             "errors": errors,
         }

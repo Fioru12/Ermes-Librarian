@@ -193,7 +193,7 @@ def oidc_session_login(request: OidcSessionRequest, response: Response) -> dict:
         max_age=max(1, cfg.SESSION_TTL_HOURS) * 3600,
         httponly=True,
         samesite="lax",
-        secure=cfg.HOST not in {"127.0.0.1", "localhost", "0.0.0.0"},
+        secure=cfg.HOST not in {"127.0.0.1", "localhost", "0.0.0.0"},  # nosec B104: binding check, not binding
     )
     return {"username": user["username"], "role": user["role"], "provider": "oidc"}
 
@@ -222,7 +222,7 @@ def login(request: LoginRequest, response: Response) -> dict:
         samesite="lax",
         # Local development commonly binds 0.0.0.0 but is still served over
         # HTTP. Production deployments must terminate TLS before using the UI.
-        secure=cfg.HOST not in {"127.0.0.1", "localhost", "0.0.0.0"},
+        secure=cfg.HOST not in {"127.0.0.1", "localhost", "0.0.0.0"},  # nosec B104: binding check, not binding
     )
     return {"username": user["username"], "role": user["role"]}
 
