@@ -5,12 +5,11 @@ con layout modern enterprise a card, metriche evidenziate e screenshot applicati
 """
 import os
 from typing import Any
+
 from reportlab.lib import colors
-from reportlab.platypus import (
-    SimpleDocTemplate, Paragraph, Spacer, PageBreak, Image, Table, TableStyle
-)
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import inch
+from reportlab.platypus import Image, PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
 SLIDE_WIDTH = 13.333 * inch
 SLIDE_HEIGHT = 7.5 * inch
@@ -27,7 +26,7 @@ def build_slides_pdf() -> None:
         bottomMargin=0.5 * inch
     )
 
-    styles = getSampleStyleSheet()
+    _styles = getSampleStyleSheet()
 
     # Colori
     NAVY = colors.HexColor("#0f172a")
@@ -39,7 +38,7 @@ def build_slides_pdf() -> None:
     MUTED_TEXT = colors.HexColor("#475569")
     BG_LIGHT_CARD = colors.HexColor("#f8fafc")
     BORDER_CARD = colors.HexColor("#cbd5e1")
-    WHITE = colors.HexColor("#ffffff")
+    _WHITE = colors.HexColor("#ffffff")
 
     style_cover_title = ParagraphStyle(
         'CoverTitle',
@@ -107,7 +106,7 @@ def build_slides_pdf() -> None:
         icon_path = "Ermes.png"
 
     screenshot_chat = "docs/screenshots/assistant-with-citations.png"
-    screenshot_docs = "docs/screenshots/libraries-and-documents.png"
+    _screenshot_docs = "docs/screenshots/libraries-and-documents.png"
     screenshot_audit = "docs/screenshots/audit-log-integrity.png"
 
     story: list[Any] = []
@@ -127,7 +126,7 @@ def build_slides_pdf() -> None:
     cover_left.append(Paragraph("★ PROVA FINALE DI ALTA FORMAZIONE ITS", ParagraphStyle('B', fontName='Helvetica-Bold', fontSize=12, textColor=CYAN)))
     cover_left.append(Paragraph("ERMES KNOWLEDGE", style_cover_title))
     cover_left.append(Paragraph("Sistema RAG Enterprise Local-First con Garanzie di Sicurezza, DLP e Isolamento", style_cover_sub))
-    
+
     meta_p = [
         Paragraph("<b>Candidato:</b> [Nome e Cognome]", style_cover_meta),
         Paragraph("<b>Corso:</b> Tecnico Superiore Sviluppo Software e AI", style_cover_meta),

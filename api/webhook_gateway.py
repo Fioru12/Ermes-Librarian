@@ -8,9 +8,9 @@ from __future__ import annotations
 
 import base64
 import logging
-from typing import Any, Optional
+from typing import Any
 
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
 from api.auth import _verify_api_key
@@ -32,7 +32,7 @@ class IngestAutomationRequest(BaseModel):
     filename: str = Field(min_length=1, description="Nome del file da caricare")
     content: str = Field(min_length=1, description="Contenuto testuale o stringa Base64")
     is_base64: bool = Field(default=False, description="True se il contenuto è in Base64")
-    media_type: Optional[str] = Field(default="text/plain", description="Tipo MIME del documento")
+    media_type: str | None = Field(default="text/plain", description="Tipo MIME del documento")
 
 
 @router.get("/libraries", summary="Lista biblioteche per tendine n8n/Zapier")
@@ -46,11 +46,11 @@ def list_libraries_for_automation(
         "count": len(libs),
         "libraries": [
             {
-                "id": l.get("id"),
-                "name": l.get("name"),
-                "description": l.get("description"),
+                "id": lib.get("id"),
+                "name": lib.get("name"),
+                "description": lib.get("description"),
             }
-            for l in libs
+            for lib in libs
         ],
     }
 

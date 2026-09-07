@@ -8,14 +8,14 @@ box di approfondimento tecnico e formattazione rigorosa di ~15 pagine.
 import os
 import re
 from typing import Any
-from reportlab.lib.pagesizes import A4
+
 from reportlab.lib import colors
-from reportlab.platypus import (
-    SimpleDocTemplate, Paragraph, Spacer, PageBreak, HRFlowable, Table, TableStyle
-)
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import cm
 from reportlab.pdfgen import canvas
+from reportlab.platypus import HRFlowable, PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+
 
 class NumberedCanvas(canvas.Canvas):
     """Canvas two-pass per numerazione 'Pagina X di Y' e intestazioni istituzionali."""
@@ -49,7 +49,7 @@ class NumberedCanvas(canvas.Canvas):
         self.setFont("Helvetica", 8)
         self.setFillColor(colors.HexColor("#64748b"))
         self.drawRightString(19 * cm, 28.2 * cm, "TESINA DI FINE PERCORSO")
-        
+
         self.setStrokeColor(colors.HexColor("#cbd5e1"))
         self.setLineWidth(0.75)
         self.line(2 * cm, 27.9 * cm, 19 * cm, 27.9 * cm)
@@ -84,7 +84,7 @@ def build_pdf() -> None:
         print(f"Errore: File {md_path} non trovato!")
         return
 
-    with open(md_path, "r", encoding="utf-8") as f:
+    with open(md_path, encoding="utf-8") as f:
         md_text = f.read()
 
     doc = SimpleDocTemplate(
@@ -229,7 +229,7 @@ def build_pdf() -> None:
 
     story: list[Any] = []
     lines = md_text.split('\n')
-    
+
     state = "COVER" # COVER -> TOC -> BODY
     cover_meta_rows = []
 

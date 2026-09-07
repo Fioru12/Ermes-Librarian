@@ -95,7 +95,7 @@ def _read_events(days: int = 30) -> list[dict[str, Any]]:
     cutoff = datetime.now(UTC) - timedelta(days=days)
     events: list[dict[str, Any]] = []
     try:
-        with _ANALYTICS_LOCK, open(cfg.ANALYTICS_FILE, "r", encoding="utf-8") as f:
+        with _ANALYTICS_LOCK, open(cfg.ANALYTICS_FILE, encoding="utf-8") as f:
             for line in f:
                 if not line.strip():
                     continue
@@ -182,7 +182,6 @@ def get_knowledge_gaps(days: int = 30, limit: int = 20) -> list[dict[str, Any]]:
     queries = [e for e in events if e.get("type") == "query"]
     feedbacks = {fb.get("target_event_id"): fb for fb in events if fb.get("type") == "feedback"}
 
-    gap_queries: list[dict[str, Any]] = []
     frequency_map: dict[str, dict[str, Any]] = {}
 
     for q in queries:

@@ -183,13 +183,13 @@ def _dispatch_mcp_tool(
         return {
             "libraries": [
                 {
-                    "id": l.get("id"),
-                    "name": l.get("name"),
-                    "description": l.get("description"),
-                    "document_count": l.get("document_count", 0),
-                    "policy": l.get("assistant_policy"),
+                    "id": lib.get("id"),
+                    "name": lib.get("name"),
+                    "description": lib.get("description"),
+                    "document_count": lib.get("document_count", 0),
+                    "policy": lib.get("assistant_policy"),
                 }
-                for l in libs
+                for lib in libs
             ]
         }
 

@@ -23,6 +23,29 @@ dependencies = [
     "pypdf>=5",
     "python-dotenv>=1.0",
     "filelock>=3.0",
+    "prometheus-client>=0.20",
+]
+
+[project.optional-dependencies]
+# Reranking neurale (cross-encoder): richiede torch, installato a parte
+# per non gonfiare il deploy base. Senza questo extra il reranker
+# ripiega automaticamente sul motore lessicale.
+neural = [
+    "sentence-transformers>=3.0",
+]
+# Backend PostgreSQL multi-utente (ERMES_DATABASE_URL). Vedi
+# docs/POSTGRES_MIGRATION_PLAN.md per lo stato della migrazione.
+postgres = [
+    "psycopg[binary]>=3.1",
+]
+# Metriche Prometheus native (/metrics). Senza questo extra il modulo
+# core/metrics degrada in modo silenzioso.
+metrics = [
+    "prometheus-client>=0.20",
+]
+# Benchmark di performance (pytest per i test in tests/test_performance.py).
+benchmark = [
+    "pytest-benchmark>=4.0",
 ]
 
 [tool.ruff]
@@ -32,7 +55,7 @@ target-version = "py311"
 # legacy_winsarp/README.md): non viene piu' modificato e non fa parte del
 # percorso di prodotto. Analizzarlo produceva 551 violazioni su 616 totali,
 # che seppellivano le 65 reali del prodotto e rendevano il gate inutilizzabile.
-exclude = ["legacy_winsarp"]
+exclude = ["legacy_winsarp", "config_legacy.py"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "W", "UP", "SIM"]
@@ -47,12 +70,17 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*.py" = ["S101", "S311", "E402", "I001", "E701", "E702", "N802"]
-"scripts/*.py" = ["E402", "E722"]
+# Gli script di utilita' (generatori di fixture/demo) usano nomi MAIUSCOLI
+# per le costanti locali: e' una scelta di leggibilita' del loro dominio.
+"scripts/*.py" = ["E402", "E722", "N802", "N806"]
 "evaluation/*.py" = ["E402", "F841"]
 # I router vengono importati dopo la creazione dell'app e dei middleware, per
 # evitare import circolari: e' il pattern FastAPI abituale, non un difetto.
 "api/__init__.py" = ["E402"]
-"config.py" = ["N802"]
+# Il package config/ espone property con nome MAIUSCOLO per mantenere
+# l'API di compatibilita' cfg.DOCS_DIR ecc. ereditata dal vecchio config.py
+# (ignorato con la stessa regola quando era un modulo singolo).
+"config/*" = ["N802"]
 "*.pyi" = ["N"]
 
 [tool.ruff.format]
@@ -63,6 +91,11 @@ indent-style = "space"
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 asyncio_mode = "auto"
+markers = [
+    # Test che richiedono un PostgreSQL live (container ermes-pg o ERMES_TEST_DATABASE_URL);
+    # vengono saltati automaticamente se il DB non è raggiungibile.
+    "postgres: requires a live PostgreSQL server",
+]
 # WinSarp e' un verticale legacy isolato in legacy_winsarp/ (docs/ROADMAP_V2.md,
 # Fase A) e non e' piu' incluso in testpaths. Il suo test_winsarp_robustness.py
 # fa riferimento a helper gia' rimossi dal contratto pubblico del modulo prima

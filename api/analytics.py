@@ -60,6 +60,7 @@ async def export_knowledge_gaps_csv(
 ):
     import csv
     import io
+
     from fastapi.responses import Response
 
     gaps = get_knowledge_gaps(days=days, limit=100)

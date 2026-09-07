@@ -9,9 +9,9 @@ Allows seamless offline backup, sharing, and cross-instance distribution.
 """
 from __future__ import annotations
 
+import contextlib
 import io
 import json
-import os
 import tarfile
 import uuid
 from datetime import datetime
@@ -155,14 +155,12 @@ def import_library_pack(
         if "assistant_mode" in lib_meta:
             mode = lib_meta.get("assistant_mode", "evidence_only")
             provider = lib_meta.get("assistant_provider", "")
-            try:
+            with contextlib.suppress(Exception):
                 store.set_assistant_policy(
                     library_id=library_id,
                     mode=mode,
                     provider_name=provider,
                 )
-            except Exception:
-                pass
 
         # Extract files and recreate documents
         target_storage = storage_root / library_id
@@ -192,7 +190,7 @@ def import_library_pack(
 
             chunk_tuples = [(c.get("text", ""), c.get("source_locator", "")) for c in chunks]
 
-            doc = store.add_document(
+            _doc = store.add_document(
                 library_id=library_id,
                 filename=filename,
                 media_type=media_type,

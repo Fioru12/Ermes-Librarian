@@ -78,9 +78,10 @@ def sync_connector(
         imported = 0
         errors = []
 
-        from core.document_parser import parse_document
-        import tempfile
         import os
+        import tempfile
+
+        from core.document_parser import parse_document
 
         for rdoc in remote_docs:
             try:

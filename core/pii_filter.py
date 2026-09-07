@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 import re
 import threading
 from pathlib import Path
@@ -98,7 +97,7 @@ def get_pii_config() -> dict[str, Any]:
         config_path = _get_config_path()
         if config_path.exists():
             try:
-                with open(config_path, "r", encoding="utf-8") as f:
+                with open(config_path, encoding="utf-8") as f:
                     loaded = json.load(f)
                     _cached_config = loaded
                     return loaded

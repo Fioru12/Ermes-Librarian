@@ -45,7 +45,7 @@ def expand_query(query: str, max_expansions: int = 3) -> list[str]:
     """
     Data una query utente, genera varianti di ricerca arricchite
     con sinonimi aziendali e acronimi espansi.
-    
+
     Restituisce una lista di stringhe di ricerca (la prima e' sempre la query originale).
     """
     cleaned = query.strip()

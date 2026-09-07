@@ -5,11 +5,13 @@ Design Modern Enterprise (Dark Slate & Electric Cyan), layout a card, metric til
 badge colorati, diagrammi di flusso e screenshot applicativi incorniciati.
 """
 import os
+
 from pptx import Presentation
-from pptx.util import Inches, Pt
 from pptx.dml.color import RGBColor
-from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
 from pptx.enum.shapes import MSO_SHAPE
+from pptx.enum.text import PP_ALIGN
+from pptx.util import Inches, Pt
+
 
 def create_presentation():
     prs = Presentation()
@@ -21,22 +23,22 @@ def create_presentation():
     BG_DARK = RGBColor(11, 17, 32)         # #0b1120 - Dark Slate Base
     CARD_DARK = RGBColor(22, 30, 49)       # #161e31 - Dark Card
     CARD_BORDER = RGBColor(51, 65, 85)     # #334155 - Card Border Slate
-    
-    BG_LIGHT = RGBColor(248, 250, 252)     # #f8fafc - Light Base
+
+    _BG_LIGHT = RGBColor(248, 250, 252)     # #f8fafc - Light Base
     CARD_LIGHT = RGBColor(255, 255, 255)   # #ffffff - White Card
     CARD_LIGHT_BORDER = RGBColor(226, 232, 240) # #e2e8f0
-    
+
     HEADER_NAVY = RGBColor(15, 23, 42)     # #0f172a
     CYAN_ACCENT = RGBColor(14, 165, 233)   # #0ea5e9
     INDIGO_ACCENT = RGBColor(99, 102, 241) # #6366f1
     EMERALD = RGBColor(16, 185, 129)       # #10b981 - Success
     ROSE = RGBColor(244, 63, 94)           # #f43f5e - Risk/Danger
     AMBER = RGBColor(245, 158, 11)         # #f59e0b - Warning
-    
+
     TEXT_MAIN_DARK = RGBColor(241, 245, 249) # #f1f5f9
     TEXT_MUTED_DARK = RGBColor(148, 163, 184) # #94a3b8
-    
-    TEXT_MAIN_LIGHT = RGBColor(15, 23, 42)   # #0f172a
+
+    _TEXT_MAIN_LIGHT = RGBColor(15, 23, 42)   # #0f172a
     TEXT_MUTED_LIGHT = RGBColor(71, 85, 105) # #475569
 
     # Risorse Grafiche
@@ -145,7 +147,7 @@ def create_presentation():
     ]
     for idx, (label, val, col) in enumerate(meta_items):
         cx = 0.9 + idx * 2.95
-        card = add_card(slide1, cx, 4.4, 2.75, 2.3, CARD_DARK, CARD_BORDER)
+        _card = add_card(slide1, cx, 4.4, 2.75, 2.3, CARD_DARK, CARD_BORDER)
         t_box = slide1.shapes.add_textbox(Inches(cx + 0.15), Inches(4.55), Inches(2.45), Inches(2.0))
         tf_m = t_box.text_frame
         tf_m.word_wrap = True
@@ -166,7 +168,7 @@ def create_presentation():
     # -------------------------------------------------------------
     slide2 = prs.slides.add_slide(blank_layout)
     add_header(slide2, "1. Il Problema Aziendale: Frammentazione e Rischi dei LLM Generici")
-    
+
     # Left Card: I Limiti della Gestione Documentale
     add_card(slide2, 0.9, 1.45, 5.5, 5.5, CARD_LIGHT, CARD_LIGHT_BORDER)
     tx2_left = slide2.shapes.add_textbox(Inches(1.15), Inches(1.7), Inches(5.0), Inches(5.0))
@@ -236,7 +238,7 @@ def create_presentation():
         p_vt.font.size = Pt(16)
         p_vt.font.bold = True
         p_vt.font.color.rgb = HEADER_NAVY
-        
+
         p_vd = tf_v.add_paragraph()
         p_vd.text = desc
         p_vd.font.size = Pt(13)
@@ -272,7 +274,7 @@ def create_presentation():
     for idx, (num, title, desc, col) in enumerate(rules):
         cy = 1.45 + idx * 1.12
         add_card(slide4, 0.9, cy, 11.5, 0.98, CARD_LIGHT, CARD_LIGHT_BORDER)
-        
+
         # Number Badge
         nb = slide4.shapes.add_shape(MSO_SHAPE.OVAL, Inches(1.15), Inches(cy + 0.18), Inches(0.6), Inches(0.6))
         nb.fill.solid()
@@ -297,7 +299,7 @@ def create_presentation():
         p_rt.font.color.rgb = HEADER_NAVY
 
         # Description
-        p_rt2 = tf_rt.paragraphs[0] # inline
+        _p_rt2 = tf_rt.paragraphs[0] # inline
         p_desc = tf_rt.add_paragraph()
         p_desc.text = desc
         p_desc.font.size = Pt(13)
@@ -528,7 +530,7 @@ def create_presentation():
         t_box = slide10.shapes.add_textbox(Inches(cx + 0.2), Inches(1.7), Inches(3.25), Inches(3.0))
         tf_mt = t_box.text_frame
         tf_mt.word_wrap = True
-        
+
         p_pct = tf_mt.paragraphs[0]
         p_pct.text = pct
         p_pct.font.size = Pt(36)

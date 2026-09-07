@@ -9,6 +9,7 @@ e i chunk memorizzati nella libreria, riducendo lo scostamento semantico (domain
 from __future__ import annotations
 
 import logging
+
 import httpx
 
 from config import cfg
