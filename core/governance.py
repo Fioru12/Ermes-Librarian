@@ -12,13 +12,13 @@ import secrets
 import tempfile
 import threading
 from datetime import datetime
+from pathlib import Path
 from typing import Any
 
 from filelock import FileLock
 
 _logger = logging.getLogger(__name__)
 
-# ============================================================
 # RBAC — Per-user API Keys
 # ============================================================
 # Formato: security/api_keys.json
@@ -164,7 +164,7 @@ def _get_audit_secret() -> bytes:
     secret_file = os.path.join(cfg.SECURITY_DIR, ".audit_secret")
     if os.path.exists(secret_file):
         try:
-            with open(secret_file, "r", encoding="utf-8") as f:
+            with open(secret_file, encoding="utf-8") as f:
                 saved = f.read().strip()
                 if saved:
                     return saved.encode("utf-8")
@@ -415,6 +415,108 @@ def create_or_update_user(
             user["password_hash"] = _hash_password(password, salt)
         user["updated_at"] = datetime.now().isoformat()
         _save_users(users_file, data)
+
+
+# ============================================================
+# Mapping gruppi OIDC -> ruoli biblioteca (SSO -> ACL)
+# ============================================================
+# Persistito in data/oidc_group_mappings.json. Struttura:
+#   {"mappings": [{"group": "hr-team", "library_id": "lib_x", "role": "viewer"}, ...]}
+# I gruppi possono solo concedere viewer/editor, mai admin: l'elevazione a
+# admin deve restare un'azione umana esplicita (principio di minor privilegio).
+
+_OIDC_MAPPINGS_LOCK = threading.Lock()
+
+
+def _oidc_mappings_path() -> str:
+    from config import cfg
+
+    data_dir = Path(getattr(cfg, "BASE_DIR", ".")) / "data"
+    data_dir.mkdir(parents=True, exist_ok=True)
+    return str(data_dir / "oidc_group_mappings.json")
+
+
+def load_oidc_group_mappings() -> list[dict]:
+    path = _oidc_mappings_path()
+    try:
+        with open(path, encoding="utf-8") as handle:
+            data = json.load(handle)
+    except FileNotFoundError:
+        return []
+    except Exception as error:
+        _logger.warning("Impossibile leggere %s: %s", path, error)
+        return []
+    mappings = data.get("mappings")
+    return mappings if isinstance(mappings, list) else []
+
+
+def set_oidc_group_mapping(group: str, library_id: str, role: str) -> dict:
+    """Aggiunge o aggiorna un mapping gruppo->biblioteca. Valida che la
+    biblioteca esista; l'idempotenza è completa (upsert per chiave)."""
+    if role not in {"viewer", "editor"}:
+        raise ValueError("Il ruolo da gruppo SSO può essere solo viewer o editor")
+    with _OIDC_MAPPINGS_LOCK:
+        mappings = load_oidc_group_mappings()
+        entry = {"group": group, "library_id": library_id, "role": role}
+        mappings = [m for m in mappings if not (m.get("group") == group and m.get("library_id") == library_id)]
+        mappings.append(entry)
+        with open(_oidc_mappings_path(), "w", encoding="utf-8") as handle:
+            json.dump({"mappings": mappings}, handle, indent=2, ensure_ascii=False)
+    return entry
+
+
+def remove_oidc_group_mapping(group: str, library_id: str) -> bool:
+    with _OIDC_MAPPINGS_LOCK:
+        mappings = load_oidc_group_mappings()
+        kept = [m for m in mappings if not (m.get("group") == group and m.get("library_id") == library_id)]
+        if len(kept) == len(mappings):
+            return False
+        with open(_oidc_mappings_path(), "w", encoding="utf-8") as handle:
+            json.dump({"mappings": kept}, handle, indent=2, ensure_ascii=False)
+    return True
+
+
+def resolve_oidc_group_role(groups: list[str] | None, library_id: str) -> str | None:
+    """Ruolo concesso dai gruppi OIDC dell'utente su una biblioteca.
+
+    Se più gruppi mappano sulla stessa biblioteca vince il privilegio più
+    alto (editor > viewer). Nessun gruppo -> None.
+    """
+    if not groups:
+        return None
+    group_set = set(groups)
+    roles = [
+        m.get("role")
+        for m in load_oidc_group_mappings()
+        if m.get("library_id") == library_id and m.get("group") in group_set
+    ]
+    if "editor" in roles:
+        return "editor"
+    if "viewer" in roles:
+        return "viewer"
+    return None
+
+
+def oidc_group_roles_for_user(groups: list[str] | None) -> dict[str, str]:
+    """Mappa {library_id: ruolo_effettivo} per tutti i gruppi dell'utente.
+
+    Usato dal listing biblioteche per la scoperta via SSO: una biblioteca
+    raggiungibile solo via gruppo appare nell'elenco senza membership diretta.
+    """
+    if not groups:
+        return {}
+    group_set = set(groups)
+    effective: dict[str, str] = {}
+    for mapping in load_oidc_group_mappings():
+        if mapping.get("group") not in group_set:
+            continue
+        library_id = mapping.get("library_id")
+        role = mapping.get("role")
+        if not library_id or role not in {"viewer", "editor"}:
+            continue
+        if effective.get(library_id) != "editor":
+            effective[library_id] = role
+    return effective
 
 
 def list_users(users_file: str) -> list[dict]:

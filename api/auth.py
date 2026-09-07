@@ -73,9 +73,9 @@ def _validate_oidc_jwt(token: str) -> dict | None:
         if exp and exp < time.time():
             return None
 
-        if cfg.OIDC_ISSUER and claims.get("iss"):
-            if cfg.OIDC_ISSUER.rstrip("/") not in claims.get("iss", "").rstrip("/"):
-                return None
+        issuer_claim = str(claims.get("iss") or "")
+        if cfg.OIDC_ISSUER and issuer_claim and cfg.OIDC_ISSUER.rstrip("/") not in issuer_claim.rstrip("/"):
+            return None
 
         if cfg.OIDC_AUDIENCE and claims.get("aud"):
             aud = claims.get("aud")
@@ -98,7 +98,12 @@ def _validate_oidc_jwt(token: str) -> dict | None:
         elif any(r in {"editor", "ermes-editor"} for r in roles_lower):
             role = "editor"
 
-        return {"username": str(username), "role": role, "provider": "oidc"}
+        groups_val = claims.get(cfg.OIDC_GROUPS_CLAIM, [])
+        if isinstance(groups_val, str):
+            groups_val = [groups_val]
+        groups = [str(g) for g in groups_val if g] if isinstance(groups_val, list) else []
+
+        return {"username": str(username), "role": role, "provider": "oidc", "groups": groups}
     except Exception as e:
         _logger.warning("OIDC token validation error: %s", e)
         return None
@@ -124,16 +129,15 @@ def _verify_api_key(
 ) -> dict:
     """Fail closed: a valid browser session or Bearer key is mandatory."""
     user = _session_user(request.cookies.get(_SESSION_COOKIE))
-    if user is not None:
-        if user.get("provider") != "oidc":
-            # Browser sessions must follow the current local-account state.
-            from core.governance import list_users
-            current = next((item for item in list_users(cfg.USERS_FILE) if item.get("username") == user.get("username")), None)
-            if current is None or not current.get("active", True):
-                _invalidate_sessions_for_user(str(user.get("username", "")))
-                user = None
-            else:
-                user = {"username": current["username"], "role": current.get("role", "viewer")}
+    if user is not None and user.get("provider") != "oidc":
+        # Browser sessions must follow the current local-account state.
+        from core.governance import list_users
+        current = next((item for item in list_users(cfg.USERS_FILE) if item.get("username") == user.get("username")), None)
+        if current is None or not current.get("active", True):
+            _invalidate_sessions_for_user(str(user.get("username", "")))
+            user = None
+        else:
+            user = {"username": current["username"], "role": current.get("role", "viewer")}
     if user is None and creds is not None:
         user = _authenticate_token(creds.credentials)
     if user is not None:
@@ -253,3 +257,50 @@ def _rate_limit(req: Request) -> str:
     if not allowed:
         raise HTTPException(status_code=429, detail=reason)
     return identifier
+
+
+# ============================================================
+# Admin: mapping gruppi OIDC -> ACL biblioteche
+# ============================================================
+
+class GroupMappingRequest(BaseModel):
+    group: str = Field(min_length=1, max_length=200)
+    library_id: str = Field(min_length=1, max_length=100)
+    role: str = Field(pattern="^(viewer|editor)$")
+
+
+class GroupMappingDeleteRequest(BaseModel):
+    group: str = Field(min_length=1, max_length=200)
+    library_id: str = Field(min_length=1, max_length=100)
+
+
+@router.get("/api/admin/oidc/group-mappings", include_in_schema=False)
+def list_group_mappings(_user: dict = Depends(_require_role("admin"))) -> dict:
+    from core.governance import load_oidc_group_mappings
+    return {"mappings": load_oidc_group_mappings()}
+
+
+@router.put("/api/admin/oidc/group-mappings", include_in_schema=False)
+def upsert_group_mapping(request: GroupMappingRequest, user: dict = Depends(_require_role("admin"))) -> dict:
+    from core.governance import append_audit, set_oidc_group_mapping
+    try:
+        entry = set_oidc_group_mapping(request.group, request.library_id, request.role)
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+    append_audit(cfg.AUDIT_FILE, "oidc_group_mapping_upsert", user.get("username", "unknown"), detail=entry)
+    return entry
+
+
+@router.delete("/api/admin/oidc/group-mappings", include_in_schema=False)
+def delete_group_mapping(request: GroupMappingDeleteRequest, user: dict = Depends(_require_role("admin"))) -> dict:
+    from core.governance import append_audit, remove_oidc_group_mapping
+    removed = remove_oidc_group_mapping(request.group, request.library_id)
+    if not removed:
+        raise HTTPException(status_code=404, detail="Mapping non trovato")
+    append_audit(
+        cfg.AUDIT_FILE,
+        "oidc_group_mapping_delete",
+        user.get("username", "unknown"),
+        detail={"group": request.group, "library_id": request.library_id},
+    )
+    return {"ok": True}
