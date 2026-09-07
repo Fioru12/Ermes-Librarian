@@ -1,7 +1,23 @@
 # Ermes Knowledge - Piano di Lavoro e Progresso
 
 > Documento vivo che traccia stato attuale, miglioramenti pianificati e progresso.
-> Ultimo aggiornamento: 2026-09-07
+> Ultimo aggiornamento: 2026-09-08
+
+## 🆕 2026-09-08 — Gate sicurezza: bandit pulito + mypy migliorato
+
+**Bandit**
+- Scansione: `bandit -r api/ config/ core/ -ll` → **"No issues identified"** (dopo aver marchiato 2 falsi positivi B104 in `api/auth.py` con `# nosec`: il codice non bind a tutte le interfacce, controlla se HOST è `0.0.0.0` per disabilitare `secure` in sviluppo locale).
+- Warning `Test in comment: ...` di bandit sui commenti italiani sono falsi positivi del parser — innocui.
+
+**Mypy**
+- Mypy è **advisory** nel CI (`continue-on-error: true`), non un gate — lo conferma `.github/workflows/ci.yml:44`.
+- Totale errori: 96 → **92** (ho fixato i 4 errori nei file che ho toccato, `api/connectors.py`, aggiungendo `Union[MicrosoftGraphConnector, WebScraperConnector, LocalFolderConnector]`).
+- I 92 residui sono preesistenti e sparsi nel codebase (falsi positivi `no-any-return`, `arg-type` da `check_untyped_defs = true`; router duplicati in `api/__init__.py`, ecc.).
+- **Decisione**: non fixo i 92 errori residui in blocco — è lavoro di refactor significativo che non aggiunge valore percepito al prodotto e mypy resta advisory. Se in futuro mypy diventerà gate, si farà un pass dedicato.
+
+**Validazione**
+- Suite backend: **291 passed, 10 skipped** (invariata).
+- `docs/WORK_PROGRESS.md` aggiornato.
 
 ## 🆕 2026-09-07 — `ruff format` applicato in commit dedicato
 
