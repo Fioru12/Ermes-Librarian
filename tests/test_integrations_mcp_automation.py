@@ -4,7 +4,6 @@ Integration tests for MCP Server and Automation Webhook endpoints.
 """
 from __future__ import annotations
 
-from dataclasses import replace
 from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
@@ -19,8 +18,7 @@ from config import cfg
 def api_client(tmp_path: Path, monkeypatch):
     app_dir = tmp_path / "app"
     app_dir.mkdir()
-    test_cfg = replace(
-        cfg,
+    test_cfg = cfg.replace(
         BASE_DIR=str(app_dir),
         ADMIN_USERNAME="admin",
         ADMIN_PASSWORD="StrongPassword!123",
@@ -34,7 +32,7 @@ def api_client(tmp_path: Path, monkeypatch):
 
     _SESSIONS.clear()
     monkeypatch.setattr(api.libraries, "_store", None)
-    
+
     client = TestClient(app)
     # Login to initialize session cookie / auth
     login_res = client.post("/api/auth/login", json={"username": "admin", "password": "StrongPassword!123"})

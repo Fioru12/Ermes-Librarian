@@ -1,5 +1,3 @@
-from dataclasses import replace
-
 from core import evidence_assistant
 
 
@@ -11,7 +9,7 @@ def _citations():
 
 
 def test_evidence_only_never_calls_a_provider(monkeypatch):
-    monkeypatch.setattr(evidence_assistant, "cfg", replace(evidence_assistant.cfg, LIBRARY_ASSISTANT_MODE="evidence_only"))
+    monkeypatch.setattr(evidence_assistant, "cfg", evidence_assistant.cfg.replace(LIBRARY_ASSISTANT_MODE="evidence_only"))
     monkeypatch.setattr(evidence_assistant, "_call_ollama", lambda _: (_ for _ in ()).throw(AssertionError()))
 
     answer, coverage, reason = evidence_assistant.answer_from_evidence("Quando ferie?", _citations(), mode="evidence_only")
@@ -22,7 +20,7 @@ def test_evidence_only_never_calls_a_provider(monkeypatch):
 
 
 def test_local_answer_keeps_evidence_markers(monkeypatch):
-    monkeypatch.setattr(evidence_assistant, "cfg", replace(evidence_assistant.cfg, LIBRARY_ASSISTANT_MODE="local_ollama"))
+    monkeypatch.setattr(evidence_assistant, "cfg", evidence_assistant.cfg.replace(LIBRARY_ASSISTANT_MODE="local_ollama"))
     monkeypatch.setattr(evidence_assistant, "_call_ollama", lambda _: "Richiedile cinque giorni prima.[1]")
 
     answer, coverage, reason = evidence_assistant.answer_from_evidence("Quando ferie?", _citations(), mode="local_ollama")
@@ -33,7 +31,7 @@ def test_local_answer_keeps_evidence_markers(monkeypatch):
 
 
 def test_provider_failure_falls_back_to_evidence_not_another_provider(monkeypatch):
-    monkeypatch.setattr(evidence_assistant, "cfg", replace(evidence_assistant.cfg, LIBRARY_ASSISTANT_MODE="local_ollama"))
+    monkeypatch.setattr(evidence_assistant, "cfg", evidence_assistant.cfg.replace(LIBRARY_ASSISTANT_MODE="local_ollama"))
     monkeypatch.setattr(evidence_assistant, "_call_ollama", lambda _: (_ for _ in ()).throw(RuntimeError("offline")))
 
     answer, coverage, reason = evidence_assistant.answer_from_evidence("Quando ferie?", _citations(), mode="local_ollama")
@@ -58,7 +56,7 @@ def test_approved_provider_is_explicit_and_keeps_evidence_markers(monkeypatch):
 
 
 def test_answer_without_valid_citation_marker_falls_back(monkeypatch):
-    monkeypatch.setattr(evidence_assistant, "cfg", replace(evidence_assistant.cfg, LIBRARY_ASSISTANT_MODE="local_ollama"))
+    monkeypatch.setattr(evidence_assistant, "cfg", evidence_assistant.cfg.replace(LIBRARY_ASSISTANT_MODE="local_ollama"))
     monkeypatch.setattr(evidence_assistant, "_call_ollama", lambda _: "Le ferie si chiedono in anticipo.")
 
     answer, coverage, reason = evidence_assistant.answer_from_evidence("Quando ferie?", _citations(), mode="local_ollama")

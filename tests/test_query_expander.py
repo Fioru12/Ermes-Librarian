@@ -4,8 +4,7 @@ Unit tests for core/query_expander.py (Enterprise Query Expansion & Synonym Disa
 """
 from __future__ import annotations
 
-import pytest
-from core.query_expander import expand_query, ENTERPRISE_SYNONYMS
+from core.query_expander import expand_query
 
 
 def test_expand_query_empty():

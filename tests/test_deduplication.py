@@ -4,7 +4,6 @@ Unit tests for core/deduplication.py (Document Fingerprinting and Deduplication 
 """
 from __future__ import annotations
 
-import pytest
 from core.deduplication import (
     compute_content_fingerprint,
     compute_shingle_set,

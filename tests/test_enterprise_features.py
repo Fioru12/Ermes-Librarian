@@ -10,12 +10,9 @@ Test suite per le funzionalità Enterprise:
 from __future__ import annotations
 
 import base64
-from dataclasses import replace
 import json
 import time
-from pathlib import Path
 
-import pytest
 from fastapi.testclient import TestClient
 
 import config
@@ -55,7 +52,7 @@ def test_dlp_filters_luhn_credit_card():
     valid_cc = "4532 0151 1283 0366"
     # Numero che NON passa il test di Luhn (somma non divisibile per 10)
     invalid_cc = "4111 1111 1111 1112"
-    
+
     text = f"Carta valida: {valid_cc}, numero non valido: {invalid_cc}"
     filtered = filter_pii(text)
     assert "[CARTA_CREDITO]" in filtered
@@ -90,10 +87,10 @@ def test_reranker_scoring_phrase_match():
     query = "politica di sicurezza aziendale"
     excerpt1 = "Questo documento definisce la politica di sicurezza aziendale per tutti i dipendenti."
     excerpt2 = "I dipendenti devono rispettare le norme del parcheggio aziendale."
-    
+
     score1 = calculate_rerank_score(query, "sicurezza.pdf", excerpt1)
     score2 = calculate_rerank_score(query, "parcheggio.pdf", excerpt2)
-    
+
     assert score1 > score2
     assert score1 >= 0.70
 
@@ -102,10 +99,10 @@ def test_reranker_proximity_bonus():
     query = "piano emergenza"
     close_excerpt = "In caso di incendio seguire il piano emergenza dell'edificio."
     distant_excerpt = "Il piano quinquennale prevede la gestione di ogni possibile emergenza futura."
-    
+
     score_close = calculate_rerank_score(query, "doc.pdf", close_excerpt)
     score_distant = calculate_rerank_score(query, "doc.pdf", distant_excerpt)
-    
+
     assert score_close > score_distant
 
 
@@ -127,7 +124,7 @@ def test_rerank_candidates_filtering_and_ordering():
 
 def test_analytics_query_recording_and_gap_detection(tmp_path, monkeypatch):
     test_analytics_file = str(tmp_path / "analytics_test.jsonl")
-    monkeypatch.setattr(config.Config, "ANALYTICS_FILE", property(lambda self: test_analytics_file))
+    monkeypatch.setattr(config.Config, "ANALYTICS_FILE", property(lambda self: test_analytics_file), raising=False)
 
     # 1. Query con successo
     ev1 = record_query_event(
@@ -141,7 +138,7 @@ def test_analytics_query_recording_and_gap_detection(tmp_path, monkeypatch):
     assert ev1 is not None
 
     # 2. Query senza risposta (Knowledge Gap)
-    ev2 = record_query_event(
+    _ev2 = record_query_event(
         query="come richiedere un monitor 4K?",
         library_id="lib-it",
         actor="luigi",
@@ -172,8 +169,7 @@ def test_analytics_query_recording_and_gap_detection(tmp_path, monkeypatch):
 
 def test_oidc_token_validation(monkeypatch):
     from api.auth import _authenticate_token
-    new_cfg = replace(
-        config.cfg,
+    new_cfg = config.cfg.replace(
         OIDC_ENABLED=True,
         OIDC_ISSUER="https://login.microsoftonline.com/tenant-id",
         OIDC_AUDIENCE="ermes-app",
@@ -208,8 +204,7 @@ def test_oidc_token_validation(monkeypatch):
 
 
 def test_oidc_api_endpoints(monkeypatch):
-    new_cfg = replace(
-        config.cfg,
+    new_cfg = config.cfg.replace(
         OIDC_ENABLED=True,
         OIDC_ISSUER="https://auth.company.com",
         OIDC_CLIENT_ID="ermes-client",
@@ -219,7 +214,7 @@ def test_oidc_api_endpoints(monkeypatch):
     monkeypatch.setattr("api.auth.cfg", new_cfg)
 
     client = TestClient(app)
-    
+
     # 1. Config endpoint
     res = client.get("/api/auth/oidc/config")
     assert res.status_code == 200
@@ -249,7 +244,7 @@ def test_oidc_api_endpoints(monkeypatch):
 def test_document_acl_isolation_in_search(tmp_path):
     db_file = str(tmp_path / "test_acl.sqlite3")
     store = LibraryStore(db_file)
-    
+
     lib = store.create_library(name="Risorse Umane", visibility="shared", owner_id="hr_director")
     lib_id = lib["id"]
 
@@ -343,7 +338,7 @@ def test_query_expansion_enterprise():
 
 
 def test_document_deduplication_exact_and_near():
-    from core.deduplication import find_library_duplicates, compute_content_fingerprint
+    from core.deduplication import find_library_duplicates
 
     docs = [
         {"id": "doc1", "filename": "Policy_v1.pdf", "text": "Questa e' la policy aziendale sui permessi retribuiti e ferie annuali."},
@@ -367,7 +362,7 @@ def test_export_analytics_csv_endpoint(tmp_path, monkeypatch):
     import core.analytics as analytics_mod
 
     log_file = str(tmp_path / "analytics_export_test.jsonl")
-    monkeypatch.setattr(config.Config, "ANALYTICS_FILE", property(lambda self: log_file))
+    monkeypatch.setattr(config.Config, "ANALYTICS_FILE", property(lambda self: log_file), raising=False)
 
     analytics_mod.record_query_event(
         library_id="lib_export",
@@ -388,7 +383,7 @@ def test_library_duplicates_api_endpoint(tmp_path):
     db_file = str(tmp_path / "test_dup.sqlite3")
     store = LibraryStore(db_file)
     lib = store.create_library(name="Test Dup Lib", visibility="shared", owner_id="admin")
-    
+
     store.add_document(
         library_id=lib["id"],
         filename="doc_a.txt",

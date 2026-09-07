@@ -5,7 +5,6 @@ Regole verificate:
 - l'ACL per-documento vale anche qui: un utente escluso riceve 404;
 - query troppo corte -> 422.
 """
-from dataclasses import replace
 
 from fastapi.testclient import TestClient
 
@@ -16,7 +15,7 @@ from config import cfg
 
 def api_client_factory(tmp_path, monkeypatch):
     """Client API con cfg isolata in tmp_path; ritorna (client, test_cfg)."""
-    test_cfg = replace(cfg, BASE_DIR=str(tmp_path), ADMIN_USERNAME="owner", ADMIN_PASSWORD="StrongPassword!123", API_KEY="")
+    test_cfg = cfg.replace(BASE_DIR=str(tmp_path), ADMIN_USERNAME="owner", ADMIN_PASSWORD="StrongPassword!123", API_KEY="")
     monkeypatch.setattr("config.cfg", test_cfg)
     monkeypatch.setattr("api.auth.cfg", test_cfg)
     monkeypatch.setattr("api.libraries.cfg", test_cfg)

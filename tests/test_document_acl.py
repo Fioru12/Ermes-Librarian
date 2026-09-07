@@ -6,7 +6,6 @@ elencati. Il filtro agisce dentro `search_with_profile`, prima che qualsiasi
 citazione venga costruita: il leak attraverso i risultati di ricerca deve essere
 impossibile, non solo raro.
 """
-from dataclasses import replace
 
 from fastapi.testclient import TestClient
 import pytest
@@ -86,7 +85,7 @@ def test_empty_acl_removes_the_restriction(tmp_path):
 
 
 def test_acl_api_is_owner_admin_only_and_validates_usernames(tmp_path, monkeypatch):
-    test_cfg = replace(cfg, BASE_DIR=str(tmp_path), ADMIN_USERNAME="owner", ADMIN_PASSWORD="StrongPassword!123", API_KEY="")
+    test_cfg = cfg.replace(BASE_DIR=str(tmp_path), ADMIN_USERNAME="owner", ADMIN_PASSWORD="StrongPassword!123", API_KEY="")
     monkeypatch.setattr("config.cfg", test_cfg)
     monkeypatch.setattr("api.auth.cfg", test_cfg)
     monkeypatch.setattr("api.libraries.cfg", test_cfg)

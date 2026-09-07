@@ -1,4 +1,3 @@
-from dataclasses import replace
 from pathlib import Path
 
 from fastapi.testclient import TestClient
@@ -366,7 +365,7 @@ def test_reindex_recomputes_embeddings_instead_of_silently_dropping_them(tmp_pat
     embed_texts + store_chunk_embeddings dopo la ricostruzione, come fa
     process_ingestion_job: qui verifichiamo che dopo un reindex ogni chunk
     abbia il suo vettore."""
-    test_cfg = replace(cfg, BASE_DIR=str(tmp_path), API_KEY="")
+    test_cfg = cfg.replace(BASE_DIR=str(tmp_path), API_KEY="")
     monkeypatch.setattr("api.libraries.cfg", test_cfg)
     vector = [0.1, 0.2, 0.3]
     fake_embed = lambda texts: [vector for _ in texts]  # noqa: E731 — mock deterministico

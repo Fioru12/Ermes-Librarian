@@ -9,7 +9,6 @@ import base64
 import hashlib
 import hmac
 import time
-from dataclasses import replace
 
 from fastapi.testclient import TestClient
 
@@ -23,8 +22,8 @@ def _client(tmp_path, monkeypatch, *, slack_secret="slack-test-secret", teams_se
     app_dir.mkdir()
     if teams_secret is None:
         teams_secret = base64.b64encode(b"teams-raw-secret-bytes").decode()
-    test_cfg = replace(
-        cfg, BASE_DIR=str(app_dir), ADMIN_USERNAME="owner", ADMIN_PASSWORD="StrongPassword!123", API_KEY="",
+    test_cfg = cfg.replace(
+        BASE_DIR=str(app_dir), ADMIN_USERNAME="owner", ADMIN_PASSWORD="StrongPassword!123", API_KEY="",
         SLACK_SIGNING_SECRET=slack_secret, TEAMS_WEBHOOK_SECRET=teams_secret, SLACK_BOT_TOKEN="",
     )
     monkeypatch.setattr("config.cfg", test_cfg)
@@ -87,7 +86,7 @@ def test_slack_webhook_rejects_a_stale_timestamp(monkeypatch):
     (protezione replay): senza questo controllo una richiesta intercettata una
     sola volta resterebbe valida per sempre."""
     from api.chat_webhooks import _verify_slack_signature
-    monkeypatch.setattr("api.chat_webhooks.cfg", replace(cfg, SLACK_SIGNING_SECRET="some-secret"))
+    monkeypatch.setattr("api.chat_webhooks.cfg", cfg.replace(SLACK_SIGNING_SECRET="some-secret"))
 
     body = b"text=ciao"
     stale_timestamp = str(int(time.time()) - 3600)
@@ -201,7 +200,7 @@ def test_no_evidence_abstains_instead_of_guessing(tmp_path, monkeypatch):
 
 def test_telegram_webhook_answers_from_bound_library(tmp_path, monkeypatch):
     client, store, library, test_cfg = _client(tmp_path, monkeypatch)
-    test_cfg = replace(test_cfg, TELEGRAM_BOT_TOKEN="123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11")
+    test_cfg = test_cfg.replace(TELEGRAM_BOT_TOKEN="123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11")
     monkeypatch.setattr("config.cfg", test_cfg)
     monkeypatch.setattr("api.auth.cfg", test_cfg)
     monkeypatch.setattr("api.libraries.cfg", test_cfg)

@@ -1,5 +1,4 @@
 import asyncio
-from dataclasses import replace
 
 import pytest
 from fastapi import HTTPException
@@ -9,7 +8,7 @@ from config import cfg
 
 
 def test_creating_local_account_validates_password_and_does_not_return_it(tmp_path, monkeypatch):
-    test_cfg = replace(cfg, BASE_DIR=str(tmp_path), ADMIN_PASSWORD="StrongAdmin!123")
+    test_cfg = cfg.replace(BASE_DIR=str(tmp_path), ADMIN_PASSWORD="StrongAdmin!123")
     monkeypatch.setattr("api.users.cfg", test_cfg)
 
     response = asyncio.run(
@@ -24,7 +23,7 @@ def test_creating_local_account_validates_password_and_does_not_return_it(tmp_pa
 
 
 def test_creating_local_account_rejects_weak_or_duplicate_credentials(tmp_path, monkeypatch):
-    test_cfg = replace(cfg, BASE_DIR=str(tmp_path), ADMIN_PASSWORD="StrongAdmin!123")
+    test_cfg = cfg.replace(BASE_DIR=str(tmp_path), ADMIN_PASSWORD="StrongAdmin!123")
     monkeypatch.setattr("api.users.cfg", test_cfg)
     actor = {"username": "admin", "role": "admin"}
 
@@ -37,7 +36,7 @@ def test_creating_local_account_rejects_weak_or_duplicate_credentials(tmp_path, 
 
 
 def test_updating_local_account_never_audits_password_and_keeps_an_active_admin(tmp_path, monkeypatch):
-    test_cfg = replace(cfg, BASE_DIR=str(tmp_path), ADMIN_PASSWORD="StrongAdmin!123")
+    test_cfg = cfg.replace(BASE_DIR=str(tmp_path), ADMIN_PASSWORD="StrongAdmin!123")
     monkeypatch.setattr("api.users.cfg", test_cfg)
     actor = {"username": "admin", "role": "admin"}
     asyncio.run(create_local_account(CreateLocalAccountRequest(username="maria", role="viewer", password="StrongUser!123"), actor))

@@ -4,7 +4,6 @@ Test suite per la configurazione dinamica PII/DLP, regole custom regex ed endpoi
 """
 from __future__ import annotations
 
-from dataclasses import replace
 from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
@@ -13,15 +12,14 @@ from api import app
 import api.libraries
 from api.auth import _SESSIONS
 from config import cfg
-from core.pii_filter import filter_pii, update_pii_config, get_pii_config, detect_pii
+from core.pii_filter import filter_pii, update_pii_config
 
 
 @pytest.fixture
 def pii_client(tmp_path: Path, monkeypatch):
     app_dir = tmp_path / "app"
     app_dir.mkdir()
-    test_cfg = replace(
-        cfg,
+    test_cfg = cfg.replace(
         BASE_DIR=str(app_dir),
         ADMIN_USERNAME="admin",
         ADMIN_PASSWORD="StrongPassword!123",
@@ -40,7 +38,7 @@ def pii_client(tmp_path: Path, monkeypatch):
 
 
 def test_pii_filter_custom_regex_and_toggles(tmp_path: Path, monkeypatch):
-    test_cfg = replace(cfg, BASE_DIR=str(tmp_path))
+    test_cfg = cfg.replace(BASE_DIR=str(tmp_path))
     monkeypatch.setattr("config.cfg", test_cfg)
     monkeypatch.setattr("core.pii_filter._cached_config", None)
 

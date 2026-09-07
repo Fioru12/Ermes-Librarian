@@ -1,5 +1,3 @@
-from dataclasses import replace
-
 from fastapi.testclient import TestClient
 
 from api import app
@@ -9,8 +7,7 @@ from core.governance import create_or_update_user
 
 
 def test_local_password_login_protects_libraries(tmp_path, monkeypatch):
-    test_cfg = replace(
-        cfg,
+    test_cfg = cfg.replace(
         BASE_DIR=str(tmp_path),
         ADMIN_USERNAME="owner",
         ADMIN_PASSWORD="StrongPassword!123",
@@ -34,8 +31,7 @@ def test_local_password_login_protects_libraries(tmp_path, monkeypatch):
 
 
 def test_disabled_local_account_loses_an_existing_browser_session(tmp_path, monkeypatch):
-    test_cfg = replace(
-        cfg,
+    test_cfg = cfg.replace(
         BASE_DIR=str(tmp_path),
         ADMIN_USERNAME="owner",
         ADMIN_PASSWORD="StrongPassword!123",
@@ -52,8 +48,7 @@ def test_disabled_local_account_loses_an_existing_browser_session(tmp_path, monk
 
 
 def test_sensitive_operations_are_admin_only_and_shutdown_is_disabled_without_key(tmp_path, monkeypatch):
-    test_cfg = replace(
-        cfg,
+    test_cfg = cfg.replace(
         BASE_DIR=str(tmp_path),
         ADMIN_USERNAME="owner",
         ADMIN_PASSWORD="StrongPassword!123",

@@ -83,7 +83,6 @@ def test_import_invalid_pack_fails(tmp_path: Path):
 
 
 def test_library_pack_api_endpoints(tmp_path: Path, monkeypatch):
-    from dataclasses import replace
     from fastapi.testclient import TestClient
     from api import app
     from api.auth import _SESSIONS
@@ -91,7 +90,7 @@ def test_library_pack_api_endpoints(tmp_path: Path, monkeypatch):
 
     app_dir = tmp_path / "app"
     app_dir.mkdir()
-    test_cfg = replace(cfg, BASE_DIR=str(app_dir), ADMIN_USERNAME="admin", ADMIN_PASSWORD="admin_password_123!", API_KEY="")
+    test_cfg = cfg.replace(BASE_DIR=str(app_dir), ADMIN_USERNAME="admin", ADMIN_PASSWORD="admin_password_123!", API_KEY="")
     monkeypatch.setattr("config.cfg", test_cfg)
     monkeypatch.setattr("api.auth.cfg", test_cfg)
     monkeypatch.setattr("api.libraries.cfg", test_cfg)

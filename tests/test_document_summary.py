@@ -6,7 +6,6 @@ Regole verificate:
 - l'endpoint API rispetta l'ACL per-documento: un utente escluso non può
   ottenere nemmeno il riassunto.
 """
-from dataclasses import replace
 
 from fastapi.testclient import TestClient
 import pytest
@@ -38,7 +37,7 @@ def _add_doc(store: LibraryStore, library_id: str, filename: str, text: str) -> 
 
 def api_client_factory(tmp_path, monkeypatch):
     """Client API con cfg isolata in tmp_path; ritorna (client, test_cfg)."""
-    test_cfg = replace(cfg, BASE_DIR=str(tmp_path), ADMIN_USERNAME="owner", ADMIN_PASSWORD="StrongPassword!123", API_KEY="")
+    test_cfg = cfg.replace(BASE_DIR=str(tmp_path), ADMIN_USERNAME="owner", ADMIN_PASSWORD="StrongPassword!123", API_KEY="")
     monkeypatch.setattr("config.cfg", test_cfg)
     monkeypatch.setattr("api.auth.cfg", test_cfg)
     monkeypatch.setattr("api.libraries.cfg", test_cfg)
