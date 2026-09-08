@@ -29,8 +29,13 @@ from core.pii_filter import detect_pii, filter_pii
 from core.reranker import calculate_rerank_score, rerank_candidates
 
 
-def _make_jwt(payload: dict) -> str:
-    """Helper per generare un token JWT non firmato (simulazione OIDC claim)."""
+def _make_unsigned_jwt(payload: dict) -> str:
+    """Token NON firmato, come li costruiva questo file prima della correzione.
+
+    Resta qui per un solo motivo: dimostrare che oggi viene rifiutato. Finche'
+    `api/auth.py` si limitava a decodificare il payload in base64, un token
+    come questo otteneva il ruolo che dichiarava, e i test lo davano per buono.
+    """
     header_b64 = base64.urlsafe_b64encode(json.dumps({"alg": "none", "typ": "JWT"}).encode()).decode().rstrip("=")
     payload_b64 = base64.urlsafe_b64encode(json.dumps(payload).encode()).decode().rstrip("=")
     return f"{header_b64}.{payload_b64}.signature"
@@ -180,7 +185,7 @@ def test_analytics_query_recording_and_gap_detection(tmp_path, monkeypatch):
 # ============================================================================
 
 
-def test_oidc_token_validation(monkeypatch):
+def test_oidc_token_validation(monkeypatch, oidc_provider):
     from api.auth import _authenticate_token
 
     new_cfg = config.cfg.replace(
@@ -188,9 +193,11 @@ def test_oidc_token_validation(monkeypatch):
         OIDC_ISSUER="https://login.microsoftonline.com/tenant-id",
         OIDC_AUDIENCE="ermes-app",
         OIDC_ROLES_CLAIM="roles",
+        OIDC_JWKS_URL="https://login.microsoftonline.com/tenant-id/discovery/keys",
     )
     monkeypatch.setattr(config, "cfg", new_cfg)
     monkeypatch.setattr("api.auth.cfg", new_cfg)
+    oidc_provider.install(new_cfg)
 
     # Token OIDC valido con ruolo admin
     valid_payload = {
@@ -198,34 +205,38 @@ def test_oidc_token_validation(monkeypatch):
         "preferred_username": "admin.enterprise@azienda.it",
         "iss": "https://login.microsoftonline.com/tenant-id",
         "aud": "ermes-app",
-        "exp": time.time() + 3600,
+        "exp": int(time.time()) + 3600,
         "roles": ["Ermes-Admin", "User"],
     }
-    jwt_token = _make_jwt(valid_payload)
-    user = _authenticate_token(jwt_token)
+    user = _authenticate_token(oidc_provider.sign(valid_payload))
     assert user is not None
     assert user["username"] == "admin.enterprise@azienda.it"
     assert user["role"] == "admin"
     assert user["provider"] == "oidc"
 
     # Token scaduto
-    expired_payload = dict(valid_payload, exp=time.time() - 3600)
-    assert _authenticate_token(_make_jwt(expired_payload)) is None
+    expired_payload = dict(valid_payload, exp=int(time.time()) - 3600)
+    assert _authenticate_token(oidc_provider.sign(expired_payload)) is None
 
     # Audience errata
     wrong_aud_payload = dict(valid_payload, aud="other-app")
-    assert _authenticate_token(_make_jwt(wrong_aud_payload)) is None
+    assert _authenticate_token(oidc_provider.sign(wrong_aud_payload)) is None
+
+    # Stessi claim, ma senza firma: prima passava, ora no.
+    assert _authenticate_token(_make_unsigned_jwt(valid_payload)) is None
 
 
-def test_oidc_api_endpoints(monkeypatch):
+def test_oidc_api_endpoints(monkeypatch, oidc_provider):
     new_cfg = config.cfg.replace(
         OIDC_ENABLED=True,
         OIDC_ISSUER="https://auth.company.com",
         OIDC_CLIENT_ID="ermes-client",
         OIDC_AUDIENCE="",
+        OIDC_JWKS_URL="https://auth.company.com/keys",
     )
     monkeypatch.setattr(config, "cfg", new_cfg)
     monkeypatch.setattr("api.auth.cfg", new_cfg)
+    oidc_provider.install(new_cfg)
 
     client = TestClient(app)
 
@@ -237,20 +248,22 @@ def test_oidc_api_endpoints(monkeypatch):
     assert data["client_id"] == "ermes-client"
 
     # 2. Session login via OIDC ID Token
-    token = _make_jwt(
-        {
-            "sub": "emp-999",
-            "preferred_username": "giovanni.rossi@company.com",
-            "iss": "https://auth.company.com",
-            "exp": time.time() + 3600,
-            "roles": ["editor"],
-        }
-    )
-    session_res = client.post("/api/auth/oidc/session", json={"id_token": token})
+    claims = {
+        "sub": "emp-999",
+        "preferred_username": "giovanni.rossi@company.com",
+        "iss": "https://auth.company.com",
+        "exp": int(time.time()) + 3600,
+        "roles": ["editor"],
+    }
+    session_res = client.post("/api/auth/oidc/session", json={"id_token": oidc_provider.sign(claims)})
     assert session_res.status_code == 200
     assert session_res.json()["username"] == "giovanni.rossi@company.com"
     assert session_res.json()["role"] == "editor"
     assert "ermes_session" in session_res.cookies
+
+    # 3. Gli stessi claim senza firma non aprono una sessione
+    refused = client.post("/api/auth/oidc/session", json={"id_token": _make_unsigned_jwt(claims)})
+    assert refused.status_code == 401
 
 
 # ============================================================================

@@ -127,3 +127,76 @@ def golden_set() -> list[dict[str, Any]]:
     with open(gs_path, encoding="utf-8") as f:
         data = json.load(f)
         return cast(list[dict[str, Any]], data)
+
+
+# ── Provider OIDC simulato ──
+#
+# Esiste perche' la verifica della firma in core/oidc_keys.py e' reale. I test
+# che "simulavano OIDC" costruendo token non firmati non stavano verificando
+# l'integrazione: stavano asserendo il bypass che quella verifica ha chiuso.
+# Un token di test deve essere firmato come lo firmerebbe un provider vero.
+
+_TEST_OIDC_KEY = None
+
+
+def _test_oidc_key():
+    """Chiave RSA di test, generata una volta sola (2048 bit non sono gratis)."""
+    global _TEST_OIDC_KEY
+    if _TEST_OIDC_KEY is None:
+        from cryptography.hazmat.primitives.asymmetric import rsa
+
+        _TEST_OIDC_KEY = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    return _TEST_OIDC_KEY
+
+
+class FakeOidcProvider:
+    """Emette token firmati e pubblica il JWKS corrispondente, senza rete."""
+
+    kid = "chiave-di-test"
+
+    def __init__(self, monkeypatch):
+        self._monkeypatch = monkeypatch
+        self.key = _test_oidc_key()
+        self.cfg = None
+
+    def _jwks(self) -> dict:
+        import jwt
+
+        jwk = json.loads(jwt.algorithms.RSAAlgorithm.to_jwk(self.key.public_key()))
+        jwk.update({"kid": self.kid, "use": "sig", "alg": "RS256"})
+        return {"keys": [jwk]}
+
+    def install(self, test_cfg):
+        """Fa credere a core/oidc_keys.py che questo sia il provider configurato."""
+        import core.oidc_keys as keys
+
+        published = self._jwks()
+
+        def fake_get(url, timeout=None):
+            return type(
+                "_Response",
+                (),
+                {"raise_for_status": lambda self: None, "json": lambda self: published},
+            )()
+
+        self._monkeypatch.setattr(
+            keys, "httpx", type("_Httpx", (), {"get": staticmethod(fake_get), "HTTPError": Exception})
+        )
+        self._monkeypatch.setattr(keys, "cfg", test_cfg)
+        keys.reset_key_cache()
+        self.cfg = test_cfg
+        return test_cfg
+
+    def sign(self, claims: dict, *, algorithm: str = "RS256", kid: str | None = None) -> str:
+        import jwt
+
+        return jwt.encode(claims, self.key, algorithm=algorithm, headers={"kid": kid or self.kid})
+
+
+@pytest.fixture
+def oidc_provider(monkeypatch):
+    provider = FakeOidcProvider(monkeypatch)
+    yield provider
+    import core.oidc_keys as keys
+
+    keys.reset_key_cache()

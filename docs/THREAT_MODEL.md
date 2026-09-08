@@ -133,8 +133,15 @@ Stated plainly, because a threat model that lists only solved problems is
 marketing:
 
 1. **No prompt-injection mitigation** in the modes that involve a model (T4).
-2. **Single-tenant identity.** Local accounts only; no OIDC, no group mapping,
-   no propagation of an external directory's permissions into retrieval.
+2. **OIDC identity is verified but minimal.** ID tokens are checked against the
+   provider's published JWKS (`core/oidc_keys.py`): asymmetric algorithms only,
+   `exp` required, `iss`/`aud` enforced, and no code path that falls back to an
+   unverified decode. This replaced an earlier implementation that decoded the
+   payload without checking the signature at all — a hand-written token was
+   enough to obtain an administrator, demonstrated before the fix and now held
+   shut by `tests/test_oidc_signature.py`. What is still missing: no token
+   revocation or introspection (a stolen token stays usable until `exp`), no
+   refresh flow, and a single configured audience per instance.
 3. **No deletion path for a library.** Removing one currently requires touching
    the database directly, which is both a usability and a governance gap.
 4. **`mypy` and `bandit` are advisory in CI**, not blocking. Their findings are

@@ -58,33 +58,23 @@ def _session_user(token: str | None) -> dict | None:
 
 
 def _validate_oidc_jwt(token: str) -> dict | None:
-    """Valida un token JWT emesso da un provider OIDC aziendale."""
+    """Valida un token JWT emesso da un provider OIDC aziendale.
+
+    La verifica crittografica (firma, algoritmo, scadenza, `iss`, `aud`) vive
+    in `core/oidc_keys.py`; qui resta solo la traduzione dei claim in un
+    utente Ermes. La separazione non e' estetica: la versione precedente
+    faceva le due cose insieme e si limitava a decodificare il payload in
+    base64 senza controllare la firma, quindi un token scritto a mano
+    otteneva il ruolo che dichiarava.
+    """
     if not token or token.count(".") != 2:
         return None
     try:
-        import base64
-        import json
+        from core.oidc_keys import verify_signed_claims
 
-        parts = token.split(".")
-        payload_b64 = parts[1]
-        payload_b64 += "=" * ((4 - len(payload_b64) % 4) % 4)
-        payload_json = base64.urlsafe_b64decode(payload_b64.encode("utf-8"))
-        claims = json.loads(payload_json)
-
-        exp = claims.get("exp")
-        if exp and exp < time.time():
+        claims = verify_signed_claims(token)
+        if claims is None:
             return None
-
-        issuer_claim = str(claims.get("iss") or "")
-        if cfg.OIDC_ISSUER and issuer_claim and cfg.OIDC_ISSUER.rstrip("/") not in issuer_claim.rstrip("/"):
-            return None
-
-        if cfg.OIDC_AUDIENCE and claims.get("aud"):
-            aud = claims.get("aud")
-            if isinstance(aud, list) and cfg.OIDC_AUDIENCE not in aud:
-                return None
-            elif isinstance(aud, str) and aud != cfg.OIDC_AUDIENCE:
-                return None
 
         username = claims.get("preferred_username") or claims.get("email") or claims.get("sub") or "oidc-user"
         roles_val = claims.get(cfg.OIDC_ROLES_CLAIM, [])
