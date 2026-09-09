@@ -93,6 +93,15 @@ def _get_http_client() -> httpx.AsyncClient:  # noqa: F821
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Gestisce il ciclo di vita dell'applicazione FastAPI."""
+    # Prima di qualsiasi altra cosa: una configurazione inutilizzabile deve
+    # impedire l'avvio, non trasformarsi in errori sparsi a runtime. Il caso
+    # che ha motivato il controllo: SSO abilitato senza issuer ne' JWKS
+    # faceva partire l'applicazione con /health a 200 mentre ogni accesso era
+    # gia' destinato a fallire.
+    from config.validation import enforce
+
+    enforce(cfg, logger=_logger)
+
     # Metriche: etichette di sistema (una sola serie, idempotente).
     import platform
     from importlib import metadata

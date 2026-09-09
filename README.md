@@ -68,6 +68,21 @@ npm.cmd --prefix frontend install
 
 Open [http://127.0.0.1:3000](http://127.0.0.1:3000). The API health endpoint is [http://127.0.0.1:8502/health](http://127.0.0.1:8502/health).
 
+To check a configuration before starting anything — useful when deploying
+somewhere new, or in a CI gate:
+
+```powershell
+.\.venv-ermes\Scripts\python.exe -m config.validation
+```
+
+It prints each problem with the variable to set and what to do about it, and
+exits non-zero if any of them would make the application unusable. The same
+check runs at startup: a configuration that cannot serve requests stops the
+application rather than turning into scattered runtime errors. That mattered in
+practice — with SSO enabled but no issuer or JWKS the application used to start
+happily and answer `200` on `/health` while every single login was already
+guaranteed to fail.
+
 The project desktop shortcut, if created with `scripts/CREA_COLLEGAMENTO_DESKTOP.ps1`, launches the same official script.
 The provisioning command is opt-in and writes first-run credentials only to untracked `.env` and `LOCAL_LOGIN.txt` files.
 
