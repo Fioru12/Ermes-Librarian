@@ -205,8 +205,14 @@ marketing:
    (`core/session_store.py`, `core/login_guard.py`). The request rate limiter and
    the search cache remain per process: N instances multiply every rate
    threshold by N, and each instance keeps its own cache.
-5. **No deletion path for a library.** Removing one currently requires touching
-   the database directly, which is both a usability and a governance gap.
+5. **Deleting a library removes its rows, not its history.** `DELETE
+   /api/libraries/{id}` exists and cascades to documents, chunks, ACLs, import
+   sources and chat integrations (`tests/test_library_deletion.py`). What is
+   still missing is a retention story: the audit entries naming the deleted
+   library stay, by design, and there is no "export everything about this
+   library then erase it" operation of the kind a GDPR request would need.
+   (This entry previously claimed no deletion path existed at all; that stopped
+   being true and nobody updated it.)
 6. **Logs carry no tamper protection.** Application logs are now structured and
    correlated by request id (`core/logging_setup.py`), which makes them usable in
    an aggregator, but they are ordinary output: unlike the audit log they are not
