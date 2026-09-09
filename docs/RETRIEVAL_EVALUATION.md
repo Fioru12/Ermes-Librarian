@@ -64,6 +64,75 @@ Prima misurazione reale di questa modalita' — e il risultato non e' univocamen
 
 **Implicazione pratica**: prima di attivare `ERMES_LIBRARY_SEMANTIC_SEARCH=1` per un utente reale, la soglia di coseno-similarita' andrebbe alzata sopra 0.35, o l'astensione andrebbe ricontrollata con un secondo segnale — attivarla cosi' com'e' oggi scambia "trova piu' parafrasi" con "inventa citazioni quando non dovrebbe rispondere", che per un prodotto evidence-first e' il compromesso sbagliato di default.
 
+## Il secondo segnale: verifica dell'evidenza (misurato 9 settembre 2026)
+
+La tabella sopra lascia una domanda aperta: la componente semantica porta le
+parafrasi da 0.500 a 0.875 e azzera l'astensione, e nessuna soglia intermedia
+concilia le due cose perche' i punteggi si sovrappongono. Serve un secondo
+segnale, indipendente dal coseno. Quale?
+
+Ne sono stati misurati quattro sullo stesso golden set, confrontando le
+parafrasi corrette con i falsi positivi dell'astensione:
+
+| Segnale | Parafrasi corrette | Falsi positivi | Separa? |
+|---|---|---|---|
+| Coseno | 0.587 – 0.761 | 0.635 – 0.656 | no |
+| Margine fra 1° e 2° | 0.010 – 0.130 | 0.024 – 0.030 | no |
+| Rapporto 1°/2° | 1.016 – 1.206 | 1.038 – 1.050 | no |
+| Scarto dalla media (z) | 1.154 – 1.708 | 1.108 – 1.711 | no |
+| Copertura lessicale | 0.000 – 0.167 | 0.000 – 0.000 | apparentemente sì |
+
+La copertura lessicale sembrava la risposta: **nessun** falso positivo ha una
+sola parola in comune con la domanda. Ma le quattro parafrasi che superavano
+quel filtro sono **esattamente** le quattro che la ricerca per parole gia'
+risolve. Guadagno netto: zero. E sulle altre quattro — quelle dove il
+semantico servirebbe davvero — la copertura e' 0.000, identica a quella delle
+domande fuori tema, perche' "nessun aggancio lessicale" e' precisamente la
+proprieta' che le accomuna.
+
+**Il segnale mancante non era un punteggio: era una domanda.** Chiedere a un
+modello se il passaggio contenga la risposta separa le due popolazioni dove
+nessuna statistica riesce.
+
+| Configurazione | recall@3 | dirette | parafrasi | astensione |
+|---|---|---|---|---|
+| Lessicale (default attuale) | 0.852 | 1.000 | 0.500 | 1.000 |
+| Ibrida senza verifica | 0.852 | 1.000 | 0.875 | 0.000 |
+| **Ibrida + verifica dell'evidenza** | **0.889** | **1.000** | **0.625** | **1.000** |
+
+E' l'unica configurazione misurata che migliora le parafrasi senza sacrificare
+l'astensione, e ha il recall complessivo piu' alto della tabella. Le domande
+dirette restano a 1.000: la verifica non scarta risposte corrette.
+
+Un dettaglio metodologico che vale la pena raccontare, perche' la prima
+misura era sbagliata: mostrando al verificatore **solo il primo** passaggio, il
+risultato era 3 parafrasi su 8. Ma in quattro casi su otto il passaggio
+corretto non e' il primo, quindi il modello stava giustamente rifiutando un
+testo che davvero non rispondeva. Giudicando i primi tre — cioe' esattamente
+quelli che il sistema restituisce — il risultato sale a 5 su 8. La differenza
+non era il modello, era la domanda che gli veniva posta.
+
+Il modello grande e quello piccolo (qwen3.5:9b e qwen3.5:4b) danno lo stesso
+risultato, quindi il costo del verificatore puo' restare basso.
+
+### Perche' resta spenta di default
+
+Costa una chiamata al modello per ogni passaggio candidato, fino a tre per
+domanda, e richiede un modello raggiungibile — che nella modalita' predefinita
+`evidence_only` non c'e' per scelta progettuale. Si attiva con
+`ERMES_EVIDENCE_VERIFIER=1` insieme alla ricerca semantica.
+
+Se il modello non risponde, la verifica viene saltata e i passaggi passano
+invariati: il sistema torna al comportamento documentato senza verifica. Non
+avviene in silenzio — la risposta porta `evidence_verified: false`, cosi' chi
+la legge sa che quel controllo non e' passato.
+
+### Limiti di questa misura
+
+27 query su 16 passaggi, corpus sintetico. Il verificatore e' stato provato
+con un solo prompt e due modelli della stessa famiglia. Il risultato indica
+una direzione, non chiude la questione: su un corpus reale va rimisurato.
+
 ## Gate CI
 
 `tests/test_library_evaluation.py` verifica `recall_at_3_direct >= 0.9` e `citation_coverage >= 0.9` come soglie dure (sempre raggiungibili senza Ollama), piu' due soglie morbide (`recall_at_3_paraphrase > 0`, `abstention_accuracy > 0`) per accorgersi se la qualita' sulle query difficili crolla a zero, senza pretendere che il keyword-only le risolva tutte. Il gate CI resta sulla modalita' keyword-only: la modalita' `--semantic` non e' ancora adatta a un default di prodotto (vedi sopra) e comunque richiederebbe Ollama in CI, non disponibile.

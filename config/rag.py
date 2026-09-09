@@ -70,6 +70,24 @@ class RAGConfig:
             os.environ.get("ERMES_RERANKER_ENABLED", "0").strip().lower() in {"1", "true", "yes", "on"}
         )
     )
+    # ---------------------------------------------------------
+    # VERIFICA DELL'EVIDENZA
+    # ---------------------------------------------------------
+    # Chiede a un modello se il passaggio recuperato risponda davvero alla
+    # domanda, invece di fidarsi del solo punteggio di similarita'. E' l'unico
+    # meccanismo misurato che migliora le parafrasi senza azzerare
+    # l'astensione (vedi core/evidence_verifier.py per i numeri).
+    # Spento di default: costa una chiamata al modello per passaggio, e nella
+    # modalita' predefinita evidence_only un modello non c'e' per scelta.
+    EVIDENCE_VERIFIER_ENABLED: bool = field(
+        default_factory=lambda: (
+            os.environ.get("ERMES_EVIDENCE_VERIFIER", "0").strip().lower() in {"1", "true", "yes", "on"}
+        )
+    )
+    # Vuoto = usa ERMES_MODEL. Un modello piccolo basta: sul golden set
+    # qwen3.5:4b e qwen3.5:9b danno lo stesso risultato.
+    EVIDENCE_VERIFIER_MODEL: str = field(default_factory=lambda: os.environ.get("ERMES_EVIDENCE_VERIFIER_MODEL", ""))
+
     RERANKER_MIN_SCORE: float = field(default_factory=lambda: float(os.environ.get("ERMES_RERANKER_MIN_SCORE", "0.15")))
     RERANKER_MODEL: str = field(
         default_factory=lambda: os.environ.get("ERMES_RERANKER_MODEL", "cross-encoder/ms-marco-MiniLM-L-6-v2")

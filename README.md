@@ -27,6 +27,7 @@ Teams often have procedures, policies, manuals, contracts and internal know-how 
 - Per-user semantic search cache (TTL + LRU) with automatic invalidation on writes — scoped per user so ACL boundaries are never cached across.
 - Evidence-first answers with citations, document version, locator and excerpt.
 - Clear abstention when the selected library does not contain enough evidence.
+- Optional evidence verification: a model is asked whether each retrieved passage actually answers the question, and passages that do not are dropped before the answer is composed. It is the only mechanism measured that improves paraphrased questions **without** destroying abstention — recall@3 0.889 with abstention still at 1.000, against 0.852 for the shipped default. Off by default because it costs a model call per candidate passage; see [docs/RETRIEVAL_EVALUATION.md](docs/RETRIEVAL_EVALUATION.md) for the four score-based signals that were measured first and did not work.
 - OIDC/SSO group-to-library ACL propagation: mapped groups grant viewer/editor roles (never admin), direct memberships always win, and SSO-only reachable libraries appear in the user's list.
 - Dual database backend: SQLite by default, PostgreSQL via `ERMES_DATABASE_URL` (psycopg 3, jsonb embeddings, tsvector full-text, `SKIP LOCKED` job claims) — see [docs/POSTGRES_MIGRATION_PLAN.md](docs/POSTGRES_MIGRATION_PLAN.md).
 - Prometheus metrics at `/metrics` (auth required): request latency, RAG questions, rerank mode, ingestion outcomes.

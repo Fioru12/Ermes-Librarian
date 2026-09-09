@@ -58,49 +58,52 @@ class Config:
     def __repr__(self) -> str:
         return f"Config(HOST={self.HOST!r}, PORT={self.PORT!r}, BASE_DIR={self.BASE_DIR!r})"
 
-    def replace(self, **changes) -> "Config":
-        """Crea una nuova istanza con modifiche selezionata.
+    _SOTTOCONFIG = ("_server", "_security", "_storage", "_integrations", "_rag")
 
-        Supporta il pattern `replace(cfg, ATTR=value)` usato nei test.
-        A differenza di una semplice risoluzione da env, preserva i valori
-        correnti dell'istanza per ogni attributo NON esplicitamente
-        modificato (comportamento equivalente a dataclasses.replace del
-        config legacy, altrimenti i test perdono BASE_DIR ecc.).
+    def replace(self, **changes) -> "Config":
+        """Nuova istanza con i campi indicati sostituiti, gli altri invariati.
+
+        Sostituisce direttamente le sottoconfigurazioni invece di passare per
+        le variabili d'ambiente. La versione precedente scriveva
+        `ERMES_<NOME_CAMPO>` e ricostruiva tutto da li', il che funziona solo
+        finche' il nome della variabile coincide con quello del campo: per gli
+        otto campi dove non coincide — fra cui
+        LIBRARY_SEMANTIC_SEARCH_ENABLED (ERMES_LIBRARY_SEMANTIC_SEARCH) e
+        RERANKER_NEURAL_ENABLED (ERMES_RERANKER_NEURAL) — la sostituzione non
+        aveva alcun effetto, e un test che la usava misurava il default
+        credendo di aver configurato altro. Nessun test lo faceva ancora, ma
+        era questione di tempo.
+
+        Un nome sconosciuto ora solleva invece di essere ignorato: prima un
+        refuso in un test passava inosservato.
         """
         import dataclasses
-        import os
 
-        # Raccogli i campi (non le property derivate) di ogni sottoconfig
-        current: dict[str, object] = {}
-        for sub in (self._server, self._security, self._storage, self._integrations, self._rag):
-            for f in dataclasses.fields(sub):
-                if hasattr(self, f.name):
-                    current[f.name] = getattr(self, f.name)
+        nuovo = Config.__new__(Config)
+        applicati: set[str] = set()
+        for attributo in self._SOTTOCONFIG:
+            sotto = getattr(self, attributo)
+            nomi = {campo.name for campo in dataclasses.fields(sotto)}
+            # Applicato a OGNI sottoconfigurazione che ha quel campo, non alla
+            # prima: BASE_DIR esiste sia in ServerConfig sia in StorageConfig, e
+            # assegnarlo solo alla prima lasciava LIBRARY_DB_PATH puntato al
+            # database reale mentre il test credeva di lavorare in una
+            # directory temporanea.
+            miei = {nome: valore for nome, valore in changes.items() if nome in nomi}
+            applicati |= set(miei)
+            # Le sottoconfigurazioni sono frozen: se non cambia niente si puo'
+            # riusare la stessa istanza invece di ricostruirla.
+            setattr(nuovo, attributo, dataclasses.replace(sotto, **miei) if miei else sotto)
 
-        # Applica le modifiche come variabili d'ambiente
-        original_env: dict[str, str | None] = {}
-        env_values: dict[str, str] = {}
-        for name, value in current.items():
-            env_key = f"ERMES_{name}" if not name.startswith("ERMES_") else name
-            env_values[env_key] = str(value)
-        for key, value in changes.items():
-            env_key = f"ERMES_{key}" if not key.startswith("ERMES_") else key
-            env_values[env_key] = str(value)
-
-        try:
-            for env_key, value in env_values.items():
-                original_env[env_key] = os.environ.get(env_key)
-                os.environ[env_key] = value
-            new_config = Config()
-        finally:
-            # Ripristina variabili d'ambiente originali
-            for env_key, original_value in original_env.items():
-                if original_value is None:
-                    os.environ.pop(env_key, None)
-                else:
-                    os.environ[env_key] = original_value
-
-        return new_config
+        rimasti = {nome: valore for nome, valore in changes.items() if nome not in applicati}
+        if rimasti:
+            raise TypeError(
+                "Config.replace: campi inesistenti "
+                + ", ".join(sorted(rimasti))
+                + ". Le proprieta' derivate (DOCS_DIR, USERS_FILE, ...) non sono sostituibili: "
+                "cambia il campo da cui derivano, per esempio BASE_DIR."
+            )
+        return nuovo
 
 
 # Istanza globale - importa questa in tutti i moduli.

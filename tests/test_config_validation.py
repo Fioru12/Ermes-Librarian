@@ -183,3 +183,58 @@ def test_the_legacy_name_is_still_honoured_by_the_config(monkeypatch):
     monkeypatch.setenv("ERMES_SCORE_LOW", "0.90")
 
     assert RAGConfig().SCORE_THRESHOLD_LOW == 0.90
+
+
+# ============================================================
+# Config.replace deve davvero sostituire
+# ============================================================
+
+
+def test_every_field_is_actually_replaceable():
+    """Invariante che prima non reggeva.
+
+    `replace` scriveva `ERMES_<NOME_CAMPO>` nell'ambiente e ricostruiva tutto
+    da li': funzionava solo per i campi il cui nome coincide con quello della
+    variabile. Per gli altri otto — fra cui LIBRARY_SEMANTIC_SEARCH_ENABLED e
+    RERANKER_NEURAL_ENABLED — la sostituzione veniva ignorata in silenzio, e un
+    test che la usasse avrebbe misurato il default credendo di aver
+    configurato altro.
+    """
+    import dataclasses
+
+    campioni = {bool: True, int: 4242, float: 0.4242, str: "valore-di-prova"}
+    non_sostituibili = []
+    for attributo in config.cfg._SOTTOCONFIG:
+        sotto = getattr(config.cfg, attributo)
+        for campo in dataclasses.fields(sotto):
+            valore = campioni.get(campo.type if isinstance(campo.type, type) else None)
+            if valore is None:
+                valore = campioni.get(type(getattr(sotto, campo.name)))
+            if valore is None:
+                continue  # tuple e simili: non confrontabili con un campione unico
+            if valore == getattr(sotto, campo.name):
+                valore = campioni[bool] if isinstance(valore, bool) else valore
+                if valore == getattr(sotto, campo.name):
+                    valore = not valore if isinstance(valore, bool) else valore
+            sostituito = config.cfg.replace(**{campo.name: valore})
+            if getattr(sostituito, campo.name) != valore:
+                non_sostituibili.append(campo.name)
+
+    assert non_sostituibili == []
+
+
+def test_an_unknown_field_is_refused_instead_of_ignored():
+    """Un refuso in un test passava inosservato e non cambiava niente."""
+    with pytest.raises(TypeError) as errore:
+        config.cfg.replace(CAMPO_INESISTENTE=1)
+
+    assert "CAMPO_INESISTENTE" in str(errore.value)
+
+
+def test_a_derived_property_says_why_it_cannot_be_replaced():
+    """USERS_FILE e simili derivano da BASE_DIR: il messaggio deve dirlo,
+    invece di lasciare cercare un campo che non esiste."""
+    with pytest.raises(TypeError) as errore:
+        config.cfg.replace(USERS_FILE="/tmp/x.json")
+
+    assert "BASE_DIR" in str(errore.value)

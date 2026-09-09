@@ -338,6 +338,14 @@ def _answer_question(store: LibraryStore, library_id: str, question: str, top_k:
                 )
     except (LibraryNotFoundError, LibraryAccessError) as error:
         raise HTTPException(status_code=404, detail="Biblioteca non trovata") from error
+
+    # La verifica sta qui, fra recupero e risposta, e non dentro il recupero:
+    # se scarta tutto, il percorso di astensione gia' esistente si occupa del
+    # resto senza un secondo ramo che dica la stessa cosa in un altro modo.
+    from core.evidence_verifier import verify_citations
+
+    citations, evidence_verified = verify_citations(question, citations)
+
     if not citations:
         latency_ms = (time.perf_counter() - t0) * 1000.0
         from core.analytics import record_query_event
@@ -366,6 +374,7 @@ def _answer_question(store: LibraryStore, library_id: str, question: str, top_k:
                 "assistant_mode": library["assistant_mode"],
                 "assistant_provider": library.get("assistant_provider", ""),
                 "retrieval_profile": retrieval_profile,
+                "evidence_verified": evidence_verified,
                 "created_at": datetime.now(UTC).isoformat(),
             },
         }
@@ -423,6 +432,10 @@ def _answer_question(store: LibraryStore, library_id: str, question: str, top_k:
             "assistant_mode": library["assistant_mode"],
             "assistant_provider": library.get("assistant_provider", ""),
             "retrieval_profile": retrieval_profile,
+            # False quando la verifica e' disattivata oppure non e' stata
+            # eseguibile: chi legge deve poter distinguere "controllato" da
+            # "non controllato", invece di presumere il primo.
+            "evidence_verified": evidence_verified,
             "created_at": datetime.now(UTC).isoformat(),
         },
     }
