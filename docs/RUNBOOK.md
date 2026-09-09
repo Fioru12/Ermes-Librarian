@@ -201,11 +201,18 @@ State these to whoever is deciding on the deployment, before they find out:
 - **Rate limiting covers only upload, search and ask**, counted per
   authenticated user, plus a separate block on repeated failed logins. Everything
   else is unlimited. See the threat model, T8.
-- **Retrieval quality has been measured on a synthetic corpus** of 16 passages,
-  not on a real document set. The numbers in
+- **Abstention degrades sharply once the library holds unrelated text.**
+  Measured: with 100 extra passages of real prose the system stops abstaining in
+  two cases out of three, because a single shared term is enough to be returned
+  as evidence. Enabling `ERMES_EVIDENCE_VERIFIER=1` restores it to 1.000 and, at
+  that corpus size, also improves overall recall. If you care about "it says
+  I don't know instead of guessing" — and that is the reason to buy this — turn
+  the verifier on and budget for the extra model calls.
+- **Retrieval quality has been measured on a synthetic corpus**, with real prose
+  used only as noise. The numbers in
   [RETRIEVAL_EVALUATION.md](RETRIEVAL_EVALUATION.md) are honest for that corpus
   and prove nothing about yours. Measure on your own documents before promising
-  anything.
+  anything: `python evaluation/scale_check.py` is the starting point.
 - **The Compose stack has never been run end to end.** See section 3.
 
 The full analysis of what is defended and what is not is in

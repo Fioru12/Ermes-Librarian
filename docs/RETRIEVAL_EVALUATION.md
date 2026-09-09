@@ -145,6 +145,104 @@ la legge sa che quel controllo non e' passato.
 con un solo prompt e due modelli della stessa famiglia. Il risultato indica
 una direzione, non chiude la questione: su un corpus reale va rimisurato.
 
+## Il numero regge alla scala? (misurato 9 settembre 2026)
+
+Tutti i numeri sopra vengono da **16 passaggi**. Trovare quello giusto fra tre
+risultati su sedici candidati e' molto piu' facile che farlo su un archivio
+aziendale vero, e finche' non e' misurato `recall@3 = 0.852` non dice niente
+sulla scala. E' la prima obiezione che farebbe chiunque valuti il progetto sul
+serio, quindi e' meglio farsela da soli.
+
+`evaluation/scale_check.py` isola una variabile sola: la dimensione del
+corpus. Stesse 27 domande, stesse risposte attese, stesso codice. Cambia solo
+quanto testo estraneo circonda la risposta corretta — e il testo estraneo non
+e' inventato, sono paragrafi reali della documentazione di questo repository,
+a tema tecnico-aziendale, quindi non rumore facile da scartare.
+
+```powershell
+python evaluation/scale_check.py --sizes 0,25,97
+```
+
+### Configurazione predefinita (lessicale)
+
+| Rumore per biblioteca | Passaggi aggiunti | recall@3 | dirette | parafrasi | astensione |
+|---|---|---|---|---|---|
+| 0 | 0 | 0.852 | 1.000 | 0.500 | 1.000 |
+| 5 | 20 | 0.778 | 1.000 | 0.375 | 0.667 |
+| 10 | 40 | 0.778 | 1.000 | 0.375 | 0.667 |
+| 25 | 100 | 0.704 | 0.938 | 0.375 | 0.333 |
+| 50 | 200 | 0.667 | 0.875 | 0.375 | 0.333 |
+| 97 | 388 | 0.667 | 0.875 | 0.375 | 0.333 |
+
+Due letture, e la seconda e' seria.
+
+**Le domande dirette reggono**: 1.000 → 0.875 con ventiquattro volte il
+corpus. La capacita' principale del prodotto non crolla.
+
+**L'astensione crolla, e crolla subito**: 1.000 → 0.667 con soli venti
+passaggi aggiunti, → 0.333 a cento. Poi si stabilizza: fra 200 e 388 non
+cambia piu' niente. Non e' quindi un effetto della scala in se', e' la
+semplice presenza di testo concorrente. Con sedici passaggi non c'era nulla
+con cui collidere.
+
+### Perche' l'astensione si rompe
+
+Guardando cosa viene citato per errore la causa e' evidente, e non e'
+statistica:
+
+- alla domanda *"un collega lavora sempre da **casa**"* il sistema cita un
+  paragrafo su `config.py`, perche' lo stemmer riduce **casa** e **casi** alla
+  stessa radice;
+- alla domanda sul *"**codice** etico"* cita *"il **codice** sembrava
+  corretto"*, cioe' codice sorgente.
+
+La regola di ammissione in `core/library_store.py` e'
+`if phrase_score or token_score or ...`: **un solo termine in comune basta**
+per essere restituito come evidenza, e tutti i termini pesano uguale.
+
+### Una correzione tentata e scartata
+
+L'idea ovvia e' pretendere che una frazione minima dei termini della domanda
+compaia nel passaggio. Misurata, non funziona:
+
+| Soglia di copertura | recall@3 (0 rumore) | dirette | parafrasi | astensione (100 passaggi) |
+|---|---|---|---|---|
+| 0.0 (attuale) | 0.852 | 1.000 | 0.500 | 0.333 |
+| 0.2 | 0.741 | 1.000 | 0.125 | 0.333 |
+| 0.3 | 0.593 | 0.812 | 0.000 | 0.667 |
+| 0.34 | 0.444 | 0.562 | 0.000 | 1.000 |
+| 0.5 | 0.370 | 0.438 | 0.000 | 1.000 |
+
+A 0.2 peggiora tutto senza recuperare niente; da 0.34 l'astensione torna a
+1.000 ma le dirette scendono a 0.562. Nessun valore e' utile, quindi la
+manopola non e' stata aggiunta: il problema non e' *quanti* termini
+coincidono ma *quali*. "Codice" e "casi" sono comuni nel rumore, "ferie" no.
+La direzione indicata e' una pesatura per rarita' del termine (IDF), che oggi
+non c'e': ogni token vale 10 punti, raro o comunissimo che sia.
+
+### Cosa invece funziona: la verifica dell'evidenza
+
+| Rumore | recall@3 senza | recall@3 con | astensione senza | astensione con |
+|---|---|---|---|---|
+| 0 | 0.852 | 0.815 | 1.000 | 1.000 |
+| 100 passaggi | 0.704 | **0.741** | 0.333 | **1.000** |
+| 388 passaggi | 0.667 | **0.704** | 0.333 | **1.000** |
+
+**Il valore della verifica cresce con la dimensione del corpus.** Sui sedici
+passaggi di prova sembrava un compromesso — qualche parafrasi persa in cambio
+dell'astensione. Con rumore realistico e' migliore su entrambe le colonne, e
+l'astensione resta a 1.000 anche con 388 passaggi estranei: il modello
+riconosce che un paragrafo su `config.py` non risponde a una domanda sul
+lavoro da casa, dove il punteggio lessicale non ci arriva.
+
+Riproducibile con `python evaluation/scale_check.py --sizes 0,25,97 --verify`.
+
+### Cosa questa misura NON dimostra
+
+Le domande restano scritte da noi e il corpus di partenza resta sintetico.
+Questo misura la robustezza al rumore, non l'aderenza a un dominio reale.
+Prima di promettere qualcosa a un'azienda, va rimisurato sui suoi documenti.
+
 ## Gate CI
 
 `tests/test_library_evaluation.py` verifica `recall_at_3_direct >= 0.9` e `citation_coverage >= 0.9` come soglie dure (sempre raggiungibili senza Ollama), piu' due soglie morbide (`recall_at_3_paraphrase > 0`, `abstention_accuracy > 0`) per accorgersi se la qualita' sulle query difficili crolla a zero, senza pretendere che il keyword-only le risolva tutte. Il gate CI resta sulla modalita' keyword-only: la modalita' `--semantic` non e' ancora adatta a un default di prodotto (vedi sopra) e comunque richiederebbe Ollama in CI, non disponibile.

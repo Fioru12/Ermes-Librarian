@@ -141,6 +141,33 @@ Browser
 
 The target architecture, security principles and planned evolution are documented in [docs/ARCHITECTURE_TARGET.md](docs/ARCHITECTURE_TARGET.md) and [docs/PROJECT_PLAN.md](docs/PROJECT_PLAN.md).
 
+### Does the number survive a bigger corpus?
+
+Every retrieval number above comes from **16 passages**. Picking the right one
+out of sixteen is a much easier job than picking it out of a real company
+archive, so `evaluation/scale_check.py` isolates that single variable: same 27
+questions, same expected answers, only the amount of surrounding text changes —
+and the noise is real prose taken from this repository's own documentation.
+
+| Added passages | recall@3 | direct | paraphrase | abstention |
+|---|---|---|---|---|
+| 0 | 0.852 | 1.000 | 0.500 | 1.000 |
+| 100 | 0.704 | 0.938 | 0.375 | **0.333** |
+| 388 | 0.667 | 0.875 | 0.375 | **0.333** |
+
+Direct questions hold up. **Abstention does not**: it falls to 0.333 as soon as
+the library contains other text, and that is the product's central claim. The
+cause is not statistical — with real prose around, a question about working
+*da casa* matches a paragraph about `config.py`, because the stemmer collapses
+*casa* and *casi*; a question about the *codice etico* matches a sentence about
+source code. Any single shared term is enough to be returned as evidence.
+
+Turning on evidence verification restores it completely, and its value grows
+with the corpus: at 388 added passages it is better on **both** columns —
+recall@3 0.704 against 0.667, abstention 1.000 against 0.333. Full analysis,
+including a threshold-based fix that was measured and rejected, in
+[docs/RETRIEVAL_EVALUATION.md](docs/RETRIEVAL_EVALUATION.md).
+
 ## Demo corpus
 
 Two fictional demo libraries, safe to upload and screenshot: [Northstar Works](examples/demo-corpus/README.md) (HR/IT/expense policies) and [Meridian Precision Works](examples/demo-corpus-quality/README.md) (manufacturing quality procedures). Loading both and asking a question that only the *other* library can answer is the fastest way to show that retrieval never crosses a library boundary — it is not just a design principle, the demo validation script checks it.

@@ -159,6 +159,26 @@ block on repeated failed logins (`core/login_guard.py`). No protection against a
 distributed attack, and none is intended at this scale. The counters are still per
 process, so several instances multiply every threshold.
 
+### T9 — The system answers when it should abstain
+
+The product's promise is that it says "I don't know" rather than citing
+something irrelevant. That promise is weaker than the headline number suggests.
+
+*Posture:* measured, and the measurement is unflattering. On the 16-passage demo
+corpus abstention is perfect (1.000). Add 100 passages of ordinary prose and it
+falls to 0.333 — two abstention questions out of three get a confident citation
+to unrelated text. The cause is in `core/library_store.py`: a chunk is admitted
+as evidence if it shares **any single term** with the question, and every term
+weighs the same, so a question about working *da casa* matches a paragraph about
+`config.py` (the stemmer collapses *casa* and *casi*).
+
+Enabling `ERMES_EVIDENCE_VERIFIER=1` restores abstention to 1.000 at every
+corpus size measured, and at 388 added passages also improves overall recall.
+It is off by default because it needs a reachable model, so **a deployment that
+relies on abstention must turn it on**. Covered by
+`evaluation/scale_check.py --verify`; the analysis, including a threshold-based
+fix that was measured and rejected, is in `RETRIEVAL_EVALUATION.md`.
+
 ## Known gaps
 
 Stated plainly, because a threat model that lists only solved problems is
