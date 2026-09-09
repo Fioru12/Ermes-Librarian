@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import os
 import re
 import sqlite3
@@ -1286,8 +1287,42 @@ class LibraryStore:
 
         rows = [r for r in rows if _get(r, "document_id") not in hidden]
 
-        ranked = []
+        # Pesatura per rarita' del termine, calcolata sui candidati gia'
+        # caricati: nessuno schema nuovo, nessuna cache da invalidare.
+        #
+        # Prima ogni termine valeva 10 punti, raro o comunissimo che fosse. Con
+        # sedici passaggi non si notava; con testo vero attorno, una domanda
+        # su "un collega lavora da CASA" citava un paragrafo su config.py
+        # (lo stemmer accomuna casa e casi) e una sul "CODICE etico" citava
+        # codice sorgente. Misurato in evaluation/scale_check.py: l'astensione
+        # passava da 1.000 a 0.333 appena la biblioteca conteneva altro testo.
+        #
+        # Un termine presente in quasi tutti i candidati non distingue niente e
+        # ora pesa quasi zero; uno presente in pochi pesa quasi uno.
+        preparati = []
+        frequenza_documentale: dict[str, int] = {}
+        termini_distinti = set(tokens)
         for row in rows:
+            haystack = f"{_get(row, 'filename')} {_get(row, 'excerpt')}".lower()
+            haystack_tokens = {self._search_token(t) for t in re.findall(r"[\wÀ-ÿ]{3,}", haystack)}
+            preparati.append((row, haystack, haystack_tokens))
+            for termine in termini_distinti:
+                if termine in haystack_tokens:
+                    frequenza_documentale[termine] = frequenza_documentale.get(termine, 0) + 1
+
+        candidati = len(preparati)
+        normalizzatore = math.log(1 + candidati) if candidati > 1 else 1.0
+
+        def _peso(termine: str) -> float:
+            df = frequenza_documentale.get(termine, 0)
+            if df <= 0:
+                return 0.0
+            if candidati <= 1:
+                return 1.0
+            return math.log(1 + candidati / df) / normalizzatore
+
+        ranked = []
+        for row, haystack, haystack_tokens in preparati:
             filename, excerpt = _get(row, "filename"), _get(row, "excerpt")
             document_id = _get(row, "document_id")
             version = _get(row, "version")
@@ -1296,10 +1331,8 @@ class LibraryStore:
             source_locator = _get(row, "source_locator")
             embedding_json = _get(row, "embedding_json")
             ordinal = _get(row, "ordinal")
-            haystack = f"{filename} {excerpt}".lower()
             phrase_score = 100 if normalized.lower() in haystack else 0
-            haystack_tokens = {self._search_token(t) for t in re.findall(r"[\wÀ-ÿ]{3,}", haystack)}
-            token_score = sum(10 for t in tokens if t in haystack_tokens)
+            token_score = 10 * sum(_peso(t) for t in tokens if t in haystack_tokens)
             semantic_score = 0.0
             if query_embedding and embedding_json:
                 try:

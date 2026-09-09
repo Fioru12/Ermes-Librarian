@@ -237,6 +237,53 @@ lavoro da casa, dove il punteggio lessicale non ci arriva.
 
 Riproducibile con `python evaluation/scale_check.py --sizes 0,25,97 --verify`.
 
+### Pesatura per rarita' del termine, e cosa non ha risolto
+
+La sezione precedente indicava la direzione: il problema non e' *quanti*
+termini coincidono ma *quali*, perche' ogni token valeva 10 punti, raro o
+comunissimo che fosse. La pesatura e' stata implementata e misurata.
+
+Il peso di un termine e' `log(1 + N/df) / log(1 + N)`, con `df` il numero di
+candidati che lo contengono: circa 1 per un termine che compare in un solo
+passaggio, vicino a 0 per uno presente ovunque. Si calcola sui candidati gia'
+caricati, quindi nessuno schema nuovo e nessuna cache da invalidare.
+
+**Quello che migliora — il ranking:**
+
+| Passaggi aggiunti | recall@3 prima | dopo | dirette prima | dopo |
+|---|---|---|---|---|
+| 0 | 0.852 | 0.852 | 1.000 | 1.000 |
+| 100 | 0.704 | **0.741** | 0.938 | **1.000** |
+| 388 | 0.667 | 0.667 | 0.875 | 0.875 |
+
+Con cento passaggi estranei le domande dirette tornano a 1.000. Sul corpus
+senza rumore non cambia niente, come deve essere.
+
+**Quello che NON risolve — l'astensione**, che resta a 0.333. Sono state
+provate tutte le combinazioni sensate:
+
+| Variante | Astensione con 100 passaggi |
+|---|---|
+| Frequenza sui soli candidati | 0.333 |
+| Frequenza sull'intera biblioteca | 0.333 |
+| Con soglia minima di punteggio, da 1 a 8 | 0.333 |
+
+La frequenza calcolata sull'intera biblioteca — piu' corretta in teoria, e che
+costerebbe una scansione completa a ogni interrogazione — da' risultati
+**identici**, quindi e' stata scartata: costo reale, beneficio zero. Anche la
+soglia minima non e' stata aggiunta: nessun valore aiuta, e sopra 5 le domande
+dirette scendono a 0.875.
+
+La ragione e' che i termini che causano le citazioni sbagliate non sono comuni
+nella biblioteca: sono **collisioni dello stemmer** (*casa* e *casi* hanno la
+stessa radice) e **polisemie** (*codice* etico contro *codice* sorgente). La
+frequenza non puo' distinguerle, perche' il problema non e' quanto un termine
+sia diffuso ma che significhi due cose diverse.
+
+Resta quindi vero quanto misurato sopra: per l'astensione su un corpus con
+altro testo dentro, l'unico meccanismo che funziona e' la verifica
+dell'evidenza.
+
 ### Cosa questa misura NON dimostra
 
 Le domande restano scritte da noi e il corpus di partenza resta sintetico.
