@@ -206,3 +206,28 @@ def test_extracts_rtf_units():
     text, units = extract_text("emergenza.rtf", rtf_bytes)
     assert units == 1
     assert "evacuare l'edificio" in text
+
+
+def test_chunk_size_configuration_is_actually_honoured(monkeypatch):
+    """ERMES_CHUNK_SIZE ed ERMES_CHUNK_OVERLAP erano dichiarati nel config e
+    letti da nessuna riga di codice: chi li impostava non cambiava niente."""
+    import config
+    from core.document_parser import split_into_chunks
+
+    testo = "frase di prova. " * 400
+
+    monkeypatch.setattr(config, "cfg", config.cfg.replace(CHUNK_SIZE=300, CHUNK_OVERLAP=50))
+    stretti = split_into_chunks(testo)
+
+    monkeypatch.setattr(config, "cfg", config.cfg.replace(CHUNK_SIZE=1500, CHUNK_OVERLAP=50))
+    larghi = split_into_chunks(testo)
+
+    assert len(stretti) > len(larghi), "la dimensione configurata non ha effetto"
+
+
+def test_the_wired_defaults_match_what_was_previously_in_force(monkeypatch):
+    """Collegare una manopola non deve cambiare di straforo il comportamento."""
+    import config
+
+    assert config.cfg.CHUNK_SIZE == 900
+    assert config.cfg.CHUNK_OVERLAP == 140

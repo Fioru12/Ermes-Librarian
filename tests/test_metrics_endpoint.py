@@ -99,3 +99,26 @@ def test_rag_business_metrics_recorded_by_ask(env, monkeypatch):
     after = client.get("/metrics").text
     assert "ermes_rag_questions_total" in after
     assert 'outcome="abstained"' in after
+
+
+def test_retrieval_duration_is_actually_recorded(env):
+    """L'istogramma esisteva, era pubblicato e non lo alimentava nessuno.
+
+    Un cruscotto costruito su una metrica sempre vuota e' peggio di una
+    metrica assente: mostra zero e sembra un dato.
+    """
+    client, _test_cfg = env
+
+    biblioteca = client.post("/api/libraries", json={"name": "Metriche", "visibility": "private"})
+    assert biblioteca.status_code == 201, biblioteca.text
+    client.post(f"/api/libraries/{biblioteca.json()['id']}/ask", json={"question": "come chiedo le ferie?"})
+
+    corpo = client.get("/metrics").text
+
+    campione = [
+        r
+        for r in corpo.splitlines()
+        if r.startswith("ermes_rag_retrieval_duration_seconds_count") and not r.startswith("#")
+    ]
+    assert campione, "la metrica non compare fra i campioni"
+    assert float(campione[0].split()[-1]) > 0, f"istogramma ancora vuoto: {campione[0]}"

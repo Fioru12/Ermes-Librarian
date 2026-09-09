@@ -70,7 +70,15 @@ _TIMEOUT_SECONDI = 60.0
 
 
 def _modello() -> str:
-    return getattr(config.cfg, "EVIDENCE_VERIFIER_MODEL", "") or config.cfg.MODEL
+    """Modello del verificatore, con ripiego su quello generale.
+
+    Il ripiego era `cfg.MODEL`, che non esiste: la configurazione espone
+    DEFAULT_MODEL_ID. Abilitare il verificatore senza indicare un modello
+    faceva quindi fallire ogni domanda con AttributeError. Non l'hanno visto i
+    test perche' simulavano `_passaggio_risponde`, cioe' proprio la funzione
+    che chiama questa — l'errore che questo progetto ha gia' fatto altrove.
+    """
+    return getattr(config.cfg, "EVIDENCE_VERIFIER_MODEL", "") or config.cfg.DEFAULT_MODEL_ID
 
 
 def _passaggio_risponde(domanda: str, passaggio: str) -> bool | None:
@@ -92,7 +100,11 @@ def _passaggio_risponde(domanda: str, passaggio: str) -> bool | None:
         )
         risposta.raise_for_status()
         testo = str(risposta.json().get("response", "")).strip().upper()
-    except (httpx.HTTPError, ValueError, TypeError, KeyError) as errore:
+    except Exception as errore:
+        # Volutamente ampio. La verifica e' un miglioramento facoltativo: un
+        # suo guasto deve degradare al comportamento senza verifica, mai far
+        # fallire la domanda dell'utente. L'elenco ristretto di eccezioni
+        # lasciava passare, fra le altre, l'AttributeError qui sopra.
         _logger.warning("Verifica dell'evidenza non eseguibile: %s", errore)
         return None
     return testo.startswith(("SI", "SÌ", "YES"))

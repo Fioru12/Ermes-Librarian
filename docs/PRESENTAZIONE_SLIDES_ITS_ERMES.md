@@ -54,10 +54,15 @@ Questa guida contiene la struttura esatta e il contenuto testuale per le **15 sl
 ### SLIDE 6: IL CUORE DEL RAG — INGESTION & RICERCA IBRIDA
 - **Parsing Multiformato:** Supporto per PDF, Word (.docx), Markdown, TXT e pagine web.
 - **Chunking Dinamico:** Suddivisione del testo in blocchi semantici con overlap per non perdere il contesto.
-- **Ricerca Ibrida (Vector + BM25):** 
-  - *Vettoriale:* Toglie le barriere sintattiche e capisce i sinonimi.
-  - *BM25:* Trova codici esatti, sigle tecniche e numeri di protocollo.
-  - *RRF (Reciprocal Rank Fusion):* Unisce i due ranking per la massima precisione.
+- **Ricerca Ibrida (lessicale + vettoriale):**
+  - *Lessicale:* indice full-text (FTS5 su SQLite, tsvector su PostgreSQL) per
+    selezionare i candidati, con punteggio pesato per rarita' del termine —
+    trova codici esatti, sigle e numeri di protocollo.
+  - *Vettoriale:* similarita' del coseno su embedding locali, per superare la
+    differenza di parole fra domanda e documento.
+  - *Combinazione:* somma pesata dei due punteggi. Disattivata di default: la
+    misura mostra che la componente vettoriale migliora le parafrasi ma azzera
+    l'astensione.
 
 ---
 
@@ -89,9 +94,12 @@ Questa guida contiene la struttura esatta e il contenuto testuale per le **15 sl
 
 ### SLIDE 10: VALUTAZIONE E METRICHE (GOLDEN SET)
 - **Misurazione Quantitativa:** Dataset di test (Golden Set di 27 query) suddiviso per tipologia:
-  - *Query Dirette:* 100% precisione.
-  - *Query Parafrasate:* Recupero semantico potenziato dal motore vettoriale.
-  - *Query di Astensione:* Rilevazione accurata dei casi privi di evidenza.
+  - *Query Dirette:* recall@3 = 1.000 sul corpus dimostrativo.
+  - *Query Parafrasate:* recall@3 = 0.500 con la sola ricerca lessicale, 0.875
+    attivando quella vettoriale.
+  - *Query di Astensione:* 1.000 sul corpus dimostrativo — ma scende a 0.333
+    appena la biblioteca contiene altro testo, e serve la verifica
+    dell'evidenza per riportarla a 1.000.
 - **Approccio Scientifico:** Qualità del RAG misurata ed analizzata, non solo dichiarata.
 
 ---

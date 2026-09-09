@@ -200,10 +200,21 @@ def _get_audit_secret() -> bytes:
         try:
             with open(secret_file, encoding="utf-8") as f:
                 saved = f.read().strip()
-                if saved:
-                    return saved.encode("utf-8")
-        except Exception:
-            pass
+        except OSError as errore:
+            # NON si prosegue a generare una chiave nuova. Il codice
+            # precedente ingoiava l'errore e cadeva nel ramo sottostante, che
+            # sovrascrive il file: un blocco temporaneo (antivirus, backup)
+            # bastava a distruggere la chiave e a far risultare manomesse tutte
+            # le voci gia' firmate. Meglio fallire in modo rumoroso che
+            # invalidare in silenzio il registro che serve proprio quando
+            # qualcosa e' andato storto.
+            raise RuntimeError(
+                f"Chiave di firma dell'audit presente ma illeggibile ({secret_file}): {errore}. "
+                "Non viene rigenerata, perche' sovrascriverla renderebbe non verificabili "
+                "tutte le voci precedenti. Risolvi l'accesso al file e riavvia."
+            ) from errore
+        if saved:
+            return saved.encode("utf-8")
 
     new_secret = secrets.token_hex(32)
     try:

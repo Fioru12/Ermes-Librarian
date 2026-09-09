@@ -139,3 +139,44 @@ def test_a_tampered_entry_fails_verification(fresh_install):
     manomessa = dict(firmata, actor="qualcun-altro")
 
     assert _verify_audit_signature(manomessa) is False
+
+
+# ============================================================
+# La chiave esistente non va mai sovrascritta
+# ============================================================
+
+
+def test_an_unreadable_key_is_never_replaced(fresh_install, monkeypatch):
+    """Il codice precedente ingoiava l'errore di lettura e cadeva nel ramo che
+    genera e SOVRASCRIVE la chiave: un blocco temporaneo del file — antivirus,
+    backup — bastava a rendere non verificabili tutte le voci gia' firmate, che
+    per chi legge il registro e' indistinguibile da una manomissione."""
+    import builtins
+    import os
+
+    prima = _get_audit_secret()  # crea il file
+    percorso = os.path.join(fresh_install.SECURITY_DIR, ".audit_secret")
+    assert os.path.exists(percorso)
+
+    apertura_reale = builtins.open
+    bloccato = {"attivo": True}
+
+    def apertura_bloccata(file, *args, **kwargs):
+        modo = str(args[0]) if args else str(kwargs.get("mode", "r"))
+        if bloccato["attivo"] and str(file) == percorso and "w" not in modo:
+            raise PermissionError("file bloccato da un altro processo")
+        return apertura_reale(file, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "open", apertura_bloccata)
+
+    with pytest.raises(RuntimeError) as errore:
+        _get_audit_secret()
+
+    assert "illeggibile" in str(errore.value)
+
+    # Sbloccato il file, la chiave sul disco deve essere ancora quella di
+    # prima. `monkeypatch.undo()` qui sarebbe sbagliato: annullerebbe anche la
+    # configurazione temporanea della fixture, e si rileggerebbe l'installazione
+    # reale invece di quella del test.
+    bloccato["attivo"] = False
+    assert _get_audit_secret() == prima

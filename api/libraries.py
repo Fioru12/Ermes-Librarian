@@ -319,7 +319,15 @@ def _answer_question(store: LibraryStore, library_id: str, question: str, top_k:
     t0 = time.perf_counter()
     try:
         library = store.get_library(library_id, actor)
-        citations, retrieval_profile = store.search_with_profile(library_id, question, limit=top_k, actor=actor)
+        # L'istogramma ermes_rag_retrieval_duration_seconds era dichiarato in
+        # core/metrics.py e pubblicato su /metrics senza che nessuno lo
+        # alimentasse: un cruscotto costruito su di esso avrebbe mostrato zero
+        # dati, che per chi guarda e' indistinguibile da "il recupero e'
+        # istantaneo".
+        from core.metrics import rag_retrieval_timer
+
+        with rag_retrieval_timer():
+            citations, retrieval_profile = store.search_with_profile(library_id, question, limit=top_k, actor=actor)
         if not citations:
             from core.query_expander import expand_query
 

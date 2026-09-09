@@ -22,7 +22,7 @@ os.environ["ERMES_ADMIN_PASSWORD"] = "StrongSmoke!123"
 os.environ["ERMES_API_KEY"] = ""
 os.environ["ERMES_BACKUP_ENABLED"] = "0"
 os.environ["ERMES_LIBRARY_SEMANTIC_SEARCH"] = "1"
-os.environ["ERMES_EMBED_MODEL"] = "nomic-embed-text"
+os.environ["ERMES_EMBED_MODEL_ID"] = "nomic-embed-text:latest"  # il nome letto dal config e' ..._ID
 # Consenso globale all'egress cloud: cancellello 2 dei 3 (chiave + consenso +
 # scelta per-biblioteca da parte dell'owner).
 os.environ["ERMES_LIBRARY_CLOUD_CONSENT"] = "1"

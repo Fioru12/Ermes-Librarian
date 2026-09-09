@@ -77,7 +77,17 @@ def test_search_latency(benchmark, tmp_path):
             store.search_with_profile(library["id"], q)
 
     benchmark(run_searches)
-    # pytest-benchmark stampa le stats automaticamente. Assertion: < 200ms per query.
+
+    # Il commento qui prometteva "Assertion: < 200ms per query" e l'asserzione
+    # non c'era: una regressione di dieci volte nella latenza sarebbe passata
+    # inosservata mentre il file dichiarava di sorvegliarla.
+    #
+    # Il limite e' volutamente largo — la media misurata e' intorno ai 5 ms per
+    # l'intero giro di quattro query — perche' deve segnalare un cambio di
+    # ordine di grandezza, non le fluttuazioni di una macchina di CI condivisa.
+    media_per_query = benchmark.stats.stats.mean / len(queries)
+    assert media_per_query < 0.2, f"latenza media {media_per_query * 1000:.1f} ms per query, oltre il limite di 200 ms"
+
     # Il benchmark table mostra mean/min/max — verificare manualmente che sia < 200ms.
 
 

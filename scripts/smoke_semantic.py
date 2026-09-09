@@ -18,7 +18,7 @@ os.environ["ERMES_ADMIN_PASSWORD"] = "StrongSmoke!123"
 os.environ["ERMES_API_KEY"] = ""
 os.environ["ERMES_BACKUP_ENABLED"] = "0"
 os.environ["ERMES_LIBRARY_SEMANTIC_SEARCH"] = "1"
-os.environ["ERMES_EMBED_MODEL"] = "nomic-embed-text"
+os.environ["ERMES_EMBED_MODEL_ID"] = "nomic-embed-text:latest"  # il nome letto dal config e' ..._ID
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 

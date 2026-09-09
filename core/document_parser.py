@@ -31,8 +31,17 @@ class SourceUnit:
     locator: str
 
 
-def split_into_chunks(text: str, max_chars: int = 900, overlap_chars: int = 140) -> list[str]:
-    """Split text on paragraph boundaries, preserving small readable citations."""
+def split_into_chunks(text: str, max_chars: int | None = None, overlap_chars: int | None = None) -> list[str]:
+    """Split text on paragraph boundaries, preserving small readable citations.
+
+    I valori vengono dalla configurazione (ERMES_CHUNK_SIZE, ERMES_CHUNK_OVERLAP).
+    Erano dichiarati nel config e non letti da nessuna riga di codice: chi li
+    impostava non cambiava la dimensione dei chunk, e nulla glielo diceva.
+    """
+    from config import cfg
+
+    max_chars = int(max_chars if max_chars is not None else getattr(cfg, "CHUNK_SIZE", 900))
+    overlap_chars = int(overlap_chars if overlap_chars is not None else getattr(cfg, "CHUNK_OVERLAP", 140))
     normalized = "\n".join(line.rstrip() for line in text.replace("\r\n", "\n").split("\n")).strip()
     if not normalized:
         return []

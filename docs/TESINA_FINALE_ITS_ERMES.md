@@ -226,7 +226,7 @@ Ogni voce di log contiene il timestamp ISO 8601 dell'evento, l'identificativo de
 
 Un principio fondamentale seguito durante lo sviluppo di Ermes Knowledge è che la qualità di un sistema RAG non può essere valutata in modo soggettivo o basandosi su impressioni estemporanee, ma deve essere misurata quantitativamente attraverso metriche ripetibili ed oggettive.
 
-A questo scopo, è stato creato un Golden Set di valutazione (evaluation/gold_set.json), contenente un insieme curato di domande di test classificate in tre categorie concettuali:
+A questo scopo, è stato creato un Golden Set di valutazione (evaluation/library_gold_set.json), contenente un insieme curato di domande di test classificate in tre categorie concettuali:
 1. Query Dirette: domande formulate utilizzando le medesime parole chiave presenti nel documento sorgente.
 2. Query Parafrasate: domande che esprimono lo stesso concetto ma utilizzano vocaboli e strutture sintattiche totalmente differenti rispetto alla fonte.
 3. Query di Astensione: domande verosimili ma aventi ad oggetto argomenti deliberatamente assenti dal corpus documentale.

@@ -49,8 +49,13 @@ class RAGConfig:
     # ---------------------------------------------------------
     # CHUNKING
     # ---------------------------------------------------------
-    CHUNK_SIZE: int = field(default_factory=lambda: int(os.environ.get("ERMES_CHUNK_SIZE", "1000")))
-    CHUNK_OVERLAP: int = field(default_factory=lambda: int(os.environ.get("ERMES_CHUNK_OVERLAP", "200")))
+    # I default sono 900/140 perche' erano i valori cablati in
+    # core/document_parser.py e realmente in vigore. Il config dichiarava
+    # 1000/200 e non era letto da nessuno: collegarlo adottando quei numeri
+    # avrebbe cambiato di straforo la dimensione dei chunk di ogni
+    # installazione esistente, senza che nessuno l'avesse misurato.
+    CHUNK_SIZE: int = field(default_factory=lambda: int(os.environ.get("ERMES_CHUNK_SIZE", "900")))
+    CHUNK_OVERLAP: int = field(default_factory=lambda: int(os.environ.get("ERMES_CHUNK_OVERLAP", "140")))
 
     # ---------------------------------------------------------
     # ENTERPRISE RERANKER

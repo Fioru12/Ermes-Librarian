@@ -223,3 +223,75 @@ def test_the_evaluation_reports_verification_when_it_ran(monkeypatch):
     report = evaluate(gold, limit=4, verify=True)
 
     assert report["evidence_verification_active"] is True
+
+
+# ============================================================
+# Il percorso che i test simulavano, e che quindi era rotto
+# ============================================================
+
+
+def test_the_fallback_model_actually_exists(attivo, monkeypatch):
+    """Il ripiego era `cfg.MODEL`, che non esiste in questa configurazione.
+
+    Abilitare il verificatore senza indicare un modello faceva fallire ogni
+    domanda con AttributeError, e nessun test se ne accorgeva perche' tutti
+    simulavano `_passaggio_risponde` — cioe' proprio la funzione che chiama il
+    ripiego.
+    """
+    monkeypatch.setattr(config, "cfg", config.cfg.replace(EVIDENCE_VERIFIER_MODEL=""))
+
+    assert verificatore._modello()
+
+
+def test_an_explicit_model_wins_over_the_fallback(attivo, monkeypatch):
+    monkeypatch.setattr(config, "cfg", config.cfg.replace(EVIDENCE_VERIFIER_MODEL="modello-scelto"))
+
+    assert verificatore._modello() == "modello-scelto"
+
+
+def test_an_unexpected_failure_never_breaks_the_answer(attivo, monkeypatch):
+    """La verifica e' facoltativa: un suo guasto deve degradare, non far
+    fallire la domanda dell'utente."""
+
+    def esplode(*_args, **_kwargs):
+        raise RuntimeError("guasto imprevisto")
+
+    monkeypatch.setattr(verificatore.httpx, "post", esplode)
+    citazioni = [_citazione("un passaggio qualunque")]
+
+    superstiti, verificata = verify_citations("domanda", citazioni)
+
+    assert superstiti == citazioni
+    assert verificata is False
+
+
+def test_the_whole_path_runs_without_stubbing_the_model_call(attivo, monkeypatch):
+    """Esercita _passaggio_risponde per intero, sostituendo solo la rete.
+
+    E' il test che mancava: tutti gli altri sostituivano la funzione, quindi
+    non passavano mai da _modello() ne' dalla costruzione della richiesta.
+    """
+
+    class _RispostaFinta:
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return {"response": "SI"}
+
+    catturato = {}
+
+    def finta_post(url, json=None, timeout=None):
+        catturato["url"] = url
+        catturato["model"] = json["model"]
+        return _RispostaFinta()
+
+    monkeypatch.setattr(verificatore.httpx, "post", finta_post)
+    citazione = _citazione("Le ferie si richiedono con quindici giorni di anticipo.")
+
+    superstiti, verificata = verify_citations("come chiedo le ferie?", [citazione])
+
+    assert superstiti == [citazione]
+    assert verificata is True
+    assert catturato["model"]
+    assert catturato["url"].endswith("/api/generate")
