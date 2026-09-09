@@ -191,8 +191,15 @@ marketing:
    correlated by request id (`core/logging_setup.py`), which makes them usable in
    an aggregator, but they are ordinary output: unlike the audit log they are not
    signed, and an operator with host access can edit them.
-7. **`mypy` and `bandit` are advisory in CI**, not blocking. Their findings are
-   reviewed manually; the last review left zero high-severity issues.
+7. **Type debt is fenced, not paid off.** `mypy` and `bandit` now block the
+   build instead of reporting advisories nobody could triage — 92 findings with
+   no way to tell new from old were, in practice, ignored. `legacy_winsarp` is
+   excluded (it is out of scope, and produced 40 of them by itself), and the 18
+   product modules that still carry findings are listed by name in
+   `pyproject.toml`. Everything else must stay clean, so new code starts clean;
+   that list can only shrink. `pip-audit` stays advisory on purpose: it depends
+   on an external vulnerability feed that can go red overnight without anything
+   changing here.
 8. **The full Compose stack has never been started end to end** on a clean
    machine, and [RUNBOOK.md](RUNBOOK.md) marks that step unverified rather than
    implying otherwise. The image builds in CI and the Compose file validates, but

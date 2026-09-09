@@ -36,19 +36,26 @@ jobs:
           pip install ruff mypy bandit pip-audit
       - name: Ruff check
         run: ruff check . --output-format=github
-      # The three steps below are advisory, not gates. That is declared with
-      # continue-on-error so the run is visibly yellow rather than hidden behind
-      # a trailing "|| true", which made a failing check report success and left
-      # no signal that anything had gone wrong.
-      - name: MyPy check (advisory)
-        continue-on-error: true
+      # Bloccante. Lo era "advisory" finche' 92 segnalazioni rendevano
+      # impossibile distinguere le nuove dalle vecchie: ora i moduli con debito
+      # residuo sono elencati esplicitamente in pyproject.toml e tutto il resto
+      # deve restare pulito. Quella lista puo' solo accorciarsi.
+      - name: MyPy check
         # Scoped to product dirs and --explicit-package-bases: su `mypy .`
         # l'analisi si fermava subito su moduli duplicati (legacy_winsarp,
         # evaluation) e non controllava nulla.
         run: mypy api/ core/ config/ --ignore-missing-imports --explicit-package-bases
-      - name: Bandit security scan (advisory)
-        continue-on-error: true
+      # Bloccante: oggi non riporta nulla a media/alta severita', quindi
+      # renderlo bloccante non nasconde debito, impedisce di crearne.
+      - name: Bandit security scan
         run: bandit -r api/ config/ core/ -ll
+      # L'unico passo ancora advisory, e per una ragione diversa dalle altre:
+      # dipende da un elenco di vulnerabilita' esterno che puo' diventare rosso
+      # per una CVE pubblicata stanotte in una dipendenza, senza che nulla sia
+      # cambiato qui. Bloccare la CI su un evento fuori dal nostro controllo
+      # insegnerebbe a ignorarla. `continue-on-error` invece di un `|| true`
+      # finale: cosi' la corsa risulta gialla e il segnale resta visibile,
+      # mentre `|| true` faceva riportare successo a un controllo fallito.
       - name: pip-audit (vulnerability scan, advisory)
         continue-on-error: true
         run: pip-audit

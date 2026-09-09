@@ -41,7 +41,10 @@ async def list_models(_auth: None = Depends(__import__("api.auth", fromlist=["_v
         providers = []
         registry = None
 
-    if providers:
+    # `registry` e' None soltanto quando la lista e' vuota (vedi il blocco
+    # except sopra): la condizione rende l'invariante esplicito invece di
+    # affidarlo alla lettura di due rami distanti.
+    if providers and registry is not None:
         for prov in providers:
             provider = registry.get_provider(prov["name"])
             if provider:

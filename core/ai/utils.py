@@ -225,6 +225,11 @@ def call_llm(
         _lf_end_trace(_lf_gen, _lf_start, None, e)
         raise
 
+    # Irraggiungibile finche' il ciclo sopra esce sempre sollevando. Esplicito
+    # perche' la funzione dichiara -> str: se quell'invariante si rompesse,
+    # senza questa riga restituirebbe None a un chiamante che si aspetta testo.
+    raise RuntimeError("call_llm: nessun modello ha prodotto una risposta")
+
 
 def _lf_end_trace(gen, start, result, error):
     """Finalizza il trace Langfuse (se attivo). Silenzioso se fallisce."""

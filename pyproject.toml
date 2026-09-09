@@ -111,3 +111,50 @@ disallow_untyped_defs = false
 check_untyped_defs = true
 ignore_missing_imports = true
 exclude = ["backups", ".venv", "legacy_winsarp"]
+
+# `exclude` non basta: mypy entra comunque in legacy_winsarp seguendo gli
+# import dal percorso di prodotto, e quel motore congelato — fuori ambito per
+# dichiarazione esplicita nel threat model, raggiungibile solo con
+# ENABLE_LEGACY_WINSARP=1 — produceva da solo 40 dei 92 errori, rendendo
+# impossibile distinguere le segnalazioni che riguardano il prodotto.
+[[tool.mypy.overrides]]
+module = "legacy_winsarp.*"
+ignore_errors = true
+
+# ---------------------------------------------------------------------------
+# Debito di tipizzazione, elencato invece che nascosto.
+#
+# Il controllo dei tipi era "advisory" in CI: 92 segnalazioni che nessuno
+# poteva distinguere fra vecchie e nuove, quindi in pratica ignorate. Renderlo
+# bloccante di colpo avrebbe richiesto 48 correzioni in un colpo solo, molte
+# cosmetiche, alcune no.
+#
+# La via di mezzo e' un cricchetto: i moduli qui sotto sono gli unici ancora
+# esentati, e il controllo e' bloccante ovunque altro. Un file nuovo nasce
+# quindi pulito e deve restarlo, e questa lista puo' solo accorciarsi. Togliere
+# un nome e correggere quel modulo e' un'attivita' autonoma, adatta a chiunque.
+#
+# NON aggiungere nomi a questa lista per far passare la CI: significherebbe
+# tornare al punto di partenza con un passaggio in piu'.
+[[tool.mypy.overrides]]
+module = [
+    "api",
+    "api.chat_webhooks",
+    "api.providers",
+    "core.ai.providers.anthropic",
+    "core.ai.providers.google",
+    "core.ai.providers.ollama",
+    "core.ai.providers.openai_compat",
+    "core.ai.providers.registry",
+    "core.ai.utils",
+    "core.analytics",
+    "core.database_backend",
+    "core.document_parser",
+    "core.governance",
+    "core.library_embeddings",
+    "core.library_store",
+    "core.monitoring",
+    "core.pii_filter",
+    "core.rate_limiter",
+]
+ignore_errors = true
