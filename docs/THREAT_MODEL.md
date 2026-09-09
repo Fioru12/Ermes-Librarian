@@ -138,16 +138,26 @@ application**; the `public` Compose profile provides Caddy for this.
 
 ### T8 — Denial of service
 
-*Posture:* weaker than this section previously claimed. It described
-per-identifier request and upload rate limiting as an active defence, citing
-`tests/test_rate_limiter.py`. The limiter is real and those tests pass, but it
-was never applied to a route — the tests exercise the class, not the server, so
-nothing failed when the wiring was missing. What actually holds today: an upload
-size ceiling, the archive limits under T3, and a per-IP block on repeated failed
-logins (`core/login_guard.py`, `tests/test_login_guard.py`), which is enforced on
-the endpoint rather than on a component. General request rate limiting is still
-unwired. No protection against a distributed attack, and none is intended at this
-scale.
+*Posture:* this section once described per-identifier rate limiting as an
+active defence, citing `tests/test_rate_limiter.py`. The limiter was real and
+those tests passed, but it was applied to no route at all: the tests exercise the
+class, not the server, so nothing went red while the server was unprotected.
+
+It is now wired to the three routes where abuse costs real resources — document
+upload, search and ask — and `tests/test_rate_limiting_applied.py` exercises the
+endpoints rather than the class, so removing the wiring turns it red. Cheap routes
+are deliberately excluded: rate limiting `/health` would let a readiness probe
+declare a healthy instance dead.
+
+Requests are counted **per authenticated user**, with the client address only as a
+fallback. Counting by address alone — as the unused version did — is wrong for
+this product's deployment model: behind a company NAT the whole office shares one
+address, so the first person to upload something would block their colleagues.
+
+Also holding: an upload size ceiling, the archive limits under T3, and a per-IP
+block on repeated failed logins (`core/login_guard.py`). No protection against a
+distributed attack, and none is intended at this scale. The counters are still per
+process, so several instances multiply every threshold.
 
 ## Known gaps
 
@@ -164,17 +174,12 @@ marketing:
    shut by `tests/test_oidc_signature.py`. What is still missing: no token
    revocation or introspection (a stolen token stays usable until `exp`), no
    refresh flow, and a single configured audience per instance.
-3. **Rate limiting exists but protects almost nothing.** `core/rate_limiter.py`
-   is complete and unit-tested, and `api/auth.py::_rate_limit` is written as a
-   dependency — but it is still not applied to any route, so the ten passing
-   tests measure a component that guards no traffic. The one place where the
-   absence was exploitable, repeated password attempts against
-   `POST /api/auth/login`, is now closed by `core/login_guard.py`: before that
-   change 50 wrong passwords in a row all returned 401, never 429. Attempts are
-   counted per IP and per (IP, username) on the shared store, never by username
-   alone — a username-only lockout would let anyone who knows a colleague's name
-   lock them out on purpose. Applying the general limiter to the remaining
-   routes still needs a limits review.
+3. **Rate limiting is per process, and covers only the expensive routes.**
+   Upload, search and ask are limited per authenticated user (T8); repeated failed
+   logins are blocked separately (`core/login_guard.py`) — before that change 50
+   wrong passwords in a row all returned 401, never 429. Everything else is
+   unlimited, and the counters live in process memory, so N instances allow N
+   times each threshold.
 4. **Horizontal scaling is only partly real.** Sessions and login attempts now
    live on the shared store, so a second instance recognises them
    (`core/session_store.py`, `core/login_guard.py`). The request rate limiter and

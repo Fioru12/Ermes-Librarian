@@ -14,7 +14,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPExcepti
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
-from api.auth import _require_role, _verify_api_key
+from api.auth import _require_role, _verify_api_key, rate_limited
 from config import cfg
 from core.document_parser import DocumentParseError, chunk_source_units, extract_source_units
 from core.document_summary import summarize_document
@@ -230,7 +230,16 @@ def list_ingestion_jobs(
         raise HTTPException(status_code=404, detail="Biblioteca non trovata") from error
 
 
-@router.post("/{library_id}/documents", status_code=201, response_model=None)
+# Rotte costose: parsing, embedding e generazione. Sono le uniche dove
+# un abuso costa risorse reali, quindi le uniche a cui il limitatore
+# e' applicato — non globalmente, per non trasformare uno scrape di
+# /metrics o una sonda di health in un 429.
+@router.post(
+    "/{library_id}/documents",
+    status_code=201,
+    response_model=None,
+    dependencies=[Depends(rate_limited)],
+)
 async def upload_document(
     library_id: str,
     background_tasks: BackgroundTasks,
@@ -281,7 +290,7 @@ async def upload_document(
     return {**document, "ingestion_job_id": job["id"], "status": "queued"}
 
 
-@router.get("/{library_id}/search")
+@router.get("/{library_id}/search", dependencies=[Depends(rate_limited)])
 def search_library(
     library_id: str,
     q: str = "",
@@ -419,7 +428,7 @@ def _answer_question(store: LibraryStore, library_id: str, question: str, top_k:
     }
 
 
-@router.post("/{library_id}/ask")
+@router.post("/{library_id}/ask", dependencies=[Depends(rate_limited)])
 def ask_library(
     library_id: str,
     request: AskLibraryRequest,

@@ -200,3 +200,20 @@ def oidc_provider(monkeypatch):
     import core.oidc_keys as keys
 
     keys.reset_key_cache()
+
+
+@pytest.fixture(autouse=True)
+def reset_rate_limiter():
+    """Azzera il limitatore fra un test e l'altro.
+
+    Il limitatore e' un singleton di modulo: senza questo, le richieste di
+    tutti i test si sommerebbero sullo stesso identificativo e prima o poi un
+    test fallirebbe con 429 per colpa dei precedenti. E' isolamento fra test,
+    non disattivazione della protezione: le rotte restano limitate, e
+    tests/test_rate_limiting_applied.py lo verifica.
+    """
+    from core.rate_limiter import get_rate_limiter
+
+    get_rate_limiter().reset()
+    yield
+    get_rate_limiter().reset()

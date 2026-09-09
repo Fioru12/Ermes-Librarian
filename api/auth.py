@@ -243,9 +243,22 @@ def _require_role(min_role: str = "viewer"):
     return role_checker
 
 
-def _rate_limit(req: Request) -> str:
-    client_ip = req.client.host if req.client else "unknown"
-    identifier = f"api_{client_ip}"
+def rate_limited(req: Request, user: dict = Depends(_verify_api_key)) -> str:
+    """Limita la frequenza delle richieste costose, per utente.
+
+    Fino al 9 settembre 2026 questa funzione esisteva (come `_rate_limit`) e
+    non era applicata a nessuna rotta: il limitatore in core/rate_limiter.py
+    e' completo e ha dieci test che passano, ma proteggeva zero traffico,
+    perche' quei test verificano la classe e non il server.
+
+    Conta **per utente autenticato**, con l'indirizzo IP solo come ripiego.
+    Contare per solo IP — come faceva la versione precedente — e' sbagliato
+    proprio nel caso d'uso di questo prodotto: dietro il NAT di un'azienda
+    l'intero ufficio condivide un indirizzo, quindi una singola quota, e la
+    prima persona che carica qualcosa blocca i colleghi.
+    """
+    username = str(user.get("username", "")).strip()
+    identifier = f"user:{username}" if username else f"ip:{req.client.host if req.client else 'unknown'}"
     allowed, reason = get_rate_limiter().check_request_rate(identifier)
     if not allowed:
         raise HTTPException(status_code=429, detail=reason)

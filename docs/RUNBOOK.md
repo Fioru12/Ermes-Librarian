@@ -198,8 +198,9 @@ State these to whoever is deciding on the deployment, before they find out:
 - **One instance, full stop, for rate limiting and caching.** Sessions and login
   attempts are shared across instances; the request rate limiter and the search
   cache are not, so running several instances multiplies rate thresholds.
-- **General request rate limiting is not applied.** Only repeated failed logins
-  are blocked. See the threat model, T8.
+- **Rate limiting covers only upload, search and ask**, counted per
+  authenticated user, plus a separate block on repeated failed logins. Everything
+  else is unlimited. See the threat model, T8.
 - **Retrieval quality has been measured on a synthetic corpus** of 16 passages,
   not on a real document set. The numbers in
   [RETRIEVAL_EVALUATION.md](RETRIEVAL_EVALUATION.md) are honest for that corpus

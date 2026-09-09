@@ -4,10 +4,14 @@ Perche' questo modulo esiste
 ----------------------------
 `POST /api/auth/login` accettava un numero illimitato di tentativi di
 password. Non per una svista isolata: `core/rate_limiter.py` esiste, e'
-completo, ha dieci test che passano, e `api/auth.py::_rate_limit` e' pronto
-per essere usato come dipendenza — ma non era applicato a nessuna rotta.
-Un componente verificato in isolamento che non protegge niente, esattamente
-come i test OIDC che verificavano l'integrazione senza firmare i token.
+completo e ha dieci test che passano, ma all'epoca non era applicato a
+nessuna rotta — un componente verificato in isolamento che non proteggeva
+niente, esattamente come i test OIDC che verificavano l'integrazione senza
+firmare i token. (Da allora il limitatore generale e' stato collegato alle
+rotte costose come `api/auth.py::rate_limited`; il conteggio dei tentativi
+di accesso resta comunque separato, perche' misura una cosa diversa: non la
+frequenza delle richieste ma i fallimenti di autenticazione, su una finestra
+di minuti invece che di secondi.)
 
 Non esisteva nemmeno un conteggio dei tentativi falliti: nessun blocco,
 nessuna traccia, nessun ritardo.
