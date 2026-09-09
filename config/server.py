@@ -18,6 +18,15 @@ class ServerConfig:
     PORT: int = field(default_factory=lambda: int(os.environ.get("ERMES_PORT", "8502")))
 
     # ---------------------------------------------------------
+    # LOGGING
+    # ---------------------------------------------------------
+    # "text" e' leggibile a schermo durante lo sviluppo; "json" produce una
+    # riga per evento con campi separati, che e' cio' che un aggregatore
+    # aziendale (SIEM, Loki, Elastic) sa interrogare. Vedi core/logging_setup.py.
+    LOG_FORMAT: str = field(default_factory=lambda: os.environ.get("ERMES_LOG_FORMAT", "text").strip().lower())
+    LOG_LEVEL: str = field(default_factory=lambda: os.environ.get("ERMES_LOG_LEVEL", "INFO").strip().upper())
+
+    # ---------------------------------------------------------
     # PATH BASE
     # ---------------------------------------------------------
     BASE_DIR: str = field(default_factory=lambda: os.path.abspath(os.environ.get("ERMES_BASE_DIR", ".")))

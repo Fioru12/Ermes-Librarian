@@ -182,8 +182,12 @@ marketing:
    threshold by N, and each instance keeps its own cache.
 5. **No deletion path for a library.** Removing one currently requires touching
    the database directly, which is both a usability and a governance gap.
-6. **`mypy` and `bandit` are advisory in CI**, not blocking. Their findings are
+6. **Logs carry no tamper protection.** Application logs are now structured and
+   correlated by request id (`core/logging_setup.py`), which makes them usable in
+   an aggregator, but they are ordinary output: unlike the audit log they are not
+   signed, and an operator with host access can edit them.
+7. **`mypy` and `bandit` are advisory in CI**, not blocking. Their findings are
    reviewed manually; the last review left zero high-severity issues.
-7. **The full Compose stack has never been started end to end** on a clean
+8. **The full Compose stack has never been started end to end** on a clean
    machine. The image builds in CI and the Compose file validates, but
    `docker compose up` remains unverified.

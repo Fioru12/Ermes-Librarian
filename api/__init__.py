@@ -99,7 +99,11 @@ async def lifespan(app: FastAPI):
     # faceva partire l'applicazione con /health a 200 mentre ogni accesso era
     # gia' destinato a fallire.
     from config.validation import enforce
+    from core.logging_setup import configure_logging
 
+    # Prima della validazione, altrimenti i problemi di configurazione
+    # uscirebbero nel formato che si sta per sostituire.
+    configure_logging(cfg)
     enforce(cfg, logger=_logger)
 
     # Metriche: etichette di sistema (una sola serie, idempotente).
@@ -220,6 +224,52 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# ── Correlazione delle richieste ──
+@app.middleware("http")
+async def request_context_middleware(request: Request, call_next):
+    """Dà a ogni richiesta un identificativo che compare in tutte le sue righe.
+
+    Se un reverse proxy ne fornisce gia' uno (`X-Request-ID`) viene rispettato,
+    cosi' la stessa richiesta e' rintracciabile dal proxy fino ad Ermes; l'id
+    torna anche nella risposta, cosi' un utente che segnala un errore puo'
+    citarlo. Senza, correlare le righe di piu' richieste concorrenti sulla
+    stessa istanza non e' possibile.
+    """
+    import time as _time
+    import uuid as _uuid
+
+    from core.logging_setup import actor_var, request_id_var
+
+    incoming = request.headers.get("X-Request-ID", "").strip()
+    # Un id fornito dall'esterno finisce nei log: limitato in lunghezza e
+    # ripulito, per non farsi iniettare righe arbitrarie.
+    request_id = "".join(c for c in incoming if c.isalnum() or c in "-_")[:64] or _uuid.uuid4().hex
+    token = request_id_var.set(request_id)
+    actor_token = actor_var.set(None)
+    started = _time.perf_counter()
+    try:
+        response = await call_next(request)
+    finally:
+        request_id_var.reset(token)
+        actor_var.reset(actor_token)
+    response.headers["X-Request-ID"] = request_id
+    _logger.info(
+        "%s %s -> %s",
+        request.method,
+        request.url.path,
+        response.status_code,
+        extra={
+            "event": "http_request",
+            "method": request.method,
+            "path": request.url.path,
+            "status": response.status_code,
+            "duration_ms": round((_time.perf_counter() - started) * 1000, 2),
+            "request_id": request_id,
+        },
+    )
+    return response
 
 
 # ── Prometheus metrics middleware ──
