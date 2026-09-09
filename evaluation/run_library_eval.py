@@ -19,6 +19,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from config import cfg
+from core.evidence_verifier import verify_citations
 from core.library_embeddings import embed_texts
 from core.library_store import LibraryStore
 
@@ -54,6 +55,16 @@ COMPARISON_MATRIX: list[dict] = [
         "label": "Ibrida + reranker neurale",
         "semantic": True,
         "env": {"ERMES_RERANKER_ENABLED": "1", "ERMES_RERANKER_NEURAL": "1"},
+    },
+    # L'unica configurazione misurata che migliora le parafrasi senza azzerare
+    # l'astensione. Richiede un modello locale: senza, la riga ricade su
+    # "Ibrida (keyword + embedding)" e il report lo dichiara con
+    # evidence_verification_active: false.
+    {
+        "label": "Ibrida + verifica evidenza",
+        "semantic": True,
+        "verify": True,
+        "env": {"ERMES_RERANKER_ENABLED": "0"},
     },
 ]
 
@@ -173,7 +184,7 @@ def _recall(details: list[dict], type_filter: str | None = None) -> float | None
     return round(sum(d["passed"] for d in subset) / len(subset), 3)
 
 
-def evaluate(gold_set: list[dict], limit: int | None = None, semantic: bool = False) -> dict:
+def evaluate(gold_set: list[dict], limit: int | None = None, semantic: bool = False, verify: bool = False) -> dict:
     cases = gold_set[:limit] if limit else gold_set
     # cfg is a frozen dataclass singleton shared with core.library_store /
     # core.library_embeddings; this is the standard way to flip one flag on an
@@ -184,12 +195,22 @@ def evaluate(gold_set: list[dict], limit: int | None = None, semantic: bool = Fa
     # this "deterministic, safe for CI" evaluation silently depend on ambient
     # environment state instead of the --semantic flag actually passed.
     object.__setattr__(cfg, "LIBRARY_SEMANTIC_SEARCH_ENABLED", semantic)
+    # Stesso motivo del flag sopra: impostato in entrambe le direzioni,
+    # altrimenti un .env locale deciderebbe al posto dell'opzione passata.
+    object.__setattr__(cfg, "EVIDENCE_VERIFIER_ENABLED", verify)
     with tempfile.TemporaryDirectory(prefix="ermes-library-eval-") as temp_dir:
         store, libraries = build_demo_store(Path(temp_dir) / "library.sqlite3")
         details = []
+        verified_queries = 0
         for item in cases:
             item_type = item.get("type", "direct")
             results, profile = store.search_with_profile(libraries[item["library"]], item["query"], limit=3)
+            # Nello stesso punto in cui la applica api/libraries.py::_answer_question:
+            # fra recupero e risposta. Misurare altrove misurerebbe un sistema
+            # diverso da quello che gli utenti usano.
+            results, verified = verify_citations(item["query"], results)
+            if verified:
+                verified_queries += 1
             if item_type == "abstention":
                 # Correct behaviour is to find nothing to cite, not to guess.
                 passed = len(results) == 0
@@ -228,6 +249,12 @@ def evaluate(gold_set: list[dict], limit: int | None = None, semantic: bool = Fa
         "semantic_search_requested": semantic,
         "semantic_queries_used": semantic_queries_used,
         "semantic_search_active": semantic_queries_used > 0,
+        "evidence_verification_requested": verify,
+        # Distinto da "requested": senza un modello raggiungibile la
+        # verifica viene saltata, e riportare il numero come se fosse
+        # verificato sarebbe la stessa bugia che questo file evita per la
+        # ricerca semantica.
+        "evidence_verification_active": verified_queries > 0,
         "details": details,
     }
 
@@ -248,6 +275,8 @@ def _run_single_configuration(entry: dict, limit: int | None) -> dict | None:
         command = [sys.executable, str(Path(__file__).resolve()), "--output", str(output_path)]
         if entry["semantic"]:
             command.append("--semantic")
+        if entry.get("verify"):
+            command.append("--verify")
         if limit:
             command += ["--limit", str(limit)]
 
@@ -340,6 +369,12 @@ def main() -> int:
         action="store_true",
         help="Enable local hybrid (keyword+embedding) search via Ollama; degrades to keyword-only if Ollama is unreachable.",
     )
+    parser.add_argument(
+        "--verify",
+        action="store_true",
+        help="Chiede a un modello locale se ogni passaggio recuperato risponda davvero alla domanda, "
+        "e scarta quelli che non lo fanno. Richiede Ollama; senza, la verifica viene saltata e lo dichiara.",
+    )
     args = parser.parse_args()
 
     if args.compare:
@@ -354,11 +389,17 @@ def main() -> int:
         return 0
 
     gold_set = json.loads(GOLD_SET_PATH.read_text(encoding="utf-8"))
-    report = evaluate(gold_set, args.limit, semantic=args.semantic)
+    report = evaluate(gold_set, args.limit, semantic=args.semantic, verify=args.verify)
     if args.semantic and not report["semantic_search_active"]:
         print(
             "AVVISO: --semantic richiesto ma nessuna query ha usato hybrid_local — "
             "Ollama non raggiungibile o embedding non generati. Risultati in modalita keyword.",
+            file=sys.stderr,
+        )
+    if args.verify and not report["evidence_verification_active"]:
+        print(
+            "AVVISO: --verify richiesto ma nessun passaggio e' stato verificato — "
+            "modello non raggiungibile. I numeri sono quelli SENZA verifica.",
             file=sys.stderr,
         )
     rendered = json.dumps(report, ensure_ascii=False, indent=2)

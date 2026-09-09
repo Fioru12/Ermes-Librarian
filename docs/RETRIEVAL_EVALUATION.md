@@ -115,6 +115,18 @@ non era il modello, era la domanda che gli veniva posta.
 Il modello grande e quello piccolo (qwen3.5:9b e qwen3.5:4b) danno lo stesso
 risultato, quindi il costo del verificatore puo' restare basso.
 
+### Come riprodurre questi numeri
+
+```powershell
+python evaluation/run_library_eval.py --semantic --verify
+```
+
+Richiede Ollama con un modello locale. Senza, la verifica viene saltata e il
+report lo dichiara con `evidence_verification_active: false` invece di
+spacciare per verificati numeri che non lo sono — lo stesso avviso che gia'
+esiste per `--semantic`. La configurazione compare anche nella tabella di
+`--compare`, come ultima riga.
+
 ### Perche' resta spenta di default
 
 Costa una chiamata al modello per ogni passaggio candidato, fino a tre per

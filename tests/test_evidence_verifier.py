@@ -183,3 +183,43 @@ def test_the_answer_declares_whether_verification_ran(tmp_path, monkeypatch):
 
     assert risposta.status_code == 200
     assert risposta.json()["meta"]["evidence_verified"] is False
+
+
+# ============================================================
+# Il banco di valutazione non deve mentire
+# ============================================================
+
+
+def test_the_evaluation_declares_when_verification_did_not_run(monkeypatch):
+    """Senza modello raggiungibile i numeri sono quelli SENZA verifica.
+
+    Riportarli come verificati sarebbe la stessa bugia che questo progetto ha
+    gia' corretto per la ricerca semantica: un flag richiesto e un risultato
+    che non lo riflette.
+    """
+    import json
+    from pathlib import Path
+
+    from evaluation.run_library_eval import GOLD_SET_PATH, evaluate
+
+    monkeypatch.setattr(verificatore, "_passaggio_risponde", lambda d, p: None)
+    gold = json.loads(Path(GOLD_SET_PATH).read_text(encoding="utf-8"))
+
+    report = evaluate(gold, limit=4, verify=True)
+
+    assert report["evidence_verification_requested"] is True
+    assert report["evidence_verification_active"] is False
+
+
+def test_the_evaluation_reports_verification_when_it_ran(monkeypatch):
+    import json
+    from pathlib import Path
+
+    from evaluation.run_library_eval import GOLD_SET_PATH, evaluate
+
+    monkeypatch.setattr(verificatore, "_passaggio_risponde", lambda d, p: True)
+    gold = json.loads(Path(GOLD_SET_PATH).read_text(encoding="utf-8"))
+
+    report = evaluate(gold, limit=4, verify=True)
+
+    assert report["evidence_verification_active"] is True
