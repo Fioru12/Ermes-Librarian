@@ -122,10 +122,16 @@ application**; the `public` Compose profile provides Caddy for this.
 
 ### T8 — Denial of service
 
-*Posture:* per-identifier request and upload rate limiting
-(`tests/test_rate_limiter.py`), an upload size ceiling, and the archive limits
-under T3. No protection against a distributed attack, and none is intended at
-this scale.
+*Posture:* weaker than this section previously claimed. It described
+per-identifier request and upload rate limiting as an active defence, citing
+`tests/test_rate_limiter.py`. The limiter is real and those tests pass, but it
+was never applied to a route — the tests exercise the class, not the server, so
+nothing failed when the wiring was missing. What actually holds today: an upload
+size ceiling, the archive limits under T3, and a per-IP block on repeated failed
+logins (`core/login_guard.py`, `tests/test_login_guard.py`), which is enforced on
+the endpoint rather than on a component. General request rate limiting is still
+unwired. No protection against a distributed attack, and none is intended at this
+scale.
 
 ## Known gaps
 
@@ -142,10 +148,26 @@ marketing:
    shut by `tests/test_oidc_signature.py`. What is still missing: no token
    revocation or introspection (a stolen token stays usable until `exp`), no
    refresh flow, and a single configured audience per instance.
-3. **No deletion path for a library.** Removing one currently requires touching
+3. **Rate limiting exists but protects almost nothing.** `core/rate_limiter.py`
+   is complete and unit-tested, and `api/auth.py::_rate_limit` is written as a
+   dependency — but it is still not applied to any route, so the ten passing
+   tests measure a component that guards no traffic. The one place where the
+   absence was exploitable, repeated password attempts against
+   `POST /api/auth/login`, is now closed by `core/login_guard.py`: before that
+   change 50 wrong passwords in a row all returned 401, never 429. Attempts are
+   counted per IP and per (IP, username) on the shared store, never by username
+   alone — a username-only lockout would let anyone who knows a colleague's name
+   lock them out on purpose. Applying the general limiter to the remaining
+   routes still needs a limits review.
+4. **Horizontal scaling is only partly real.** Sessions and login attempts now
+   live on the shared store, so a second instance recognises them
+   (`core/session_store.py`, `core/login_guard.py`). The request rate limiter and
+   the search cache remain per process: N instances multiply every rate
+   threshold by N, and each instance keeps its own cache.
+5. **No deletion path for a library.** Removing one currently requires touching
    the database directly, which is both a usability and a governance gap.
-4. **`mypy` and `bandit` are advisory in CI**, not blocking. Their findings are
+6. **`mypy` and `bandit` are advisory in CI**, not blocking. Their findings are
    reviewed manually; the last review left zero high-severity issues.
-5. **The full Compose stack has never been started end to end** on a clean
+7. **The full Compose stack has never been started end to end** on a clean
    machine. The image builds in CI and the Compose file validates, but
    `docker compose up` remains unverified.

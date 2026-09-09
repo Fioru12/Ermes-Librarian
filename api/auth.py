@@ -12,6 +12,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, Field
 
 from config import cfg
+from core.login_guard import login_guard
 from core.rate_limiter import get_rate_limiter
 from core.session_store import session_store as _session_store
 
@@ -21,20 +22,11 @@ router = APIRouter(tags=["Auth"], include_in_schema=False)
 
 _security = HTTPBearer(auto_error=False)
 
-_RBAC_CACHE: dict[str, dict] = {}  # key_hash -> user_info
 _SESSION_COOKIE = "ermes_session"
 
 # Le sessioni stanno sull'archivio condiviso, non in un dizionario di
 # processo: vedi core/session_store.py per il perche'.
 session_store = _session_store
-
-
-def _clear_rbac_cache(key_hash: str | None = None) -> None:
-    """Rimuove una entry dalla cache RBAC. Se key_hash è None, svuota tutta la cache."""
-    if key_hash is None:
-        _RBAC_CACHE.clear()
-    else:
-        _RBAC_CACHE.pop(key_hash, None)
 
 
 def _invalidate_sessions_for_user(username: str) -> None:
@@ -182,17 +174,28 @@ def oidc_session_login(request: OidcSessionRequest, response: Response) -> dict:
 
 
 @router.post("/api/auth/login", include_in_schema=False)
-def login(request: LoginRequest, response: Response) -> dict:
+def login(request: LoginRequest, response: Response, http_request: Request) -> dict:
     if not cfg.ADMIN_PASSWORD:
         raise HTTPException(status_code=503, detail="Login locale non configurato")
     from core.governance import authenticate_user, ensure_default_admin
 
-    user = authenticate_user(cfg.USERS_FILE, request.username.strip(), request.password)
+    client_ip = http_request.client.host if http_request.client else "unknown"
+    username = request.username.strip()
+
+    # Senza questo controllo il login accetta tentativi illimitati: il rate
+    # limiter del progetto esiste ma non era applicato ad alcuna rotta.
+    blocked, reason = login_guard.is_blocked(client_ip, username)
+    if blocked:
+        raise HTTPException(status_code=429, detail=reason)
+
+    user = authenticate_user(cfg.USERS_FILE, username, request.password)
     if user is None:
         ensure_default_admin(cfg.USERS_FILE, cfg.ADMIN_USERNAME, cfg.ADMIN_PASSWORD)
-        user = authenticate_user(cfg.USERS_FILE, request.username.strip(), request.password)
+        user = authenticate_user(cfg.USERS_FILE, username, request.password)
         if user is None:
+            login_guard.register_failure(client_ip, username)
             raise HTTPException(status_code=401, detail="Credenziali non valide")
+    login_guard.register_success(client_ip, username)
     token = secrets.token_urlsafe(32)
     expires_at = time.time() + max(1, cfg.SESSION_TTL_HOURS) * 3600
     session_store.create(token, user, expires_at)

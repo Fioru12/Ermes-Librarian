@@ -31,16 +31,13 @@ l'unico posto dove il valore in chiaro esiste.
 import hashlib
 import json
 import logging
-import threading
 import time
-from pathlib import Path
 
-import config
-from core.database_backend import Backend, SqliteBackend, create_backend
+from core.shared_backend import SharedTableStore
 
 _logger = logging.getLogger(__name__)
 
-_SCHEMA = """
+_TABLE = """
 CREATE TABLE IF NOT EXISTS browser_sessions (
     token_hash TEXT PRIMARY KEY,
     username TEXT NOT NULL,
@@ -49,7 +46,7 @@ CREATE TABLE IF NOT EXISTS browser_sessions (
 )
 """
 
-_INDEXES = (
+_TABLE_INDEXES = (
     "CREATE INDEX IF NOT EXISTS browser_sessions_by_user ON browser_sessions(username)",
     "CREATE INDEX IF NOT EXISTS browser_sessions_by_expiry ON browser_sessions(expires_at)",
 )
@@ -60,45 +57,11 @@ def _fingerprint(token: str) -> str:
     return hashlib.sha256(token.encode("utf-8")).hexdigest()
 
 
-class SessionStore:
-    """Sessioni condivise fra i processi che puntano allo stesso archivio.
+class SessionStore(SharedTableStore):
+    """Sessioni condivise fra i processi che puntano allo stesso archivio."""
 
-    Risolve il backend dalla configurazione corrente a ogni chiamata, come
-    `api/libraries.py::get_library_store`: i test ripuntano `BASE_DIR` su
-    directory temporanee, e uno store legato al primo percorso visto
-    resterebbe attaccato a un database che non esiste piu'.
-    """
-
-    def __init__(self) -> None:
-        self._lock = threading.RLock()
-        self._backend: Backend | None = None
-        self._identity: str | None = None
-
-    # -- backend -------------------------------------------------------
-
-    def _current_identity(self) -> str:
-        # `config.cfg` letto a ogni chiamata, non importato una volta: i test
-        # sostituiscono l'oggetto di configurazione, e uno store legato a
-        # quello visto all'import scriverebbe nel database reale invece che
-        # nella directory temporanea del test.
-        active = config.cfg
-        return active.DATABASE_URL or str(Path(active.LIBRARY_DB_PATH))
-
-    def _connection(self) -> Backend:
-        identity = self._current_identity()
-        with self._lock:
-            if self._backend is None or self._identity != identity:
-                active = config.cfg
-                self._backend = (
-                    create_backend(active.DATABASE_URL)
-                    if active.DATABASE_URL
-                    else SqliteBackend(active.LIBRARY_DB_PATH)
-                )
-                self._identity = identity
-                self._backend.execute_script(_SCHEMA)
-                for statement in _INDEXES:
-                    self._backend.execute_script(statement)
-            return self._backend
+    _SCHEMA = _TABLE
+    _INDEXES = _TABLE_INDEXES
 
     # -- ciclo di vita di una sessione ---------------------------------
 

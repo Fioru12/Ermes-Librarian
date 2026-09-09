@@ -8,7 +8,7 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
-from api.auth import _clear_rbac_cache, _invalidate_sessions_for_user, _require_role
+from api.auth import _invalidate_sessions_for_user, _require_role
 from config import cfg
 
 _logger = logging.getLogger(__name__)
@@ -176,7 +176,6 @@ async def rotate_api_key(username: str, user: dict = Depends(_require_role("admi
     if not revoke_user_api_key(username):
         raise HTTPException(404, f"Utente '{username}' non trovato")
 
-    _clear_rbac_cache()
     # Rotation changes the secret only; it must never silently change access.
     role = existing_user.get("role", "viewer")
     new_key = set_user_api_key(username, role=role)
@@ -204,6 +203,5 @@ async def delete_api_user(username: str, user: dict = Depends(_require_role("adm
     from core.governance import append_audit
 
     append_audit(cfg.AUDIT_FILE, "user_api_key_revoked", user.get("username", "admin"), {"username": username})
-    _clear_rbac_cache()
 
     return {"success": True, "message": f"API key di '{username}' revocata"}
