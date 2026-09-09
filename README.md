@@ -23,7 +23,7 @@ Teams often have procedures, policies, manuals, contracts and internal know-how 
 - Separate libraries with private or shared visibility.
 - Upload, parse and index PDF, DOCX, TXT, Markdown, XLSX, PPTX, CSV and RTF documents — with per-cell and per-slide locators for precise citations.
 - Version history, restore and protected download of original files.
-- Chunk-level retrieval scoped to the selected library, hybrid (full-text + embeddings), re-ranked by a neural cross-encoder blended with the lexical scorer (graceful fallback without `sentence-transformers`).
+- Chunk-level retrieval scoped to the selected library, hybrid (full-text + embeddings). A neural cross-encoder reranker is implemented and available, but **off by default**: measured on the project's own gold set it makes every configuration worse (recall@3 0.815 vs 0.852, paraphrases 0.375 vs 0.500). The comparison that decided it is reproducible with `python evaluation/run_library_eval.py --compare` — see [docs/RETRIEVAL_EVALUATION.md](docs/RETRIEVAL_EVALUATION.md).
 - Per-user semantic search cache (TTL + LRU) with automatic invalidation on writes — scoped per user so ACL boundaries are never cached across.
 - Evidence-first answers with citations, document version, locator and excerpt.
 - Clear abstention when the selected library does not contain enough evidence.

@@ -129,8 +129,39 @@ def check_configuration(cfg) -> list[ConfigProblem]:
             )
         )
 
+    problems.extend(_legacy_variable_problems())
     problems.sort(key=lambda p: 0 if p.severity == "fatal" else 1)
     return problems
+
+
+def _legacy_variable_problems() -> list[ConfigProblem]:
+    """Variabili rinominate che qualcuno potrebbe ancora avere nel proprio .env.
+
+    Il refactor del config ha rinominato ERMES_SCORE_LOW/_MED/_HIGH in
+    ERMES_SCORE_THRESHOLD_*, ma .env.example ha continuato a documentare i
+    vecchi nomi, non commentati: chi li impostava non otteneva alcun effetto e
+    la soglia restava al default senza che nulla lo segnalasse. Il nome storico
+    viene ancora onorato (config/rag.py), e qui lo si dice.
+    """
+    import os
+
+    rinominate = {
+        "ERMES_SCORE_LOW": "ERMES_SCORE_THRESHOLD_LOW",
+        "ERMES_SCORE_MED": "ERMES_SCORE_THRESHOLD_MED",
+        "ERMES_SCORE_HIGH": "ERMES_SCORE_THRESHOLD_HIGH",
+    }
+    trovate = []
+    for vecchio, nuovo in rinominate.items():
+        if os.environ.get(vecchio) is not None and os.environ.get(nuovo) is None:
+            trovate.append(
+                ConfigProblem(
+                    "warning",
+                    vecchio,
+                    f"nome storico: la variabile e' stata rinominata in {nuovo}",
+                    f"rinominala in {nuovo}; il vecchio nome funziona ancora ma non e' garantito",
+                )
+            )
+    return trovate
 
 
 def report(problems: list[ConfigProblem]) -> str:

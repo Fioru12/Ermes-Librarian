@@ -23,9 +23,15 @@ def test_demo_gold_set_meets_retrieval_quality_bar():
     assert len(gold_set) >= 16
     assert report["recall_at_3_direct"] >= 0.9
     assert report["citation_coverage"] >= 0.9
-    # Soft floors on the harder slices: they should not regress to zero,
-    # but are not expected to match the direct-query bar under keyword-only
-    # search. Re-run with --semantic locally (requires Ollama) to see the
-    # hybrid numbers these are meant to improve on.
-    assert (report["recall_at_3_paraphrase"] or 0) > 0
+    # Floors on the harder slices. They are not held to the direct-query bar
+    # — keyword-only matching is not expected to solve paraphrases — but they
+    # are no longer a token "greater than zero".
+    #
+    # 0.5 is the measured value of the shipped configuration, and the number
+    # guards a specific decision: the reranker used to be enabled by default
+    # and pulled this slice down to 0.375, so re-enabling it without first
+    # measuring an improvement turns this test red instead of quietly
+    # degrading retrieval. Reproduce the comparison with
+    # `python evaluation/run_library_eval.py --compare`.
+    assert (report["recall_at_3_paraphrase"] or 0) >= 0.5
     assert (report["abstention_accuracy"] or 0) > 0

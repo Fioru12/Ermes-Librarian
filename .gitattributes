@@ -1,0 +1,24 @@
+# Senza questo file le terminazioni di riga dipendono da core.autocrlf, cioe'
+# dalla configurazione della singola macchina: lo stesso file poteva risultare
+# modificato solo per averlo riscritto su Windows. Qui la regola e' del
+# repository e vale anche per la CI, che gira su Linux.
+* text=auto
+
+# Script che devono restare eseguibili con terminazioni Unix.
+*.sh text eol=lf
+
+# Script PowerShell e batch: Windows.
+*.ps1 text eol=crlf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Binari: mai toccati.
+*.png binary
+*.jpg binary
+*.gif binary
+*.pdf binary
+*.docx binary
+*.xlsx binary
+*.pptx binary
+*.sqlite3 binary
+*.ico binary

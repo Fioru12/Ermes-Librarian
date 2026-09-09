@@ -6,21 +6,37 @@ Configurazione RAG: retrieval, reranker, embedding, chunking.
 import os
 from dataclasses import dataclass, field
 
+# I nomi ERMES_SCORE_LOW / _MED / _HIGH sono stati rinominati in
+# ERMES_SCORE_THRESHOLD_* dal refactor del config, ma .env.example continuava
+# a documentare i vecchi: chi li impostava non otteneva alcun effetto e la
+# soglia restava al default, silenziosamente. Il nome storico viene quindi
+# ancora onorato; config/validation.py lo segnala all'avvio, dove il logging
+# e' gia' configurato.
+_LEGACY_THRESHOLD_NAMES = {
+    "ERMES_SCORE_THRESHOLD_LOW": "ERMES_SCORE_LOW",
+    "ERMES_SCORE_THRESHOLD_MED": "ERMES_SCORE_MED",
+    "ERMES_SCORE_THRESHOLD_HIGH": "ERMES_SCORE_HIGH",
+}
+
+
+def _threshold(name: str, default: str) -> float:
+    raw = os.environ.get(name)
+    if raw is None:
+        raw = os.environ.get(_LEGACY_THRESHOLD_NAMES.get(name, ""), None)
+    try:
+        return float(raw) if raw is not None else float(default)
+    except ValueError:
+        return float(default)
+
 
 @dataclass(frozen=True)
 class RAGConfig:
     # ---------------------------------------------------------
     # RETRIEVAL
     # ---------------------------------------------------------
-    SCORE_THRESHOLD_LOW: float = field(
-        default_factory=lambda: float(os.environ.get("ERMES_SCORE_THRESHOLD_LOW", "0.35"))
-    )
-    SCORE_THRESHOLD_MED: float = field(
-        default_factory=lambda: float(os.environ.get("ERMES_SCORE_THRESHOLD_MED", "0.55"))
-    )
-    SCORE_THRESHOLD_HIGH: float = field(
-        default_factory=lambda: float(os.environ.get("ERMES_SCORE_THRESHOLD_HIGH", "0.75"))
-    )
+    SCORE_THRESHOLD_LOW: float = field(default_factory=lambda: _threshold("ERMES_SCORE_THRESHOLD_LOW", "0.35"))
+    SCORE_THRESHOLD_MED: float = field(default_factory=lambda: _threshold("ERMES_SCORE_THRESHOLD_MED", "0.55"))
+    SCORE_THRESHOLD_HIGH: float = field(default_factory=lambda: _threshold("ERMES_SCORE_THRESHOLD_HIGH", "0.75"))
     TOP_K_INITIAL: int = field(default_factory=lambda: int(os.environ.get("ERMES_TOP_K_INITIAL", "10")))
     TOP_K_FINAL: int = field(default_factory=lambda: int(os.environ.get("ERMES_TOP_K_FINAL", "3")))
 
@@ -39,9 +55,19 @@ class RAGConfig:
     # ---------------------------------------------------------
     # ENTERPRISE RERANKER
     # ---------------------------------------------------------
+    # Disattivato di default per una misura, non per una preferenza. Sul
+    # golden set il reranker peggiora ogni configurazione, e il default che
+    # veniva spedito (lessicale + reranker neurale) era la peggiore delle
+    # due configurazioni lessicali: recall@3 0.815 contro 0.852, parafrasi
+    # 0.375 contro 0.500. Riproducibile con
+    # `python evaluation/run_library_eval.py --compare`; la tabella completa
+    # e' in docs/RETRIEVAL_EVALUATION.md.
+    # La funzionalita' resta disponibile: su un corpus reale, piu' grande e
+    # meno sintetico di quello di prova, potrebbe comportarsi diversamente.
+    # Va riattivata dopo averlo misurato, non prima.
     RERANKER_ENABLED: bool = field(
         default_factory=lambda: (
-            os.environ.get("ERMES_RERANKER_ENABLED", "1").strip().lower() in {"1", "true", "yes", "on"}
+            os.environ.get("ERMES_RERANKER_ENABLED", "0").strip().lower() in {"1", "true", "yes", "on"}
         )
     )
     RERANKER_MIN_SCORE: float = field(default_factory=lambda: float(os.environ.get("ERMES_RERANKER_MIN_SCORE", "0.15")))

@@ -9,8 +9,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
+import subprocess
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -21,6 +24,38 @@ from core.library_store import LibraryStore
 
 ROOT = Path(__file__).resolve().parent
 GOLD_SET_PATH = ROOT / "library_gold_set.json"
+
+# Configurazioni messe a confronto da --compare. L'ordine è quello in cui
+# vengono stampate: si parte dal recupero più semplice e si aggiunge un
+# componente alla volta, così la tabella si legge come "cosa cambia quando
+# accendo questo pezzo".
+COMPARISON_MATRIX: list[dict] = [
+    {
+        "label": "Lessicale (baseline)",
+        "semantic": False,
+        "env": {"ERMES_RERANKER_ENABLED": "0"},
+    },
+    {
+        "label": "Lessicale + reranker neurale",
+        "semantic": False,
+        "env": {"ERMES_RERANKER_ENABLED": "1", "ERMES_RERANKER_NEURAL": "1"},
+    },
+    {
+        "label": "Ibrida (keyword + embedding)",
+        "semantic": True,
+        "env": {"ERMES_RERANKER_ENABLED": "0"},
+    },
+    {
+        "label": "Ibrida + reranker lessicale",
+        "semantic": True,
+        "env": {"ERMES_RERANKER_ENABLED": "1", "ERMES_RERANKER_NEURAL": "0"},
+    },
+    {
+        "label": "Ibrida + reranker neurale",
+        "semantic": True,
+        "env": {"ERMES_RERANKER_ENABLED": "1", "ERMES_RERANKER_NEURAL": "1"},
+    },
+]
 
 DEMO_CORPUS: dict[str, tuple[str, list[tuple[str, str]]]] = {
     "HR": (
@@ -197,16 +232,127 @@ def evaluate(gold_set: list[dict], limit: int | None = None, semantic: bool = Fa
     }
 
 
+def _run_single_configuration(entry: dict, limit: int | None) -> dict | None:
+    """Esegue una configurazione in un processo separato.
+
+    Il sottoprocesso non è una precauzione generica: senza di esso il
+    confronto sarebbe falsato da due stati condivisi reali. La cache di
+    ricerca (core/search_cache.py) indicizza per biblioteca+query+utente ma
+    NON per configurazione di recupero, quindi la seconda configurazione
+    leggerebbe i risultati della prima; e core/reranker.py tiene il modello
+    neurale in una variabile globale di modulo. Processi separati eliminano
+    entrambi i problemi senza dover ricordare di azzerare stati sparsi.
+    """
+    with tempfile.TemporaryDirectory(prefix="ermes-compare-") as temp_dir:
+        output_path = Path(temp_dir) / "report.json"
+        command = [sys.executable, str(Path(__file__).resolve()), "--output", str(output_path)]
+        if entry["semantic"]:
+            command.append("--semantic")
+        if limit:
+            command += ["--limit", str(limit)]
+
+        env = os.environ.copy()
+        env.update(entry["env"])
+        # Le barre di avanzamento del caricamento modello sommergerebbero la
+        # tabella senza aggiungere informazione.
+        env.setdefault("HF_HUB_DISABLE_PROGRESS_BARS", "1")
+        env.setdefault("TRANSFORMERS_VERBOSITY", "error")
+
+        # Su Windows la creazione di processi in rapida successione puo'
+        # fallire con WinError 5 quando l'antivirus tiene il handle
+        # dell'eseguibile: e' transitorio, non un errore di configurazione,
+        # e senza il ritentativo il confronto si interrompe a meta' tabella.
+        for attempt in range(5):
+            try:
+                result = subprocess.run(command, env=env, capture_output=True, text=True, timeout=1800)
+                break
+            except PermissionError:
+                if attempt == 4:
+                    raise
+                time.sleep(2 * (attempt + 1))
+        if not output_path.exists():
+            print(f"  ! configurazione '{entry['label']}' non ha prodotto un report", file=sys.stderr)
+            if result.stderr:
+                print(f"    {result.stderr.strip().splitlines()[-1]}", file=sys.stderr)
+            return None
+        return json.loads(output_path.read_text(encoding="utf-8"))
+
+
+def _format_comparison_table(rows: list[tuple[str, dict]]) -> str:
+    """Tabella in Markdown, pronta da incollare in README/documentazione."""
+    header = (
+        "| Configurazione | recall@3 | dirette | parafrasi | astensione | citation coverage |\n"
+        "|---|---|---|---|---|---|"
+    )
+    lines = [header]
+    for label, report in rows:
+        lines.append(
+            f"| {label} "
+            f"| {report['recall_at_3']:.3f} "
+            f"| {report['recall_at_3_direct']:.3f} "
+            f"| {report['recall_at_3_paraphrase']:.3f} "
+            f"| {report['abstention_accuracy']:.3f} "
+            f"| {report['citation_coverage']:.3f} |"
+        )
+    return "\n".join(lines)
+
+
+def run_comparison(limit: int | None = None) -> dict:
+    """Misura ogni configurazione della matrice e restituisce il confronto."""
+    rows: list[tuple[str, dict]] = []
+    for entry in COMPARISON_MATRIX:
+        print(f"-> {entry['label']} ...", file=sys.stderr)
+        report = _run_single_configuration(entry, limit)
+        if report is not None:
+            rows.append((entry["label"], report))
+
+    if not rows:
+        return {"configurations": [], "table": ""}
+
+    return {
+        "configurations": [
+            {
+                "label": label,
+                "recall_at_3": report["recall_at_3"],
+                "recall_at_3_direct": report["recall_at_3_direct"],
+                "recall_at_3_paraphrase": report["recall_at_3_paraphrase"],
+                "abstention_accuracy": report["abstention_accuracy"],
+                "citation_coverage": report["citation_coverage"],
+                "semantic_search_active": report["semantic_search_active"],
+            }
+            for label, report in rows
+        ],
+        "table": _format_comparison_table(rows),
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Evaluate Ermes Knowledge local retrieval")
     parser.add_argument("--limit", type=int)
     parser.add_argument("--output", type=Path)
+    parser.add_argument(
+        "--compare",
+        action="store_true",
+        help="Misura tutte le configurazioni di recupero (lessicale, ibrida, con e senza reranker) e stampa la tabella comparativa.",
+    )
     parser.add_argument(
         "--semantic",
         action="store_true",
         help="Enable local hybrid (keyword+embedding) search via Ollama; degrades to keyword-only if Ollama is unreachable.",
     )
     args = parser.parse_args()
+
+    if args.compare:
+        comparison = run_comparison(args.limit)
+        if not comparison["configurations"]:
+            print("Nessuna configurazione misurata con successo.", file=sys.stderr)
+            return 1
+        print()
+        print(comparison["table"])
+        if args.output:
+            args.output.write_text(json.dumps(comparison, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        return 0
+
     gold_set = json.loads(GOLD_SET_PATH.read_text(encoding="utf-8"))
     report = evaluate(gold_set, args.limit, semantic=args.semantic)
     if args.semantic and not report["semantic_search_active"]:

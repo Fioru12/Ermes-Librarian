@@ -146,3 +146,40 @@ def test_fatal_problems_are_listed_first():
     problems = check_configuration(_cfg(ADMIN_PASSWORD="", HOST="0.0.0.0"))
 
     assert problems[0].severity == "fatal"
+
+
+# ============================================================
+# Variabili rinominate
+# ============================================================
+
+
+def test_a_renamed_variable_still_in_the_environment_is_reported(monkeypatch):
+    """Il refactor del config ha rinominato ERMES_SCORE_LOW in
+    ERMES_SCORE_THRESHOLD_LOW, ma .env.example ha continuato a documentare il
+    vecchio nome non commentato: chi lo impostava non otteneva alcun effetto."""
+    monkeypatch.setenv("ERMES_SCORE_LOW", "0.60")
+    monkeypatch.delenv("ERMES_SCORE_THRESHOLD_LOW", raising=False)
+
+    problems = check_configuration(_cfg())
+
+    assert _severity(problems, "ERMES_SCORE_LOW") == "warning"
+
+
+def test_the_new_name_alone_is_not_reported(monkeypatch):
+    monkeypatch.delenv("ERMES_SCORE_LOW", raising=False)
+    monkeypatch.setenv("ERMES_SCORE_THRESHOLD_LOW", "0.60")
+
+    problems = check_configuration(_cfg())
+
+    assert "ERMES_SCORE_LOW" not in _settings(problems)
+
+
+def test_the_legacy_name_is_still_honoured_by_the_config(monkeypatch):
+    """Onorarlo e' il punto: rinominarlo e basta cambierebbe in silenzio il
+    comportamento del recupero su un'installazione che si aggiorna."""
+    from config.rag import RAGConfig
+
+    monkeypatch.delenv("ERMES_SCORE_THRESHOLD_LOW", raising=False)
+    monkeypatch.setenv("ERMES_SCORE_LOW", "0.90")
+
+    assert RAGConfig().SCORE_THRESHOLD_LOW == 0.90
