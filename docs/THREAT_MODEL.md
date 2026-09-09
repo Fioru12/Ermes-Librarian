@@ -169,8 +169,9 @@ corpus abstention is perfect (1.000). Add 100 passages of ordinary prose and it
 falls to 0.333 — two abstention questions out of three get a confident citation
 to unrelated text. The cause is in `core/library_store.py`: a chunk is admitted
 as evidence if it shares **any single term** with the question, and every term
-weighs the same, so a question about working *da casa* matches a paragraph about
-`config.py` (the stemmer collapses *casa* and *casi*).
+weighs the same — and the shared terms are often function words. One abstention
+question matched an unrelated technical paragraph on *sempre*, *senza* and *mai*
+alone.
 
 Enabling `ERMES_EVIDENCE_VERIFIER=1` restores abstention to 1.000 at every
 corpus size measured, and at 388 added passages also improves overall recall.

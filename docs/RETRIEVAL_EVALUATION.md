@@ -190,11 +190,18 @@ con cui collidere.
 Guardando cosa viene citato per errore la causa e' evidente, e non e'
 statistica:
 
-- alla domanda *"un collega lavora sempre da **casa**"* il sistema cita un
-  paragrafo su `config.py`, perche' lo stemmer riduce **casa** e **casi** alla
-  stessa radice;
+- alla domanda *"un collega lavora **sempre** da casa **senza** **mai** venire
+  in sede"* il sistema cita un paragrafo tecnico qualunque, perche' condivide
+  **sempre**, **senza** e **mai**: tre parole che non significano niente,
+  sopravvissute alla lista di esclusione;
 - alla domanda sul *"**codice** etico"* cita *"il **codice** sembrava
-  corretto"*, cioe' codice sorgente.
+  corretto"*, cioe' codice sorgente — questa e' una polisemia vera.
+
+> **Correzione.** Una prima versione di questa sezione attribuiva il primo caso
+> a una collisione dello stemmer fra *casa* e *casi*. E' falso: lo stemmer taglia
+> solo `a`/`e` finali oltre i quattro caratteri, quindi non tocca ne' l'una ne'
+> l'altra. La causa vera e' emersa stampando quali termini corrispondessero
+> davvero, invece di dedurla dal testo del passaggio.
 
 La regola di ammissione in `core/library_store.py` e'
 `if phrase_score or token_score or ...`: **un solo termine in comune basta**
@@ -275,8 +282,9 @@ soglia minima non e' stata aggiunta: nessun valore aiuta, e sopra 5 le domande
 dirette scendono a 0.875.
 
 La ragione e' che i termini che causano le citazioni sbagliate non sono comuni
-nella biblioteca: sono **collisioni dello stemmer** (*casa* e *casi* hanno la
-stessa radice) e **polisemie** (*codice* etico contro *codice* sorgente). La
+nella biblioteca: sono **parole vuote** sopravvissute alla lista di esclusione
+(*sempre*, *senza*, *mai*) e **polisemie** (*codice* etico contro *codice*
+sorgente). La
 frequenza non puo' distinguerle, perche' il problema non e' quanto un termine
 sia diffuso ma che significhi due cose diverse.
 

@@ -158,9 +158,13 @@ and the noise is real prose taken from this repository's own documentation.
 Direct questions hold up. **Abstention does not**: it falls to 0.333 as soon as
 the library contains other text, and that is the product's central claim. The
 cause is not statistical — with real prose around, a question about working
-*da casa* matches a paragraph about `config.py`, because the stemmer collapses
-*casa* and *casi*; a question about the *codice etico* matches a sentence about
-source code. Any single shared term is enough to be returned as evidence.
+*sempre da casa senza mai* venire in sede matches an unrelated technical paragraph
+on *sempre*, *senza* and *mai* alone — three words that carry no meaning — while a
+question about the *codice etico* matches a sentence about source code, a genuine
+ambiguity. (An earlier version of this paragraph blamed a stemmer collision between
+*casa* and *casi*. That was wrong — the stemmer only trims a trailing a/e past four
+characters, so it touches neither — and the real cause was found by printing which
+terms actually matched.) Any single shared term is enough to be returned as evidence.
 
 Turning on evidence verification restores it completely, and its value grows
 with the corpus: at 388 added passages it is better on **both** columns —

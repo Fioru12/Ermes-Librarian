@@ -36,7 +36,26 @@ def _resolve_backend(database_path: str | Path | None) -> Backend:
 # Common function words must not become the only "evidence" for a RAG answer.
 # This compact local-first baseline deliberately keeps a conservative bilingual
 # list; a production language analyser can replace it behind this same method.
+#
+# Le dieci parole in coda sono state aggiunte il 10 settembre 2026 dopo una
+# misura. Con un corpus contenente altro testo, alla domanda "un collega lavora
+# sempre da casa senza mai venire in sede" il sistema citava un paragrafo
+# tecnico qualunque, perche' condivideva "sempre", "senza" e "mai": tre parole
+# vuote bastavano a superare la regola di ammissione. Un ampliamento piu' esteso
+# (una lista completa di funzionali italiani) e' stato provato e scartato:
+# recuperava 0.037 di recall sul corpus grande e ne perdeva 0.125 sulle
+# parafrasi di quello pulito.
 _QUERY_STOPWORDS = {
+    "sempre",
+    "mai",
+    "senza",
+    "succede",
+    "anche",
+    "ancora",
+    "ogni",
+    "tutti",
+    "deve",
+    "essere",
     "a",
     "ad",
     "al",
@@ -1291,11 +1310,17 @@ class LibraryStore:
         # caricati: nessuno schema nuovo, nessuna cache da invalidare.
         #
         # Prima ogni termine valeva 10 punti, raro o comunissimo che fosse. Con
-        # sedici passaggi non si notava; con testo vero attorno, una domanda
-        # su "un collega lavora da CASA" citava un paragrafo su config.py
-        # (lo stemmer accomuna casa e casi) e una sul "CODICE etico" citava
-        # codice sorgente. Misurato in evaluation/scale_check.py: l'astensione
-        # passava da 1.000 a 0.333 appena la biblioteca conteneva altro testo.
+        # sedici passaggi non si notava; con testo vero attorno, l'astensione
+        # passava da 1.000 a 0.333 (evaluation/scale_check.py).
+        #
+        # NOTA su una spiegazione sbagliata, scritta qui in un primo momento e
+        # corretta il 10 settembre 2026: si diceva che la colpa fosse di
+        # collisioni dello stemmer, "casa" contro "casi". E' falso — lo stemmer
+        # taglia solo a/e finali oltre i quattro caratteri, quindi non tocca
+        # nessuna delle due. Verificando quali termini producevano davvero la
+        # corrispondenza sono risultati "sempre", "senza" e "mai": parole vuote
+        # sopravvissute a _QUERY_STOPWORDS, piu' una polisemia reale ("codice"
+        # etico contro "codice" sorgente).
         #
         # Un termine presente in quasi tutti i candidati non distingue niente e
         # ora pesa quasi zero; uno presente in pochi pesa quasi uno.
