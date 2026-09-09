@@ -45,6 +45,11 @@ def _resolve_backend(database_path: str | Path | None) -> Backend:
 # (una lista completa di funzionali italiani) e' stato provato e scartato:
 # recuperava 0.037 di recall sul corpus grande e ne perdeva 0.125 sulle
 # parafrasi di quello pulito.
+# Massimo numero di segnaposto per interrogazione. SQLite ne accetta 32766
+# nelle build recenti e 999 in quelle storiche: 900 e' sotto entrambi.
+_MAX_SQL_VARIABILI = 900
+
+
 _QUERY_STOPWORDS = {
     "sempre",
     "mai",
@@ -1280,11 +1285,26 @@ class LibraryStore:
                 return [], {"mode": "keyword", "semantic_indexed_chunks": indexed_count, "semantic_used": False}
 
             if candidate_chunk_ids:
-                placeholders = ",".join("?" for _ in candidate_chunk_ids)
-                rows = connection.execute(
-                    f"SELECT documents.id AS document_id, documents.filename, documents.version, documents.content_hash, document_chunks.id AS chunk_id, document_chunks.ordinal, document_chunks.text AS excerpt, document_chunks.source_locator, document_chunks.embedding_json FROM document_chunks JOIN documents ON documents.id = document_chunks.document_id WHERE document_chunks.id IN ({placeholders}) AND documents.library_id = ? ORDER BY documents.created_at DESC, document_chunks.ordinal ASC",  # nosec B608
-                    (*candidate_chunk_ids, library_id),
-                ).fetchall()
+                # A blocchi, e non in un unico IN (...): la query usava un
+                # segnaposto per ogni candidato, e SQLite ne accetta al massimo
+                # 32766. Su un archivio grande una parola comune supera quel
+                # numero e la ricerca NON rallenta, fallisce con
+                # "too many SQL variables". Misurato: 50.000 passaggi bastano
+                # (evaluation/archive_scale.py).
+                #
+                # 900 e' sotto il limite storico di 999 delle build piu'
+                # vecchie, quindi la correzione vale anche li'.
+                elenco = list(candidate_chunk_ids)
+                rows = []
+                for primo in range(0, len(elenco), _MAX_SQL_VARIABILI):
+                    blocco = elenco[primo : primo + _MAX_SQL_VARIABILI]
+                    placeholders = ",".join("?" for _ in blocco)
+                    rows.extend(
+                        connection.execute(
+                            f"SELECT documents.id AS document_id, documents.filename, documents.version, documents.content_hash, document_chunks.id AS chunk_id, document_chunks.ordinal, document_chunks.text AS excerpt, document_chunks.source_locator, document_chunks.embedding_json FROM document_chunks JOIN documents ON documents.id = document_chunks.document_id WHERE document_chunks.id IN ({placeholders}) AND documents.library_id = ? ORDER BY documents.created_at DESC, document_chunks.ordinal ASC",  # nosec B608
+                            (*blocco, library_id),
+                        ).fetchall()
+                    )
             else:
                 rows = []
 

@@ -195,3 +195,43 @@ def test_chunk_insert_throughput(tmp_path):
     print(f"\n  Chunk insert: {total_chunks} chunks in {elapsed:.2f}s, {throughput:.1f} chunks/s")
 
     assert throughput > 100, f"Insert throughput too low: {throughput:.1f} chunks/s"
+
+
+def test_search_survives_more_candidates_than_sqlite_allows(tmp_path, monkeypatch):
+    """La ricerca costruiva `IN (?, ?, ...)` con un segnaposto per candidato.
+
+    SQLite ne accetta 32766: su un archivio grande una parola comune supera
+    quel numero e la ricerca NON rallenta, fallisce con "too many SQL
+    variables". Misurato con evaluation/archive_scale.py: 50.000 passaggi
+    bastano.
+
+    Qui il limite viene abbassato invece di creare 50.000 passaggi, cosi' il
+    test verifica la stessa logica di suddivisione in blocchi restando veloce.
+    """
+    import core.library_store as ls
+
+    store = _make_store(tmp_path)
+    library = store.create_library("Archivio", "", "private", owner_id="perf_user")
+    _populate_library(store, library["id"], num_docs=6, chunks_per_doc=5)
+
+    monkeypatch.setattr(ls, "_MAX_SQL_VARIABILI", 3)
+
+    risultati, profilo = store.search_with_profile(library["id"], "contratto", limit=3)
+
+    assert profilo["mode"] == "keyword"
+    assert len(risultati) <= 3
+
+
+def test_batching_returns_the_same_results_as_a_single_query(tmp_path, monkeypatch):
+    """Suddividere non deve cambiare cosa si trova."""
+    import core.library_store as ls
+
+    store = _make_store(tmp_path)
+    library = store.create_library("Archivio", "", "private", owner_id="perf_user")
+    _populate_library(store, library["id"], num_docs=8, chunks_per_doc=4)
+
+    interi, _ = store.search_with_profile(library["id"], "procedura pagamento", limit=5)
+    monkeypatch.setattr(ls, "_MAX_SQL_VARIABILI", 2)
+    a_blocchi, _ = store.search_with_profile(library["id"], "procedura pagamento", limit=5)
+
+    assert [r["chunk_id"] for r in a_blocchi] == [r["chunk_id"] for r in interi]

@@ -188,6 +188,14 @@ questions worded very differently from the source text are the known weak case
 seconds; that is the model, not the application. `duration_ms` in the logs
 separates the two.
 
+**One particular search is slow, the rest are fast.** Expected, and measured:
+a term that appears in most documents makes every matching passage load and
+score in memory. At 50,000 passages that is about three seconds, against three
+milliseconds for a normal search. Indexing runs at roughly 1.5 s per thousand
+passages, so a fifty-thousand-passage archive takes about a minute to load,
+once. Reproduce on your own hardware with
+`python evaluation/archive_scale.py --sizes 1000,10000,50000`.
+
 ---
 
 ## 8. Known limits
@@ -198,6 +206,10 @@ State these to whoever is deciding on the deployment, before they find out:
 - **One instance, full stop, for rate limiting and caching.** Sessions and login
   attempts are shared across instances; the request rate limiter and the search
   cache are not, so running several instances multiplies rate thresholds.
+- **Search scales to tens of thousands of passages, not to millions.** Measured
+  up to 50,000: typical searches stay at milliseconds, but a query on a very
+  common term takes seconds because scoring happens in memory over every
+  candidate. Beyond roughly 200,000 passages that becomes the limiting factor.
 - **Rate limiting covers only upload, search and ask**, counted per
   authenticated user, plus a separate block on repeated failed logins. Everything
   else is unlimited. See the threat model, T8.

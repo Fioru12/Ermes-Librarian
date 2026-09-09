@@ -298,6 +298,54 @@ Le domande restano scritte da noi e il corpus di partenza resta sintetico.
 Questo misura la robustezza al rumore, non l'aderenza a un dominio reale.
 Prima di promettere qualcosa a un'azienda, va rimisurato sui suoi documenti.
 
+## Quanto regge su un archivio vero (misurato 10 settembre 2026)
+
+Le sezioni precedenti misurano la *qualita'* del recupero su corpus piccoli.
+Questa misura una cosa diversa e altrettanto decisiva per l'uso in ufficio:
+**quanto ci mette**, e come cresce quel tempo con l'archivio.
+
+Serviva perche' il test di prestazioni piu' grande del progetto usava 60
+passaggi. Un archivio aziendale ne ha decine di migliaia, e finche' non e'
+misurato "la ricerca e' veloce" e' un'impressione presa su un corpus
+giocattolo.
+
+```powershell
+python evaluation/archive_scale.py --sizes 1000,10000,50000
+```
+
+| Passaggi | Indicizzazione | per 1000 | Ricerca (mediana) | Ricerca (peggiore) | Database |
+|---|---|---|---|---|---|
+| 1.000 | 1,0 s | 1,0 s | 1,0 ms | 20 ms | 1,4 MB |
+| 10.000 | 11,5 s | 1,15 s | 1,4 ms | 281 ms | 12,3 MB |
+| 50.000 | 68,8 s | 1,38 s | 3,2 ms | 3.294 ms | 61,0 MB |
+
+**La ricerca tipica resta istantanea anche a cinquantamila passaggi**: tre
+millisecondi. L'indicizzazione cresce in modo lineare, circa un secondo e
+mezzo ogni mille passaggi, quindi caricare un archivio di cinquantamila si
+misura in minuti, una volta sola.
+
+**Il caso peggiore invece cresce, e parecchio.** Una parola presente in quasi
+tutti i documenti fa caricare e valutare in memoria ogni riga corrispondente:
+tre secondi a cinquantamila. La causa e' architetturale — il punteggio viene
+calcolato in Python su tutti i candidati, non nel database — e a duecentomila
+passaggi sarebbero una decina di secondi. La direzione indicata e' limitare i
+candidati usando il ranking dell'indice full-text (`bm25()` su SQLite,
+`ts_rank` su PostgreSQL) invece di prenderli tutti.
+
+### Un difetto trovato facendo questa misura
+
+A cinquantamila passaggi la ricerca non rallentava: **falliva**, con
+`sqlite3.OperationalError: too many SQL variables`. La query costruiva
+`WHERE chunk.id IN (?, ?, ...)` con un segnaposto per candidato, e SQLite ne
+accetta 32.766. Su un archivio grande una parola comune supera quel numero e
+la ricerca smette di funzionare del tutto.
+
+Corretto suddividendo l'interrogazione in blocchi da 900 — sotto anche il
+limite storico di 999 delle build piu' vecchie. Coperto da due test che
+abbassano il limite invece di creare cinquantamila passaggi, cosi' la suite
+resta veloce: uno verifica che la ricerca sopravviva, l'altro che suddividere
+non cambi i risultati.
+
 ## Gate CI
 
 `tests/test_library_evaluation.py` verifica `recall_at_3_direct >= 0.9` e `citation_coverage >= 0.9` come soglie dure (sempre raggiungibili senza Ollama), piu' due soglie morbide (`recall_at_3_paraphrase > 0`, `abstention_accuracy > 0`) per accorgersi se la qualita' sulle query difficili crolla a zero, senza pretendere che il keyword-only le risolva tutte. Il gate CI resta sulla modalita' keyword-only: la modalita' `--semantic` non e' ancora adatta a un default di prodotto (vedi sopra) e comunque richiederebbe Ollama in CI, non disponibile.
