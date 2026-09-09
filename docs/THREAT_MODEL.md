@@ -189,5 +189,6 @@ marketing:
 7. **`mypy` and `bandit` are advisory in CI**, not blocking. Their findings are
    reviewed manually; the last review left zero high-severity issues.
 8. **The full Compose stack has never been started end to end** on a clean
-   machine. The image builds in CI and the Compose file validates, but
+   machine, and [RUNBOOK.md](RUNBOOK.md) marks that step unverified rather than
+   implying otherwise. The image builds in CI and the Compose file validates, but
    `docker compose up` remains unverified.
