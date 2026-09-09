@@ -11,7 +11,7 @@ from fastapi.testclient import TestClient
 import pytest
 
 from api import app
-from api.auth import _SESSIONS
+from api.auth import session_store
 from config import cfg
 from core.governance import create_or_update_user
 from core.library_store import LibraryAccessError, LibraryStore
@@ -91,7 +91,7 @@ def test_acl_api_is_owner_admin_only_and_validates_usernames(tmp_path, monkeypat
     monkeypatch.setattr("config.cfg", test_cfg)
     monkeypatch.setattr("api.auth.cfg", test_cfg)
     monkeypatch.setattr("api.libraries.cfg", test_cfg)
-    _SESSIONS.clear()
+    session_store.clear()
     client = TestClient(app)
 
     assert (

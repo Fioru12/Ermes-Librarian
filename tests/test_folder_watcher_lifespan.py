@@ -11,7 +11,7 @@ from fastapi.testclient import TestClient
 
 from api import app
 import api.libraries
-from api.auth import _SESSIONS
+from api.auth import session_store
 from config import cfg
 
 
@@ -29,7 +29,7 @@ def watcher_client(tmp_path: Path, monkeypatch):
     monkeypatch.setattr("api.libraries.cfg", test_cfg)
     monkeypatch.setattr("api.connectors.cfg", test_cfg)
 
-    _SESSIONS.clear()
+    session_store.clear()
     monkeypatch.setattr(api.libraries, "_store", None)
 
     client = TestClient(app)

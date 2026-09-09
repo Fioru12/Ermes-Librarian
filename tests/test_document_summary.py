@@ -11,7 +11,7 @@ from fastapi.testclient import TestClient
 import pytest
 
 from api import app
-from api.auth import _SESSIONS
+from api.auth import session_store
 from config import cfg
 from core.document_summary import summarize_document
 from core.governance import create_or_update_user
@@ -43,7 +43,7 @@ def api_client_factory(tmp_path, monkeypatch):
     monkeypatch.setattr("config.cfg", test_cfg)
     monkeypatch.setattr("api.auth.cfg", test_cfg)
     monkeypatch.setattr("api.libraries.cfg", test_cfg)
-    _SESSIONS.clear()
+    session_store.clear()
     client = TestClient(app)
     return client, test_cfg
 

@@ -14,7 +14,7 @@ import time
 from fastapi.testclient import TestClient
 
 from api import app
-from api.auth import _SESSIONS
+from api.auth import session_store
 from config import cfg
 
 
@@ -36,7 +36,7 @@ def _client(tmp_path, monkeypatch, *, slack_secret="slack-test-secret", teams_se
     monkeypatch.setattr("api.auth.cfg", test_cfg)
     monkeypatch.setattr("api.libraries.cfg", test_cfg)
     monkeypatch.setattr("api.chat_webhooks.cfg", test_cfg)
-    _SESSIONS.clear()
+    session_store.clear()
     client = TestClient(app)
     import api.libraries
 

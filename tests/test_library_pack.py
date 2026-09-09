@@ -85,7 +85,7 @@ def test_import_invalid_pack_fails(tmp_path: Path):
 def test_library_pack_api_endpoints(tmp_path: Path, monkeypatch):
     from fastapi.testclient import TestClient
     from api import app
-    from api.auth import _SESSIONS
+    from api.auth import session_store
     from config import cfg
 
     app_dir = tmp_path / "app"
@@ -96,7 +96,7 @@ def test_library_pack_api_endpoints(tmp_path: Path, monkeypatch):
     monkeypatch.setattr("config.cfg", test_cfg)
     monkeypatch.setattr("api.auth.cfg", test_cfg)
     monkeypatch.setattr("api.libraries.cfg", test_cfg)
-    _SESSIONS.clear()
+    session_store.clear()
 
     import api.libraries
 

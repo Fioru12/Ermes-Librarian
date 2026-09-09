@@ -11,7 +11,7 @@ from fastapi.testclient import TestClient
 
 from api import app
 import api.libraries
-from api.auth import _SESSIONS
+from api.auth import session_store
 from config import cfg
 
 
@@ -31,7 +31,7 @@ def api_client(tmp_path: Path, monkeypatch):
     monkeypatch.setattr("api.mcp_server.cfg", test_cfg, raising=False)
     monkeypatch.setattr("api.webhook_gateway.cfg", test_cfg, raising=False)
 
-    _SESSIONS.clear()
+    session_store.clear()
     monkeypatch.setattr(api.libraries, "_store", None)
 
     client = TestClient(app)
@@ -40,7 +40,7 @@ def api_client(tmp_path: Path, monkeypatch):
     assert login_res.status_code == 200
 
     yield client
-    _SESSIONS.clear()
+    session_store.clear()
 
 
 def test_mcp_info_and_tools(api_client: TestClient):

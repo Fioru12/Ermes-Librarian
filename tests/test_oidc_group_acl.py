@@ -12,7 +12,7 @@ Regole verificate:
 from fastapi.testclient import TestClient
 
 from api import app
-from api.auth import _SESSIONS
+from api.auth import session_store
 from config import cfg
 from core.governance import (
     load_oidc_group_mappings,
@@ -36,7 +36,7 @@ def api_client_factory(tmp_path, monkeypatch):
     monkeypatch.setattr("config.cfg", test_cfg)
     monkeypatch.setattr("api.auth.cfg", test_cfg)
     monkeypatch.setattr("api.libraries.cfg", test_cfg)
-    _SESSIONS.clear()
+    session_store.clear()
     return TestClient(app), test_cfg
 
 

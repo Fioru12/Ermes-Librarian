@@ -282,7 +282,7 @@ def test_the_login_endpoint_refuses_a_forged_token(oidc, monkeypatch, tmp_path):
     endpoint_cfg = oidc.cfg.replace(BASE_DIR=str(app_dir), API_KEY="")
     monkeypatch.setattr("config.cfg", endpoint_cfg)
     monkeypatch.setattr(api.auth, "cfg", endpoint_cfg)
-    api.auth._SESSIONS.clear()
+    api.auth.session_store.clear()
 
     def b64(obj):
         return base64.urlsafe_b64encode(json.dumps(obj).encode()).decode().rstrip("=")
@@ -297,4 +297,4 @@ def test_the_login_endpoint_refuses_a_forged_token(oidc, monkeypatch, tmp_path):
     response = client.post("/api/auth/oidc/session", json={"id_token": forged})
 
     assert response.status_code == 401
-    assert not api.auth._SESSIONS
+    assert api.auth.session_store.count() == 0

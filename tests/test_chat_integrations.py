@@ -11,7 +11,7 @@ tests/test_folder_import.py, qui replicato per lo stesso motivo.
 from fastapi.testclient import TestClient
 
 from api import app
-from api.auth import _SESSIONS
+from api.auth import session_store
 from config import cfg
 
 
@@ -24,7 +24,7 @@ def api_client_factory(tmp_path, monkeypatch):
     monkeypatch.setattr("config.cfg", test_cfg)
     monkeypatch.setattr("api.auth.cfg", test_cfg)
     monkeypatch.setattr("api.libraries.cfg", test_cfg)
-    _SESSIONS.clear()
+    session_store.clear()
     return TestClient(app), test_cfg
 
 

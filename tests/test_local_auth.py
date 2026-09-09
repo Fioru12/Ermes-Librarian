@@ -1,7 +1,7 @@
 from fastapi.testclient import TestClient
 
 from api import app
-from api.auth import _SESSIONS
+from api.auth import session_store
 from config import cfg
 from core.governance import create_or_update_user
 
@@ -15,7 +15,7 @@ def test_local_password_login_protects_libraries(tmp_path, monkeypatch):
     )
     monkeypatch.setattr("config.cfg", test_cfg)
     monkeypatch.setattr("api.auth.cfg", test_cfg)
-    _SESSIONS.clear()
+    session_store.clear()
     client = TestClient(app)
 
     assert client.get("/api/libraries").status_code == 401
@@ -39,7 +39,7 @@ def test_disabled_local_account_loses_an_existing_browser_session(tmp_path, monk
     )
     monkeypatch.setattr("config.cfg", test_cfg)
     monkeypatch.setattr("api.auth.cfg", test_cfg)
-    _SESSIONS.clear()
+    session_store.clear()
     client = TestClient(app)
 
     assert (
@@ -58,7 +58,7 @@ def test_sensitive_operations_are_admin_only_and_shutdown_is_disabled_without_ke
     )
     monkeypatch.setattr("config.cfg", test_cfg)
     monkeypatch.setattr("api.auth.cfg", test_cfg)
-    _SESSIONS.clear()
+    session_store.clear()
     admin = TestClient(app)
     assert (
         admin.post("/api/auth/login", json={"username": "owner", "password": "StrongPassword!123"}).status_code == 200

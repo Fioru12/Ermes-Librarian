@@ -8,7 +8,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from api import app
-from api.auth import _SESSIONS
+from api.auth import session_store
 from config import cfg
 
 
@@ -21,7 +21,7 @@ def env(tmp_path, monkeypatch):
     )
     for target in ("config", "api", "api.auth", "api.libraries"):
         monkeypatch.setattr(f"{target}.cfg", test_cfg)
-    _SESSIONS.clear()
+    session_store.clear()
     # Forza il re-set di system_info: in suite completa un altro test può aver
     # già inizializzato il gauge prometheus su un'istanza distinta (reload moduli);
     # senza questo il sample manca anche se HELP/TYPE sono presenti.

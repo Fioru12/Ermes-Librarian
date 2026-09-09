@@ -5,7 +5,6 @@ Autenticazione JWT + RBAC + rate limiter.
 
 import logging
 import secrets
-import threading
 import time
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
@@ -14,6 +13,7 @@ from pydantic import BaseModel, Field
 
 from config import cfg
 from core.rate_limiter import get_rate_limiter
+from core.session_store import session_store as _session_store
 
 _logger = logging.getLogger(__name__)
 
@@ -22,9 +22,11 @@ router = APIRouter(tags=["Auth"], include_in_schema=False)
 _security = HTTPBearer(auto_error=False)
 
 _RBAC_CACHE: dict[str, dict] = {}  # key_hash -> user_info
-_SESSIONS: dict[str, tuple[dict, float]] = {}
-_SESSIONS_LOCK = threading.RLock()
 _SESSION_COOKIE = "ermes_session"
+
+# Le sessioni stanno sull'archivio condiviso, non in un dizionario di
+# processo: vedi core/session_store.py per il perche'.
+session_store = _session_store
 
 
 def _clear_rbac_cache(key_hash: str | None = None) -> None:
@@ -36,25 +38,17 @@ def _clear_rbac_cache(key_hash: str | None = None) -> None:
 
 
 def _invalidate_sessions_for_user(username: str) -> None:
-    """Invalidate browser sessions after a local account security change."""
-    with _SESSIONS_LOCK:
-        for token, (session_user, _) in list(_SESSIONS.items()):
-            if session_user.get("username") == username:
-                _SESSIONS.pop(token, None)
+    """Invalidate browser sessions after a local account security change.
+
+    Passa dall'archivio condiviso, quindi la disattivazione di un utente ha
+    effetto su tutte le istanze e non solo su quella che ha ricevuto la
+    chiamata.
+    """
+    session_store.delete_for_user(username)
 
 
 def _session_user(token: str | None) -> dict | None:
-    if not token:
-        return None
-    with _SESSIONS_LOCK:
-        entry = _SESSIONS.get(token)
-        if entry is None:
-            return None
-        user, expires_at = entry
-        if expires_at <= time.time():
-            _SESSIONS.pop(token, None)
-            return None
-        return user
+    return session_store.get(token)
 
 
 def _validate_oidc_jwt(token: str) -> dict | None:
@@ -175,8 +169,7 @@ def oidc_session_login(request: OidcSessionRequest, response: Response) -> dict:
 
     token = secrets.token_urlsafe(32)
     expires_at = time.time() + max(1, cfg.SESSION_TTL_HOURS) * 3600
-    with _SESSIONS_LOCK:
-        _SESSIONS[token] = (user, expires_at)
+    session_store.create(token, user, expires_at)
     response.set_cookie(
         _SESSION_COOKIE,
         token,
@@ -202,8 +195,7 @@ def login(request: LoginRequest, response: Response) -> dict:
             raise HTTPException(status_code=401, detail="Credenziali non valide")
     token = secrets.token_urlsafe(32)
     expires_at = time.time() + max(1, cfg.SESSION_TTL_HOURS) * 3600
-    with _SESSIONS_LOCK:
-        _SESSIONS[token] = (user, expires_at)
+    session_store.create(token, user, expires_at)
     response.set_cookie(
         _SESSION_COOKIE,
         token,
@@ -221,8 +213,7 @@ def login(request: LoginRequest, response: Response) -> dict:
 def logout(request: Request, response: Response) -> dict:
     token = request.cookies.get(_SESSION_COOKIE)
     if token:
-        with _SESSIONS_LOCK:
-            _SESSIONS.pop(token, None)
+        session_store.delete(token)
     response.delete_cookie(_SESSION_COOKIE)
     return {"ok": True}
 
