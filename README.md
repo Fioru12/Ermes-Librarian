@@ -50,7 +50,7 @@ Teams often have procedures, policies, manuals, contracts and internal know-how 
 
 ![Administrative audit log reporting that the HMAC signature on every entry verifies](docs/screenshots/audit-log-integrity.png)
 
-*Library operations are recorded in an append-only audit log, each entry signed with HMAC. The interface verifies every signature and reports tampering rather than assuming the record is intact. Set a persistent `ERMES_AUDIT_SECRET`: without one a fresh key is generated at each restart, and earlier entries stop verifying.*
+*Library operations are recorded in an append-only audit log, each entry signed with HMAC. The interface verifies every signature and reports tampering rather than assuming the record is intact. Each installation generates and keeps its own signing key on first run — earlier versions shipped a default key that was committed to this repository, which made the signature forgeable by anyone holding a copy (see [threat model, T6](docs/THREAT_MODEL.md)). Set `ERMES_AUDIT_SECRET` yourself only when several instances must verify the same entries.*
 
 ## Quick start (Windows)
 

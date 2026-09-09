@@ -12,9 +12,6 @@ class SecurityConfig:
     # ---------------------------------------------------------
     # SICUREZZA GENERALE
     # ---------------------------------------------------------
-    SECRET_KEY: str = field(
-        default_factory=lambda: os.environ.get("ERMES_SECRET_KEY", "ermes-dev-secret-key-change-in-production")
-    )
     ADMIN_PASSWORD: str = field(default_factory=lambda: os.environ.get("ERMES_ADMIN_PASSWORD", ""))
     ADMIN_USERNAME: str = field(default_factory=lambda: os.environ.get("ERMES_ADMIN_USERNAME", "admin"))
     API_KEY: str = field(default_factory=lambda: os.environ.get("ERMES_API_KEY", ""))
@@ -40,9 +37,12 @@ class SecurityConfig:
             if host.strip()
         )
     )
-    AUDIT_SECRET: str = field(
-        default_factory=lambda: os.environ.get("ERMES_AUDIT_SECRET", "ermes-audit-secret-change-in-production")
-    )
+    # Default VUOTO di proposito. Con un default non vuoto il primo ramo di
+    # core/governance.py::_get_audit_secret vinceva sempre, quindi ogni
+    # installazione firmava il registro di audit con una chiave scritta nel
+    # repository — pubblica, quindi falsificabile da chiunque — e il codice
+    # che genera una chiave casuale per installazione era irraggiungibile.
+    AUDIT_SECRET: str = field(default_factory=lambda: os.environ.get("ERMES_AUDIT_SECRET", ""))
 
     # ---------------------------------------------------------
     # SESSIONE

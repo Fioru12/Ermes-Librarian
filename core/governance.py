@@ -159,14 +159,40 @@ def has_min_role(user_role: str, min_role: str) -> bool:
 # ============================================================
 # AUDIT SECURITY - HMAC per integrità log
 # ============================================================
+# Valori che sembrano una chiave ma sono pubblici: il default storico del
+# config e i segnaposto di .env.example. Firmare con uno di questi rende la
+# firma HMAC una decorazione, perche' chiunque abbia il repository puo'
+# fabbricare voci di audit che risultano valide.
+_AUDIT_SECRET_PLACEHOLDERS = {
+    "ermes-audit-secret-change-in-production",
+    "change_me_to_audit_secret",
+    "change_me",
+    "changeme",
+}
+
+
+def _is_usable_audit_secret(value: str) -> bool:
+    return bool(value.strip()) and value.strip().lower() not in _AUDIT_SECRET_PLACEHOLDERS
+
+
 def _get_audit_secret() -> bytes:
-    """Ritorna la secret key per HMAC audit. Usa cfg/env o persiste su security/.audit_secret."""
+    """Ritorna la secret key per HMAC audit. Usa cfg/env o persiste su security/.audit_secret.
+
+    Un segnaposto viene trattato come "non configurato" e non come una
+    chiave: e' il caso di chi copia .env.example senza modificarlo, cioe' il
+    percorso piu' probabile in una prima installazione.
+    """
     from config import cfg
 
     if cfg.AUDIT_SECRET:
-        return cfg.AUDIT_SECRET.encode("utf-8")
+        if _is_usable_audit_secret(cfg.AUDIT_SECRET):
+            return cfg.AUDIT_SECRET.encode("utf-8")
+        _logger.warning(
+            "ERMES_AUDIT_SECRET e' un valore segnaposto pubblico: ignorato. "
+            "Viene usata una chiave generata e persistita per questa installazione."
+        )
     env_secret = os.environ.get("ERMES_AUDIT_SECRET", "")
-    if env_secret:
+    if _is_usable_audit_secret(env_secret):
         return env_secret.encode("utf-8")
 
     secret_file = os.path.join(cfg.SECURITY_DIR, ".audit_secret")

@@ -102,10 +102,26 @@ which also rejects the cloud metadata address and `file://`).
 
 *Posture:* entries are append-only and individually HMAC-signed; the admin
 interface verifies every signature and reports mismatches rather than assuming
-integrity. **Operational caveat, and a real one:** if `ERMES_AUDIT_SECRET` is
-unset, a fresh key is generated at each restart and all earlier entries stop
-verifying — which is indistinguishable, to the reader, from tampering. Set it
-persistently. This is documented in `README.md` beside the audit screenshot.
+integrity.
+
+**This section previously described a caveat that did not exist, and omitted the
+one that did.** It said that with `ERMES_AUDIT_SECRET` unset a fresh key would be
+generated at each restart, so older entries would stop verifying. Neither half was
+true: the setting was never unset, because `AUDIT_SECRET` carried a non-empty
+default, and the unreachable fallback behind it persisted its key to
+`security/.audit_secret` rather than regenerating one. What actually happened is
+worse than the documented caveat: every installation signed its audit log with
+`ermes-audit-secret-change-in-production` — a string committed to this repository
+— or, for anyone who copied `.env.example`, with `CHANGE_ME_TO_AUDIT_SECRET`.
+Both are public, so anyone holding the repository could forge an entry that
+verified as authentic. Demonstrated before the fix by signing a fabricated
+`library_deleted` entry with the repository key alone; it verified.
+
+The default is now empty, which makes the existing per-installation key
+generation reachable, and known placeholder values are refused rather than used.
+Set `ERMES_AUDIT_SECRET` explicitly only when several instances must verify the
+same entries, or when a secrets manager owns the key. Covered by
+`tests/test_audit_secret.py`.
 
 ### T7 — Credential and secret exposure
 
