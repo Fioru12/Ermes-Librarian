@@ -221,6 +221,25 @@ fallback. Counting by address alone — as the unused version did — is wrong f
 this product's deployment model: behind a company NAT the whole office shares one
 address, so the first person to upload something would block their colleagues.
 
+*Correction, 10 September 2026.* "The three routes where abuse costs real
+resources" was wrong when written: the same two expensive operations are also
+exposed by the MCP server (`api/mcp_server.py`), on `POST /api/mcp/call` and
+`POST /api/mcp/rpc`, and neither was limited. That is the worst place to miss
+it — the intended caller of those routes is not a person clicking but an agent
+in a loop, which is precisely the traffic the limiter exists for. Both are now
+limited; `/info` and `/tools` deliberately are not, because a client queries
+discovery on every connection and throttling it would break the handshake
+while protecting nothing. On the JSON-RPC route the limiter is applied to
+`tools/call` only, for the same reason: `initialize` and `tools/list` are the
+handshake.
+
+The MCP path also skipped the argument limits that the HTTP routes get from
+their Pydantic models. A question is capped at 2000 characters on
+`/ask`; through MCP a question of any length went whole into the model prompt,
+and a non-numeric `top_k` raised `ValueError`, so a malformed agent argument
+became a server error. Covered by `tests/test_mcp_server_guards.py`, which
+fails on the previous code.
+
 Also holding: an upload size ceiling, the archive limits under T3, and a per-IP
 block on repeated failed logins (`core/login_guard.py`). No protection against a
 distributed attack, and none is intended at this scale. The counters are still per

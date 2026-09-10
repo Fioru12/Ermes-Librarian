@@ -83,7 +83,6 @@ def sync_connector(
     # dentro storage/libraries/<altra-biblioteca>, cioe' l'aggiramento
     # completo dell'isolamento fra biblioteche.
     from api.libraries import _reject_source_path_inside_app, _require_library_owner_or_admin
-
     from core.library_store import LibraryAccessError, LibraryNotFoundError
 
     try:
