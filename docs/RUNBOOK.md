@@ -141,7 +141,7 @@ Stop the application before copying the SQLite file, or use `sqlite3 .backup`.
 ### The built-in automatic backup
 
 The application also takes its own archives, on a timer, and exposes them to
-administrators at `/api/backup/create`, `/list`, `/status` and
+administrators at `/backup/create`, `/list`, `/status` and
 `/restore/{name}`. Four settings govern it:
 
 | Variable | Default | Effect |
@@ -165,7 +165,7 @@ copying an archive to a share or a USB disk copies those secrets with it.
 
 The first archive after the timer starts is written one interval later, not at
 startup: a container restarted more often than the interval never takes one.
-Use `/api/backup/create` after a deployment rather than assuming.
+Use `/backup/create` after a deployment rather than assuming.
 
 **Restoring over a running instance is not supported.** The endpoint replaces
 the SQLite file under the open connection. Use the dry run

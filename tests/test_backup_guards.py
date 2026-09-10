@@ -150,7 +150,7 @@ def test_a_dry_run_does_not_report_members_it_would_refuse(istanza):
 
 def test_a_backup_name_with_separators_is_refused(istanza, tmp_path):
     """Il nome arriva dal percorso della rotta
-    (`POST /api/backup/restore/{backup_name}`) e finiva in os.path.join senza
+    (`POST /backup/restore/{backup_name}`) e finiva in os.path.join senza
     validazione: su Windows la barra rovesciata e' un separatore, quindi
     portava fuori dalla cartella dei backup."""
     esterno = tmp_path / "altrove"

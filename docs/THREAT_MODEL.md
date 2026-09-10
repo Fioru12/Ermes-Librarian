@@ -312,7 +312,7 @@ It did not need a hostile archive to be reached. Member names come from
 document storage on a network share, the database on another disk — produces
 names beginning `../`, and restoring wrote outside the application directory.
 The archive name was also unvalidated, arriving straight from the route path
-`POST /api/backup/restore/{backup_name}`; on Windows a backslash is a
+`POST /backup/restore/{backup_name}`; on Windows a backslash is a
 separator, so `..\..\elsewhere\archive` selected an arbitrary `.tar.gz` from
 anywhere on disk. Restore is admin-only, so this is privilege *escalation*
 from admin to arbitrary file write as the server account, not a hole open to

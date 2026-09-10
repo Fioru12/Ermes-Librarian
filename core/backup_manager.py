@@ -20,7 +20,7 @@ _logger = logging.getLogger(__name__)
 MAX_BACKUPS = 10  # ripiego, se la configurazione non dice altro
 
 # Il nome arriva dal percorso di una rotta
-# (`POST /api/backup/restore/{backup_name}`) e finiva in os.path.join senza
+# (`POST /backup/restore/{backup_name}`) e finiva in os.path.join senza
 # alcuna validazione: su Windows la barra rovesciata e' un separatore, quindi
 # un nome come "..\\..\\altrove\\archivio" portava fuori dalla cartella dei
 # backup, cioe' lasciava ripristinare un archivio qualsiasi presente sul
