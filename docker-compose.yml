@@ -34,8 +34,18 @@ services:
     environment:
       - ERMES_HOST=0.0.0.0
       - ERMES_PORT=${ERMES_PORT:-8502}
-      - ERMES_MODEL=${ERMES_MODEL:-qwen3.5:9b}
-      - ERMES_EMBED_MODEL=${ERMES_EMBED_MODEL:-bge-m3}
+      # ATTENZIONE ai nomi. Fino al 10 settembre 2026 qui c'era ERMES_MODEL ed
+      # ERMES_EMBED_MODEL, che il codice non legge da nessuna parte: il
+      # container girava sempre con i valori predefiniti del config, qualunque
+      # cosa si scrivesse. I nomi letti sono questi.
+      #
+      # I default coincidono con quelli del config, cioe' con cio' che era
+      # realmente in vigore: collegare le variabili non deve cambiare di
+      # straforo quale modello viene usato. Il container ollama parte VUOTO,
+      # quindi va comunque eseguito `docker compose exec ollama ollama pull
+      # <modello>` per ciascuno dei due prima del primo uso.
+      - ERMES_DEFAULT_MODEL_ID=${ERMES_DEFAULT_MODEL_ID:-llama3.2:latest}
+      - ERMES_EMBED_MODEL_ID=${ERMES_EMBED_MODEL_ID:-nomic-embed-text:latest}
       - OLLAMA_HOST=http://ollama:11434
       - ERMES_SCORE_LOW=${ERMES_SCORE_LOW:-0.60}
       - ERMES_SCORE_MED=${ERMES_SCORE_MED:-0.70}
@@ -50,7 +60,7 @@ services:
       - ERMES_LIBRARY_SEMANTIC_SEARCH=${ERMES_LIBRARY_SEMANTIC_SEARCH:-0}
       - ERMES_LIBRARY_ASSISTANT_MODE=${ERMES_LIBRARY_ASSISTANT_MODE:-evidence_only}
       - ERMES_LIBRARY_CLOUD_CONSENT=${ERMES_LIBRARY_CLOUD_CONSENT:-0}
-      - ERMES_LIBRARY_ASSISTANT_TIMEOUT=${ERMES_LIBRARY_ASSISTANT_TIMEOUT:-45}
+      - ERMES_ASSISTANT_TIMEOUT_SEC=${ERMES_ASSISTANT_TIMEOUT_SEC:-60}
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
       - OPENROUTER_BASE_URL=${OPENROUTER_BASE_URL:-https://openrouter.ai/api/v1}
       - ERMES_API_KEY=${ERMES_API_KEY:-}
