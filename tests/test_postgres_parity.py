@@ -5,6 +5,8 @@ Se il database non è raggiungibile, i test vengono saltati con una
 ragione chiara: la parità va verificata, non presunta.
 """
 
+import functools
+
 import pytest
 
 from core.postgres_backend import DEFAULT_PG_DSN, EXPECTED_TABLES, connect, ensure_schema
@@ -12,6 +14,7 @@ from core.postgres_backend import DEFAULT_PG_DSN, EXPECTED_TABLES, connect, ensu
 pytestmark = pytest.mark.postgres
 
 
+@functools.cache
 def _pg_available() -> bool:
     """Sondaggio con timeout breve, non quello di produzione.
 
@@ -28,7 +31,25 @@ def _pg_available() -> bool:
     return True
 
 
-requires_pg = pytest.mark.skipif(not _pg_available(), reason="PostgreSQL non raggiungibile su localhost:5433")
+@pytest.fixture
+def _richiede_postgres():
+    """Il sondaggio avviene qui, non all'import del modulo.
+
+    Era `pytest.mark.skipif(not _pg_available(), ...)`, che valuta la
+    condizione mentre pytest raccoglie i test: la connessione partiva prima di
+    qualunque test, in ogni esecuzione della suite, anche filtrando su un
+    altro file. Su Windows, senza un server in ascolto, psycopg fa cadere
+    l'interprete a intermittenza durante quel sondaggio ("Windows fatal
+    exception: access violation" dentro il selector), e la suite muore in
+    raccolta invece di dire quanti test sono passati. Rinviarlo al primo test
+    che ne ha bisogno lo evita del tutto quando questi test si saltano, e
+    `functools.cache` mantiene un solo tentativo per sessione.
+    """
+    if not _pg_available():
+        pytest.skip("PostgreSQL non raggiungibile su localhost:5433")
+
+
+requires_pg = pytest.mark.usefixtures("_richiede_postgres")
 
 
 @pytest.fixture()

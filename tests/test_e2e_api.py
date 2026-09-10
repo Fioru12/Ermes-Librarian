@@ -77,6 +77,23 @@ async def noop_lifespan(_app):
     yield
 
 
+# Questa assegnazione avviene all'import e vale per l'intera sessione di test:
+# importare questo file disattiva il lifespan reale per tutti i moduli, non
+# solo per questo. E' deliberato — l'avvio reale apre connessioni HTTP verso
+# Ollama, avvia il guardiano delle cartelle e lo scheduler dei backup, e la
+# suite e' scritta presumendo che non avvenga — ma il costo va detto: nessun
+# comportamento d'avvio e' verificato da qui.
+#
+# Un tentativo di renderla reversibile (fixture di modulo che ripristina il
+# lifespan in teardown) e' stato misurato e respinto il 10 settembre 2026: i
+# test successivi cominciavano a eseguire l'avvio reale e la suite si bloccava
+# in `start_blocking_portal`, oltre a chiamare Ollama a ogni ricerca.
+#
+# Chi deve verificare un comportamento d'avvio ripristina il lifespan nel
+# proprio test, per la durata di quel test: l'esempio e'
+# tests/test_first_install.py::test_rotating_the_configured_password_revokes_the_previous_one,
+# che e' anche il test che ha scoperto questo punto cieco — passava da solo e
+# falliva in suite.
 app.router.lifespan_context = noop_lifespan
 
 from fastapi.testclient import TestClient

@@ -92,6 +92,11 @@ def _aggiornamento(testo: str = "Quanto dura la pausa pranzo?") -> dict:
 
 
 def _invia(headers: dict | None = None, testo: str = "Quanto dura la pausa pranzo?"):
+    # Un client per chiamata, non uno condiviso a livello di modulo: un
+    # TestClient tenuto in una variabile globale mantiene vivo il proprio
+    # portale asyncio per l'intera sessione di test, e con quello in piedi la
+    # suite si bloccava dopo il primo test. Misurato il 10 settembre 2026
+    # provando a ridurre il numero di event loop creati.
     return TestClient(app).post("/api/integrations/telegram", json=_aggiornamento(testo), headers=headers or {})
 
 

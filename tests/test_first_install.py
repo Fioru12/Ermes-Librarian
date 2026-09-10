@@ -129,13 +129,33 @@ def test_a_placeholder_api_key_is_also_refused():
 
 
 def test_a_short_password_is_flagged_but_does_not_block_startup():
-    """Un avviso, non un blocco: una password corta e' una scelta discutibile
-    di chi installa, un segnaposto e' una credenziale pubblica."""
+    """Un avviso, non un blocco: una password corta e' una scelta di chi
+    installa, un segnaposto pubblicato e' una credenziale nota."""
     problemi = check_configuration(_cfg(ADMIN_PASSWORD="pippo"))
 
     interessati = [p for p in problemi if p.setting == "ERMES_ADMIN_PASSWORD"]
     assert interessati and interessati[0].severity == "warning"
     enforce(_cfg(ADMIN_PASSWORD="pippo"))  # non solleva
+
+
+def test_a_guessable_password_blocks_startup_only_when_reachable_from_outside():
+    """La distinzione e' voluta: "admin" si indovina, "CHANGE_ME" si legge nel
+    repository. Su una macchina di sviluppo che ascolta solo in locale la prima
+    e' un avviso — bloccare l'avvio li' non protegge nessuno e ferma il lavoro
+    di chi sviluppa. Appena l'applicazione e' raggiungibile da altri computer
+    diventa bloccante, perche' allora indovinarla significa entrare."""
+    in_locale = check_configuration(_cfg(ADMIN_PASSWORD="admin", HOST="127.0.0.1"))
+    esposta = check_configuration(_cfg(ADMIN_PASSWORD="admin", HOST="0.0.0.0"))
+
+    assert _severity_di(in_locale, "ERMES_ADMIN_PASSWORD") == "warning"
+    assert _severity_di(esposta, "ERMES_ADMIN_PASSWORD") == "fatal"
+    enforce(_cfg(ADMIN_PASSWORD="admin", HOST="127.0.0.1"))  # non solleva
+    with pytest.raises(ConfigurationError):
+        enforce(_cfg(ADMIN_PASSWORD="admin", HOST="0.0.0.0"))
+
+
+def _severity_di(problemi, setting):
+    return next((p.severity for p in problemi if p.setting == setting), None)
 
 
 def test_a_real_password_passes():
@@ -204,3 +224,73 @@ def test_the_reminder_file_is_not_tracked_by_git():
     ).stdout.split()
 
     assert "LOCAL_LOGIN.txt" not in tracciati
+
+
+# ============================================================
+# Cambiare la password nel .env deve revocare la precedente
+# ============================================================
+
+
+def test_rotating_the_configured_password_revokes_the_previous_one(tmp_path, monkeypatch):
+    """Secondo difetto, indipendente dal primo e trovato mentre lo verificavo.
+
+    Sul clone appena corretto, `admin/CHANGE_ME` continuava a funzionare
+    accanto alla password generata. Il motivo non e' la configurazione ma
+    `security/users.json`: `ensure_default_admin`, che riallinea la credenziale
+    memorizzata a `ERMES_ADMIN_PASSWORD`, era chiamata SOLO sul ramo di
+    fallimento di `login` (api/auth.py). Quindi finche' qualcuno entrava con la
+    password vecchia, quella continuava a bastare, e la nuova non veniva mai
+    applicata.
+
+    Per un ufficio significa che chi ruota la password perche' e' stata
+    divulgata non ha revocato niente. Nell'app precedente
+    (`legacy_winsarp/app.py`) il riallineamento avveniva all'avvio; nella
+    riscrittura e' rimasto solo sul percorso di errore.
+    """
+    from fastapi.testclient import TestClient
+
+    import api as api_package
+    import api.auth
+    import api.libraries
+    from api import app
+    from core.governance import ensure_default_admin
+
+    app_dir = tmp_path / "app"
+    app_dir.mkdir()
+    vecchia, nuova = "PasswordVecchia!1", "PasswordNuova!2"
+
+    prima = config.cfg.replace(BASE_DIR=str(app_dir), DATABASE_URL="", ADMIN_USERNAME="admin", API_KEY="")
+    ensure_default_admin(prima.USERS_FILE, "admin", vecchia)
+
+    # L'avvio reale accende anche il resto del sistema: il guardiano delle
+    # cartelle, lo scheduler dei backup, e la ricerca semantica che chiama
+    # Ollama via HTTP. Qui serve verificare una cosa sola, quindi le parti che
+    # escono dal processo restano spente: un test che aspetta dieci secondi per
+    # ogni tentativo verso un servizio assente non verifica niente di piu'.
+    dopo = prima.replace(ADMIN_PASSWORD=nuova, LIBRARY_SEMANTIC_SEARCH_ENABLED=False, BACKUP_ENABLED=False)
+    # Anche "api.cfg": il lifespan legge il proprio riferimento al modulo, e
+    # senza questa riga l'avvio userebbe la configurazione reale della
+    # macchina.
+    for percorso in ("config.cfg", "api.cfg", "api.auth.cfg", "api.libraries.cfg"):
+        monkeypatch.setattr(percorso, dopo)
+    monkeypatch.setattr(api.libraries, "_store", None)
+    api.auth.session_store.clear()
+    api.auth.login_guard.clear()
+
+    # tests/test_e2e_api.py sostituisce il lifespan dell'app con uno vuoto
+    # all'import, per l'intera sessione: senza questa riga l'avvio reale non
+    # verrebbe eseguito e il test passerebbe da solo e fallirebbe in suite —
+    # cioe' esattamente come si e' scoperto quel punto cieco. Il ripristino
+    # vale solo per la durata di questo test.
+    monkeypatch.setattr(app.router, "lifespan_context", api_package.lifespan)
+
+    # Il context manager esegue gli eventi di avvio: e' la' che la
+    # configurazione va applicata. Gli altri test costruiscono TestClient
+    # senza `with`, quindi non li eseguono — ed e' l'altra ragione per cui
+    # questo difetto e' sopravvissuto.
+    with TestClient(app) as client:
+        con_la_vecchia = client.post("/api/auth/login", json={"username": "admin", "password": vecchia})
+        con_la_nuova = client.post("/api/auth/login", json={"username": "admin", "password": nuova})
+
+    assert con_la_vecchia.status_code == 401, "la password precedente funziona ancora dopo la rotazione"
+    assert con_la_nuova.status_code == 200, con_la_nuova.text

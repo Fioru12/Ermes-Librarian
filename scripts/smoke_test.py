@@ -11,10 +11,21 @@ HEALTH_URL = f"http://127.0.0.1:{API_PORT}/health"
 QUERY_URL = f"http://127.0.0.1:{API_PORT}/query"
 
 
+def _solo_http(url):
+    """urlopen accetta anche file:// e schemi personalizzati: qui gli URL sono
+    costruiti da una porta, quindi un vincolo esplicito non toglie niente e
+    chiude la segnalazione bandit B310 invece di silenziarla."""
+    if not url.startswith(("http://", "https://")):
+        raise ValueError(f"Schema non ammesso: {url!r}")
+    return url
+
+
 def http_get(url, timeout=5):
-    req = urllib.request.Request(url)
+    req = urllib.request.Request(_solo_http(url))
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
+        # nosec B310: lo schema e' verificato da _solo_http sopra; bandit
+        # segnala urlopen staticamente e non puo' vederlo.
+        with urllib.request.urlopen(req, timeout=timeout) as resp:  # nosec B310
             return resp.read().decode("utf-8"), resp.getcode()
     except Exception as e:
         return None, e
@@ -25,9 +36,9 @@ def http_post_json(url, payload, headers=None, timeout=15):
     hdrs = {"Content-Type": "application/json"}
     if headers:
         hdrs.update(headers)
-    req = urllib.request.Request(url, data=data, headers=hdrs, method="POST")
+    req = urllib.request.Request(_solo_http(url), data=data, headers=hdrs, method="POST")
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:  # nosec B310: schema verificato da _solo_http
             return resp.read().decode("utf-8"), resp.getcode()
     except Exception as e:
         return None, e

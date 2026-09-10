@@ -152,8 +152,28 @@ class BackupManager:
 
         try:
             with tarfile.open(backup_path, "r:gz") as tar:
-                # Estrai tutto nella directory base
-                tar.extractall(path=self.base_dir)
+                # `extractall` senza filtro scrive dove dice l'archivio: un
+                # nome di membro assoluto o con `../..` esce dalla directory
+                # base. E' lo stesso difetto corretto in
+                # core/backup_manager.py, in questo secondo percorso di
+                # ripristino — quello da riga di comando — dove e' rimasto
+                # perche' il gate bandit copriva api/, core/ e config/ ma non
+                # scripts/.
+                #
+                # `filter="data"` rifiuta percorsi assoluti, traversal, link
+                # simbolici e file speciali (Python 3.11.4+, verificato qui:
+                # tarfile.data_filter esiste).
+                if hasattr(tarfile, "data_filter"):
+                    tar.extractall(path=self.base_dir, filter="data")
+                else:  # pragma: no cover - interprete piu' vecchio del filtro
+                    base = Path(self.base_dir).resolve()
+                    for membro in tar.getmembers():
+                        destinazione = (base / membro.name).resolve()
+                        if destinazione != base and base not in destinazione.parents:
+                            raise ValueError(f"Membro del backup fuori dalla directory base: {membro.name!r}")
+                        if not (membro.isfile() or membro.isdir()):
+                            raise ValueError(f"Membro del backup non regolare: {membro.name!r}")
+                    tar.extractall(path=self.base_dir)  # nosec B202: membri validati sopra
 
             logger.info(f"Ripristino completato: {backup_file}")
 

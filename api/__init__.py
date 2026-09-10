@@ -106,6 +106,25 @@ async def lifespan(app: FastAPI):
     configure_logging(cfg)
     enforce(cfg, logger=_logger)
 
+    # La credenziale memorizzata in security/users.json deve seguire
+    # ERMES_ADMIN_PASSWORD a ogni avvio. Fino al 10 settembre 2026
+    # `ensure_default_admin` era invocata SOLO sul ramo di fallimento di
+    # `login` (api/auth.py): finche' qualcuno entrava con la password vecchia,
+    # quella continuava a bastare e la nuova non veniva mai applicata. Chi
+    # ruotava la password perche' era stata divulgata non revocava niente.
+    # Dimostrato su un clone pulito: dopo aver generato una credenziale nuova,
+    # `admin/CHANGE_ME` continuava a funzionare accanto a essa.
+    # L'applicazione precedente (legacy_winsarp/app.py) lo faceva all'avvio;
+    # nella riscrittura e' rimasto solo sul percorso d'errore.
+    if cfg.ADMIN_PASSWORD:
+        try:
+            from core.governance import ensure_default_admin
+
+            ensure_default_admin(cfg.USERS_FILE, cfg.ADMIN_USERNAME, cfg.ADMIN_PASSWORD)
+        except OSError as errore:
+            # Non fatale: un'installazione con OIDC o API key resta usabile.
+            _logger.error("Impossibile allineare la credenziale amministrativa: %s", errore)
+
     # Metriche: etichette di sistema (una sola serie, idempotente).
     import platform
     from importlib import metadata

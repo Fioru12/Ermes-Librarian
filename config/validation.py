@@ -22,7 +22,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-# Valori che sembrano configurazione ma sono segnaposto pubblici.
+# Valori che sembrano configurazione ma sono segnaposto pubblicati: stanno nei
+# file di questo repository, quindi chiunque lo abbia letto li conosce. Non
+# sono password debolmente scelte, sono password note — e per questo bloccano
+# l'avvio in qualunque configurazione.
 _PLACEHOLDERS = {
     "change_me",
     "changeme",
@@ -30,16 +33,21 @@ _PLACEHOLDERS = {
     "ermes-audit-secret-change-in-production",
     "imposta_una_password_lunga_e_unica",
     "incolla_qui_una_chiave_generata",
-    "password",
-    "admin",
-    "secret",
-    "test",
 }
 
-# Sotto questa lunghezza si avvisa, senza bloccare: una password corta e' una
-# scelta discutibile di chi installa, un segnaposto e' una credenziale
-# pubblica.
+# Scelte deboli ma personali. La differenza con le precedenti e' reale: queste
+# si indovinano, quelle si leggono nel repository. Bloccano l'avvio solo se
+# l'applicazione e' raggiungibile oltre il computer locale, dove indovinarle
+# significa entrare; su una macchina di sviluppo restano un avviso.
+_PASSWORD_DEBOLI = {"admin", "password", "secret", "test", "1234", "12345678", "ermes"}
+
+# Sotto questa lunghezza si avvisa: una password corta e' una scelta di chi
+# installa, un segnaposto pubblicato e' una credenziale nota.
 _LUNGHEZZA_PASSWORD_CONSIGLIATA = 12
+
+# Se l'applicazione ascolta solo qui, chi puo' provare password e' gia' davanti
+# alla tastiera.
+_SOLO_LOCALE = {"127.0.0.1", "localhost", "::1"}
 
 
 @dataclass(frozen=True)
@@ -93,6 +101,17 @@ def check_configuration(cfg) -> list[ConfigProblem]:
                 "chiunque conosca il progetto la conosce",
                 "genera una credenziale con `python scripts/provision_local_demo_auth.py --write`, "
                 "oppure imposta ERMES_ADMIN_PASSWORD a un valore tuo",
+            )
+        )
+    elif cfg.ADMIN_PASSWORD and cfg.ADMIN_PASSWORD.strip().lower() in _PASSWORD_DEBOLI:
+        solo_locale = str(cfg.HOST).strip() in _SOLO_LOCALE
+        problems.append(
+            ConfigProblem(
+                "warning" if solo_locale else "fatal",
+                "ERMES_ADMIN_PASSWORD",
+                f"la password dell'amministratore e' {cfg.ADMIN_PASSWORD.strip()!r}, fra le prime che si provano"
+                + (" (l'applicazione ascolta solo in locale)" if solo_locale else f" e ERMES_HOST e' {cfg.HOST}"),
+                "cambiala prima di rendere l'applicazione raggiungibile da altri computer",
             )
         )
     elif cfg.ADMIN_PASSWORD and len(cfg.ADMIN_PASSWORD.strip()) < _LUNGHEZZA_PASSWORD_CONSIGLIATA:

@@ -199,3 +199,42 @@ def test_the_status_reports_the_directory_actually_used(istanza):
 
     assert stato["total_backups"] == 1
     assert Path(stato["backup_dir"]) == Path(istanza.BACKUP_DIR)
+
+
+# ============================================================
+# Il secondo percorso di ripristino, quello da riga di comando
+# ============================================================
+
+
+def test_the_command_line_restore_also_refuses_an_escaping_member(istanza, tmp_path):
+    """`scripts/backup.py` e' l'altro ripristino, e usava
+    `tar.extractall(path=...)` senza filtro: la stessa vulnerabilita' del
+    modulo, in un file che il gate bandit non copriva perche' era limitato a
+    api/, core/ e config/. Trovato ampliandolo a scripts/.
+
+    Eseguito in un sottoprocesso, non importato: quello script chiama
+    `logging.basicConfig` a livello di modulo, e importarlo dentro la suite
+    riconfigurerebbe il logger radice per tutti i test successivi.
+    """
+    import subprocess
+    import sys
+
+    base = Path(istanza.BASE_DIR)
+    fuori = tmp_path / "evasione_cli.txt"
+    archivio = tmp_path / "ostile.tar.gz"
+    payload = tmp_path / "_payload"
+    payload.write_bytes(b"scritto da fuori")
+    with tarfile.open(archivio, "w:gz") as tar:
+        tar.add(str(payload), arcname="../../evasione_cli.txt")
+    payload.unlink()
+
+    programma = (
+        "import sys; sys.path.insert(0, r'{radice}');"
+        "from backup import BackupManager;"
+        "BackupManager(base_dir=r'{base}').restore_backup(r'{archivio}')"
+    ).format(radice=Path(__file__).resolve().parents[1] / "scripts", base=base, archivio=archivio)
+
+    esito = subprocess.run([sys.executable, "-c", programma], capture_output=True, text=True, check=False)
+
+    assert esito.returncode != 0, "il ripristino da riga di comando ha accettato l'archivio: " + esito.stdout
+    assert not fuori.exists(), "ha scritto fuori dalla directory base"

@@ -48,7 +48,11 @@ jobs:
       # Bloccante: oggi non riporta nulla a media/alta severita', quindi
       # renderlo bloccante non nasconde debito, impedisce di crearne.
       - name: Bandit security scan
-        run: bandit -r api/ config/ core/ -ll
+        # scripts/ incluso dal 10 settembre 2026: era escluso, e li' e' rimasta
+        # una tarfile.extractall senza filtro — la stessa vulnerabilita'
+        # corretta in core/backup_manager.py, nel secondo percorso di
+        # ripristino. Un gate che salta una cartella non la protegge.
+        run: bandit -r api/ config/ core/ scripts/ -ll
       # L'unico passo ancora advisory, e per una ragione diversa dalle altre:
       # dipende da un elenco di vulnerabilita' esterno che puo' diventare rosso
       # per una CVE pubblicata stanotte in una dipendenza, senza che nulla sia
