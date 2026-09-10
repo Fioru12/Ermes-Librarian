@@ -88,6 +88,28 @@ retrieval is already scoped to one library, and that the assistant has no tools
 and can take no action — an injected instruction can influence wording, not
 cause access or side effects.
 
+### T1c — A third ingestion path, and a read-only user could plant evidence
+
+*Posture:* fixed on 10 September 2026, after being demonstrated.
+`POST /api/integrations/automation/ingest` exists so n8n, Zapier and similar
+tools can push documents in. It required only `_verify_api_key` — any
+authenticated user — while the browser upload requires the `editor` role, and it
+applied none of that path's four guards: filename sanitisation with an extension
+allowlist, the upload size ceiling, and a magic-byte check against the declared
+type.
+
+Demonstrated: the same `viewer` account refused with 403 by the normal upload
+ingested a document here and received 200. That is worse than ordinary
+privilege escalation, because ingested documents become the evidence the
+librarian cites to other users as authoritative — a read-only account could put
+arbitrary content into the system's mouth. An unsupported extension also
+produced a 500 rather than a refusal, because the parser's exception escaped.
+
+All four guards now apply, reused from `upload_document` rather than rewritten.
+`tests/test_webhook_ingest_guards.py` fails five ways on the previous code and
+confirms that an editor pushing a document through the gateway — the reason the
+route exists — still works.
+
 ### T1b — A second ingestion path bypasses the guards of the first
 
 *Posture:* fixed on 10 September 2026, after being demonstrated.
