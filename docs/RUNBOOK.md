@@ -150,8 +150,12 @@ that is the check that tells you the restore was complete.
 
 1. Back up as above.
 2. Pull the new version.
-3. `python -m config.validation` — new versions may require new settings.
-4. Restart.
+3. **Reinstall the dependencies**: `.\.venv-ermes\Scripts\python.exe -m pip install -r requirements.txt`.
+   Skipping this is the most common way to break the instance — a new release
+   adds a package, the virtual environment still has the old set, and the
+   backend dies on an import before it can log anything useful.
+4. `python -m config.validation` — new versions may require new settings.
+5. Restart.
 
 Database schema changes are applied automatically at startup (`CREATE TABLE IF
 NOT EXISTS`). There is no down-migration: to roll back, restore the backup.
@@ -162,6 +166,12 @@ memory — so an upgrade does not log everyone out.
 ---
 
 ## 7. When something is wrong
+
+**The backend does not come up and the launcher blames the port.** Read
+`logs/backend-avvio.log`: the launcher starts uvicorn in a hidden window, so
+its output goes there rather than to the console. A `ModuleNotFoundError` means
+the virtual environment is behind `requirements.txt` — see step 3 of the upgrade
+procedure. The launcher now prints the last lines of that log itself.
 
 **The application refuses to start.** Read the first line of output: it names
 the variable and the fix. This is deliberate; a configuration that cannot serve

@@ -127,7 +127,8 @@ Questa guida contiene la struttura esatta e il contenuto testuale per le **15 sl
 
 ### SLIDE 14: ESPERIENZA DI TIROCINIO AZIENDALE / ERASMUS (PARTE 2)
 - **Competenze Acquisite:** Padronanza di FastAPI, React/TypeScript, tecniche di Vector Search, DLP e containerizzazione Docker.
-- **Impatto Aziendale:** Riduzione del 70% dei tempi di ricerca delle informazioni interne e adozione sicura dell'AI nel rispetto della privacy.
+- **Impatto Aziendale:** ricerca su un archivio da 50.000 passaggi in 3 millisecondi contro i minuti di una ricerca manuale fra le cartelle, con ogni risposta legata al documento di origine e adozione dell'AI nel rispetto della privacy (nessun contenuto lascia la macchina nella configurazione predefinita).
+  - *Nota onesta:* la riduzione dei tempi per le persone non e' stata misurata sul campo. Il numero sopra e' il tempo di ricerca del sistema, misurato con `evaluation/archive_scale.py`.
 - **Crescita Professionale:** Transizione dalle competenze accademiche alla realizzazione di un prodotto software pronto per la produzione.
 
 ---

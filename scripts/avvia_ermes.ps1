@@ -32,7 +32,10 @@ try {
 # try/catch around it reports success even when the HTTP request failed.
 # This function checks the actual exit code and non-empty output.
 function Test-HttpUp {
-    param([string]$Url, [int]$TimeoutSec = 3)
+    # 10 secondi e non 3: /health interroga Ollama, e con un modello che si sta
+    # caricando la risposta supera facilmente i tre secondi. Con il margine
+    # stretto lo script dichiarava morto un backend vivo.
+    param([string]$Url, [int]$TimeoutSec = 10)
     $out = curl.exe -s --max-time $TimeoutSec $Url 2>$null
     return ($LASTEXITCODE -eq 0) -and (-not [string]::IsNullOrWhiteSpace($out))
 }
@@ -55,7 +58,13 @@ $backendPort = 8502
 $backendOk = Test-HttpUp "http://127.0.0.1:$backendPort/health"
 if (-not $backendOk) {
     Write-Host " avvio su $backendPort..." -NoNewline
-    Start-Process -WindowStyle Hidden -FilePath $venvPython -ArgumentList "-m uvicorn api:app --host 127.0.0.1 --port $backendPort" -WorkingDirectory $scriptDir
+    # L'output di uvicorn viene registrato invece di sparire: lanciato con
+    # finestra nascosta, un errore di import (una dipendenza mancante nel venv,
+    # per esempio) restava invisibile e lo script incolpava la porta.
+    $logDir = "$scriptDir\logs"
+    if (-not (Test-Path $logDir)) { New-Item -ItemType Directory -Path $logDir | Out-Null }
+    $backendLog = "$logDir\backend-avvio.log"
+    Start-Process -WindowStyle Hidden -FilePath $venvPython -ArgumentList "-m uvicorn api:app --host 127.0.0.1 --port $backendPort" -WorkingDirectory $scriptDir -RedirectStandardError $backendLog -RedirectStandardOutput "$logDir\backend-avvio.out.log"
     # uvicorn plus model/vector-store init can take longer than a single
     # probe; poll instead of one fixed sleep.
     for ($i = 0; $i -lt 10 -and -not $backendOk; $i++) {
@@ -68,8 +77,19 @@ else {
     # The Vite development proxy deliberately targets 8502. Silently changing
     # backend port would create a UI that opens but cannot call the API.
     Write-Host " FALLITO: il backend non risponde su $backendPort." -ForegroundColor Red
-    Write-Host " Controlla se la porta e' occupata da un altro processo, oppure avvia manualmente:" -ForegroundColor Yellow
-    Write-Host " .\.venv-ermes\Scripts\python.exe -m uvicorn api:app --host 127.0.0.1 --port $backendPort" -ForegroundColor Yellow
+    if ((Test-Path $backendLog) -and ((Get-Item $backendLog).Length -gt 0)) {
+        Write-Host ""
+        Write-Host " Ultime righe dell'avvio (questo e' il motivo vero):" -ForegroundColor Yellow
+        Get-Content $backendLog -Tail 15 | ForEach-Object { Write-Host "   $_" -ForegroundColor DarkGray }
+        Write-Host ""
+        if (Select-String -Path $backendLog -Pattern "ModuleNotFoundError" -Quiet) {
+            Write-Host " Manca una dipendenza nel virtual environment. Installa con:" -ForegroundColor Yellow
+            Write-Host "   .\.venv-ermes\Scripts\python.exe -m pip install -r requirements.txt" -ForegroundColor Yellow
+        }
+    } else {
+        Write-Host " Controlla se la porta e' occupata da un altro processo, oppure avvia manualmente:" -ForegroundColor Yellow
+        Write-Host " .\.venv-ermes\Scripts\python.exe -m uvicorn api:app --host 127.0.0.1 --port $backendPort" -ForegroundColor Yellow
+    }
     exit 1
 }
 

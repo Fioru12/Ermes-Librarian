@@ -6,6 +6,53 @@ The product is designed to be useful before any cloud AI is enabled. Its default
 
 > Status: active MVP / portfolio project. The current implementation is single-tenant and local-first; it is not yet a complete enterprise SaaS platform.
 
+## Measured, not claimed
+
+Every number below was produced by a command in this repository, and every
+command can be re-run by anyone who clones it. The unflattering results are
+here too — they are the reason several features are switched off.
+
+**Retrieval quality** — 27 questions over a demo corpus, three categories
+(`python evaluation/run_library_eval.py`):
+
+| | Shipped default | With semantic search | With evidence verification |
+|---|---|---|---|
+| Direct questions | **1.000** | 1.000 | 1.000 |
+| Paraphrased questions | 0.500 | **0.875** | 0.625 |
+| Correctly refusing to answer | **1.000** | 0.000 | **1.000** |
+
+**Speed on an office-sized archive** (`python evaluation/archive_scale.py`):
+
+| Passages | Indexing | Typical search | Worst-case search |
+|---|---|---|---|
+| 10.000 | 11,5 s | 1,4 ms | 281 ms |
+| 50.000 | 68,8 s | **3,2 ms** | 3,3 s |
+
+### What does not work, stated here rather than discovered later
+
+- **Abstention degrades as the library grows.** Perfect on the demo corpus,
+  0.333 once 100 passages of unrelated prose are added: any single shared term
+  is enough to be cited as evidence. Evidence verification restores it to
+  1.000, and at that size also improves overall recall — but it needs a model
+  running, so it is off by default. Reproduce with
+  `python evaluation/scale_check.py --sizes 0,25,97`.
+- **The neural reranker is disabled**, because measuring it showed it makes
+  every configuration worse — the previously shipped default was the worst of
+  the five.
+- **Semantic search is disabled**, because it doubles paraphrase recall and
+  destroys abstention. Four score-based signals were measured looking for a
+  cutoff that keeps both; none separates the two populations, and the analysis
+  is written up rather than glossed over.
+- **The corpus is synthetic.** These numbers are honest for it and prove
+  nothing about yours. `evaluation/scale_check.py` is the starting point for
+  measuring on real documents.
+
+The full analysis, including three attempted fixes that were measured and
+rejected, is in [docs/RETRIEVAL_EVALUATION.md](docs/RETRIEVAL_EVALUATION.md).
+What the system defends against, and what it does not, is in
+[docs/THREAT_MODEL.md](docs/THREAT_MODEL.md). How to install, back up and
+operate it is in [docs/RUNBOOK.md](docs/RUNBOOK.md).
+
 ![Walkthrough: login, browsing a library's documents, asking a question that gets cited, and honest abstention on two different out-of-scope questions — including one that only a different library could answer](docs/assets/demo.gif)
 
 *The full sequence from [docs/DEMO_GUIDE.md](docs/DEMO_GUIDE.md), recorded end-to-end against a running instance: two answered questions with real citations, then two correct abstentions — the second one proving retrieval never crosses a library boundary, not just asserting it.*
@@ -141,35 +188,27 @@ Browser
 
 The target architecture, security principles and planned evolution are documented in [docs/ARCHITECTURE_TARGET.md](docs/ARCHITECTURE_TARGET.md) and [docs/PROJECT_PLAN.md](docs/PROJECT_PLAN.md).
 
-### Does the number survive a bigger corpus?
+### Why abstention is the hard part
 
-Every retrieval number above comes from **16 passages**. Picking the right one
-out of sixteen is a much easier job than picking it out of a real company
-archive, so `evaluation/scale_check.py` isolates that single variable: same 27
-questions, same expected answers, only the amount of surrounding text changes —
-and the noise is real prose taken from this repository's own documentation.
+The number that degrades with corpus size is abstention, and it is the
+product's central claim. `evaluation/scale_check.py` isolates that single
+variable — same 27 questions, same expected answers, only the amount of
+surrounding text changes, using real prose from this repository as noise.
 
-| Added passages | recall@3 | direct | paraphrase | abstention |
-|---|---|---|---|---|
-| 0 | 0.852 | 1.000 | 0.500 | 1.000 |
-| 100 | 0.704 | 0.938 | 0.375 | **0.333** |
-| 388 | 0.667 | 0.875 | 0.375 | **0.333** |
+Direct questions hold up as the archive grows; abstention falls to 0.333 as
+soon as the library contains other text. The cause is not statistical: a
+question about a colleague working *sempre da casa senza mai* venire in sede
+matched an unrelated technical paragraph on *sempre*, *senza* and *mai* alone —
+three words that carry no meaning — because any single shared term is enough to
+be returned as evidence. A question about the *codice etico* matched a sentence
+about source code, which is a genuine ambiguity rather than a bug.
 
-Direct questions hold up. **Abstention does not**: it falls to 0.333 as soon as
-the library contains other text, and that is the product's central claim. The
-cause is not statistical — with real prose around, a question about working
-*sempre da casa senza mai* venire in sede matches an unrelated technical paragraph
-on *sempre*, *senza* and *mai* alone — three words that carry no meaning — while a
-question about the *codice etico* matches a sentence about source code, a genuine
-ambiguity. (An earlier version of this paragraph blamed a stemmer collision between
-*casa* and *casi*. That was wrong — the stemmer only trims a trailing a/e past four
-characters, so it touches neither — and the real cause was found by printing which
-terms actually matched.) Any single shared term is enough to be returned as evidence.
-
-Turning on evidence verification restores it completely, and its value grows
-with the corpus: at 388 added passages it is better on **both** columns —
-recall@3 0.704 against 0.667, abstention 1.000 against 0.333. Full analysis,
-including a threshold-based fix that was measured and rejected, in
+Three fixes were tried and measured: a lexical-coverage floor, term-rarity
+(IDF) weighting, and a wider stopword list. None restores abstention; the
+weighting was kept anyway because it improves ranking at scale, the other two
+were dropped. Evidence verification is the only mechanism that works, and its
+advantage grows with the corpus. All of it, including the numbers for the
+rejected attempts, is in
 [docs/RETRIEVAL_EVALUATION.md](docs/RETRIEVAL_EVALUATION.md).
 
 ## Demo corpus
