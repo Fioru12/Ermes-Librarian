@@ -265,6 +265,24 @@ def rate_limited(req: Request, user: dict = Depends(_verify_api_key)) -> str:
     return identifier
 
 
+def webhook_rate_limited(req: Request, user: dict = Depends(_verify_api_key)) -> str:
+    """Come `rate_limited`, ma con la quota dei webhook.
+
+    `ERMES_WEBHOOK_RATE_LIMIT_PER_MIN` esisteva in config/integrations.py e
+    non era letta da nessuno: le rotte pensate per essere chiamate da n8n,
+    Zapier o un agente non avevano alcun limite, e l'impostazione che serviva
+    a dargliene uno non aveva effetto. Il traffico di un'automazione non
+    somiglia a quello di una persona che clicca, ed e' il motivo per cui ha
+    una quota separata.
+    """
+    username = str(user.get("username", "")).strip()
+    identifier = f"webhook:{username}" if username else f"webhook-ip:{req.client.host if req.client else 'unknown'}"
+    allowed, reason = get_rate_limiter().check_request_rate(identifier, max_per_minute=cfg.WEBHOOK_RATE_LIMIT_PER_MIN)
+    if not allowed:
+        raise HTTPException(status_code=429, detail=reason)
+    return identifier
+
+
 # ============================================================
 # Admin: mapping gruppi OIDC -> ACL biblioteche
 # ============================================================

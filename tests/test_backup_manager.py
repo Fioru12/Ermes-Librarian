@@ -7,15 +7,24 @@ import types
 from core import backup_manager as bm
 
 
-def _fake_cfg(base_dir):
+def _fake_cfg(base_dir, backup_dir=None):
     """A minimal stand-in for the frozen Config singleton, exposing only
     the attributes backup_manager.py actually reads. Using this instead of
     monkeypatching the real cfg's fields avoids fighting its frozen
     dataclass __setattr__ and, more importantly, avoids the cross-test
     global-state leak documented in tests/test_e2e_api.py — this fake is
-    local to each test and never shared."""
+    local to each test and never shared.
+
+    BACKUP_DIR arrives through this fake because it is where the setting
+    actually lives. These tests used to monkeypatch a module constant
+    `bm.BACKUP_DIR` instead, which is why they stayed green while
+    `cfg.BACKUP_DIR` was read by nobody: patching the constant made the
+    module obey, and the real configuration path was never exercised. See
+    tests/test_backup_guards.py."""
     return types.SimpleNamespace(
         BASE_DIR=base_dir,
+        BACKUP_DIR=backup_dir if backup_dir is not None else os.path.join(base_dir, "backups"),
+        BACKUP_RETENTION_COUNT=10,
         CHROMA_DIR=os.path.join(base_dir, "chroma_db"),
         LOGS_DIR=os.path.join(base_dir, "logs"),
         LIBRARY_DB_PATH=os.path.join(base_dir, "data", "ermes_knowledge.sqlite3"),
@@ -27,7 +36,7 @@ def _fake_cfg(base_dir):
 class TestGetBackupPath:
     def test_creates_directory(self, temp_dir, monkeypatch):
         backup_dir = os.path.join(temp_dir, "backups_test")
-        monkeypatch.setattr(bm, "BACKUP_DIR", backup_dir)
+        monkeypatch.setattr(bm, "cfg", _fake_cfg(temp_dir, backup_dir))
         result = bm._get_backup_path()
         assert os.path.exists(backup_dir)
         assert result == backup_dir
@@ -36,8 +45,7 @@ class TestGetBackupPath:
 class TestCreateBackup:
     def test_creates_tar_gz(self, temp_dir, monkeypatch):
         backup_dir = os.path.join(temp_dir, "backups")
-        monkeypatch.setattr(bm, "BACKUP_DIR", backup_dir)
-        monkeypatch.setattr(bm, "cfg", _fake_cfg(temp_dir))
+        monkeypatch.setattr(bm, "cfg", _fake_cfg(temp_dir, backup_dir))
         result = bm.create_backup(label="test")
         assert os.path.exists(result["path"])
         assert "test" in result["name"]
@@ -53,15 +61,13 @@ class TestCreateBackup:
 
     def test_backup_without_label(self, temp_dir, monkeypatch):
         backup_dir = os.path.join(temp_dir, "backups")
-        monkeypatch.setattr(bm, "BACKUP_DIR", backup_dir)
-        monkeypatch.setattr(bm, "cfg", _fake_cfg(temp_dir))
+        monkeypatch.setattr(bm, "cfg", _fake_cfg(temp_dir, backup_dir))
         result = bm.create_backup()
         assert os.path.exists(result["path"])
 
     def test_backup_creates_under_backup_dir(self, temp_dir, monkeypatch):
         backup_dir = os.path.join(temp_dir, "backups")
-        monkeypatch.setattr(bm, "BACKUP_DIR", backup_dir)
-        monkeypatch.setattr(bm, "cfg", _fake_cfg(temp_dir))
+        monkeypatch.setattr(bm, "cfg", _fake_cfg(temp_dir, backup_dir))
         result = bm.create_backup()
         assert result["path"].startswith(backup_dir)
 
@@ -74,7 +80,7 @@ class TestCleanupOldBackups:
             path = os.path.join(backup_dir, f"ermes_backup_20260625_000{i}.tar.gz")
             with open(path, "w") as f:
                 f.write(f"backup-{i}")
-        monkeypatch.setattr(bm, "BACKUP_DIR", backup_dir)
+        monkeypatch.setattr(bm, "cfg", _fake_cfg(temp_dir, backup_dir))
         bm._cleanup_old_backups(keep=2)
         remaining = sorted(os.listdir(backup_dir))
         assert len(remaining) == 2
@@ -86,7 +92,7 @@ class TestCleanupOldBackups:
             path = os.path.join(backup_dir, f"ermes_backup_20260625_000{i}.tar.gz")
             with open(path, "w") as f:
                 f.write(f"backup-{i}")
-        monkeypatch.setattr(bm, "BACKUP_DIR", backup_dir)
+        monkeypatch.setattr(bm, "cfg", _fake_cfg(temp_dir, backup_dir))
         bm._cleanup_old_backups(keep=10)
         remaining = os.listdir(backup_dir)
         assert len(remaining) == 3
@@ -108,15 +114,18 @@ class TestRestoreBackup:
             f.write('{"event": "seed"}\n')
 
         backup_dir = os.path.join(temp_dir, "backups")
-        monkeypatch.setattr(bm, "BACKUP_DIR", backup_dir)
-        monkeypatch.setattr(bm, "cfg", _fake_cfg(source_dir))
+        monkeypatch.setattr(bm, "cfg", _fake_cfg(source_dir, backup_dir))
         result = bm.create_backup(label=label)
         return result["name"]
 
     def test_restore_raises_for_missing_backup(self, temp_dir, monkeypatch):
-        monkeypatch.setattr(bm, "BACKUP_DIR", os.path.join(temp_dir, "backups"))
+        monkeypatch.setattr(bm, "cfg", _fake_cfg(temp_dir))
         try:
-            bm.restore_backup("does-not-exist")
+            # Il nome non passa nemmeno la validazione (deve cominciare per
+            # "ermes_backup_"), quindi ValueError e' l'esito corretto qui;
+            # per un nome ben formato ma assente resta FileNotFoundError,
+            # verificato subito sotto.
+            bm.restore_backup("ermes_backup_non_esiste")
         except FileNotFoundError:
             pass
         else:
@@ -125,7 +134,7 @@ class TestRestoreBackup:
     def test_dry_run_lists_without_writing(self, temp_dir, monkeypatch):
         backup_name = self._seed_backup(temp_dir, monkeypatch)
         restore_target = os.path.join(temp_dir, "restore_target")
-        monkeypatch.setattr(bm, "cfg", _fake_cfg(restore_target))
+        monkeypatch.setattr(bm, "cfg", _fake_cfg(restore_target, os.path.join(temp_dir, "backups")))
 
         result = bm.restore_backup(backup_name, dry_run=True)
 
@@ -137,7 +146,7 @@ class TestRestoreBackup:
     def test_restore_writes_files_atomically_and_skips_metadata(self, temp_dir, monkeypatch):
         backup_name = self._seed_backup(temp_dir, monkeypatch)
         restore_target = os.path.join(temp_dir, "restore_target")
-        monkeypatch.setattr(bm, "cfg", _fake_cfg(restore_target))
+        monkeypatch.setattr(bm, "cfg", _fake_cfg(restore_target, os.path.join(temp_dir, "backups")))
 
         result = bm.restore_backup(backup_name, dry_run=False)
 
@@ -164,8 +173,8 @@ class TestRestoreBackup:
         """
         backup_dir = os.path.join(temp_dir, "backups")
         os.makedirs(backup_dir, exist_ok=True)
-        monkeypatch.setattr(bm, "BACKUP_DIR", backup_dir)
-        archive_path = os.path.join(backup_dir, "special.tar.gz")
+        monkeypatch.setattr(bm, "cfg", _fake_cfg(temp_dir, backup_dir))
+        archive_path = os.path.join(backup_dir, "ermes_backup_special.tar.gz")
         with tarfile.open(archive_path, "w:gz") as tar:
             # FIFOTYPE: extractfile() returns None for it without raising,
             # which is the exact case being guarded against. A dangling
@@ -185,9 +194,9 @@ class TestRestoreBackup:
             tar.addfile(info, io.BytesIO(content))
 
         restore_target = os.path.join(temp_dir, "restore_target")
-        monkeypatch.setattr(bm, "cfg", _fake_cfg(restore_target))
+        monkeypatch.setattr(bm, "cfg", _fake_cfg(restore_target, os.path.join(temp_dir, "backups")))
 
-        result = bm.restore_backup("special", dry_run=False)
+        result = bm.restore_backup("ermes_backup_special", dry_run=False)
 
         assert "data/broken_fifo" not in result["restored"]
         assert "data/winsarp_graph.json" in result["restored"]
@@ -206,8 +215,7 @@ class TestRestoreBackup:
         with open(os.path.join(source_dir, "data", "winsarp_graph.json"), "w") as f:
             f.write('{"nodes": []}')
         backup_dir = os.path.join(temp_dir, "backups")
-        monkeypatch.setattr(bm, "BACKUP_DIR", backup_dir)
-        monkeypatch.setattr(bm, "cfg", _fake_cfg(source_dir))
+        monkeypatch.setattr(bm, "cfg", _fake_cfg(source_dir, backup_dir))
 
         results: list[dict] = []
         errors: list[Exception] = []
@@ -241,8 +249,7 @@ class TestGetBackupStatus:
         with open(os.path.join(source_dir, "data", "winsarp_graph.json"), "w") as f:
             f.write('{"nodes": []}')
         backup_dir = os.path.join(temp_dir, "backups")
-        monkeypatch.setattr(bm, "BACKUP_DIR", backup_dir)
-        monkeypatch.setattr(bm, "cfg", _fake_cfg(source_dir))
+        monkeypatch.setattr(bm, "cfg", _fake_cfg(source_dir, backup_dir))
 
         bm.create_backup(label="one")
         bm.create_backup(label="two")
@@ -259,8 +266,8 @@ class TestGetBackupStatus:
 
     def test_empty_when_no_backups_exist(self, temp_dir, monkeypatch):
         backup_dir = os.path.join(temp_dir, "backups_empty")
-        monkeypatch.setattr(bm, "BACKUP_DIR", backup_dir)
-        os.makedirs(backup_dir)
+        monkeypatch.setattr(bm, "cfg", _fake_cfg(temp_dir, backup_dir))
+        os.makedirs(backup_dir, exist_ok=True)
 
         status = bm.get_backup_status()
         assert status["total_backups"] == 0

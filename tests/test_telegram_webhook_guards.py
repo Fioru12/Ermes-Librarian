@@ -172,9 +172,10 @@ def test_the_expensive_path_is_rate_limited_per_channel(istanza, canale, monkeyp
     """I tre webhook chiamano l'operazione piu' costosa del sistema senza
     sessione utente, quindi il limitatore per utente non li copre: qui si conta
     per canale collegato."""
-    limiter = get_rate_limiter()
-    monkeypatch.setattr(limiter.config, "max_requests_per_minute", 3)
-    limiter.reset()
+    # La quota dei webhook e' la sua impostazione dedicata
+    # (ERMES_WEBHOOK_RATE_LIMIT_PER_MIN), non quella globale per utente.
+    monkeypatch.setattr(api.chat_webhooks, "cfg", istanza.replace(WEBHOOK_RATE_LIMIT_PER_MIN=3))
+    get_rate_limiter().reset()
     headers = {"X-Telegram-Bot-Api-Secret-Token": _segreto_atteso(istanza)}
 
     esiti = [_invia(headers=headers).status_code for _ in range(6)]

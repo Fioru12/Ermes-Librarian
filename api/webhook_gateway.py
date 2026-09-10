@@ -15,7 +15,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
-from api.auth import _require_role, _verify_api_key
+from api.auth import _require_role, _verify_api_key, webhook_rate_limited
 from api.libraries import _answer_question, get_library_store
 from config import cfg
 from core.input_validator import matches_expected_file_signature, sanitize_upload_name
@@ -59,7 +59,11 @@ def list_libraries_for_automation(
     }
 
 
-@router.post("/ask", summary="Esegue una query RAG da n8n/Zapier e restituisce testo + citazioni")
+@router.post(
+    "/ask",
+    summary="Esegue una query RAG da n8n/Zapier e restituisce testo + citazioni",
+    dependencies=[Depends(webhook_rate_limited)],
+)
 def automation_ask(
     request: AskAutomationRequest,
     user: dict = Depends(_verify_api_key),
@@ -88,7 +92,11 @@ def automation_ask(
     }
 
 
-@router.post("/ingest", summary="Ingestione diretta documenti da webhooks esterni")
+@router.post(
+    "/ingest",
+    summary="Ingestione diretta documenti da webhooks esterni",
+    dependencies=[Depends(webhook_rate_limited)],
+)
 def automation_ingest(
     request: IngestAutomationRequest,
     # Terza via d'immissione documenti, dopo il caricamento dal browser e il

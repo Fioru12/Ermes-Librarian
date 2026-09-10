@@ -336,7 +336,10 @@ def _answer_question(store: LibraryStore, library_id: str, question: str, top_k:
                 citations, retrieval_profile = store.search_with_profile(library_id, eq, limit=top_k, actor=actor)
                 if citations:
                     break
-        if not citations:
+        # `cfg.HYDE_ENABLED` esisteva in config/rag.py e non era letta da
+        # nessuno: HyDE partiva sempre, e chi la metteva a 0 pagava comunque
+        # una chiamata al modello per ogni domanda rimasta senza evidenza.
+        if not citations and cfg.HYDE_ENABLED:
             from core.hyde import generate_hypothetical_document
 
             hyde_passage = generate_hypothetical_document(question, mode=library.get("assistant_mode"))

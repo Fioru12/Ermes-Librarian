@@ -251,6 +251,41 @@ Residual risk: the session cookie is not marked `Secure` when the host is
 **A deployment reachable beyond localhost must terminate TLS in front of the
 application**; the `public` Compose profile provides Caddy for this.
 
+### T7b — The restore path wrote wherever the archive said
+
+*Found 10 September 2026, in the automatic-backup subsystem.*
+`core/backup_manager.py` restored each member with
+`target = os.path.join(cfg.BASE_DIR, member.name)`. An absolute member name
+makes `os.path.join` discard the base entirely, and `../..` walks out of it —
+the classic tar-slip. The usual mitigation does not apply here: the code does
+not call `extractall`, so tarfile's own extraction filter never runs.
+
+It did not need a hostile archive to be reached. Member names come from
+`os.path.relpath(path, cfg.BASE_DIR)`, so a legitimate configuration — the
+document storage on a network share, the database on another disk — produces
+names beginning `../`, and restoring wrote outside the application directory.
+The archive name was also unvalidated, arriving straight from the route path
+`POST /api/backup/restore/{backup_name}`; on Windows a backslash is a
+separator, so `..\..\elsewhere\archive` selected an arbitrary `.tar.gz` from
+anywhere on disk. Restore is admin-only, so this is privilege *escalation*
+from admin to arbitrary file write as the server account, not a hole open to
+any user.
+
+*Posture:* every member's resolved target must now sit inside `BASE_DIR`
+(checked before the dry-run branch too, so a dry run does not list what the
+real restore refuses), and the archive name must match
+`ermes_backup_<...>` with no separators. Items genuinely outside `BASE_DIR` are
+archived under `external/` and the metadata says so, rather than entering the
+archive with a name the restore would reject. Covered by
+`tests/test_backup_guards.py`.
+
+*Unchanged and worth stating plainly:* the archive is a plain `.tar.gz` that
+contains `.env` and the whole `security/` directory — that is, the audit
+signing key and the user file. It is not encrypted. Anyone who can read the
+backup directory holds those secrets, so the backup directory needs the same
+protection as `security/` itself, and a backup copied to a network share or a
+USB disk carries them along.
+
 ### T8 — Denial of service
 
 *Posture:* this section once described per-identifier rate limiting as an

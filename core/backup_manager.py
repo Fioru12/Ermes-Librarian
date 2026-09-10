@@ -7,6 +7,7 @@ Esegue backup incrementali di KG, ChromaDB, logs, e configurazioni.
 import json
 import logging
 import os
+import re
 import tarfile
 import threading
 from datetime import datetime
@@ -16,25 +17,118 @@ from config import cfg
 
 _logger = logging.getLogger(__name__)
 
-BACKUP_DIR = os.path.join(cfg.BASE_DIR, "backups")
-MAX_BACKUPS = 10  # Mantieni ultimi N backup
+MAX_BACKUPS = 10  # ripiego, se la configurazione non dice altro
+
+# Il nome arriva dal percorso di una rotta
+# (`POST /api/backup/restore/{backup_name}`) e finiva in os.path.join senza
+# alcuna validazione: su Windows la barra rovesciata e' un separatore, quindi
+# un nome come "..\\..\\altrove\\archivio" portava fuori dalla cartella dei
+# backup, cioe' lasciava ripristinare un archivio qualsiasi presente sul
+# disco.
+_NOME_BACKUP_AMMESSO = re.compile(r"^ermes_backup_[A-Za-z0-9_.\-]{1,120}$")
 
 _backup_lock = threading.Lock()
 
 
 def _get_backup_path() -> str:
-    """Crea directory backup se non esiste."""
-    os.makedirs(BACKUP_DIR, exist_ok=True)
-    return BACKUP_DIR
+    """La cartella dei backup, risolta dalla configurazione a ogni chiamata.
+
+    Prima era una costante di modulo, `os.path.join(cfg.BASE_DIR, "backups")`,
+    calcolata al momento dell'import — e `cfg.BACKUP_DIR` esisteva in
+    config/storage.py senza che niente la leggesse. Chi impostava
+    ERMES_BACKUP_DIR per mandare i backup su un disco separato, che e' il
+    motivo per cui quella variabile esiste, li otteneva accanto ai dati che
+    dovevano proteggere. Un backup sullo stesso disco dell'originale non e' un
+    backup.
+
+    Un valore relativo si risolve rispetto a BASE_DIR, cosi' il default
+    ("backups") resta la cartella di prima.
+    """
+    configurata = str(getattr(cfg, "BACKUP_DIR", "") or "backups").strip()
+    percorso = Path(configurata)
+    if not percorso.is_absolute():
+        percorso = Path(cfg.BASE_DIR) / percorso
+    percorso.mkdir(parents=True, exist_ok=True)
+    return str(percorso)
 
 
-def _cleanup_old_backups(keep: int = MAX_BACKUPS):
+def _conservazione() -> int:
+    """Quanti backup mantenere. `cfg.BACKUP_RETENTION_COUNT` era ugualmente
+    inerte: la conservazione restava fissa a MAX_BACKUPS."""
+    try:
+        valore = int(getattr(cfg, "BACKUP_RETENTION_COUNT", MAX_BACKUPS))
+    except (TypeError, ValueError):
+        return MAX_BACKUPS
+    return valore if valore > 0 else MAX_BACKUPS
+
+
+def _cleanup_old_backups(keep: int | None = None):
     """Mantieni solo gli ultimi N backup."""
-    backups = sorted(Path(BACKUP_DIR).glob("ermes_backup_*.tar.gz"))
+    if keep is None:
+        keep = _conservazione()
+    backups = sorted(Path(_get_backup_path()).glob("ermes_backup_*.tar.gz"))
     if len(backups) > keep:
         for old in backups[: len(backups) - keep]:
             old.unlink()
             _logger.info("Backup rimosso: %s", old.name)
+
+
+def _percorso_archivio(backup_name: str) -> str:
+    if not _NOME_BACKUP_AMMESSO.match(backup_name or ""):
+        raise ValueError(f"Nome di backup non ammesso: {backup_name!r}")
+    return os.path.join(_get_backup_path(), f"{backup_name}.tar.gz")
+
+
+def _bersaglio_dentro_base(nome_membro: str) -> Path:
+    """Dove scrivere un membro dell'archivio, rifiutando le uscite dalla base.
+
+    `target = os.path.join(cfg.BASE_DIR, member.name)` scriveva dove diceva
+    l'archivio: con un nome di membro assoluto os.path.join scarta del tutto
+    la base, e con `../..` si esce dalla cartella. E' la vulnerabilita'
+    classica degli archivi tar, e qui non passa da `extractall`, quindi il
+    filtro di sicurezza di tarfile non si applica.
+
+    Non serviva nemmeno un archivio ostile per incontrarla: i nomi dei membri
+    li calcola `os.path.relpath(percorso, cfg.BASE_DIR)`, quindi se
+    LIBRARY_DB_PATH o LIBRARY_STORAGE_DIR puntano fuori da BASE_DIR — una
+    configurazione legittima, per esempio i documenti su una condivisione di
+    rete — quei nomi cominciano per `../` e il ripristino scrive fuori.
+    """
+    base = Path(cfg.BASE_DIR).resolve()
+    bersaglio = (base / nome_membro).resolve()
+    if bersaglio != base and base not in bersaglio.parents:
+        raise ValueError(f"Membro del backup fuori dalla cartella dell'applicazione: {nome_membro!r}")
+    return bersaglio
+
+
+def _arcname(percorso: str, esterni: list[str] | None = None) -> str:
+    """Il nome con cui un percorso entra nell'archivio.
+
+    `os.path.relpath(percorso, cfg.BASE_DIR)` produce nomi che cominciano per
+    `../` quando l'elemento sta fuori da BASE_DIR — configurazione legittima:
+    i documenti su una condivisione di rete, il database su un altro disco. Un
+    nome cosi' e' proprio quello che il ripristino ora rifiuta, e lasciarlo
+    entrare significherebbe un archivio che contiene qualcosa che non si puo'
+    ripristinare, senza dirlo a nessuno.
+
+    Un elemento esterno entra quindi sotto `external/`, e il ripristino lo
+    scrive li' dentro invece che al percorso originale: i dati sono salvi, ma
+    riportarli al loro posto e' un'operazione manuale. Il metadata e il log lo
+    dichiarano.
+    """
+    relativo = os.path.relpath(percorso, cfg.BASE_DIR).replace("\\", "/")
+    if relativo.startswith("../") or relativo == ".." or os.path.isabs(relativo):
+        base = os.path.basename(percorso.rstrip("/").rstrip("\\")) or "senza_nome"
+        esterno = "external/" + base
+        if esterni is not None:
+            esterni.append(percorso)
+        _logger.warning(
+            "Backup: %s e' fuori da BASE_DIR, archiviato come %s (il ripristino non lo rimette al percorso originale)",
+            percorso,
+            esterno,
+        )
+        return esterno
+    return relativo
 
 
 def create_backup(label: str = "") -> dict:
@@ -59,23 +153,24 @@ def create_backup(label: str = "") -> dict:
         _logger.info("Creazione backup: %s", backup_name)
 
         items_backed_up = []
+        esterni: list[str] = []
 
         with tarfile.open(backup_path, "w:gz") as tar:
             lib_db_path = getattr(cfg, "LIBRARY_DB_PATH", os.path.join(cfg.BASE_DIR, "data", "ermes_knowledge.sqlite3"))
             if os.path.exists(lib_db_path):
-                rel_path = os.path.relpath(lib_db_path, cfg.BASE_DIR).replace("\\", "/")
+                rel_path = _arcname(lib_db_path, esterni)
                 tar.add(lib_db_path, arcname=rel_path)
                 items_backed_up.append("library_db")
 
             lib_storage = getattr(cfg, "LIBRARY_STORAGE_DIR", os.path.join(cfg.BASE_DIR, "storage", "libraries"))
             if os.path.exists(lib_storage):
-                rel_path = os.path.relpath(lib_storage, cfg.BASE_DIR).replace("\\", "/")
+                rel_path = _arcname(lib_storage, esterni)
                 tar.add(lib_storage, arcname=rel_path)
                 items_backed_up.append("library_storage")
 
             sec_dir = getattr(cfg, "SECURITY_DIR", os.path.join(cfg.BASE_DIR, "security"))
             if os.path.exists(sec_dir):
-                rel_path = os.path.relpath(sec_dir, cfg.BASE_DIR).replace("\\", "/")
+                rel_path = _arcname(sec_dir, esterni)
                 tar.add(sec_dir, arcname=rel_path)
                 items_backed_up.append("security")
 
@@ -115,6 +210,7 @@ def create_backup(label: str = "") -> dict:
                 "timestamp": datetime.now().isoformat(),
                 "label": label,
                 "items": items_backed_up,
+                "external": esterni,
                 "version": "1.0.0",
             }
             meta_json = json.dumps(metadata, indent=2)
@@ -142,11 +238,16 @@ def create_backup(label: str = "") -> dict:
 def list_backups() -> list[dict]:
     """Elenca tutti i backup disponibili."""
     backups = []
-    for f in sorted(Path(BACKUP_DIR).glob("ermes_backup_*.tar.gz"), reverse=True):
+    for f in sorted(Path(_get_backup_path()).glob("ermes_backup_*.tar.gz"), reverse=True):
         size_mb = f.stat().st_size / (1024 * 1024)
         backups.append(
             {
-                "name": f.stem,
+                # `f.stem` toglie un solo suffisso: da "ermes_backup_X.tar.gz"
+                # dava "ermes_backup_X.tar", un nome che restore_backup non
+                # accetta (ci aggiunge ".tar.gz"). Elenco e ripristino non
+                # erano mai stati usati in sequenza: ripristinare il backup
+                # che l'API stessa elencava rispondeva "backup non trovato".
+                "name": f.name[: -len(".tar.gz")],
                 "path": str(f),
                 "size_mb": round(size_mb, 2),
                 "created": datetime.fromtimestamp(f.stat().st_mtime).isoformat(),
@@ -167,7 +268,7 @@ def restore_backup(backup_name: str, dry_run: bool = False) -> dict:
         dict con items ripristinati.
     """
     with _backup_lock:
-        backup_path = os.path.join(BACKUP_DIR, f"{backup_name}.tar.gz")
+        backup_path = _percorso_archivio(backup_name)
         if not os.path.exists(backup_path):
             raise FileNotFoundError(f"Backup non trovato: {backup_name}")
 
@@ -179,7 +280,10 @@ def restore_backup(backup_name: str, dry_run: bool = False) -> dict:
                 if member.name == "backup_metadata.json":
                     continue
 
-                target = os.path.join(cfg.BASE_DIR, member.name)
+                # Validato prima del ramo dry_run: il dry run serve a
+                # decidere se ripristinare, quindi non deve elencare membri
+                # che il ripristino reale rifiuta.
+                target = str(_bersaglio_dentro_base(member.name))
 
                 if dry_run:
                     restored.append(member.name)
@@ -230,6 +334,6 @@ def get_backup_status() -> dict:
         "total_backups": len(backups),
         "latest": backups[0] if backups else None,
         "total_size_mb": round(sum(b["size_mb"] for b in backups), 2),
-        "backup_dir": BACKUP_DIR,
-        "max_backups": MAX_BACKUPS,
+        "backup_dir": _get_backup_path(),
+        "max_backups": _conservazione(),
     }

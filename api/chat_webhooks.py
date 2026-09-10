@@ -98,7 +98,9 @@ async def _resolve_answer_text(store: LibraryStore, platform: str, external_chan
     # canale collegato, che e' l'unita' di traffico che esiste qui, e si
     # applica solo dopo aver stabilito che c'e' davvero lavoro costoso da
     # fare.
-    consentito, motivo = get_rate_limiter().check_request_rate(f"chat:{platform}:{external_channel_id}")
+    consentito, motivo = get_rate_limiter().check_request_rate(
+        f"chat:{platform}:{external_channel_id}", max_per_minute=cfg.WEBHOOK_RATE_LIMIT_PER_MIN
+    )
     if not consentito:
         raise HTTPException(429, motivo)
     actor = {"username": integration["created_by"], "role": "editor"}

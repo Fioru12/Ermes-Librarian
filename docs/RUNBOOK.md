@@ -138,6 +138,40 @@ With PostgreSQL, replace the first row with your usual `pg_dump`.
 
 Stop the application before copying the SQLite file, or use `sqlite3 .backup`.
 
+### The built-in automatic backup
+
+The application also takes its own archives, on a timer, and exposes them to
+administrators at `/api/backup/create`, `/list`, `/status` and
+`/restore/{name}`. Four settings govern it:
+
+| Variable | Default | Effect |
+|---|---|---|
+| `ERMES_BACKUP_ENABLED` | `1` | The timer runs at all |
+| `ERMES_BACKUP_INTERVAL_HOURS` | `24` | How often |
+| `ERMES_BACKUP_DIR` | `backups` | Where (relative paths resolve under the application directory) |
+| `ERMES_BACKUP_RETENTION_COUNT` | `10` | How many archives are kept |
+
+**Set `ERMES_BACKUP_DIR` to somewhere off this disk.** The default keeps the
+archives beside the data they protect, which survives a deleted file and not a
+failed disk. The two settings that place and prune the archives were read by
+nobody until 10 September 2026: an instance configured before that date wrote
+to the default location whatever the `.env` said, so check where the archives
+actually are before trusting them.
+
+**The archive is not encrypted, and it contains `.env` and all of
+`security/`** — the audit signing key and the user file included. Give the
+backup directory the same protection as `security/` itself, and remember that
+copying an archive to a share or a USB disk copies those secrets with it.
+
+The first archive after the timer starts is written one interval later, not at
+startup: a container restarted more often than the interval never takes one.
+Use `/api/backup/create` after a deployment rather than assuming.
+
+**Restoring over a running instance is not supported.** The endpoint replaces
+the SQLite file under the open connection. Use the dry run
+(`?dry_run=true`) to see the contents, then stop the application, restore, and
+start it again.
+
 ### Restore
 
 Stop the application, put the files back in the same relative positions, start

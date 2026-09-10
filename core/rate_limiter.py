@@ -70,15 +70,19 @@ class RateLimiter:
             if stale_ids:
                 logging.debug(f"RateLimiter: rimossi {len(stale_ids)} identifier stali")
 
-    def check_request_rate(self, identifier: str) -> tuple[bool, str]:
+    def check_request_rate(self, identifier: str, max_per_minute: int | None = None) -> tuple[bool, str]:
         """
         Controlla se identifier può fare una richiesta.
         Ritorna (allowed, reason).
+
+        `max_per_minute` permette a un chiamante di imporre una quota diversa
+        da quella globale: serve ai webhook, dove il traffico non e' una
+        persona che clicca e ERMES_WEBHOOK_RATE_LIMIT_PER_MIN esiste proprio
+        per dargli un limite proprio.
         """
         self._cleanup_stale_identifiers()
 
         now = time.time()
-        now - 60
 
         # Pulisci richieste vecchie
         self._requests[identifier] = self._cleanup_old_entries(self._requests[identifier], 60)
@@ -86,8 +90,9 @@ class RateLimiter:
         # Conta richieste nell'ultimo minuto
         recent_count = len(self._requests[identifier])
 
-        if recent_count >= self.config.max_requests_per_minute:
-            return False, f"Rate limit: {recent_count} richieste/minuto (max {self.config.max_requests_per_minute})"
+        massimo = self.config.max_requests_per_minute if max_per_minute is None else max_per_minute
+        if recent_count >= massimo:
+            return False, f"Rate limit: {recent_count} richieste/minuto (max {massimo})"
 
         # Registra questa richiesta
         self._requests[identifier].append(now)
