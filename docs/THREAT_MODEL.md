@@ -136,6 +136,53 @@ retrieval is already scoped to one library, and that the assistant has no tools
 and can take no action — an injected instruction can influence wording, not
 cause access or side effects.
 
+### T1d — The analytics dashboard crossed the boundary the documents respect
+
+*Found 10 September 2026.* T1 is about retrieval crossing a library boundary.
+The analytics subsystem crossed the same boundary by another route, and it was
+not covered by the isolation tests because it never touches a document.
+
+`GET /api/analytics/overview` requires only the `viewer` role — any
+authenticated user — and returned `top_libraries`: every library id in the
+event log with the number of questions it received. The event log spans the
+whole instance and was read without any filter, so any employee could
+enumerate every private library in the company and see how busy each one is.
+Not the content, but the existence, the identifier and the activity level of
+archives they have no access to.
+
+`/knowledge-gaps` and `/export` are admin-only, which is appropriate — they
+carry the *text of other people's questions* — but they read the log unfiltered
+too, so a per-library administrator (as opposed to a global admin) saw
+questions asked in libraries closed to them.
+
+*Posture:* both now take the set of library ids the caller can actually see —
+`None`, meaning all, only for the global `admin` role, the same distinction
+`store.get_library` applies to content. `tests/test_analytics_guards.py`
+covers it; the same file also covers three defects in what the dashboard
+reported:
+
+* `POST /api/analytics/feedback` accepted **any** `event_id`, with no check
+  that the event existed, that it was the caller's own question, or that they
+  had not already rated it. The Knowledge Gaps report is what an administrator
+  reads to decide which documents to write, so a loop of POSTs put a chosen
+  question at the top of it. It now requires the caller's own event and
+  refuses a second rating with 409.
+* `negative_feedback` was initialised to 1 and then incremented in the same
+  iteration: one negative rating counted as two.
+* `positive_feedback_rate` was `100.0` when no feedback had been received at
+  all — a dashboard reporting perfect satisfaction because it knew nothing,
+  indistinguishable to the reader from a real measurement. It is now `null`,
+  and the tile shows an em dash with "no ratings received".
+
+One more, in the same pass: the CSV export wrote the users' question text
+straight into the file, so a question beginning `=` was executed as a formula
+when the administrator opened it in Excel. Those cells are now prefixed.
+
+*Remaining gap:* recorded questions are not passed through the PII filter, so
+a question containing a name or an account number is stored in
+`ANALYTICS_FILE` in the clear, and reaches administrators through the export.
+That file needs the protection given to the audit log.
+
 ### T1c — A third ingestion path, and a read-only user could plant evidence
 
 *Posture:* fixed on 10 September 2026, after being demonstrated.

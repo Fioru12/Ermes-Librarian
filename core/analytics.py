@@ -90,10 +90,57 @@ def record_feedback(
         return False
 
 
+# `timedelta` solleva OverflowError oltre ~999999999 giorni: un parametro di
+# query diventava un errore del server. Le rotte lo validano, questo e' il
+# secondo strato, per i chiamanti interni.
+_MAX_GIORNI = 3650
+
+
+def _giorni_validi(days: int) -> int:
+    try:
+        valore = int(days)
+    except (TypeError, ValueError):
+        return 30
+    return max(1, min(valore, _MAX_GIORNI))
+
+
+def find_query_event(event_id: str) -> dict[str, Any] | None:
+    """L'evento di domanda con questo identificativo, se esiste.
+
+    Serve alla rotta del feedback, che accettava qualunque `event_id` senza
+    verificare nulla: il rapporto Knowledge Gaps e' cio' su cui un
+    amministratore decide quali documenti scrivere, e chiunque potesse
+    indovinare o inventare un identificativo poteva farci comparire la domanda
+    che voleva.
+    """
+    if not event_id:
+        return None
+    for evento in _read_events(days=_MAX_GIORNI):
+        if evento.get("type") == "query" and evento.get("event_id") == event_id:
+            return evento
+    return None
+
+
+def feedback_already_given(event_id: str, actor: str) -> bool:
+    """Se questo utente ha gia' giudicato questo evento.
+
+    Senza questo controllo un ciclo di POST gonfiava `negative_feedback` a
+    piacere e portava in cima al rapporto la domanda desiderata.
+    """
+    for evento in _read_events(days=_MAX_GIORNI):
+        if (
+            evento.get("type") == "feedback"
+            and evento.get("target_event_id") == event_id
+            and evento.get("actor") == actor
+        ):
+            return True
+    return False
+
+
 def _read_events(days: int = 30) -> list[dict[str, Any]]:
     if not os.path.exists(cfg.ANALYTICS_FILE):
         return []
-    cutoff = datetime.now(UTC) - timedelta(days=days)
+    cutoff = datetime.now(UTC) - timedelta(days=_giorni_validi(days))
     events: list[dict[str, Any]] = []
     try:
         with _ANALYTICS_LOCK, open(cfg.ANALYTICS_FILE, encoding="utf-8") as f:
@@ -120,11 +167,24 @@ def _read_events(days: int = 30) -> list[dict[str, Any]]:
     return events
 
 
-def get_analytics_summary(days: int = 30) -> dict[str, Any]:
-    """Genera riepilogo delle metriche per dashboard di governance."""
+def get_analytics_summary(days: int = 30, library_ids: set[str] | None = None) -> dict[str, Any]:
+    """Genera riepilogo delle metriche per dashboard di governance.
+
+    `library_ids` restringe il calcolo alle biblioteche a cui chi chiede ha
+    accesso; `None` significa "tutte" ed e' riservato agli amministratori. La
+    rotta /overview richiede il solo ruolo `viewer`, e senza questo filtro
+    rispondeva con `top_libraries`, cioe' l'elenco degli identificativi di
+    ogni biblioteca privata dell'azienda e quante domande ha ricevuto: non il
+    contenuto, ma proprio il confine che il prodotto promette di tenere.
+    """
     events = _read_events(days=days)
     queries = [e for e in events if e.get("type") == "query"]
-    feedbacks = [e for e in events if e.get("type") == "feedback"]
+    if library_ids is not None:
+        queries = [q for q in queries if q.get("library_id", "") in library_ids]
+        visibili = {q.get("event_id") for q in queries}
+        feedbacks = [e for e in events if e.get("type") == "feedback" and e.get("target_event_id") in visibili]
+    else:
+        feedbacks = [e for e in events if e.get("type") == "feedback"]
 
     total_queries = len(queries)
     if total_queries == 0:
@@ -133,7 +193,9 @@ def get_analytics_summary(days: int = 30) -> dict[str, Any]:
             "total_queries": 0,
             "avg_latency_ms": 0.0,
             "knowledge_gaps_count": 0,
-            "positive_feedback_rate": 0.0,
+            # None, non 0.0: senza giudizi ricevuti il tasso non e' zero, e'
+            # sconosciuto. Il cruscotto mostra "—".
+            "positive_feedback_rate": None,
             "total_feedback": len(feedbacks),
             "by_coverage": {},
             "top_libraries": [],
@@ -155,7 +217,10 @@ def get_analytics_summary(days: int = 30) -> dict[str, Any]:
         by_library[lib_id] += 1
 
     positive_fb = sum(1 for fb in feedbacks if fb.get("rating", 0) > 0)
-    pos_rate = round((positive_fb / len(feedbacks) * 100.0), 1) if feedbacks else 100.0
+    # Valeva 100.0 quando i feedback erano zero: un cruscotto che dichiarava
+    # soddisfazione perfetta perche' non aveva ricevuto un solo giudizio,
+    # indistinguibile da un dato reale per chi lo guarda.
+    pos_rate = round((positive_fb / len(feedbacks) * 100.0), 1) if feedbacks else None
 
     top_libraries = sorted(
         [{"library_id": lib, "count": count} for lib, count in by_library.items()],
@@ -174,13 +239,20 @@ def get_analytics_summary(days: int = 30) -> dict[str, Any]:
     }
 
 
-def get_knowledge_gaps(days: int = 30, limit: int = 20) -> list[dict[str, Any]]:
+def get_knowledge_gaps(days: int = 30, limit: int = 20, library_ids: set[str] | None = None) -> list[dict[str, Any]]:
     """
     Estrae le domande frequenti a cui il RAG non ha trovato risposte o ha
     ricevuto feedback negativo, raggruppate per identificare aree documentali da colmare.
+
+    `library_ids` come in `get_analytics_summary`: le domande sono testo
+    scritto dagli utenti, e non devono attraversare il confine fra biblioteche
+    piu' di quanto lo facciano i documenti.
     """
     events = _read_events(days=days)
+    limit = max(1, int(limit))
     queries = [e for e in events if e.get("type") == "query"]
+    if library_ids is not None:
+        queries = [q for q in queries if q.get("library_id", "") in library_ids]
     feedbacks = {fb.get("target_event_id"): fb for fb in events if fb.get("type") == "feedback"}
 
     frequency_map: dict[str, dict[str, Any]] = {}
@@ -206,7 +278,10 @@ def get_knowledge_gaps(days: int = 30, limit: int = 20) -> list[dict[str, Any]]:
                     "last_seen": q.get("timestamp", ""),
                     "reason": q.get("fallback_reason")
                     or ("Nessun risultato" if res_count == 0 else "Evidenza insufficiente"),
-                    "negative_feedback": 1 if has_negative_fb else 0,
+                    # Era inizializzato a 1 e poi incrementato subito sotto,
+                    # nella stessa iterazione: un feedback negativo ne
+                    # contava due.
+                    "negative_feedback": 0,
                 }
             frequency_map[normalized_q]["count"] += 1
             if has_negative_fb:

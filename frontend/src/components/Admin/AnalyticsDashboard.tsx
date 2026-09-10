@@ -16,7 +16,10 @@ interface AnalyticsSummary {
   total_queries: number
   avg_latency_ms: number
   knowledge_gaps_count: number
-  positive_feedback_rate: number
+  // null quando non e' arrivato nessun giudizio: il tasso non e' zero, e'
+  // sconosciuto. Prima l'API rispondeva 100.0, cioe' soddisfazione perfetta
+  // senza aver ricevuto un solo feedback.
+  positive_feedback_rate: number | null
   total_feedback: number
   by_coverage: Record<string, number>
   top_libraries: Array<{ library_id: string; count: number }>
@@ -153,10 +156,14 @@ export default function AnalyticsDashboard({ showNotif }: AnalyticsDashboardProp
             <ThumbsUp className="w-5 h-5 text-emerald-400" />
           </div>
           <p className="text-3xl font-bold mt-3 text-white">
-            {summary ? `${summary.positive_feedback_rate}%` : '—'}
+            {summary && summary.positive_feedback_rate !== null
+              ? `${summary.positive_feedback_rate}%`
+              : '—'}
           </p>
           <span className="text-xs text-slate-400 mt-1 block">
-            {summary ? `${summary.total_feedback} feedback registrati` : '0 valutazioni'}
+            {summary && summary.total_feedback > 0
+              ? `${summary.total_feedback} feedback registrati`
+              : 'Nessuna valutazione ricevuta'}
           </span>
         </div>
 
