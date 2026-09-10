@@ -43,6 +43,14 @@ class IntegrationsConfig:
     SLACK_SIGNING_SECRET: str = field(default_factory=lambda: os.environ.get("ERMES_SLACK_SIGNING_SECRET", ""))
     SLACK_BOT_TOKEN: str = field(default_factory=lambda: os.environ.get("ERMES_SLACK_BOT_TOKEN", ""))
     TELEGRAM_BOT_TOKEN: str = field(default_factory=lambda: os.environ.get("ERMES_TELEGRAM_BOT_TOKEN", ""))
+    # Segreto dedicato del webhook, quello registrato con
+    # setWebhook(secret_token=...) e rimandato da Telegram nell'header
+    # X-Telegram-Bot-Api-Secret-Token. Deve essere diverso dal token del bot:
+    # il token del bot puo' inviare messaggi come il bot e leggere tutti gli
+    # aggiornamenti, quindi non e' un valore da far viaggiare in un header a
+    # ogni richiesta entrante. Vuoto = webhook Telegram disattivato, non
+    # webhook senza verifica.
+    TELEGRAM_WEBHOOK_SECRET: str = field(default_factory=lambda: os.environ.get("ERMES_TELEGRAM_WEBHOOK_SECRET", ""))
 
     # ---------------------------------------------------------
     # WEBHOOK GATEWAY

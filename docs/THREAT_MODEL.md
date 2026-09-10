@@ -57,6 +57,54 @@ fails the build unless the auth dependency is present, with an explicit
 allowlist of public paths. Adding an unprotected endpoint requires deliberately
 editing that allowlist.
 
+### T2b — An allowlisted route's own check was optional
+
+*Found 10 September 2026.* The defence under T2 has a blind spot, and the
+Telegram webhook fell straight into it. Three chat routes sit on the
+allowlist in `tests/test_api_auth_coverage.py` because their authentication is
+the platform's signature, not an Ermes session — that is correct, and the
+allowlist is the right place for them. But the allowlist only records that
+these routes authenticate *some other way*; nothing checked that the other way
+actually runs.
+
+Slack and Teams verify an HMAC and fail closed when the secret is unset. The
+Telegram route, added later, read:
+
+```python
+secret_token = request.headers.get("X-Telegram-Bot-Api-Secret-Token", "")
+if secret_token and secret_token != cfg.TELEGRAM_BOT_TOKEN:
+    raise HTTPException(403, ...)
+```
+
+With the header **absent**, the comparison never happens. Anyone who could
+reach the port could ask questions of the bound library and read the answers
+with their citations — no session, no API key, no signature. The single
+existing test always sent the header, so the open branch was covered by
+nothing. The exposure is the same one the comment on `slack_webhook` describes
+having found and closed on that route; the third sibling reintroduced it.
+
+Two further defects in the same three lines. The expected value was the **bot
+token** — the credential that can post as the bot and read every update — so
+enabling the integration as documented meant registering that token as the
+webhook secret and having Telegram echo it in a header on every request, where
+any proxy that logs headers would keep it. And the comparison used `!=`
+instead of `hmac.compare_digest`, which both siblings use: a byte-by-byte
+comparison leaks the secret through response timing, and it was the only thing
+protecting the route.
+
+*Posture:* the route now fails closed on a missing `ERMES_TELEGRAM_WEBHOOK_SECRET`,
+requires the header, and compares in constant time against a secret dedicated
+to the webhook. `tests/test_telegram_webhook_guards.py` covers the missing
+header, the wrong secret, the unset secret, and the bot token being refused as
+the secret; five of its twelve tests fail on the previous code. The Teams entry
+in `.env.example` also described its secret as optional, which the code has not
+allowed for some time; `tests/test_env_example_matches_config.py` now asserts
+that each of the three secrets gating a public route is documented.
+
+*Remaining gap:* the allowlist still says only "authenticated some other way".
+A route can be added to it with a signature check that is wrong or absent, and
+nothing in the build would object.
+
 ### T3 — A malicious document attacks the parser
 
 An uploaded file is crafted to exhaust memory, escape the storage directory, or
@@ -232,6 +280,15 @@ discovery on every connection and throttling it would break the handshake
 while protecting nothing. On the JSON-RPC route the limiter is applied to
 `tools/call` only, for the same reason: `initialize` and `tools/list` are the
 handshake.
+
+The same two omissions held for the three chat webhooks (Slack, Teams,
+Telegram), which call the same expensive operation with no Ermes session at
+all — so the per-user limiter cannot cover them. They now count per bound
+channel, which is the unit of traffic that exists there, and the question is
+capped at the same 2000 characters. A Telegram reply is also truncated to 4096
+characters: beyond that Telegram refuses the message outright, so a long
+answer was not delivered at all and the failure was visible only in the
+channel.
 
 The MCP path also skipped the argument limits that the HTTP routes get from
 their Pydantic models. A question is capped at 2000 characters on

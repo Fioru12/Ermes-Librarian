@@ -26,12 +26,23 @@ from api import _get_http_client
 from api.libraries import _answer_question, get_library_store
 from config import cfg
 from core.library_store import LibraryStore
+from core.rate_limiter import get_rate_limiter
 
 _logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/integrations", tags=["Chat Integrations"])
 
 _SLACK_TIMESTAMP_TOLERANCE_SECONDS = 5 * 60
+
+# Lo stesso limite di `AskLibraryRequest` in api/libraries.py. I tre adattatori
+# chiamano `_answer_question` direttamente, quindi non passano dal modello
+# Pydantic che quel limite applica: senza questa riga una domanda di qualunque
+# lunghezza finiva intera nel prompt del modello.
+_MAX_CARATTERI_DOMANDA = 2000
+
+# Telegram rifiuta i messaggi oltre 4096 caratteri: una risposta piu' lunga non
+# veniva consegnata affatto, e il difetto si vedeva solo nel canale.
+_MAX_CARATTERI_TELEGRAM = 4096
 
 
 def _verify_slack_signature(body: bytes, timestamp: str, signature: str) -> bool:
@@ -80,6 +91,16 @@ async def _resolve_answer_text(store: LibraryStore, platform: str, external_chan
         return "Questo canale non è collegato a nessuna biblioteca Ermes. Chiedi al proprietario di una biblioteca di collegarlo."
     if not question:
         return "Fammi una domanda, ad esempio: «Come si calcola la pausa pranzo?»"
+    if len(question) > _MAX_CARATTERI_DOMANDA:
+        return f"La domanda è troppo lunga: al massimo {_MAX_CARATTERI_DOMANDA} caratteri."
+    # Il limitatore per utente in api/auth.py non copre questi tre adattatori:
+    # una richiesta di webhook non ha una sessione Ermes. La quota va per
+    # canale collegato, che e' l'unita' di traffico che esiste qui, e si
+    # applica solo dopo aver stabilito che c'e' davvero lavoro costoso da
+    # fare.
+    consentito, motivo = get_rate_limiter().check_request_rate(f"chat:{platform}:{external_channel_id}")
+    if not consentito:
+        raise HTTPException(429, motivo)
     actor = {"username": integration["created_by"], "role": "editor"}
     result = await asyncio.to_thread(_answer_question, store, integration["library_id"], question, 3, actor)
     answer = result["answer"]
@@ -182,8 +203,23 @@ async def telegram_webhook(request: Request):
     if not cfg.TELEGRAM_BOT_TOKEN:
         raise HTTPException(503, "Integrazione Telegram non configurata (ERMES_TELEGRAM_BOT_TOKEN)")
 
+    # Stesso principio dei due fratelli sopra, che questa rotta non seguiva:
+    # senza segreto configurato nessuna richiesta e' verificabile come
+    # proveniente da Telegram, quindi si rifiuta invece di lasciar passare.
+    if not cfg.TELEGRAM_WEBHOOK_SECRET:
+        raise HTTPException(503, "Integrazione Telegram non configurata (ERMES_TELEGRAM_WEBHOOK_SECRET)")
+
+    # La versione precedente era `if secret_token and secret_token != ...`:
+    # con l'header assente il controllo non avveniva affatto, e chiunque
+    # raggiungesse la porta poteva interrogare la biblioteca collegata senza
+    # alcuna credenziale. L'unico test esistente inviava sempre l'header,
+    # quindi il ramo aperto non era coperto da niente.
+    #
+    # Il valore atteso e' il segreto dedicato del webhook, non il token del
+    # bot: quel token puo' inviare messaggi come il bot, e non e' un valore da
+    # far viaggiare in un header a ogni richiesta entrante.
     secret_token = request.headers.get("X-Telegram-Bot-Api-Secret-Token", "")
-    if secret_token and secret_token != cfg.TELEGRAM_BOT_TOKEN:
+    if not hmac.compare_digest(secret_token, cfg.TELEGRAM_WEBHOOK_SECRET):
         raise HTTPException(403, "Token segreto Telegram non valido")
 
     try:
@@ -200,6 +236,9 @@ async def telegram_webhook(request: Request):
 
     store = get_library_store()
     answer = await _resolve_answer_text(store, "telegram", chat_id, text)
+
+    if len(answer) > _MAX_CARATTERI_TELEGRAM:
+        answer = answer[: _MAX_CARATTERI_TELEGRAM - 1] + "…"
 
     return {
         "method": "sendMessage",

@@ -61,6 +61,26 @@ def test_the_example_file_documents_the_settings_that_matter():
         assert indispensabile in documentate, f"{indispensabile} non e' documentata in .env.example"
 
 
+def test_the_secrets_that_gate_a_public_route_are_documented():
+    """Per queste tre, "letta ma non documentata" non e' solo poco scopribile.
+
+    Sono l'unica cosa che autentica un webhook di chat: senza, la rotta rifiuta
+    tutto (fallisce chiuso). Chi attiva l'integrazione trova una rotta che
+    risponde 503 e nessun posto dove leggere quale variabile manca.
+    ERMES_TELEGRAM_WEBHOOK_SECRET non era documentata perche' non esisteva: il
+    webhook Telegram confrontava l'header col token del bot, e solo quando
+    l'header c'era.
+    """
+    documentate = _variabili_documentate()
+
+    for segreto in (
+        "ERMES_SLACK_SIGNING_SECRET",
+        "ERMES_TEAMS_WEBHOOK_SECRET",
+        "ERMES_TELEGRAM_WEBHOOK_SECRET",
+    ):
+        assert segreto in documentate, f"{segreto} autentica una rotta pubblica e non e' documentata in .env.example"
+
+
 @pytest.mark.parametrize(
     "rinominata,attuale",
     [

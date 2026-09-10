@@ -227,7 +227,13 @@ def test_no_evidence_abstains_instead_of_guessing(tmp_path, monkeypatch):
 
 def test_telegram_webhook_answers_from_bound_library(tmp_path, monkeypatch):
     client, store, library, test_cfg = _client(tmp_path, monkeypatch)
-    test_cfg = test_cfg.replace(TELEGRAM_BOT_TOKEN="123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11")
+    # Il segreto del webhook e' un valore distinto dal token del bot: vedi
+    # tests/test_telegram_webhook_guards.py per il perche' e per il ramo che
+    # questo test non copriva (header assente).
+    test_cfg = test_cfg.replace(
+        TELEGRAM_BOT_TOKEN="123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11",
+        TELEGRAM_WEBHOOK_SECRET="segreto-webhook-telegram-dedicato",
+    )
     monkeypatch.setattr("config.cfg", test_cfg)
     monkeypatch.setattr("api.auth.cfg", test_cfg)
     monkeypatch.setattr("api.libraries.cfg", test_cfg)
@@ -243,7 +249,7 @@ def test_telegram_webhook_answers_from_bound_library(tmp_path, monkeypatch):
     )
 
     payload = {"update_id": 1, "message": {"chat": {"id": 123456789}, "text": "Quanto dura la pausa pranzo?"}}
-    headers = {"X-Telegram-Bot-Api-Secret-Token": "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11"}
+    headers = {"X-Telegram-Bot-Api-Secret-Token": "segreto-webhook-telegram-dedicato"}
     response = client.post("/api/integrations/telegram", json=payload, headers=headers)
     assert response.status_code == 200
     res_data = response.json()
