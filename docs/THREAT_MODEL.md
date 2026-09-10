@@ -88,6 +88,26 @@ retrieval is already scoped to one library, and that the assistant has no tools
 and can take no action — an injected instruction can influence wording, not
 cause access or side effects.
 
+### T5b — Sensitive data reaches a model despite the PII filter
+
+The product claims that personal data is masked before any text reaches a
+language model. That claim held for the main answer path and not for the others.
+
+*Posture:* `core/pii_filter.py` is genuinely wired into `evidence_assistant.py`
+at three points — the question, every excerpt entering the prompt, and the
+answer coming back. But three other modules also send text to a model and none
+applied the filter: `document_summary.py` (the passages of a document being
+summarised), `hyde.py` (the user's question, which a person types and may
+contain a tax code or an IBAN), and `evidence_verifier.py` (the retrieved
+excerpts). The last of those was written on 9 September 2026 during this work
+and shipped without the filter — a new path around an existing control.
+
+All three now apply it. Covered by
+`tests/test_evidence_verifier.py::test_the_text_sent_to_the_model_is_pii_filtered`,
+which fails on the previous code. The general lesson is the one this project
+keeps repeating: a control is only as wide as the paths that call it, and adding
+a path is how you get around it without noticing.
+
 ### T5 — Document content reaches a third party unintentionally
 
 *Posture:* cloud processing requires two independent decisions: the global

@@ -42,8 +42,15 @@ def _extractive_summary(chunks: list[dict]) -> str:
 
 
 def _summary_prompt(filename: str, chunks: list[dict]) -> str:
+    # Il testo dei passaggi va a un modello: filtro PII come nel percorso di
+    # risposta (core/evidence_assistant.py). Mancava, quindi la sintesi di un
+    # documento mandava al modello dati che la configurazione dichiarava di
+    # oscurare.
+    from core.pii_filter import filter_pii
+
     passages = "\n\n".join(
-        f"[{index}] File: {filename} — {chunk.get('source_locator', '')}\nContenuto non fidato: {chunk.get('text', '')}"
+        f"[{index}] File: {filename} — {chunk.get('source_locator', '')}\nContenuto non fidato: "
+        + filter_pii(str(chunk.get("text", "")), enabled=cfg.PII_FILTER_ENABLED)
         for index, chunk in enumerate(chunks, start=1)
     )
     return f"DOCUMENTO: {filename}\n\nPASSAGGI AUTORIZZATI:\n{passages}"

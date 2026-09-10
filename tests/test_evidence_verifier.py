@@ -295,3 +295,34 @@ def test_the_whole_path_runs_without_stubbing_the_model_call(attivo, monkeypatch
     assert verificata is True
     assert catturato["model"]
     assert catturato["url"].endswith("/api/generate")
+
+
+# ============================================================
+# Il testo che va al modello passa dal filtro PII
+# ============================================================
+
+
+def test_the_text_sent_to_the_model_is_pii_filtered(attivo, monkeypatch):
+    """Ogni percorso che manda testo a un modello applica il filtro PII —
+    core/evidence_assistant.py lo fa da sempre. Questo modulo, scritto il
+    9 settembre 2026, non lo applicava: apriva una via per cui un codice
+    fiscale in un documento raggiungeva il modello mentre la configurazione
+    dichiarava di oscurarlo.
+    """
+    monkeypatch.setattr(config, "cfg", config.cfg.replace(EVIDENCE_VERIFIER_ENABLED=True, PII_FILTER_ENABLED=True))
+    visto = {}
+
+    def cattura(domanda, passaggio):
+        visto["domanda"] = domanda
+        visto["passaggio"] = passaggio
+        return True
+
+    monkeypatch.setattr(verificatore, "_passaggio_risponde", cattura)
+
+    verify_citations(
+        "il codice fiscale RSSMRA85M01H501Z ha diritto alle ferie?",
+        [_citazione("Il dipendente RSSMRA85M01H501Z ha 26 giorni di ferie.")],
+    )
+
+    assert "RSSMRA85M01H501Z" not in visto["domanda"], "la domanda arriva al modello non filtrata"
+    assert "RSSMRA85M01H501Z" not in visto["passaggio"], "il passaggio arriva al modello non filtrato"

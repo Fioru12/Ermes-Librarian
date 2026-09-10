@@ -129,7 +129,18 @@ def verify_citations(question: str, citations: list[dict]) -> tuple[list[dict], 
             # citazione invece di scartarla per un dato mancante.
             superstiti.append(citazione)
             continue
-        esito = _passaggio_risponde(question, testo)
+        # Il testo va a un modello, quindi passa dal filtro PII come ogni
+        # altro percorso che lo fa (core/evidence_assistant.py). Mancava:
+        # questo modulo e' stato scritto il 9 settembre 2026 e il filtro non
+        # e' stato applicato, aprendo una via per cui dati sensibili
+        # raggiungevano il modello mentre la configurazione dichiarava di
+        # oscurarli.
+        from core.pii_filter import filter_pii
+
+        esito = _passaggio_risponde(
+            filter_pii(question, enabled=config.cfg.PII_FILTER_ENABLED),
+            filter_pii(testo, enabled=config.cfg.PII_FILTER_ENABLED),
+        )
         if esito is None:
             # Il modello non risponde: si smette di verificare e si torna al
             # comportamento senza verifica, per l'intera risposta.

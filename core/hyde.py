@@ -34,6 +34,13 @@ def generate_hypothetical_document(query: str, mode: str | None = None) -> str:
     if not cleaned_query:
         return query
 
+    # La domanda va a un modello, e una domanda la scrive una persona: puo'
+    # contenere un codice fiscale o un IBAN. Filtro PII come negli altri
+    # percorsi che parlano con un modello. Mancava.
+    from core.pii_filter import filter_pii
+
+    cleaned_query = filter_pii(cleaned_query, enabled=cfg.PII_FILTER_ENABLED)
+
     # Se le chiamate LLM non sono attive o in modalita evidence_only pura
     mode = mode or getattr(cfg, "HYDE_MODE", "local_ollama")
 
