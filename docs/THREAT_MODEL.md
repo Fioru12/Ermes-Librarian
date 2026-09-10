@@ -88,6 +88,31 @@ retrieval is already scoped to one library, and that the assistant has no tools
 and can take no action — an injected instruction can influence wording, not
 cause access or side effects.
 
+### T1b — A second ingestion path bypasses the guards of the first
+
+*Posture:* fixed on 10 September 2026, after being demonstrated.
+`POST /api/connectors/sync` pulls documents into a library by reading the
+server's filesystem — exactly what a registered folder source does. That twin
+path in `api/libraries.py` carries two deliberate guards with explanatory
+comments: owner-or-admin (because filesystem read access is a larger blast
+radius than a browser upload) and a refusal of paths inside the application's
+own tree (because pointing a source at `storage/libraries/<other-id>` imports
+another library's documents verbatim — a complete bypass of T1, reached without
+touching the read path the isolation tests cover).
+
+The connector route honoured **neither**. Demonstrated: a user holding the
+global `editor` role and *not* owning the target library pointed it at an
+arbitrary server folder, imported a payslip file, and read salary, tax code and
+IBAN back through search. Both guards now apply, and
+`tests/test_connector_sync_authorization.py` fails on the previous code while
+confirming the legitimate case — an owner importing an external network folder —
+still works.
+
+Residual risk, stated rather than fixed: an owner or admin can still point a
+source at any external folder the server process can read. There is no allowlist
+of permitted roots. That is the feature working as designed, but a deployment
+handling sensitive filesystems should consider constraining it.
+
 ### T5b — Sensitive data reaches a model despite the PII filter
 
 The product claims that personal data is masked before any text reaches a

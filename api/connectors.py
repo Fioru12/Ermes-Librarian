@@ -42,7 +42,9 @@ def test_connector(
     _auth: dict = Depends(_require_role("admin")),
 ) -> dict:
     if request.type == "microsoft_graph":
-        connector: MicrosoftGraphConnector | WebScraperConnector | LocalFolderConnector = MicrosoftGraphConnector(request.config)
+        connector: MicrosoftGraphConnector | WebScraperConnector | LocalFolderConnector = MicrosoftGraphConnector(
+            request.config
+        )
     elif request.type == "web_scraper":
         connector = WebScraperConnector(request.config)
     elif request.type == "local_folder":
@@ -65,8 +67,38 @@ def sync_connector(
     if not lib:
         raise HTTPException(status_code=404, detail="Biblioteca non trovata")
 
+    # Questa rotta immette documenti in una biblioteca leggendoli dal
+    # filesystem del server, esattamente come le sorgenti cartella
+    # registrate in api/libraries.py — ma ignorava entrambe le guardie
+    # scritte per quel percorso. Dimostrato: un utente con ruolo globale
+    # "editor", NON proprietario della biblioteca, puntava il connettore a una
+    # cartella arbitraria del server, importava un file di buste paga e ne
+    # leggeva il contenuto tramite la ricerca.
+    #
+    # Le due guardie sono quelle del percorso gemello, non inventate qui:
+    # proprietario o amministratore (il raggio d'azione e' quello della
+    # lettura del filesystem, non di un caricamento dal browser), e rifiuto
+    # dei percorsi interni all'applicazione — che secondo il commento
+    # originale di quella guardia serve a impedire di puntare una sorgente
+    # dentro storage/libraries/<altra-biblioteca>, cioe' l'aggiramento
+    # completo dell'isolamento fra biblioteche.
+    from api.libraries import _reject_source_path_inside_app, _require_library_owner_or_admin
+
+    from core.library_store import LibraryAccessError, LibraryNotFoundError
+
+    try:
+        _require_library_owner_or_admin(store, request.target_library_id, _auth)
+    except (LibraryNotFoundError, LibraryAccessError) as errore:
+        # Come nel percorso gemello: senza questa conversione l'eccezione
+        # sfuggiva come 500, cioe' un errore del server invece di un rifiuto.
+        raise HTTPException(status_code=404, detail="Biblioteca non trovata") from errore
+    if request.type == "local_folder":
+        _reject_source_path_inside_app(str(request.config.get("folder_path", "")))
+
     if request.type == "microsoft_graph":
-        connector: MicrosoftGraphConnector | WebScraperConnector | LocalFolderConnector = MicrosoftGraphConnector(request.config)
+        connector: MicrosoftGraphConnector | WebScraperConnector | LocalFolderConnector = MicrosoftGraphConnector(
+            request.config
+        )
     elif request.type == "web_scraper":
         connector = WebScraperConnector(request.config)
     elif request.type == "local_folder":
