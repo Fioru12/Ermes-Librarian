@@ -23,7 +23,23 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 # Valori che sembrano configurazione ma sono segnaposto pubblici.
-_PLACEHOLDERS = {"change_me", "changeme", "change_me_to_audit_secret", "ermes-audit-secret-change-in-production"}
+_PLACEHOLDERS = {
+    "change_me",
+    "changeme",
+    "change_me_to_audit_secret",
+    "ermes-audit-secret-change-in-production",
+    "imposta_una_password_lunga_e_unica",
+    "incolla_qui_una_chiave_generata",
+    "password",
+    "admin",
+    "secret",
+    "test",
+}
+
+# Sotto questa lunghezza si avvisa, senza bloccare: una password corta e' una
+# scelta discutibile di chi installa, un segnaposto e' una credenziale
+# pubblica.
+_LUNGHEZZA_PASSWORD_CONSIGLIATA = 12
 
 
 @dataclass(frozen=True)
@@ -57,6 +73,45 @@ def check_configuration(cfg) -> list[ConfigProblem]:
                 "ERMES_ADMIN_PASSWORD",
                 "nessun metodo di autenticazione configurato: ogni richiesta rispondera' 503",
                 "imposta ERMES_ADMIN_PASSWORD, oppure ERMES_API_KEY, oppure abilita ERMES_OIDC_ENABLED",
+            )
+        )
+
+    # Il controllo sopra guarda l'ASSENZA della password. Non guardava il suo
+    # valore, e questo file conteneva gia' "change_me" fra i segnaposto — usato
+    # per il segreto dell'audit e mai per la credenziale che apre
+    # l'applicazione. Il risultato, dimostrato clonando il repository in una
+    # cartella vuota e seguendo il README: `.env.example` impostava
+    # ERMES_ADMIN_PASSWORD=CHANGE_ME non commentata, il primo passo del README
+    # la copia in `.env`, e l'installazione accettava admin/CHANGE_ME. Questo
+    # stesso controllo rispondeva "nessun problema".
+    if cfg.ADMIN_PASSWORD and _is_placeholder(cfg.ADMIN_PASSWORD):
+        problems.append(
+            ConfigProblem(
+                "fatal",
+                "ERMES_ADMIN_PASSWORD",
+                f"la password dell'amministratore e' il segnaposto pubblico {cfg.ADMIN_PASSWORD.strip()!r}: "
+                "chiunque conosca il progetto la conosce",
+                "genera una credenziale con `python scripts/provision_local_demo_auth.py --write`, "
+                "oppure imposta ERMES_ADMIN_PASSWORD a un valore tuo",
+            )
+        )
+    elif cfg.ADMIN_PASSWORD and len(cfg.ADMIN_PASSWORD.strip()) < _LUNGHEZZA_PASSWORD_CONSIGLIATA:
+        problems.append(
+            ConfigProblem(
+                "warning",
+                "ERMES_ADMIN_PASSWORD",
+                f"password dell'amministratore piu' corta di {_LUNGHEZZA_PASSWORD_CONSIGLIATA} caratteri",
+                "core/login_guard.py rallenta i tentativi ripetuti, ma non sostituisce una password lunga",
+            )
+        )
+
+    if cfg.API_KEY and _is_placeholder(cfg.API_KEY):
+        problems.append(
+            ConfigProblem(
+                "fatal",
+                "ERMES_API_KEY",
+                f"la chiave API e' il segnaposto pubblico {cfg.API_KEY.strip()!r}",
+                'generane una con `python -c "import secrets; print(secrets.token_urlsafe(32))"`',
             )
         )
 
