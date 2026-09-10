@@ -13,7 +13,18 @@ class IntegrationsConfig:
     # LLM PROVIDER
     # ---------------------------------------------------------
     OLLAMA_HOST: str = field(default_factory=lambda: os.environ.get("ERMES_OLLAMA_HOST", "http://localhost:11434"))
-    DEFAULT_MODEL_ID: str = field(default_factory=lambda: os.environ.get("ERMES_DEFAULT_MODEL_ID", "llama3.2:latest"))
+    # Il valore predefinito deve essere il modello che la documentazione dice
+    # di installare. Fino all'11 settembre 2026 era "llama3.2:latest" mentre
+    # .env.example, il README e le slide indicano qwen3.5:9b: su
+    # un'installazione fatta seguendo la documentazione ogni chiamata al
+    # modello puntava a un modello assente, e il degrado era silenzioso —
+    # l'assistente ripiegava sui soli passaggi, il verificatore dell'evidenza
+    # rinunciava a verificare, e /health continuava a dichiarare "healthy"
+    # limitandosi a segnalare il modello mancante in un campo secondario.
+    # Verificato sul corpus dimostrativo: con il modello sbagliato la domanda
+    # di astensione prevista da examples/demo-corpus/questions.md riceveva una
+    # citazione al passaggio sulle ferie.
+    DEFAULT_MODEL_ID: str = field(default_factory=lambda: os.environ.get("ERMES_DEFAULT_MODEL_ID", "qwen3.5:9b"))
     EMBED_MODEL_ID: str = field(
         default_factory=lambda: os.environ.get("ERMES_EMBED_MODEL_ID", "nomic-embed-text:latest")
     )

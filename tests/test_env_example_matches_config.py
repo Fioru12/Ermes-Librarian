@@ -38,6 +38,19 @@ def _variabili_lette() -> set[str]:
     return lette
 
 
+def _valori_documentati() -> dict[str, str]:
+    """Le variabili assegnate in .env.example con il loro valore, righe non
+    commentate: sono i valori che chi segue il README ottiene davvero."""
+    valori: dict[str, str] = {}
+    for riga in (RADICE / ".env.example").read_text(encoding="utf-8").splitlines():
+        pulita = riga.strip()
+        if not pulita or pulita.startswith("#") or "=" not in pulita:
+            continue
+        nome, valore = pulita.split("=", 1)
+        valori[nome.strip()] = valore.strip()
+    return valori
+
+
 def test_every_documented_variable_is_actually_read():
     """La direzione pericolosa: documentata ma inerte.
 
@@ -94,3 +107,41 @@ def test_the_old_names_do_not_come_back(rinominata, attuale):
     documentate = _variabili_documentate()
 
     assert rinominata not in documentate, f"{rinominata} non e' letta da nessuno: usa {attuale}"
+
+
+# ============================================================
+# Il valore predefinito nel codice e quello documentato
+# ============================================================
+
+
+def test_the_model_defaults_match_the_documented_ones():
+    """Per le due impostazioni dei modelli, il default del codice deve essere
+    quello che .env.example indica.
+
+    Il resto della documentazione dice quale modello installare, e il codice
+    ne usava un altro: `ERMES_DEFAULT_MODEL_ID` valeva "llama3.2:latest" nel
+    codice mentre ogni documento indica qwen3.5:9b. Chi seguiva la
+    documentazione otteneva un'istanza che chiamava un modello assente, con
+    degrado silenzioso: l'assistente rispondeva coi soli passaggi, il
+    verificatore dell'evidenza rinunciava a verificare — cioe' l'astensione
+    promessa non avveniva — e /health restava "healthy".
+
+    La regola vale per queste due variabili e non per tutte: altrove
+    .env.example mostra esempi (una chiave API, un host), non valori
+    predefiniti.
+    """
+    documentate = _valori_documentati()
+    # Il valore predefinito si legge dal sorgente, non chiamando la
+    # default_factory: quella consulta l'ambiente, quindi su una macchina in
+    # cui la variabile e' impostata restituirebbe il valore locale e il
+    # confronto perderebbe di senso.
+    codice = (RADICE / "config" / "integrations.py").read_text(encoding="utf-8")
+
+    for variabile in ("ERMES_DEFAULT_MODEL_ID", "ERMES_EMBED_MODEL_ID"):
+        assert variabile in documentate, f"{variabile} non e' documentata in .env.example"
+        trovato = re.search(rf'os\.environ\.get\(\s*"{variabile}"\s*,\s*"([^"]*)"', codice)
+        assert trovato, f"{variabile} non ha un valore predefinito leggibile in config/integrations.py"
+        assert trovato.group(1) == documentate[variabile], (
+            f"{variabile}: il codice usa {trovato.group(1)!r}, la documentazione indica "
+            f"{documentate[variabile]!r}. Chi segue la documentazione ottiene un modello diverso da quello installato."
+        )

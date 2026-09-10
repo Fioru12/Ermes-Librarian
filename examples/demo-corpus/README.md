@@ -12,4 +12,31 @@ This folder contains entirely fictional documents for demonstrating Ermes Knowle
 
 The expected behaviour is not just a plausible response: each answer should be supported by the selected library. Questions outside these documents should result in an abstention.
 
+## The abstention step needs the evidence verifier
+
+Measured on this corpus on 11 September 2026, and stated here because the demo
+script is otherwise misleading: with the shipped defaults the six evidence
+questions all answer correctly with the right citation, but the abstention
+question (`What is the parental leave policy?`) does **not** abstain. It cites
+the annual-leave passage, because a chunk is admitted as evidence when it
+shares a single term with the question — here, *leave*.
+
+To demonstrate the abstention, enable the evidence verifier before starting:
+
+```
+ERMES_EVIDENCE_VERIFIER=1
+ERMES_EVIDENCE_VERIFIER_MODEL=qwen3.5:4b
+```
+
+With that, all seven questions behave as this file describes (verified: 6/6
+citations correct, abstention with zero citations). The second variable matters
+in practice: the verification is a yes/no question repeated per candidate
+passage, so it wants a small, fast model. With the 9B model the Ollama
+`/api/generate` calls failed on the test machine and the verifier degraded to
+"unchecked" — which looks exactly like no verifier at all, apart from a warning
+in the log.
+
+The underlying limitation, and the measurements behind it, are in
+`docs/RETRIEVAL_EVALUATION.md` and under T9 in `docs/THREAT_MODEL.md`.
+
 All names, addresses, numbers and policies are fictional.
