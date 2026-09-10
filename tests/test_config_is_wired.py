@@ -28,6 +28,7 @@ un cricchetto: si accorcia, non si allunga.
 
 import dataclasses
 import re
+import subprocess
 from pathlib import Path
 
 import config
@@ -59,6 +60,17 @@ _NON_COLLEGATI_NOTI = {
     "OIDC_CLIENT_SECRET": "l'app verifica i token via JWKS e non scambia mai un codice: nessun client secret serve",
     # Percorso dei provider.
     "PROVIDERS_CONFIG_PATH": "core/ai/providers/registry.py apre providers.json per percorso fisso",
+    # Lette soltanto da legacy_winsarp/, che e' un'altra applicazione dietro
+    # ENABLE_LEGACY_WINSARP e non fa parte del prodotto attuale: per il
+    # bibliotecario sono inerti, e la scansione esclude quella cartella a
+    # ragione. Vanno rimosse dalla configurazione quando il modulo legacy
+    # verra' eliminato, non collegate.
+    "PORT": "letta solo da legacy_winsarp/ e da scripts di avvio esterni al codice Python",
+    "PROMPT_MAX_CHARS": "letta solo da legacy_winsarp/app.py",
+    "TOKEN_TIMEOUT_SEC": "letta solo da legacy_winsarp/app.py",
+    "TYPING_TIMEOUT_SEC": "letta solo da legacy_winsarp/app.py",
+    "LOG_RETENTION_DAYS": "letta solo da legacy_winsarp/app.py; il bibliotecario ruota l'audit con retention_days fisso",
+    "SCORE_THRESHOLD_MED": "letta solo da legacy_winsarp/core/rag_engine.py",
 }
 
 
@@ -70,9 +82,25 @@ def _campi_dichiarati() -> dict[str, str]:
     return campi
 
 
+def _file_versionati() -> list[Path]:
+    """Solo i file che il repository contiene davvero.
+
+    Prima si usava `RADICE.rglob("*.py")`, che vede anche cio' che non e'
+    versionato. Il test passava in locale e falliva in CI, e per il motivo
+    peggiore: sulla macchina di sviluppo esiste `backups/snapshot_20260520/`,
+    una copia ignorata da git della vecchia applicazione, che legge
+    `cfg.PORT`, `cfg.PROMPT_MAX_CHARS` e altre quattro. Quelle comparivano
+    come "lette" per colpa di una cartella che nessun altro ha — cioe'
+    esattamente il tipo di verde per il motivo sbagliato che questo file
+    esiste per impedire.
+    """
+    elenco = subprocess.run(["git", "ls-files", "*.py"], cwd=RADICE, capture_output=True, text=True, check=True)
+    return [RADICE / riga for riga in elenco.stdout.split()]
+
+
 def _sorgenti() -> str:
     pezzi = []
-    for percorso in RADICE.rglob("*.py"):
+    for percorso in _file_versionati():
         if any(parte in _ESCLUSE for parte in percorso.parts):
             continue
         if percorso.name in _DEFINIZIONI:
