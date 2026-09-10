@@ -183,3 +183,50 @@ def test_config_files_mounted_from_the_repository_are_tracked():
         + ", ".join(mancanti)
         + ". Su un clone pulito Docker creerebbe una directory vuota al loro posto."
     )
+
+
+# ============================================================
+# La CI deve poter eseguire i test che il repository contiene
+# ============================================================
+
+
+def test_ci_provides_the_postgres_service_the_parity_tests_need():
+    """Gli otto test di parita' si saltano da soli quando il database non
+    risponde. Senza un servizio PostgreSQL in CI venivano saltati sempre, e il
+    doppio backend dichiarato nel README non era mai stato eseguito da
+    nessuna parte — ne' qui ne' sulla macchina di sviluppo.
+    """
+    workflow = yaml.safe_load((RADICE / ".github/workflows/ci.yml").read_text(encoding="utf-8"))
+    servizi = (workflow["jobs"]["test"].get("services") or {}) if "test" in workflow["jobs"] else {}
+
+    assert "postgres" in servizi, "il job dei test non avvia PostgreSQL: i test di parita' resterebbero saltati"
+
+    postgres = servizi["postgres"]
+    porte = [str(p) for p in (postgres.get("ports") or [])]
+    assert any("5433:" in p for p in porte), f"PostgreSQL non e' esposto su 5433 (DEFAULT_PG_DSN): {porte}"
+
+
+def test_the_ci_postgres_credentials_match_what_the_tests_expect():
+    """Se le credenziali divergono, i test si saltano invece di fallire: il
+    difetto tornerebbe invisibile, che e' esattamente il problema di partenza.
+    """
+    from core.postgres_backend import DEFAULT_PG_DSN
+
+    workflow = yaml.safe_load((RADICE / ".github/workflows/ci.yml").read_text(encoding="utf-8"))
+    ambiente = workflow["jobs"]["test"]["services"]["postgres"].get("env") or {}
+
+    assert str(ambiente.get("POSTGRES_PASSWORD", "")) in DEFAULT_PG_DSN, (
+        f"la password del servizio CI non compare in DEFAULT_PG_DSN ({DEFAULT_PG_DSN})"
+    )
+    assert str(ambiente.get("POSTGRES_DB", "")) in DEFAULT_PG_DSN, (
+        f"il nome del database del servizio CI non compare in DEFAULT_PG_DSN ({DEFAULT_PG_DSN})"
+    )
+
+
+def test_the_postgres_driver_is_a_declared_dependency():
+    """psycopg mancava da requirements.txt: il backend PostgreSQL non poteva
+    funzionare su un'installazione pulita, e ripiegava su SQLite in silenzio.
+    """
+    requisiti = (RADICE / "requirements.txt").read_text(encoding="utf-8").lower()
+
+    assert "psycopg" in requisiti, "psycopg non e' dichiarato: ERMES_DATABASE_URL non potrebbe funzionare"

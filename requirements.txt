@@ -35,6 +35,12 @@ httpx==0.28.1
 # esattamente gli algoritmi che i provider OIDC usano.
 PyJWT[crypto]==2.13.0
 
+# Driver PostgreSQL, per ERMES_DATABASE_URL. Mancava, quindi il backend
+# PostgreSQL — dichiarato nel README come funzionalita' enterprise — non
+# poteva funzionare su un'installazione pulita, e gli otto test di parita' in
+# tests/test_postgres_parity.py venivano saltati sia in locale sia in CI.
+psycopg[binary]==3.2.10
+
 # File Locking (cross-process safe)
 filelock==3.29.0
 lark==1.3.1

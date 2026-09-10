@@ -62,6 +62,27 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
+    # PostgreSQL vero, non simulato. Gli otto test di parita' in
+    # tests/test_postgres_parity.py si saltano da soli quando il database non
+    # e' raggiungibile: senza questo servizio venivano saltati sempre, sia in
+    # locale sia qui, e il doppio backend SQLite/PostgreSQL dichiarato nel
+    # README non era mai stato eseguito da nessuna parte.
+    #
+    # Credenziali e porta coincidono con DEFAULT_PG_DSN in
+    # core/postgres_backend.py: se cambiano la', vanno cambiate anche qui.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: ermes_dev
+          POSTGRES_DB: ermes_test
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -76,7 +97,7 @@ jobs:
           echo "ERMES_PORT=8502" > .env
           echo "ERMES_HOST=127.0.0.1" >> .env
           echo "OLLAMA_HOST=http://127.0.0.1:11434" >> .env
-          echo "ERMES_MODEL=test-model" >> .env
+          echo "ERMES_DEFAULT_MODEL_ID=test-model" >> .env
           echo "ERMES_ENABLE_FORMULA_GENERATION=1" >> .env
           echo "ERMES_API_KEY=test-key-123" >> .env
           echo "ERMES_BACKUP_ENABLED=0" >> .env

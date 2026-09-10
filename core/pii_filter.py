@@ -88,6 +88,20 @@ def _get_config_path() -> Path:
 _cached_config: dict[str, Any] | None = None
 
 
+def reset_pii_config_cache() -> None:
+    """Dimentica la configurazione in cache, forzandone la rilettura.
+
+    Serve ai test: `_cached_config` e' una variabile di modulo, quindi un test
+    che cambia le regole PII le lascia cambiate per tutti quelli successivi.
+    Due test passavano da soli e fallivano nella suite completa, e l'ordine
+    dipendeva da quali file esistessero — quindi bastava aggiungere un file di
+    test altrove per far diventare rossa la suite.
+    """
+    global _cached_config
+    with _config_lock:
+        _cached_config = None
+
+
 def get_pii_config() -> dict[str, Any]:
     """Restituisce la configurazione PII/DLP corrente."""
     global _cached_config

@@ -13,8 +13,15 @@ pytestmark = pytest.mark.postgres
 
 
 def _pg_available() -> bool:
+    """Sondaggio con timeout breve, non quello di produzione.
+
+    Con i 10 secondi predefiniti — e psycopg che tenta IPv6 e poi IPv4 — questo
+    controllo impiegava venti secondi ogni volta che PostgreSQL non c'e', cioe'
+    sempre in locale. Un sondaggio vuole fallire in fretta; una connessione
+    vera vuole il margine.
+    """
     try:
-        connection = connect(DEFAULT_PG_DSN)
+        connection = connect(DEFAULT_PG_DSN, timeout=2)
     except Exception:
         return False
     connection.close()
@@ -217,3 +224,52 @@ def test_pg_search_case_insensitive(pg_store):
     )
     results, _ = pg_store.search_with_profile(lib["id"], "SICUREZZA")
     assert len(results) == 1
+
+
+# ============================================================
+# Driver assente: non si ripiega in silenzio
+# ============================================================
+
+
+def test_a_missing_driver_refuses_instead_of_falling_back_to_sqlite(monkeypatch):
+    """Il codice precedente registrava un avviso e usava SQLite.
+
+    Chi imposta ERMES_DATABASE_URL lo fa per spostare i dati su un database
+    condiviso, tipicamente per servire piu' istanze. Ripiegare in silenzio
+    significa che ogni istanza continua a usare il proprio file locale: dati e
+    sessioni non condivisi, con la configurazione che dice il contrario. E'
+    il difetto peggiore possibile, perche' si presenta come funzionante.
+
+    Questo test non richiede PostgreSQL: simula l'assenza del driver.
+    """
+    import builtins
+
+    import pytest as _pytest
+
+    from core.database_backend import create_backend
+
+    importa_vero = builtins.__import__
+
+    def senza_psycopg(nome, *args, **kwargs):
+        if nome == "psycopg" or nome.startswith("psycopg."):
+            raise ImportError("psycopg assente (simulato)")
+        return importa_vero(nome, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", senza_psycopg)
+
+    with _pytest.raises(RuntimeError) as errore:
+        create_backend("postgresql://postgres:x@localhost:5433/qualsiasi")
+
+    messaggio = str(errore.value)
+    assert "psycopg" in messaggio
+    assert "SQLite" in messaggio, "il messaggio deve spiegare perche' il ripiego non viene fatto"
+
+
+def test_the_connection_has_an_explicit_timeout():
+    """Senza timeout psycopg attende indefinitamente: misurato oltre un minuto
+    verso un host irraggiungibile, cioe' un'applicazione appesa all'avvio
+    invece di un errore leggibile."""
+    from core.database_backend import PostgresBackend
+
+    assert getattr(PostgresBackend, "_CONNECT_TIMEOUT_SECONDI", 0) > 0
+    assert PostgresBackend._CONNECT_TIMEOUT_SECONDI <= 30, "un timeout lungo riporta il problema che risolve"

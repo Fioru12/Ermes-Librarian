@@ -161,7 +161,15 @@ EXPECTED_TABLES = {
 }
 
 
-def connect(url: str):
+# Secondo percorso di connessione, distinto da PostgresBackend in
+# core/database_backend.py. Anche questo aveva bisogno di un timeout
+# esplicito: senza, il controllo di disponibilita' in
+# tests/test_postgres_parity.py restava appeso oltre due minuti, e quel file
+# da solo faceva passare la suite da 68 a 260 secondi.
+CONNECT_TIMEOUT_SECONDI = 10
+
+
+def connect(url: str, timeout: int | None = None):
     """Apri una connessione psycopg con righe dizionario.
 
     Commit/rollback restano responsabilità del chiamante (stesso contratto
@@ -170,7 +178,12 @@ def connect(url: str):
     import psycopg
     from psycopg.rows import dict_row
 
-    return psycopg.connect(url, row_factory=dict_row, autocommit=False)
+    return psycopg.connect(
+        url,
+        row_factory=dict_row,
+        autocommit=False,
+        connect_timeout=CONNECT_TIMEOUT_SECONDI if timeout is None else timeout,
+    )
 
 
 def ensure_schema(connection) -> None:

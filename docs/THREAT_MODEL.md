@@ -205,7 +205,12 @@ marketing:
    live on the shared store, so a second instance recognises them
    (`core/session_store.py`, `core/login_guard.py`). The request rate limiter and
    the search cache remain per process: N instances multiply every rate
-   threshold by N, and each instance keeps its own cache.
+   threshold by N, and each instance keeps its own cache. Until 10 September 2026
+   the shared *database* was also an illusion: `psycopg` was absent from
+   `requirements.txt` and `create_backend` answered a missing driver by falling
+   back to SQLite with a log line, so an operator who configured PostgreSQL for a
+   multi-instance deployment got one local database per instance. It now refuses
+   to start instead, and the parity tests run against a real PostgreSQL in CI.
 5. **Deleting a library removes its rows, not its history.** `DELETE
    /api/libraries/{id}` exists and cascades to documents, chunks, ACLs, import
    sources and chat integrations (`tests/test_library_deletion.py`). What is

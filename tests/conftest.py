@@ -217,3 +217,21 @@ def reset_rate_limiter():
     get_rate_limiter().reset()
     yield
     get_rate_limiter().reset()
+
+
+@pytest.fixture(autouse=True)
+def reset_pii_config():
+    """Azzera la configurazione PII fra un test e l'altro.
+
+    `core/pii_filter.py` la tiene in una variabile di modulo: un test che
+    cambia le regole le lasciava cambiate per tutti i successivi. Il sintomo
+    era subdolo — test_pii_filtering e test_dlp_detect_pii passavano da soli e
+    fallivano nella suite completa — e dipendeva dall'ordine di esecuzione,
+    quindi aggiungere un file di test in un'area non correlata bastava a far
+    diventare rossa la suite.
+    """
+    from core.pii_filter import reset_pii_config_cache
+
+    reset_pii_config_cache()
+    yield
+    reset_pii_config_cache()

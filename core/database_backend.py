@@ -119,11 +119,23 @@ class SqliteBackend:
 class PostgresBackend:
     """Wrapper attorno a psycopg 3 con lo stesso contratto del protocollo."""
 
+    # Senza timeout esplicito, psycopg attende indefinitamente: misurato oltre
+    # un minuto verso un host irraggiungibile, il che significa
+    # un'applicazione appesa all'avvio invece di un errore leggibile. Dieci
+    # secondi sono abbondanti per un database raggiungibile e brevi
+    # abbastanza da far capire subito che non lo e'.
+    _CONNECT_TIMEOUT_SECONDI = 10
+
     def __init__(self, url: str) -> None:
         import psycopg
         from psycopg.rows import dict_row
 
-        self._connection = psycopg.connect(url, row_factory=dict_row, autocommit=False)
+        self._connection = psycopg.connect(
+            url,
+            row_factory=dict_row,
+            autocommit=False,
+            connect_timeout=self._CONNECT_TIMEOUT_SECONDI,
+        )
 
     def _translate(self, sql: str, params: tuple | dict | None) -> tuple[str, tuple | dict | None]:
         return _translate_params(sql, params, "format")
@@ -195,7 +207,18 @@ def create_backend(url: str | None = None):
     if url.startswith("postgresql"):
         try:
             return PostgresBackend(url)
-        except ImportError:
-            logger.warning("psycopg non installato: ripiego su SQLite.")
-            return SqliteBackend(cfg.SQLITE_PATH)
+        except ImportError as errore:
+            # Fail closed. Il codice precedente registrava un avviso e
+            # ripiegava su SQLite: chi imposta ERMES_DATABASE_URL lo fa per
+            # spostare i dati su un database condiviso, tipicamente per servire
+            # piu' istanze. Ripiegare in silenzio significa che ogni istanza
+            # continua a usare il proprio file locale, quindi dati e sessioni
+            # non sono condivisi — il difetto peggiore possibile, presentato
+            # come funzionante. Meglio non partire.
+            raise RuntimeError(
+                "ERMES_DATABASE_URL punta a PostgreSQL ma il driver psycopg non e' installato. "
+                "Installa le dipendenze con `pip install -r requirements.txt`. "
+                "Il ripiego automatico su SQLite non viene piu' fatto: userebbe un database "
+                "locale per istanza mentre la configurazione chiede il contrario."
+            ) from errore
     raise ValueError(f"Schema URL non supportato: {url}")
