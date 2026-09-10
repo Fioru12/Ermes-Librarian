@@ -46,7 +46,7 @@ Questa guida contiene la struttura esatta e il contenuto testuale per le **15 sl
 ### SLIDE 5: ARCHITETTURA DEL SISTEMA & TECH STACK
 - **Frontend (UI/UX):** React 18, TypeScript, Vite, Tailwind CSS (Interfaccia reattiva e moderna).
 - **Backend (API Services):** Python 3.11, FastAPI (ASGI asincrono, validazione Pydantic, Swagger nativo).
-- **AI & Storage Engine:** Ollama / Local Embeddings, SQLite / JSON Vector Store, Pytest (240+ test).
+- **AI & Storage Engine:** Ollama / Local Embeddings, SQLite / JSON Vector Store, Pytest (509 test, più ruff/mypy/bandit bloccanti in CI).
 - **Orchestrazione & DevOps:** Containerizzazione Docker e Docker Compose per deployment immediato.
 
 ---
