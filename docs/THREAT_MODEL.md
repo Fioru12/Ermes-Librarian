@@ -250,6 +250,38 @@ which fails on the previous code. The general lesson is the one this project
 keeps repeating: a control is only as wide as the paths that call it, and adding
 a path is how you get around it without noticing.
 
+### T5c — Conversation memory as a new path to the model
+
+*Added 11 September 2026, with the feature.* Follow-up questions ("and for
+managers?") are now rewritten into standalone questions before retrieval,
+using the previous questions in the conversation (`core/question_rewriter.py`,
+`ERMES_CONVERSATION_MEMORY`). This is a new flow of text to a model, so it is
+described here rather than left implicit.
+
+What reaches the model: the user's last three **questions** and the new one,
+after the PII filter. What does not: the previous **answers**. The first
+implementation sent them, and the trial with the real model showed two things
+at once — the small model let a long previous answer dominate the rewrite, and,
+more importantly, answers contain document passages, so sending them would have
+moved document content to a model even in `evidence_only` mode, which promises
+the opposite. Questions are the user's own text; answers are the library's.
+The client sends only questions, and the server ignores any answer field.
+
+What the memory cannot do: influence the evidence. The rewritten question goes
+through the same retrieval, verification and abstention as any other; the
+conversation never enters the answer prompt. The exact guarantee is tested as
+"a follow-up produces the same citations as its rewritten question asked
+alone" (`tests/test_conversation_memory.py`). The rewritten question is
+returned in `meta.conversation` and marked in the audit entry, so what the
+system actually searched for is always visible.
+
+*Known limit:* the small model can add words that were not in the
+conversation — in one trial it turned an Italian follow-up into a question
+"according to Italian regulation". That is a wrong *question*, and the
+evidence pipeline still gates the answer (in that trial it abstained), but it
+is the reason the rewrite is shown rather than hidden. The server keeps no
+conversation state: nothing new to protect, export or erase.
+
 ### T5 — Document content reaches a third party unintentionally
 
 *Posture:* cloud processing requires two independent decisions: the global

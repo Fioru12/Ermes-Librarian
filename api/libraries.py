@@ -55,9 +55,21 @@ class CreateLibraryRequest(BaseModel):
     visibility: str = Field(default="private")
 
 
+class ConversationTurn(BaseModel):
+    """Una domanda precedente, mandata dal client. Il server non conserva la
+    conversazione, e le risposte non vengono ne' inviate ne' usate: vedi
+    core/question_rewriter.py per il perche'."""
+
+    question: str = Field(min_length=1, max_length=2000)
+
+
 class AskLibraryRequest(BaseModel):
     question: str = Field(min_length=2, max_length=2000)
     top_k: int = Field(default=3, ge=1, le=10)
+    # Gli ultimi scambi, per riscrivere una domanda di raffinamento in forma
+    # autonoma prima del recupero. Al massimo tre: oltre, la conversazione
+    # pesa piu' della domanda e la riscrittura peggiora.
+    history: list[ConversationTurn] = Field(default_factory=list, max_length=3)
 
 
 class ImportSourceRequest(BaseModel):
@@ -307,16 +319,39 @@ def search_library(
         raise HTTPException(status_code=404, detail="Biblioteca non trovata") from error
 
 
-def _answer_question(store: LibraryStore, library_id: str, question: str, top_k: int, actor: dict) -> dict:
+def _answer_question(
+    store: LibraryStore,
+    library_id: str,
+    question: str,
+    top_k: int,
+    actor: dict,
+    history: list[dict] | None = None,
+) -> dict:
     """Evidence-first assistant baseline, intentionally abstaining without sources.
 
     Shared by the HTTP `/ask` endpoint and the chat webhooks (Slack/Teams):
     both must go through the same access checks and the same evidence-only
     guarantee, so this is the only place that logic is allowed to live.
+
+    `history` sono gli ultimi scambi mandati dal client. Servono a una cosa
+    sola: riscrivere una domanda di raffinamento in forma autonoma PRIMA del
+    recupero. Da quel punto in poi `question` e' la domanda riscritta e tutto
+    il resto — recupero, verifica, citazioni, astensione — la tratta come una
+    domanda nuova. La storia non entra mai nel prompt di risposta.
     """
     import time
 
+    from core.question_rewriter import rewrite_with_history
+
     t0 = time.perf_counter()
+    domanda_originale = question
+    riscrittura = rewrite_with_history(question, history)
+    question = riscrittura.question
+    conversazione = {
+        "question_original": domanda_originale,
+        "question_rewritten_to": riscrittura.question if riscrittura.rewritten else None,
+        "rewrite": riscrittura.reason,
+    }
     try:
         library = store.get_library(library_id, actor)
         # L'istogramma ermes_rag_retrieval_duration_seconds era dichiarato in
@@ -386,6 +421,7 @@ def _answer_question(store: LibraryStore, library_id: str, question: str, top_k:
                 "assistant_provider": library.get("assistant_provider", ""),
                 "retrieval_profile": retrieval_profile,
                 "evidence_verified": evidence_verified,
+                "conversation": conversazione,
                 "created_at": datetime.now(UTC).isoformat(),
             },
         }
@@ -421,6 +457,10 @@ def _answer_question(store: LibraryStore, library_id: str, question: str, top_k:
         actor["username"],
         {
             "library_id": library_id,
+            # Chi legge il log deve capire cosa il sistema ha davvero cercato:
+            # con la memoria conversazionale la domanda recuperata puo' non
+            # essere quella scritta dall'utente.
+            "question_rewritten": riscrittura.rewritten,
             "assistant_mode": library["assistant_mode"],
             "assistant_provider": library.get("assistant_provider", ""),
             "retrieval_profile": retrieval_profile["mode"],
@@ -447,6 +487,7 @@ def _answer_question(store: LibraryStore, library_id: str, question: str, top_k:
             # eseguibile: chi legge deve poter distinguere "controllato" da
             # "non controllato", invece di presumere il primo.
             "evidence_verified": evidence_verified,
+            "conversation": conversazione,
             "created_at": datetime.now(UTC).isoformat(),
         },
     }
@@ -459,7 +500,14 @@ def ask_library(
     _auth: dict = Depends(_verify_api_key),
     store: LibraryStore = Depends(get_library_store),
 ):
-    return _answer_question(store, library_id, request.question, request.top_k, _auth)
+    return _answer_question(
+        store,
+        library_id,
+        request.question,
+        request.top_k,
+        _auth,
+        history=[turno.model_dump() for turno in request.history],
+    )
 
 
 @router.put("/{library_id}/assistant-policy")

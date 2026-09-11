@@ -89,9 +89,25 @@ class RAGConfig:
             os.environ.get("ERMES_EVIDENCE_VERIFIER", "0").strip().lower() in {"1", "true", "yes", "on"}
         )
     )
-    # Vuoto = usa ERMES_MODEL. Un modello piccolo basta: sul golden set
-    # qwen3.5:4b e qwen3.5:9b danno lo stesso risultato.
+    # Vuoto = usa ERMES_DEFAULT_MODEL_ID. Un modello piccolo basta: sul golden
+    # set qwen3.5:4b e qwen3.5:9b danno lo stesso risultato, e conviene
+    # proprio il piccolo (vedi .env.example).
     EVIDENCE_VERIFIER_MODEL: str = field(default_factory=lambda: os.environ.get("ERMES_EVIDENCE_VERIFIER_MODEL", ""))
+
+    # Memoria conversazionale per riscrittura della domanda. Le domande di
+    # raffinamento ("e per i dirigenti?") vengono riscritte in forma autonoma
+    # usando gli ultimi scambi, PRIMA del recupero: tutto il resto della
+    # pipeline — recupero, verifica, citazioni, astensione — lavora sulla
+    # domanda riscritta esattamente come su una domanda nuova. La storia non
+    # entra mai nel prompt di risposta, altrimenti il modello risponderebbe
+    # dai turni precedenti invece che dall'evidenza. Richiede un modello
+    # raggiungibile (usa quello del verificatore), quindi e' spenta di
+    # default come lui.
+    CONVERSATION_MEMORY_ENABLED: bool = field(
+        default_factory=lambda: (
+            os.environ.get("ERMES_CONVERSATION_MEMORY", "0").strip().lower() in {"1", "true", "yes", "on"}
+        )
+    )
 
     RERANKER_MIN_SCORE: float = field(default_factory=lambda: float(os.environ.get("ERMES_RERANKER_MIN_SCORE", "0.15")))
     RERANKER_MODEL: str = field(

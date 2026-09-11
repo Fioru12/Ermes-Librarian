@@ -36,6 +36,16 @@ passage, so it wants a small, fast model. With the 9B model the Ollama
 "unchecked" — which looks exactly like no verifier at all, apart from a warning
 in the log.
 
+## Follow-up questions
+
+With `ERMES_CONVERSATION_MEMORY=1` the chat also handles refinement questions.
+After *How much notice is required for annual leave?*, ask simply *And for
+remote work?* — the question is rewritten to a standalone one using the last
+exchanges, and the answer cites the remote-work section. The rewritten
+question is shown in the response metadata (`meta.conversation`), so it is
+always visible what the system actually searched for. The conversation is sent
+by the browser with each request; the server keeps none of it.
+
 The underlying limitation, and the measurements behind it, are in
 `docs/RETRIEVAL_EVALUATION.md` and under T9 in `docs/THREAT_MODEL.md`.
 

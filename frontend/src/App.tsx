@@ -104,6 +104,14 @@ function AppInner() {
     if (!selectedLibraryId) return showNotif('Seleziona una biblioteca prima di fare una domanda', 'error')
     const now = new Date().toLocaleTimeString()
     const answerId = crypto.randomUUID?.() ?? Math.random().toString(36).slice(2)
+    // Le ultime domande dell'utente, al massimo tre: il server le usa solo per
+    // riscrivere una domanda di raffinamento in forma autonoma prima del
+    // recupero, e non le conserva. Le risposte non partono: contengono testo
+    // dei documenti, che non deve raggiungere un modello per questa via.
+    const history = messages
+      .filter(message => message.role === 'user')
+      .slice(-3)
+      .map(message => ({ question: message.content.slice(0, 2000) }))
     setMessages(previous => [
       ...previous,
       { id: crypto.randomUUID?.() ?? Math.random().toString(36).slice(2), role: 'user', content: question, timestamp: now },
@@ -116,7 +124,7 @@ function AppInner() {
     try {
       const response = await fetch(`/api/libraries/${selectedLibraryId}/ask`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question }), signal: controller.signal,
+        body: JSON.stringify({ question, history }), signal: controller.signal,
         credentials: 'include',
       })
       if (!response.ok) throw new Error('Impossibile interrogare la biblioteca')
