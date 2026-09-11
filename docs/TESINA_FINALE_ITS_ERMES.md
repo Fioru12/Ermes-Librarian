@@ -333,7 +333,7 @@ In primo luogo, si registra una drastica riduzione dei tempi di ricerca delle in
 
 In secondo luogo, il mascheramento PII e l'esecuzione locale riducono in modo sostanziale l'esposizione dei dati riservati, perché nessun contenuto documentale lascia il perimetro dell'organizzazione se un amministratore non abilita esplicitamente un modello esterno su una singola biblioteca.
 
-Anche qui la formulazione va tenuta esatta: il sistema fornisce alcune delle basi tecniche richieste dal GDPR — minimizzazione, tracciabilità degli accessi, mascheramento dei dati personali prima dell'invio a un modello — ma **non costituisce di per sé conformità**, che riguarda l'organizzazione e non il software. Due elementi tecnici richiesti a un titolare del trattamento non sono oggi implementati, e sono dichiarati come mancanti nella documentazione: l'esportazione e la cancellazione dei dati riferibili a un singolo interessato, e la conservazione a termine con cancellazione automatica. Infine, il modulo di analisi delle lacune informative fornisce alla direzione uno strumento proattivo per identificare le carenze documentali e migliorare continuamente il patrimonio informativo dell'azienda.
+Anche qui la formulazione va tenuta esatta: il sistema fornisce alcune delle basi tecniche richieste dal GDPR — minimizzazione, tracciabilità degli accessi, mascheramento dei dati personali prima dell'invio a un modello — ma **non costituisce di per sé conformità**, che riguarda l'organizzazione e non il software. Due strumenti tecnici che un titolare del trattamento deve avere sono implementati: l'esportazione di tutto ciò che è riferibile a un account (art. 15) e la sua cancellazione (art. 17), con una regola esplicita su cosa si cancella, cosa passa all'organizzazione — le biblioteche di cui la persona era proprietaria contengono documenti aziendali, non dati personali — e cosa si conserva dichiarandolo: le voci del log di audit, che sono un registro di sicurezza firmato voce per voce (art. 17(3)(b)). Ciò che manca ancora, dichiarato nella documentazione, è la conservazione a termine con cancellazione automatica. Infine, il modulo di analisi delle lacune informative fornisce alla direzione uno strumento proattivo per identificare le carenze documentali e migliorare continuamente il patrimonio informativo dell'azienda.
 
 ---
 
@@ -363,7 +363,7 @@ Restano da affrontare:
 - **Indice vettoriale distribuito**: transizione dall'indice locale a un cluster (Qdrant, oppure PostgreSQL con pgvector) per gestire milioni di documenti a latenza sub-secondo.
 - **Stato condiviso fra istanze**: i contatori del limitatore di frequenza e la cache di ricerca sono oggi per processo, quindi più istanze moltiplicano ogni soglia. È il primo intervento necessario per una scalabilità orizzontale reale.
 - **Mitigazione del prompt injection**: un documento immesso legittimamente può contenere istruzioni rivolte al modello. Oggi non esiste una contromisura, ed è dichiarato come tale nel modello delle minacce.
-- **Adempimenti GDPR tecnici**: esportazione e cancellazione dei dati di un singolo interessato, e conservazione a termine.
+- **Conservazione a termine**: cancellazione automatica degli eventi analitici e delle voci di audit oltre un periodo configurato. Esportazione e cancellazione su richiesta sono implementate (capitolo 5).
 - Osservabilità Avanzata tramite OpenTelemetry: integrazione di tracciamento distribuito (OTel) per monitorare latenze, metriche computazionali ed utilizzo dei token in tempo reale all'interno di dashboard aziendali Grafana/Datadog.
 
 ---

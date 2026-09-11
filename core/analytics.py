@@ -137,6 +137,44 @@ def feedback_already_given(event_id: str, actor: str) -> bool:
     return False
 
 
+def export_user_events(actor: str) -> list[dict[str, Any]]:
+    """Le domande e i giudizi registrati a nome di `actor`, senza limite di
+    giorni: il diritto di accesso copre tutto cio' che c'e'."""
+    return [e for e in _read_events(days=_MAX_GIORNI) if e.get("actor") == actor]
+
+
+def erase_user_events(actor: str) -> int:
+    """Rimuove dall'archivio analitico ogni evento di `actor`. Ritorna quanti.
+
+    Riscrive il file per intero sotto lock, in modo atomico: le domande sono
+    testo scritto dalla persona, e tenerle con l'attore anonimizzato le
+    lascerebbe comunque leggibili nel rapporto Knowledge Gaps.
+    """
+    if not os.path.exists(cfg.ANALYTICS_FILE):
+        return 0
+    with _ANALYTICS_LOCK:
+        with open(cfg.ANALYTICS_FILE, encoding="utf-8") as f:
+            righe = [r for r in f if r.strip()]
+        conservate: list[str] = []
+        rimosse = 0
+        for riga in righe:
+            try:
+                evento = json.loads(riga)
+            except json.JSONDecodeError:
+                conservate.append(riga)
+                continue
+            if evento.get("actor") == actor:
+                rimosse += 1
+            else:
+                conservate.append(riga)
+        if rimosse:
+            temporaneo = cfg.ANALYTICS_FILE + ".tmp"
+            with open(temporaneo, "w", encoding="utf-8") as f:
+                f.writelines(r if r.endswith("\n") else r + "\n" for r in conservate)
+            os.replace(temporaneo, cfg.ANALYTICS_FILE)
+    return rimosse
+
+
 def _read_events(days: int = 30) -> list[dict[str, Any]]:
     if not os.path.exists(cfg.ANALYTICS_FILE):
         return []

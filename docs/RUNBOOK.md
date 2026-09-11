@@ -206,6 +206,33 @@ that is the check that tells you the restore was complete.
 
 ---
 
+## 5b. A data-subject request
+
+Someone asks what the system holds about them, or asks to be erased.
+
+```bash
+# everything referable to the account, as JSON (admin, or the person themselves)
+curl -b cookie.txt http://127.0.0.1:8502/api/privacy/users/<username>/export
+
+# erase (admin only); returns a report of what was removed, reassigned and retained
+curl -b cookie.txt -X DELETE http://127.0.0.1:8502/api/privacy/users/<username>
+```
+
+Erasure removes the account, its API key, sessions, library memberships,
+document ACLs and analytics events (the questions the person wrote). Libraries
+the person owned are **not deleted** — they hold the organisation's documents —
+and pass to the administrator who runs the erasure, as do any chat integrations
+and folder sources they registered.
+
+**Audit entries are kept, and the report says so.** They are a security record
+under a legal obligation, and each entry is signed over the author field:
+rewriting the author would make the entry indistinguishable from a tampered
+one. Give the person the export first; that includes the audit entries. An
+administrator cannot erase their own account or the one named in
+`ERMES_ADMIN_USERNAME`.
+
+---
+
 ## 6. Upgrade
 
 1. Back up as above.

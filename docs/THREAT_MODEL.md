@@ -495,12 +495,25 @@ marketing:
    to start instead, and the parity tests run against a real PostgreSQL in CI.
 5. **Deleting a library removes its rows, not its history.** `DELETE
    /api/libraries/{id}` exists and cascades to documents, chunks, ACLs, import
-   sources and chat integrations (`tests/test_library_deletion.py`). What is
-   still missing is a retention story: the audit entries naming the deleted
-   library stay, by design, and there is no "export everything about this
-   library then erase it" operation of the kind a GDPR request would need.
+   sources and chat integrations (`tests/test_library_deletion.py`).
    (This entry previously claimed no deletion path existed at all; that stopped
    being true and nobody updated it.)
+
+   **Data-subject rights, since 11 September 2026** (`api/privacy.py`,
+   `tests/test_privacy_export_erase.py`): `GET /api/privacy/users/{u}/export`
+   returns everything referable to an account — the account record, API keys,
+   sessions, library ownerships and memberships, document ACLs, analytics
+   events (the questions the person wrote), and their audit entries. `DELETE
+   /api/privacy/users/{u}` (admin only) removes the account, keys, sessions,
+   memberships, ACLs and analytics events; reassigns owned libraries, chat
+   integrations and import sources to the administrator performing the
+   erasure, because documents are the organisation's and not the person's;
+   and **retains the audit entries**, saying so in the report. The audit log
+   is a security record kept under a legal obligation and each entry is
+   signed over the actor field — pseudonymising it would make the entry
+   indistinguishable from a tampered one (art. 17(3)(b)). What is still
+   missing is retention *by time*: nothing expires analytics events or audit
+   entries automatically except the 90-day audit rotation at startup.
 6. **Logs carry no tamper protection.** Application logs are now structured and
    correlated by request id (`core/logging_setup.py`), which makes them usable in
    an aggregator, but they are ordinary output: unlike the audit log they are not

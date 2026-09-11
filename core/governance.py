@@ -573,6 +573,50 @@ def list_users(users_file: str) -> list[dict]:
     return sorted(out, key=lambda x: x["username"].lower())
 
 
+def delete_user(users_file: str, username: str) -> bool:
+    """Rimuove l'account locale. True se esisteva.
+
+    Non esisteva una cancellazione: gli account si potevano solo disattivare
+    (`active: false`), che per il diritto alla cancellazione non basta — il
+    record con nome utente e hash della password restava sul disco.
+    """
+    with _users_lock:
+        data = _load_users(users_file)
+        prima = len(data["users"])
+        data["users"] = [u for u in data["users"] if u.get("username") != username]
+        if len(data["users"]) == prima:
+            return False
+        _save_users(users_file, data)
+        return True
+
+
+def audit_entries_for(audit_file: str, actor: str) -> list[dict]:
+    """Le voci di audit in cui `actor` e' l'autore.
+
+    Servono al diritto di accesso. NON si cancellano con l'account: il log di
+    audit e' un registro di sicurezza conservato per obbligo, ogni voce e'
+    firmata e la firma copre il campo actor — pseudonimizzarlo invaliderebbe
+    la firma, cioe' renderebbe la voce indistinguibile da una manomessa. E'
+    l'eccezione prevista dall'art. 17(3)(b) e va dichiarata a chi chiede la
+    cancellazione, non taciuta.
+    """
+    if not os.path.exists(audit_file):
+        return []
+    voci: list[dict] = []
+    with open(audit_file, encoding="utf-8") as f:
+        for riga in f:
+            riga = riga.strip()
+            if not riga:
+                continue
+            try:
+                voce = json.loads(riga)
+            except json.JSONDecodeError:
+                continue
+            if voce.get("actor") == actor:
+                voci.append(voce)
+    return voci
+
+
 def append_audit(audit_file: str, action: str, actor: str, detail: dict | None = None) -> None:
     """
     Aggiunge un entry di audit con firma HMAC per integrità.
