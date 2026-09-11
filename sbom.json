@@ -1,6 +1,27 @@
 {
   "components": [
     {
+      "bom-ref": "requirements-L36",
+      "description": "requirements line 36: PyJWT[crypto]==2.13.0",
+      "externalReferences": [
+        {
+          "comment": "implicit dist url",
+          "type": "distribution",
+          "url": "https://pypi.org/simple/PyJWT/"
+        }
+      ],
+      "name": "PyJWT",
+      "properties": [
+        {
+          "name": "cdx:python:package:required-extra",
+          "value": "crypto"
+        }
+      ],
+      "purl": "pkg:pypi/pyjwt@2.13.0",
+      "type": "library",
+      "version": "2.13.0"
+    },
+    {
       "bom-ref": "requirements-L18",
       "description": "requirements line 18: chromadb==1.5.8",
       "externalReferences": [
@@ -31,8 +52,8 @@
       "version": "0.136.1"
     },
     {
-      "bom-ref": "requirements-L34",
-      "description": "requirements line 34: filelock==3.29.0",
+      "bom-ref": "requirements-L45",
+      "description": "requirements line 45: filelock==3.29.0",
       "externalReferences": [
         {
           "comment": "implicit dist url",
@@ -61,8 +82,8 @@
       "version": "0.28.1"
     },
     {
-      "bom-ref": "requirements-L41",
-      "description": "requirements line 41: langfuse==4.14.4",
+      "bom-ref": "requirements-L52",
+      "description": "requirements line 52: langfuse==4.14.4",
       "externalReferences": [
         {
           "comment": "implicit dist url",
@@ -76,8 +97,8 @@
       "version": "4.14.4"
     },
     {
-      "bom-ref": "requirements-L35",
-      "description": "requirements line 35: lark==1.3.1",
+      "bom-ref": "requirements-L46",
+      "description": "requirements line 46: lark==1.3.1",
       "externalReferences": [
         {
           "comment": "implicit dist url",
@@ -181,6 +202,42 @@
       "version": "0.6.2"
     },
     {
+      "bom-ref": "requirements-L64",
+      "description": "requirements line 64: prometheus-client==0.26.0",
+      "externalReferences": [
+        {
+          "comment": "implicit dist url",
+          "type": "distribution",
+          "url": "https://pypi.org/simple/prometheus-client/"
+        }
+      ],
+      "name": "prometheus-client",
+      "purl": "pkg:pypi/prometheus-client@0.26.0",
+      "type": "library",
+      "version": "0.26.0"
+    },
+    {
+      "bom-ref": "requirements-L42",
+      "description": "requirements line 42: psycopg[binary]==3.2.10",
+      "externalReferences": [
+        {
+          "comment": "implicit dist url",
+          "type": "distribution",
+          "url": "https://pypi.org/simple/psycopg/"
+        }
+      ],
+      "name": "psycopg",
+      "properties": [
+        {
+          "name": "cdx:python:package:required-extra",
+          "value": "binary"
+        }
+      ],
+      "purl": "pkg:pypi/psycopg@3.2.10",
+      "type": "library",
+      "version": "3.2.10"
+    },
+    {
       "bom-ref": "requirements-L7",
       "description": "requirements line 7: pydantic==2.13.4",
       "externalReferences": [
@@ -211,8 +268,8 @@
       "version": "6.10.2"
     },
     {
-      "bom-ref": "requirements-L44",
-      "description": "requirements line 44: pytest==9.0.3",
+      "bom-ref": "requirements-L55",
+      "description": "requirements line 55: pytest==9.0.3",
       "externalReferences": [
         {
           "comment": "implicit dist url",
@@ -226,8 +283,8 @@
       "version": "9.0.3"
     },
     {
-      "bom-ref": "requirements-L46",
-      "description": "requirements line 46: pytest-asyncio==1.3.0",
+      "bom-ref": "requirements-L57",
+      "description": "requirements line 57: pytest-asyncio==1.3.0",
       "externalReferences": [
         {
           "comment": "implicit dist url",
@@ -241,8 +298,23 @@
       "version": "1.3.0"
     },
     {
-      "bom-ref": "requirements-L45",
-      "description": "requirements line 45: pytest-timeout==2.4.0",
+      "bom-ref": "requirements-L63",
+      "description": "requirements line 63: pytest-benchmark==5.3.0",
+      "externalReferences": [
+        {
+          "comment": "implicit dist url",
+          "type": "distribution",
+          "url": "https://pypi.org/simple/pytest-benchmark/"
+        }
+      ],
+      "name": "pytest-benchmark",
+      "purl": "pkg:pypi/pytest-benchmark@5.3.0",
+      "type": "library",
+      "version": "5.3.0"
+    },
+    {
+      "bom-ref": "requirements-L56",
+      "description": "requirements line 56: pytest-timeout==2.4.0",
       "externalReferences": [
         {
           "comment": "implicit dist url",
@@ -357,16 +429,10 @@
       "ref": "requirements-L31"
     },
     {
-      "ref": "requirements-L34"
+      "ref": "requirements-L36"
     },
     {
-      "ref": "requirements-L35"
-    },
-    {
-      "ref": "requirements-L41"
-    },
-    {
-      "ref": "requirements-L44"
+      "ref": "requirements-L42"
     },
     {
       "ref": "requirements-L45"
@@ -378,7 +444,25 @@
       "ref": "requirements-L5"
     },
     {
+      "ref": "requirements-L52"
+    },
+    {
+      "ref": "requirements-L55"
+    },
+    {
+      "ref": "requirements-L56"
+    },
+    {
+      "ref": "requirements-L57"
+    },
+    {
       "ref": "requirements-L6"
+    },
+    {
+      "ref": "requirements-L63"
+    },
+    {
+      "ref": "requirements-L64"
     },
     {
       "ref": "requirements-L7"
@@ -388,7 +472,7 @@
     }
   ],
   "metadata": {
-    "timestamp": "2026-08-20T23:20:10.695478+00:00",
+    "timestamp": "2026-09-11T16:41:01.389120+00:00",
     "tools": {
       "components": [
         {
@@ -492,7 +576,7 @@
       ]
     }
   },
-  "serialNumber": "urn:uuid:0746baa9-0fd7-4083-8475-b88ba5e506dc",
+  "serialNumber": "urn:uuid:837ab01e-9b90-402a-9d93-812771495967",
   "version": 1,
   "$schema": "http://cyclonedx.org/schema/bom-1.6.schema.json",
   "bomFormat": "CycloneDX",

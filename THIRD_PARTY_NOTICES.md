@@ -4,13 +4,34 @@ Ermes Knowledge is distributed under the MIT License (see `LICENSE`). It bundles
 no third-party source code, but depends on the open-source packages listed here.
 Each remains under its own license, held by its respective authors.
 
-The inventory was generated from installed package metadata and from
-`frontend/package-lock.json` — not hand-written — so it reflects the versions
-actually resolved. Regenerate it when dependencies change.
+Generated from installed package metadata and `frontend/package-lock.json` by
+`scripts/generate_third_party_notices.py`. Do not edit by hand: regenerate it.
+`tests/test_third_party_notices.py` fails when it no longer matches
+`requirements.txt`, which is how four missing entries were found.
 
-**Every declared dependency is under a permissive license** (MIT, BSD-3-Clause,
-Apache-2.0 or ISC). None imposes a copyleft obligation on this project or on
-work that builds upon it.
+## Licence summary
+
+Most dependencies are permissive (MIT, BSD, Apache-2.0, ISC). The exceptions
+are listed here rather than averaged away, because an organisation with a
+policy on copyleft needs to see them before adopting the product.
+
+| Package | License | Where it applies |
+|---|---|---|
+| `psycopg` (Python) | GNU Lesser General Public License v3 (LGPLv3) | see the note below |
+| `caniuse-lite` (JavaScript) | CC-BY-4.0 | build time only, not shipped in the bundle |
+| `lightningcss`, `lightningcss-android-arm64`, `lightningcss-darwin-arm64` (+9 more) (JavaScript) | MPL-2.0 | build time only, not shipped in the bundle |
+
+**`psycopg` (LGPL-3.0) is optional.** It is the PostgreSQL driver: the product
+runs entirely on SQLite without it, and `ERMES_DATABASE_URL` is what turns the
+PostgreSQL backend on. Used unmodified as an imported library, the LGPL does
+not extend its terms to Ermes; it does require that whoever receives the
+software can replace that library, which a `pip install` already allows.
+An organisation that forbids (L)GPL outright can drop the line from
+`requirements.txt` and stay on SQLite — nothing else depends on it.
+
+**MPL-2.0 and CC-BY-4.0 on the JavaScript side** come from build tooling
+(`lightningcss`, pulled in by Tailwind, and the `caniuse-lite` data set).
+They are not modified and not redistributed in the built frontend.
 
 ## Python — runtime and test dependencies
 
@@ -18,7 +39,7 @@ Declared in `requirements.txt`.
 
 | Package | Version | License |
 |---|---|---|
-| `chromadb` | 1.5.8 | Apache-2.0 |
+| `chromadb` | 1.5.8 | Apache Software License |
 | `fastapi` | 0.136.1 | MIT |
 | `filelock` | 3.29.0 | MIT |
 | `httpx` | 0.28.1 | BSD-3-Clause |
@@ -30,10 +51,14 @@ Declared in `requirements.txt`.
 | `llama-index-readers-file` | 0.6.0 | MIT |
 | `llama-index-vector-stores-chroma` | 0.5.5 | MIT |
 | `ollama` | 0.6.2 | MIT |
+| `prometheus-client` | 0.26.0 | Apache-2.0 AND BSD-2-Clause |
+| `psycopg` | 3.2.10 | GNU Lesser General Public License v3 (LGPLv3) |
 | `pydantic` | 2.13.4 | MIT |
+| `PyJWT` | 2.13.0 | MIT |
 | `pypdf` | 6.10.2 | BSD-3-Clause |
 | `pytest` | 9.0.3 | MIT |
 | `pytest-asyncio` | 1.3.0 | Apache-2.0 |
+| `pytest-benchmark` | 5.3.0 | BSD-2-Clause |
 | `pytest-timeout` | 2.4.0 | MIT |
 | `python-docx` | 1.2.0 | MIT |
 | `python-dotenv` | 1.2.2 | BSD-3-Clause |
@@ -42,7 +67,7 @@ Declared in `requirements.txt`.
 
 ## JavaScript — application and build dependencies
 
-Declared in `frontend/package.json`.
+Declared in `frontend/package.json` (26 direct, 499 resolved in the lock file).
 
 | Package | Version | License |
 |---|---|---|
@@ -73,8 +98,7 @@ Declared in `frontend/package.json`.
 | `vite` | 7.3.6 | MIT |
 | `vitest` | 4.1.10 | MIT |
 
-Transitive dependencies are not listed individually; they are pinned in
-`frontend/package-lock.json` and resolved from `requirements.txt`.
+Licenses across the full resolved tree: MIT (387), ISC (51), Apache-2.0 (24), MPL-2.0 (12), BSD-2-Clause (8), BSD-3-Clause (5), BlueOak-1.0.0 (4), MIT-0 (2), Python-2.0 (1), CC-BY-4.0 (1), CC0-1.0 (1), Unlicense (1), 0BSD (1), (MIT OR CC0-1.0) (1).
 
 ## Machine-readable SBOM
 
@@ -98,12 +122,9 @@ These are not dependencies and are not redistributed. They run under their own
 terms, and Ermes contacts them only when an administrator explicitly enables the
 corresponding mode:
 
-- **Ollama** — local model runtime, contacted only in `local_ollama` mode or
-  when local semantic search is enabled.
-- **OpenRouter** and other approved providers — contacted only in
-  `approved_openrouter` / `approved_provider` mode, which additionally requires
-  the global `ERMES_LIBRARY_CLOUD_CONSENT` flag.
-- **Langfuse** — optional LLM tracing, inactive unless keys are configured.
-
-A configured API key alone never enables cloud processing; see the product
-principles in `README.md`.
+- **Ollama** — local model server, contacted only for embeddings, evidence
+  verification, question rewriting or `local_ollama` answers.
+- **OpenRouter and approved cloud providers** — contacted only when both the
+  global consent flag and the per-library policy authorise it.
+- **Slack, Microsoft Teams, Telegram** — contacted only for libraries with a
+  registered chat integration.
