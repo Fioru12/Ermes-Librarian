@@ -39,18 +39,11 @@ Declared in `requirements.txt`.
 
 | Package | Version | License |
 |---|---|---|
-| `chromadb` | 1.5.8 | Apache Software License |
 | `fastapi` | 0.136.1 | MIT |
 | `filelock` | 3.29.0 | MIT |
 | `httpx` | 0.28.1 | BSD-3-Clause |
 | `langfuse` | 4.14.4 | MIT |
 | `lark` | 1.3.1 | MIT |
-| `llama-index-core` | 0.14.20 | MIT |
-| `llama-index-embeddings-ollama` | 0.9.0 | MIT |
-| `llama-index-llms-ollama` | 0.10.1 | MIT |
-| `llama-index-readers-file` | 0.6.0 | MIT |
-| `llama-index-vector-stores-chroma` | 0.5.5 | MIT |
-| `ollama` | 0.6.2 | MIT |
 | `prometheus-client` | 0.26.0 | Apache-2.0 AND BSD-2-Clause |
 | `psycopg` | 3.2.10 | GNU Lesser General Public License v3 (LGPLv3) |
 | `pydantic` | 2.13.4 | MIT |

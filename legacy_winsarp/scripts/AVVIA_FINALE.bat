@@ -1,8 +1,8 @@
-@echo off
+﻿@echo off
 setlocal EnableExtensions EnableDelayedExpansion
 title WinSarp AI Hub - Avvio
 
-REM ── Safe guard: evita doppia esecuzione ─────────────────────────────────────────
+REM â”€â”€ Safe guard: evita doppia esecuzione â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 set "LOCKFILE=%TEMP%\winsarp_avvio.lock"
 if exist "%LOCKFILE%" (
     echo [AVVIO] WinSarp AI Hub e' gia' in fase di avvio.
@@ -14,7 +14,7 @@ echo. 2>"%LOCKFILE%"
 
 cd /d "%~dp0"
 
-REM ── Solo i modelli necessari per il funzionamento ─────────────────────────────
+REM â”€â”€ Solo i modelli necessari per il funzionamento â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 set "REQ_MAIN_MODEL=qwen2.5:7b"
 set "REQ_EMBED_MODEL=nomic-embed-text"
 
@@ -24,7 +24,7 @@ echo    WinSarp AI Hub - Avvio Automatico
 echo ============================================
 echo.
 
-REM ── Controlla che il venv esista ─────────────────────────────────────────────
+REM â”€â”€ Controlla che il venv esista â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 if not exist "%~dp0venv\Scripts\python.exe" (
     echo [SETUP] Ambiente virtuale non trovato. Creazione in corso...
     python -m venv venv
@@ -36,7 +36,7 @@ if not exist "%~dp0venv\Scripts\python.exe" (
 
     echo [SETUP] Installazione dipendenze...
     call "%~dp0venv\Scripts\activate.bat"
-    pip install -r requirements.txt
+    pip install -r requirements-legacy.txt
     if errorlevel 1 (
         echo [ERRORE] Installazione dipendenze fallita.
         pause
@@ -47,7 +47,7 @@ if not exist "%~dp0venv\Scripts\python.exe" (
     echo.
 )
 
-REM ── Attiva il venv ────────────────────────────────────────────────────────────
+REM â”€â”€ Attiva il venv â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 call "%~dp0venv\Scripts\activate.bat"
 
 echo [1/4] Controllo motore AI (Ollama)...

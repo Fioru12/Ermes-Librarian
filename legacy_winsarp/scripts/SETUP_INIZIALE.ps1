@@ -116,9 +116,9 @@ else { ERR "Errore nomic-embed-text (exit $LASTEXITCODE)" }
 Step 5 8 "Installo dipendenze Python..."
 Set-Location $ProjectRoot
 & $pythonCmd -m pip install --upgrade pip --quiet 2>&1 | Out-Null
-& $pythonCmd -m pip install -r "$ProjectRoot\requirements.txt"
+& $pythonCmd -m pip install -r "$ProjectRoot\requirements-legacy.txt"
 if ($LASTEXITCODE -eq 0) { OK "Dipendenze installate" }
-else { ERR "Errore pip (exit $LASTEXITCODE). Controlla requirements.txt" }
+else { ERR "Errore pip (exit $LASTEXITCODE). Controlla requirements-legacy.txt" }
 
 
 # --------------------------------------------------------

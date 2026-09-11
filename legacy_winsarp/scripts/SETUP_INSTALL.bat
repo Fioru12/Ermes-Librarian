@@ -1,4 +1,4 @@
-@echo off
+﻿@echo off
 title WinSarp AI Hub - Installer
 setlocal EnableExtensions EnableDelayedExpansion
 
@@ -45,13 +45,13 @@ echo    Installazione Completa
 echo ============================================
 echo.
 
-REM ── 1. Controlla Python ───────────────────────────────────────────────────────
+REM â”€â”€ 1. Controlla Python â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 :CHECK_PYTHON
 echo [1/6] Verifica Python...
 python --version >NUL 2>&1
 if %ERRORLEVEL% NEQ 0 (
     echo.
-    echo  ❌ Python non trovato!
+    echo  âŒ Python non trovato!
     echo.
     echo  WinSarp AI Hub necessita di Python %REQUIRED_PYTHON%+
     echo  Scarica Python da: https://www.python.org/downloads/
@@ -66,40 +66,40 @@ if %ERRORLEVEL% NEQ 0 (
 for /f "tokens=2 delims=. " %%a in ('python --version 2^>^&1') do set PY_VER_MAJOR=%%a
 if %PY_VER_MAJOR% LSS 11 (
     echo.
-    echo  ⚠️ Python 3.%PY_VER_MAJOR% trovato, ma serve 3.11+.
+    echo  âš ï¸ Python 3.%PY_VER_MAJOR% trovato, ma serve 3.11+.
     echo  Scarica Python 3.11+ da: https://www.python.org/downloads/
     pause
     goto MENU
 )
-echo         ✅ Python trovato: OK
+echo         âœ… Python trovato: OK
 echo.
 
-REM ── 2. Controlla/Ollama ──────────────────────────────────────────────────────
+REM â”€â”€ 2. Controlla/Ollama â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 echo [2/6] Controllo Ollama...
 set "OLLAMA_PATH=%LocalAppData%\Programs\Ollama\ollama.exe"
 if exist "%OLLAMA_PATH%" (
-    echo         ✅ Ollama gia' installato
+    echo         âœ… Ollama gia' installato
 ) else (
-    echo         ⬇️ Download Ollama in corso...
+    echo         â¬‡ï¸ Download Ollama in corso...
     echo         (Si aprira' una finestra di download)
     start "" "https://ollama.com/download/OllamaSetup.exe"
     echo.
-    echo  ⚠️  ATTENDI il download e installa Ollama manualmente.
+    echo  âš ï¸  ATTENDI il download e installa Ollama manualmente.
     echo     Poi torna qui e premi un tasto per continuare.
     echo.
     pause
     if not exist "%OLLAMA_PATH%" (
         echo.
-        echo  ❌ Ollama non trovato dopo l'installazione.
+        echo  âŒ Ollama non trovato dopo l'installazione.
         echo     Installalo manualmente da ollama.com e riavvia questo script.
         pause
         goto MENU
     )
-    echo         ✅ Ollama installato
+    echo         âœ… Ollama installato
 )
 echo.
 
-REM ── 3. Avvia Ollama ────────────────────────────────────────────────────────────
+REM â”€â”€ 3. Avvia Ollama â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 echo [3/6] Avvio Ollama...
 start "" "%OLLAMA_PATH%"
 echo         Attendere l'avvio...
@@ -109,12 +109,12 @@ timeout /t 3 /nobreak >NUL
 powershell -NoProfile -ExecutionPolicy Bypass -Command ^
  "try { $r = Invoke-WebRequest -UseBasicParsing http://127.0.0.1:11434/api/tags -TimeoutSec 2; if ($r.StatusCode -eq 200) { exit 0 } else { exit 1 } } catch { exit 1 }" >NUL 2>&1
 if %ERRORLEVEL% EQU 0 (
-    echo         ✅ Ollama pronto!
+    echo         âœ… Ollama pronto!
     goto DOWNLOAD_MODELS_STEP
 )
 set /a RETRY+=1
 if %RETRY% GEQ 10 (
-    echo  ❌ Ollama non risponde. Avvialo manualmente e riprova.
+    echo  âŒ Ollama non risponde. Avvialo manualmente e riprova.
     pause
     goto MENU
 )
@@ -122,7 +122,7 @@ echo         ... tentativo !RETRY!/10
 goto WAIT_OLLAMA
 
 :DOWNLOAD_MODELS_STEP
-REM ── 4. Scarica modelli AI ────────────────────────────────────────────────────
+REM â”€â”€ 4. Scarica modelli AI â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 echo.
 echo [4/6] Download modelli AI...
 echo         (circa 5 GB - solo la prima volta, potrebbe richiedere minuti)
@@ -131,7 +131,7 @@ echo.
 echo         -> Download %MAIN_MODEL% (4.7 GB)...
 ollama pull %MAIN_MODEL%
 if %ERRORLEVEL% NEQ 0 (
-    echo  ❌ Download fallito per %MAIN_MODEL%. Verifica connessione.
+    echo  âŒ Download fallito per %MAIN_MODEL%. Verifica connessione.
     pause
     goto MENU
 )
@@ -139,43 +139,43 @@ if %ERRORLEVEL% NEQ 0 (
 echo         -> Download %EMBED_MODEL% (274 MB)...
 ollama pull %EMBED_MODEL%
 if %ERRORLEVEL% NEQ 0 (
-    echo  ❌ Download fallito per %EMBED_MODEL%. Verifica connessione.
+    echo  âŒ Download fallito per %EMBED_MODEL%. Verifica connessione.
     pause
     goto MENU
 )
-echo         ✅ Modelli AI pronti!
+echo         âœ… Modelli AI pronti!
 echo.
 
-REM ── 5. Ambiente virtuale Python ──────────────────────────────────────────────
+REM â”€â”€ 5. Ambiente virtuale Python â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 echo [5/6] Ambiente virtuale Python...
 if not exist "venv\Scripts\python.exe" (
     echo         Creazione venv...
     python -m venv venv
     if errorlevel 1 (
-        echo  ❌ Impossibile creare il venv.
+        echo  âŒ Impossibile creare il venv.
         pause
         goto MENU
     )
 )
 echo         Installazione dipendenze...
 call venv\Scripts\activate.bat
-pip install -r requirements.txt --quiet 2>&1 | findstr /v "already satisfied"
+pip install -r requirements-legacy.txt --quiet 2>&1 | findstr /v "already satisfied"
 if %ERRORLEVEL% NEQ 0 (
-    echo  ⚠️  Alcune dipendenze potrebbero non essere state installate.
+    echo  âš ï¸  Alcune dipendenze potrebbero non essere state installate.
     echo     Verifica la connessione e riprova.
 )
-echo         ✅ Ambiente pronto!
+echo         âœ… Ambiente pronto!
 echo.
 
-REM ── 6. Collegamento desktop ──────────────────────────────────────────────────
+REM â”€â”€ 6. Collegamento desktop â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 echo [6/6] Collegamento sul desktop...
 powershell -NoProfile -ExecutionPolicy Bypass -Command ^
  "$s=(New-Object -ComObject WScript.Shell).CreateShortcut([Environment]::GetFolderPath('Desktop')+'\WinSarp AI Hub.lnk');$s.TargetPath='%~dp0AVVIA_FINALE.bat';$s.WorkingDirectory='%~dp0';$s.Description='Avvia WinSarp AI Hub - Sistema RAG aziendale';$s.IconLocation='%~dp0AVVIA_FINALE.bat,0';$s.Save()" >NUL 2>&1
-echo         ✅ Collegamento creato sul desktop!
+echo         âœ… Collegamento creato sul desktop!
 echo.
 
 echo ============================================
-echo    Installazione completata! 🎉
+echo    Installazione completata! ðŸŽ‰
 echo ============================================
 echo.
 echo  Per avviare, fai doppio click su:
@@ -201,7 +201,7 @@ echo.
 echo -> Download %MAIN_MODEL%...
 ollama pull %MAIN_MODEL%
 if %ERRORLEVEL% NEQ 0 (
-    echo  ❌ Download fallito.
+    echo  âŒ Download fallito.
     pause
     goto MENU
 )
@@ -209,12 +209,12 @@ if %ERRORLEVEL% NEQ 0 (
 echo -> Download %EMBED_MODEL%...
 ollama pull %EMBED_MODEL%
 if %ERRORLEVEL% NEQ 0 (
-    echo  ❌ Download fallito.
+    echo  âŒ Download fallito.
     pause
     goto MENU
 )
 echo.
-echo ✅ Modelli scaricati con successo!
+echo âœ… Modelli scaricati con successo!
 pause
 goto MENU
 
@@ -227,9 +227,9 @@ echo.
 powershell -NoProfile -ExecutionPolicy Bypass -Command ^
  "$s=(New-Object -ComObject WScript.Shell).CreateShortcut([Environment]::GetFolderPath('Desktop')+'\WinSarp AI Hub.lnk');$s.TargetPath='%~dp0AVVIA_FINALE.bat';$s.WorkingDirectory='%~dp0';$s.Description='Avvia WinSarp AI Hub - Sistema RAG aziendale';$s.IconLocation='%~dp0AVVIA_FINALE.bat,0';$s.Save()" >NUL 2>&1
 if %ERRORLEVEL% EQU 0 (
-    echo  ✅ Collegamento creato sul desktop!
+    echo  âœ… Collegamento creato sul desktop!
 ) else (
-    echo  ❌ Errore nella creazione del collegamento.
+    echo  âŒ Errore nella creazione del collegamento.
 )
 pause
 goto MENU

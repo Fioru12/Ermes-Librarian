@@ -239,6 +239,8 @@ Still ahead:
 
 The legacy WinSarp formula work is personal historical material, physically isolated under `legacy_winsarp/` and gated behind a dev-only flag (`ERMES_ENABLE_LEGACY_WINSARP`). It is not part of the Ermes Knowledge product path and must not be used as a public demo corpus or as a claim about the current product.
 
+The isolation used to stop at the source tree. Its dependencies — LlamaIndex, ChromaDB, the Ollama client — sat in `requirements.txt` until 11 September 2026, so every install of the product, the container included, pulled in 94 extra packages (kubernetes, onnxruntime, grpcio, pandas, nltk, tokenizers) for an engine that is off by default and that CI never runs: 150 packages instead of 56. They now live in `requirements-legacy.txt`, which includes the product file, and `tests/test_legacy_is_isolated.py` fails if they come back or if product code imports them at module level. The full suite — 564 tests — passes with all three packages blocked at import, which is the evidence that the product never needed them.
+
 ## License
 
 MIT — see [LICENSE](LICENSE) and [NOTICE](NOTICE). Almost every dependency is

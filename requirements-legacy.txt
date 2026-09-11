@@ -1,0 +1,32 @@
+# Dipendenze del solo motore storico WinSarp (legacy_winsarp/).
+#
+# Non servono a Ermes Knowledge. Sono qui perche' fino all'11 settembre 2026
+# stavano in requirements.txt, quindi ogni deployment del prodotto — incluso il
+# container — installava 94 pacchetti in piu' (kubernetes, onnxruntime, grpcio,
+# pandas, tokenizers, nltk...) per codice che il README dichiara fuori dal
+# percorso di prodotto, che e' spento salvo ERMES_ENABLE_LEGACY_WINSARP, e che
+# la CI non esegue (`testpaths = ["tests"]`).
+#
+# Superficie di dipendenze del prodotto: 56 pacchetti. Con questi: 150.
+# Non e' una questione di spazio: ogni pacchetto e' una CVE possibile e una
+# riga dell'SBOM che qualcuno dovra' giustificare.
+#
+# Installa questo file solo se vuoi eseguire il motore storico:
+#   pip install -r requirements-legacy.txt
+-r requirements.txt
+
+# LlamaIndex, il framework RAG del motore storico. Ermes Knowledge non lo usa:
+# la pipeline attuale e' in core/, senza framework.
+llama-index-core==0.14.20
+llama-index-llms-ollama==0.10.1
+llama-index-embeddings-ollama==0.9.0
+llama-index-vector-stores-chroma==0.5.5
+llama-index-readers-file==0.6.0
+
+# Database vettoriale del motore storico. Ermes Knowledge tiene gli embedding
+# nel proprio archivio (SQLite o PostgreSQL).
+chromadb==1.5.8
+
+# Client Ollama ufficiale, usato da LlamaIndex. Il prodotto parla con Ollama
+# via httpx, senza questo pacchetto.
+ollama==0.6.2

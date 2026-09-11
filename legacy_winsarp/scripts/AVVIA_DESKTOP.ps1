@@ -1,4 +1,4 @@
-# AVVIA_DESKTOP.ps1
+﻿# AVVIA_DESKTOP.ps1
 # Launcher semplificato per WinSarp AI Hub
 # Crea un collegamento sul desktop e avvia l'applicazione
 
@@ -17,7 +17,7 @@ $DESKTOP_PATH = [Environment]::GetFolderPath("Desktop")
 
 function Write-Logo {
     Write-Host ""
-    Write-Host "  ⚙️  WinSarp AI Hub" -ForegroundColor Cyan
+    Write-Host "  âš™ï¸  WinSarp AI Hub" -ForegroundColor Cyan
     Write-Host "  ================" -ForegroundColor Cyan
     Write-Host "  Sistema RAG aziendale - 100% OFFline" -ForegroundColor DarkGray
     Write-Host ""
@@ -32,7 +32,7 @@ function Install-VenvIfMissing {
             return $false
         }
         Write-Host "  [SETUP] Installazione dipendenze..." -ForegroundColor Yellow
-        & $VENV_PYTHON -m pip install -r (Join-Path $PROJECT_DIR "requirements.txt") 2>&1 | Out-Null
+        & $VENV_PYTHON -m pip install -r (Join-Path $PROJECT_DIR "requirements-legacy.txt") 2>&1 | Out-Null
         if ($LASTEXITCODE -ne 0) {
             Write-Host "  [ERRORE] Installazione dipendenze fallita." -ForegroundColor Red
             return $false
@@ -47,12 +47,12 @@ function Check-Ollama {
     try {
         $r = Invoke-WebRequest -UseBasicParsing "http://127.0.0.1:11434/api/tags" -TimeoutSec 2
         if ($r.StatusCode -eq 200) {
-            Write-Host "         ✅ Ollama già attivo" -ForegroundColor Green
+            Write-Host "         âœ… Ollama giÃ  attivo" -ForegroundColor Green
             return $true
         }
     } catch {}
 
-    Write-Host "         ⏳ Ollama non attivo. Avvio..." -ForegroundColor Yellow
+    Write-Host "         â³ Ollama non attivo. Avvio..." -ForegroundColor Yellow
     $ollamaPath = "$env:LOCALAPPDATA\Programs\Ollama\ollama.exe"
     if (Test-Path $ollamaPath) {
         Start-Process -FilePath $ollamaPath -WindowStyle Hidden
@@ -73,7 +73,7 @@ function Check-Ollama {
         try {
             $r = Invoke-WebRequest -UseBasicParsing "http://127.0.0.1:11434/api/tags" -TimeoutSec 2
             if ($r.StatusCode -eq 200) {
-                Write-Host "         ✅ Ollama pronto!" -ForegroundColor Green
+                Write-Host "         âœ… Ollama pronto!" -ForegroundColor Green
                 return $true
             }
         } catch {}
@@ -95,11 +95,11 @@ function Check-Models {
         }
     }
     if ($missing.Count -eq 0) {
-        Write-Host "         ✅ Modelli presenti" -ForegroundColor Green
+        Write-Host "         âœ… Modelli presenti" -ForegroundColor Green
         return $true
     }
 
-    Write-Host "         ⬇️ Download modelli mancanti: $($missing -join ', ')" -ForegroundColor Yellow
+    Write-Host "         â¬‡ï¸ Download modelli mancanti: $($missing -join ', ')" -ForegroundColor Yellow
     foreach ($model in $missing) {
         Write-Host "         ollama pull $model ..." -ForegroundColor DarkGray
         & "ollama" pull $model
@@ -108,7 +108,7 @@ function Check-Models {
             return $false
         }
     }
-    Write-Host "         ✅ Modelli pronti!" -ForegroundColor Green
+    Write-Host "         âœ… Modelli pronti!" -ForegroundColor Green
     return $true
 }
 
@@ -146,7 +146,7 @@ function Create-DesktopShortcut {
     $shortcut.IconLocation = "powershell.exe,0"
     $shortcut.Save()
 
-    Write-Host "         ✅ Collegamento creato sul desktop!" -ForegroundColor Green
+    Write-Host "         âœ… Collegamento creato sul desktop!" -ForegroundColor Green
     Write-Host "         Nome: $SHORTCUT_NAME" -ForegroundColor DarkGray
     return $shortcutPath
 }
