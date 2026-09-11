@@ -90,8 +90,34 @@ The interface is on <http://127.0.0.1:3000>, the API on
 curl http://127.0.0.1:8502/health
 ```
 
-`/health` answers 200 when the process is serving. It does **not** prove that
-retrieval works or that Ollama is reachable — check the logs for that.
+`/health` answers 200 when the process is serving. Read the `status` field,
+not the HTTP code: it is `healthy` or `degraded`, and `degraded` comes with a
+`warnings` list saying why.
+
+**What "degraded" means here.** A missing model is not a problem by itself —
+in the default `evidence_only` mode no model is needed, by design. It becomes a
+problem the moment something has been switched on that relies on it. If the
+evidence verifier, the conversation memory or semantic search is enabled and
+its model is unreachable or not installed, the feature silently falls back to
+the behaviour without it: answers go out unverified, follow-up questions are
+not rewritten, retrieval is keyword-only. Until 11 September 2026 `/health`
+reported `healthy` in exactly that situation, with the missing model named only
+in a secondary field. Now it reports `degraded` and says which feature is
+affected. The HTTP code stays 200 so a readiness probe does not kill an
+instance that is still serving.
+
+### What to alert on
+
+| Signal | Meaning |
+|---|---|
+| `/health` → `status != "healthy"` | Something enabled cannot work; read `warnings` |
+| `ermes_evidence_verifier_total{outcome="unavailable"}` increasing | Answers are going out unverified — the abstention guarantee is off |
+| `ermes_question_rewrite_total{outcome="model_unavailable"}` increasing | Follow-up questions are not being rewritten |
+| `ermes_rag_questions_total{outcome="abstained"}` share rising sharply | Either the corpus is missing what people ask, or retrieval is degraded |
+| `ermes_ingestion_jobs_total{status="failed"}` increasing | Documents are not being indexed |
+
+The first two are the ones that hide: the answer looks normal, the log carries
+one warning per question that nobody reads, and only the counter accumulates.
 
 `/metrics` exposes Prometheus metrics. Set `ERMES_METRICS_TOKEN` when Prometheus
 scrapes from another host; without a token the endpoint only answers on loopback.

@@ -18,17 +18,60 @@ _logger = logging.getLogger(__name__)
 router = APIRouter(tags=["Health"])
 
 
-def check_ollama(model_id: str) -> tuple[bool, str]:
-    """Lightweight check that does not import the legacy RAG stack."""
+def _ollama_models() -> tuple[bool, set[str], str]:
+    """(raggiungibile, modelli installati, messaggio). Un solo giro di rete
+    per tutti i controlli che dipendono da un modello."""
     try:
         response = httpx.get(f"{cfg.OLLAMA_HOST.rstrip('/')}/api/tags", timeout=3)
         response.raise_for_status()
         names = {item.get("name", "") for item in response.json().get("models", [])}
-        if model_id and names and model_id not in names:
-            return True, f"Ollama raggiungibile; modello {model_id} non installato"
-        return True, "Ollama raggiungibile"
+        return True, names, "Ollama raggiungibile"
     except httpx.HTTPError as error:
-        return False, f"Ollama non raggiungibile: {type(error).__name__}"
+        return False, set(), f"Ollama non raggiungibile: {type(error).__name__}"
+
+
+def check_ollama(model_id: str) -> tuple[bool, str]:
+    """Lightweight check that does not import the legacy RAG stack."""
+    reachable, names, message = _ollama_models()
+    if reachable and model_id and names and model_id not in names:
+        return True, f"Ollama raggiungibile; modello {model_id} non installato"
+    return reachable, message
+
+
+def _model_dependent_warnings(reachable: bool, names: set[str]) -> list[str]:
+    """Le capacita' ATTIVATE che non possono funzionare con lo stato attuale.
+
+    Il motivo di questa funzione: con il verificatore dell'evidenza acceso e il
+    modello configurato non installato, questo endpoint rispondeva "healthy".
+    Il verificatore degradava a "non controllato", l'astensione promessa non
+    avveniva, e la sola traccia era un avviso nel log per ogni domanda. Un
+    modello assente non e' un problema di per se' — in evidence_only non serve
+    per scelta — ma lo diventa nel momento in cui qualcosa e' stato acceso
+    contando su di lui. Questa funzione distingue i due casi.
+    """
+    avvisi: list[str] = []
+
+    def manca(model_id: str) -> bool:
+        return (not reachable) or (bool(names) and model_id not in names)
+
+    verifier_model = getattr(cfg, "EVIDENCE_VERIFIER_MODEL", "") or cfg.DEFAULT_MODEL_ID
+    if getattr(cfg, "EVIDENCE_VERIFIER_ENABLED", False) and manca(verifier_model):
+        avvisi.append(
+            "verifica dell'evidenza attiva ma non eseguibile "
+            f"(modello {verifier_model}): le citazioni non vengono controllate e l'astensione "
+            "torna al comportamento senza verifica"
+        )
+    if getattr(cfg, "CONVERSATION_MEMORY_ENABLED", False) and manca(verifier_model):
+        avvisi.append(
+            f"memoria conversazionale attiva ma non eseguibile (modello {verifier_model}): "
+            "le domande di raffinamento non vengono riscritte"
+        )
+    embed_model = getattr(cfg, "EMBED_MODEL_ID", "")
+    if getattr(cfg, "LIBRARY_SEMANTIC_SEARCH_ENABLED", False) and manca(embed_model):
+        avvisi.append(
+            f"ricerca semantica attiva ma non eseguibile (modello {embed_model}): il recupero e' solo per parole chiave"
+        )
+    return avvisi
 
 
 class HealthResponse(BaseModel):
@@ -44,6 +87,9 @@ class HealthResponse(BaseModel):
     library_db_ok: bool = False
     library_storage_ok: bool = False
     disk_free_gb: float = 0.0
+    # Capacita' attivate che non possono funzionare. Non vuoto => "degraded",
+    # con la ragione leggibile da chi guarda il cruscotto.
+    warnings: list[str] = []
 
 
 @router.get(
@@ -63,7 +109,12 @@ class HealthResponse(BaseModel):
     ),
 )
 async def health_check():
-    ollama_ok, ollama_msg = check_ollama(cfg.DEFAULT_MODEL_ID)
+    ollama_reachable, ollama_models, ollama_base_msg = _ollama_models()
+    ollama_ok = ollama_reachable
+    ollama_msg = ollama_base_msg
+    if ollama_reachable and cfg.DEFAULT_MODEL_ID and ollama_models and cfg.DEFAULT_MODEL_ID not in ollama_models:
+        ollama_msg = f"Ollama raggiungibile; modello {cfg.DEFAULT_MODEL_ID} non installato"
+    warnings = _model_dependent_warnings(ollama_reachable, ollama_models)
 
     # External cloud is checked only when its use was explicitly authorised for
     # library generation. A configured credential alone must not create traffic.
@@ -124,6 +175,12 @@ async def health_check():
         overall_status = "healthy" if library_db_ok and library_storage_ok and chroma_functional else "degraded"
     else:
         overall_status = "healthy" if library_db_ok and library_storage_ok else "degraded"
+    # Una capacita' accesa che non puo' funzionare e' un degrado, anche se il
+    # processo serve richieste: chi la ha accesa conta su di lei. Resta 200 —
+    # una sonda di readiness non deve spegnere un'istanza che risponde — ma lo
+    # stato lo dice, e la ragione e' in `warnings`.
+    if warnings:
+        overall_status = "degraded"
 
     return HealthResponse(
         status=overall_status,
@@ -136,6 +193,7 @@ async def health_check():
         library_db_ok=library_db_ok,
         library_storage_ok=library_storage_ok,
         disk_free_gb=round(disk_free_gb, 2),
+        warnings=warnings,
     )
 
 

@@ -52,6 +52,23 @@ RAG_RERANK_MODE = Counter(
     "Modalità del reranker usata nelle ricerche.",
     ["mode"],  # neural | lexical
 )
+# I due passaggi che dipendono da un modello locale e che, quando il modello
+# manca, DEGRADANO IN SILENZIO al comportamento senza di loro: il verificatore
+# torna "non controllato", la riscrittura torna alla domanda originale. Per
+# chi guarda la risposta e' indistinguibile dal non averli. Trovato con il
+# verificatore attivo e il modello configurato non installato: /health diceva
+# "healthy" e l'astensione promessa non avveniva. Questi contatori sono l'unico
+# posto in cui il degrado si accumula in modo osservabile.
+EVIDENCE_VERIFIER = Counter(
+    "ermes_evidence_verifier_total",
+    "Esiti della verifica dell'evidenza per risposta.",
+    ["outcome"],  # verified | unavailable | disabled
+)
+QUESTION_REWRITE = Counter(
+    "ermes_question_rewrite_total",
+    "Esiti della riscrittura conversazionale della domanda.",
+    ["outcome"],  # rewritten | unchanged | no_history | disabled | model_unavailable | rejected
+)
 
 # ── Sistema ────────────────────────────────────────────────
 INGESTION_JOBS = Counter(
@@ -87,6 +104,18 @@ def record_rerank_mode(mode: str) -> None:
     """Registra la modalità reranker usata dalla ricerca (best-effort)."""
     with contextlib.suppress(Exception):  # pragma: no cover
         RAG_RERANK_MODE.labels(mode=mode if mode in {"neural", "lexical"} else "unknown").inc()
+
+
+def record_verifier_outcome(outcome: str) -> None:
+    """verified | unavailable | disabled (best-effort)."""
+    with contextlib.suppress(Exception):  # pragma: no cover
+        EVIDENCE_VERIFIER.labels(outcome=outcome).inc()
+
+
+def record_rewrite_outcome(outcome: str) -> None:
+    """Uno dei reason di core.question_rewriter.Riscrittura (best-effort)."""
+    with contextlib.suppress(Exception):  # pragma: no cover
+        QUESTION_REWRITE.labels(outcome=outcome).inc()
 
 
 def rag_retrieval_timer():

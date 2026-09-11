@@ -347,6 +347,9 @@ def _answer_question(
     domanda_originale = question
     riscrittura = rewrite_with_history(question, history)
     question = riscrittura.question
+    from core.metrics import record_rewrite_outcome
+
+    record_rewrite_outcome(riscrittura.reason)
     conversazione = {
         "question_original": domanda_originale,
         "question_rewritten_to": riscrittura.question if riscrittura.rewritten else None,

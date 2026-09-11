@@ -117,7 +117,13 @@ def verify_citations(question: str, citations: list[dict]) -> tuple[list[dict], 
     invariate e `False`: il chiamante deve dichiararlo nella risposta invece di
     lasciar credere che il controllo sia passato.
     """
-    if not citations or not getattr(config.cfg, "EVIDENCE_VERIFIER_ENABLED", False):
+    from core.metrics import record_verifier_outcome
+
+    if not getattr(config.cfg, "EVIDENCE_VERIFIER_ENABLED", False):
+        record_verifier_outcome("disabled")
+        return citations, False
+    if not citations:
+        # Niente da verificare non e' un degrado: non si conta.
         return citations, False
 
     superstiti: list[dict] = []
@@ -145,6 +151,7 @@ def verify_citations(question: str, citations: list[dict]) -> tuple[list[dict], 
             # Il modello non risponde: si smette di verificare e si torna al
             # comportamento senza verifica, per l'intera risposta.
             _logger.warning("Verifica dell'evidenza interrotta: le citazioni non sono state controllate")
+            record_verifier_outcome("unavailable")
             return citations, False
         almeno_una_verificata = True
         if esito:
@@ -152,4 +159,5 @@ def verify_citations(question: str, citations: list[dict]) -> tuple[list[dict], 
 
     if not almeno_una_verificata:
         return citations, False
+    record_verifier_outcome("verified")
     return superstiti, True
