@@ -131,7 +131,14 @@ function AppInner() {
       const data = await response.json()
       const returnedId = data.answer_id || answerId
       setMessages(previous => previous.map(message => message.id === answerId
-        ? { ...message, id: returnedId, content: data.answer, evidence: data.evidence, sources: data.citations ?? [] }
+        ? {
+            ...message,
+            id: returnedId,
+            content: data.answer,
+            evidence: data.evidence,
+            sources: data.citations ?? [],
+            searchedAs: data.meta?.conversation?.question_rewritten_to ?? null,
+          }
         : message))
     } catch (error) {
       const content = error instanceof DOMException && error.name === 'AbortError'

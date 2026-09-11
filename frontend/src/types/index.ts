@@ -5,9 +5,16 @@ export interface Message {
   timestamp: string
   evidence?: { coverage: 'supported' | 'partially_supported' | 'insufficient_evidence'; reason?: string | null }
   feedback?: 1 | -1 | null
+  // La domanda che il sistema ha davvero cercato, quando una domanda di
+  // raffinamento e' stata riscritta con la conversazione. Va mostrata: chi
+  // legge deve poter vedere cosa e' stato chiesto ai documenti.
+  searchedAs?: string | null
   sources?: Array<{
     document_id: string; filename: string; version: number; locator: string; excerpt: string
     marker?: number; content_hash?: string; chunk_id?: string; relevance_score?: number
+    // Il passaggio contiene istruzioni rivolte al modello: la fonte si mostra,
+    // il suo testo non e' stato usato per rispondere.
+    injection_suspected?: boolean
   }>
 }
 

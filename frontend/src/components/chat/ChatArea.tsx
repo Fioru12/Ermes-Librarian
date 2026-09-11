@@ -158,6 +158,11 @@ export default function ChatArea({
                 <span>{m.timestamp}</span>
               </div>
               <div className={`px-4 py-3 rounded-xl text-sm leading-relaxed border ${m.role === 'user' ? t.chatBubbleUser : t.chatBubbleAssistant}`}>
+                {m.role === 'assistant' && m.searchedAs && (
+                  <p className="mb-2 text-[11px] text-slate-400" title="La domanda e' stata riscritta con la conversazione prima della ricerca">
+                    Ho cercato: <span className="italic text-slate-300">{m.searchedAs}</span>
+                  </p>
+                )}
                 {m.role === 'assistant' && m.evidence && (
                   <p className={`mb-2 text-xs font-medium ${m.evidence.coverage === 'supported' ? 'text-emerald-400' : 'text-amber-400'}`}>
                     {m.evidence.coverage === 'supported' ? `Basata su ${m.sources?.length ?? 0} fonti` : 'Evidenza insufficiente'}
@@ -169,7 +174,7 @@ export default function ChatArea({
                   : <InlineMarkdown text={m.content} />}</div>
                 {m.role === 'assistant' && m.sources && m.sources.length > 0 && <div className="mt-4 border-t border-white/10 pt-3"><p className="text-xs font-semibold text-slate-400">Fonti</p><div className="mt-2 space-y-2">{m.sources.map((source, index) => <div key={`${source.document_id}-${source.locator}-${index}`} className="rounded-md bg-white/5 p-2 text-xs">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="font-medium text-blue-300">{source.filename}<span className="font-normal text-slate-400"> · v{source.version} · {source.locator}</span></span>
+                      <span className="font-medium text-blue-300">{source.filename}<span className="font-normal text-slate-400"> · v{source.version} · {source.locator}</span>{source.injection_suspected && <span className="ml-2 rounded border border-amber-400/40 bg-amber-400/10 px-1.5 py-0.5 text-[10px] font-semibold text-amber-300" title="Il passaggio contiene istruzioni rivolte al modello: la fonte e' mostrata, il suo testo non e' stato usato per rispondere">non usata</span>}</span>
                       <button type="button" onClick={() => window.open(`/api/libraries/${selectedLibraryId}/documents/${source.document_id}/download`, '_blank', 'noopener,noreferrer')} className="flex shrink-0 items-center gap-1 rounded-md border border-blue-500/20 bg-blue-500/10 px-2 py-1 text-[10px] font-semibold text-blue-300 transition hover:border-blue-400/40 hover:bg-blue-500/20" title="Apri il documento originale">
                         <Download className="h-3 w-3" /> Apri originale
                       </button>
