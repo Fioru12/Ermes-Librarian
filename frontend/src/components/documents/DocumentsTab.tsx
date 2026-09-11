@@ -122,6 +122,21 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
   const [newSourcePath, setNewSourcePath] = useState('')
   const [addingSource, setAddingSource] = useState(false)
   const [scanningSourceId, setScanningSourceId] = useState<string | null>(null)
+  const [fileTypeFilter, setFileTypeFilter] = useState<string>('all')
+  const [docNameFilter, setDocNameFilter] = useState<string>('')
+
+  const filteredDocuments = documents.filter(document => {
+    if (docNameFilter.trim()) {
+      if (!document.filename.toLowerCase().includes(docNameFilter.toLowerCase().trim())) {
+        return false
+      }
+    }
+    if (fileTypeFilter !== 'all') {
+      const ext = document.filename.split('.').pop()?.toLowerCase() || ''
+      if (ext !== fileTypeFilter.toLowerCase()) return false
+    }
+    return true
+  })
 
   const selectedLibrary = libraries.find(library => library.id === selectedLibraryId) ?? null
   const canEditLibrary = selectedLibrary?.access_role === 'admin' || selectedLibrary?.access_role === 'owner' || selectedLibrary?.access_role === 'editor'
@@ -796,23 +811,67 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
                   <p className="text-xs text-slate-500">Per impostazione predefinita, i documenti restano locali.</p>
                 </div>
               ) : (
-                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                  {documents.map(document => (
-                    <article key={document.id} className={`rounded-xl border p-4 ${t.card}`}>
-                      <div className="flex items-start gap-3">
-                        <FileText className="mt-0.5 h-4 w-4 shrink-0 text-blue-400" />
-                        <div className="min-w-0">
-                          <h3 className="truncate text-sm font-semibold">{document.filename}</h3>
-                          <p className="mt-1 text-xs text-slate-400">v{document.version} · {formatSize(document.size_bytes)}</p>
-                          {(() => {
-                            const status = documentStatus(document.status)
-                            return <span className={`mt-3 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${status.className}`}><status.Icon className={`h-3 w-3 ${document.status === 'processing' ? 'animate-spin' : ''}`} />{status.label}</span>
-                          })()}
-                          <div className="mt-3 flex flex-wrap gap-3"><button onClick={() => { setSearchScopeDoc(current => current?.id === document.id ? null : document); setSearchQuery(''); setSearchResults(null); setRetrievalProfile(null) }} className={`flex items-center gap-1 text-xs transition hover:text-blue-400 ${searchScopeDoc?.id === document.id ? 'text-blue-300' : 'text-slate-400'}`}><Search className="h-3 w-3" />{searchScopeDoc?.id === document.id ? 'Scope attivo' : 'Cerca qui'}</button><button onClick={() => showSummary(document)} disabled={summarizing} className="flex items-center gap-1 text-xs text-slate-400 transition hover:text-blue-400 disabled:cursor-not-allowed disabled:opacity-40"><FileText className="h-3 w-3" />{summarizing ? 'Riassumo…' : 'Riassumi'}</button><button onClick={() => downloadDocument(document)} className="flex items-center gap-1 text-xs text-slate-400 transition hover:text-blue-400"><Download className="h-3 w-3" />Apri</button>{canManageMembers && <button onClick={() => openAclPanel(document)} className="flex items-center gap-1 text-xs text-slate-400 transition hover:text-blue-400"><ShieldCheck className="h-3 w-3" />Accessi</button>}{canEditLibrary && <button disabled={document.status === 'queued' || document.status === 'processing'} onClick={() => reindexDocument(document)} className="flex items-center gap-1 text-xs text-slate-400 transition hover:text-blue-400 disabled:cursor-not-allowed disabled:opacity-40"><RefreshCw className="h-3 w-3" />Reindicizza</button>}<button onClick={() => showVersions(document)} className="text-xs text-slate-400 transition hover:text-blue-400">Versioni</button>{canEditLibrary && <button onClick={() => deleteDocument(document)} disabled={deletingDocumentId === document.id} aria-label={`Elimina ${document.filename}`} className="flex items-center gap-1 text-xs text-rose-400/80 transition hover:text-rose-300 disabled:cursor-not-allowed disabled:opacity-40"><Trash2 className="h-3 w-3" />{deletingDocumentId === document.id ? 'Elimino…' : 'Elimina'}</button>}</div>
-                        </div>
-                      </div>
-                    </article>
-                  ))}
+                <div className="space-y-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/5 bg-white/[0.02] p-3">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="mr-1 text-xs font-medium text-slate-400">Tipo:</span>
+                      {['all', 'pdf', 'docx', 'pptx', 'xlsx', 'txt', 'md'].map(ext => (
+                        <button
+                          key={ext}
+                          type="button"
+                          onClick={() => setFileTypeFilter(ext)}
+                          className={`rounded-lg px-2.5 py-1 text-xs font-semibold uppercase transition cursor-pointer ${
+                            fileTypeFilter === ext
+                              ? 'bg-blue-600 text-white shadow-sm'
+                              : 'border border-white/10 text-slate-400 hover:border-white/20 hover:text-white'
+                          }`}
+                        >
+                          {ext === 'all' ? 'Tutti' : ext}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="w-full sm:w-60">
+                      <input
+                        type="text"
+                        value={docNameFilter}
+                        onChange={e => setDocNameFilter(e.target.value)}
+                        placeholder="Filtra per nome..."
+                        className={`w-full rounded-lg border px-3 py-1 text-xs outline-none ${t.sidebarInput}`}
+                      />
+                    </div>
+                  </div>
+
+                  {filteredDocuments.length === 0 ? (
+                    <div className="py-12 text-center text-sm text-slate-400">
+                      <p>Nessun documento corrisponde ai filtri selezionati.</p>
+                      <button
+                        type="button"
+                        onClick={() => { setFileTypeFilter('all'); setDocNameFilter('') }}
+                        className="mt-2 text-xs font-medium text-blue-400 underline hover:text-blue-300 cursor-pointer"
+                      >
+                        Resetta filtri
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                      {filteredDocuments.map(document => (
+                        <article key={document.id} className={`rounded-xl border p-4 ${t.card}`}>
+                          <div className="flex items-start gap-3">
+                            <FileText className="mt-0.5 h-4 w-4 shrink-0 text-blue-400" />
+                            <div className="min-w-0">
+                              <h3 className="truncate text-sm font-semibold">{document.filename}</h3>
+                              <p className="mt-1 text-xs text-slate-400">v{document.version} · {formatSize(document.size_bytes)}</p>
+                              {(() => {
+                                const status = documentStatus(document.status)
+                                return <span className={`mt-3 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${status.className}`}><status.Icon className={`h-3 w-3 ${document.status === 'processing' ? 'animate-spin' : ''}`} />{status.label}</span>
+                              })()}
+                              <div className="mt-3 flex flex-wrap gap-3"><button onClick={() => { setSearchScopeDoc(current => current?.id === document.id ? null : document); setSearchQuery(''); setSearchResults(null); setRetrievalProfile(null) }} className={`flex items-center gap-1 text-xs transition hover:text-blue-400 ${searchScopeDoc?.id === document.id ? 'text-blue-300' : 'text-slate-400'}`}><Search className="h-3 w-3" />{searchScopeDoc?.id === document.id ? 'Scope attivo' : 'Cerca qui'}</button><button onClick={() => showSummary(document)} disabled={summarizing} className="flex items-center gap-1 text-xs text-slate-400 transition hover:text-blue-400 disabled:cursor-not-allowed disabled:opacity-40"><FileText className="h-3 w-3" />{summarizing ? 'Riassumo…' : 'Riassumi'}</button><button onClick={() => downloadDocument(document)} className="flex items-center gap-1 text-xs text-slate-400 transition hover:text-blue-400"><Download className="h-3 w-3" />Apri</button>{canManageMembers && <button onClick={() => openAclPanel(document)} className="flex items-center gap-1 text-xs text-slate-400 transition hover:text-blue-400"><ShieldCheck className="h-3 w-3" />Accessi</button>}{canEditLibrary && <button disabled={document.status === 'queued' || document.status === 'processing'} onClick={() => reindexDocument(document)} className="flex items-center gap-1 text-xs text-slate-400 transition hover:text-blue-400 disabled:cursor-not-allowed disabled:opacity-40"><RefreshCw className="h-3 w-3" />Reindicizza</button>}<button onClick={() => showVersions(document)} className="text-xs text-slate-400 transition hover:text-blue-400">Versioni</button>{canEditLibrary && <button onClick={() => deleteDocument(document)} disabled={deletingDocumentId === document.id} aria-label={`Elimina ${document.filename}`} className="flex items-center gap-1 text-xs text-rose-400/80 transition hover:text-rose-300 disabled:cursor-not-allowed disabled:opacity-40"><Trash2 className="h-3 w-3" />{deletingDocumentId === document.id ? 'Elimino…' : 'Elimina'}</button>}</div>
+                            </div>
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </div>

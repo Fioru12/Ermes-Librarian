@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState } from 'react'
-import { Send, Square, HelpCircle, ArrowRight, BookOpen, Files, ShieldCheck, Download, X, ThumbsUp, ThumbsDown, Copy, Check } from 'lucide-react'
+import { Send, Square, HelpCircle, ArrowRight, BookOpen, Files, ShieldCheck, Download, X, ThumbsUp, ThumbsDown, Copy, Check, RotateCcw, FileDown } from 'lucide-react'
 import { useTheme } from '../../hooks/useTheme'
 import { InlineMarkdown } from './InlineMarkdown'
 import type { Message } from '../../types'
@@ -44,6 +44,7 @@ interface ChatAreaProps {
   onInputChange: (v: string) => void
   onSend: (text: string) => void
   onStop: () => void
+  onClearChat?: () => void
   isGenerating: boolean
   suggestions: { title: string; desc: string; prompt: string }[]
   libraries?: Array<{ id: string; name: string }>
@@ -54,7 +55,7 @@ interface ChatAreaProps {
 }
 
 export default function ChatArea({
-  messages, inputMessage, onInputChange, onSend, onStop,
+  messages, inputMessage, onInputChange, onSend, onStop, onClearChat,
   isGenerating, suggestions, libraries = [], selectedLibraryId = '', selectedLibraryDocumentCount = 0, onLibraryChange, onOpenLibraries,
 }: ChatAreaProps) {
   const { t } = useTheme()
@@ -95,6 +96,38 @@ export default function ChatArea({
     e.preventDefault()
     if (!inputMessage.trim() || isGenerating) return
     onSend(inputMessage)
+  }
+
+  const exportChatMarkdown = () => {
+    if (messages.length === 0) return
+    let md = `# Conversazione Ermes Knowledge\n\n`
+    md += `**Biblioteca:** ${selectedLibraryName}\n`
+    md += `**Data esportazione:** ${new Date().toLocaleString('it-IT')}\n\n`
+    md += `---\n\n`
+
+    messages.forEach(msg => {
+      if (msg.role === 'user') {
+        md += `### 👤 Domanda (${msg.timestamp})\n\n${msg.content}\n\n`
+      } else {
+        md += `### 🤖 Risposta Ermes (${msg.timestamp})\n\n${msg.content}\n\n`
+        if (msg.sources && msg.sources.length > 0) {
+          md += `#### 📚 Fonti ed Evidenze:\n`
+          msg.sources.forEach(src => {
+            md += `- **[${src.marker ?? '•'}] ${src.filename}** (v${src.version} · ${src.locator})\n`
+            md += `  > ${src.excerpt.replace(/\n/g, '\n  > ')}\n\n`
+          })
+        }
+        md += `---\n\n`
+      }
+    })
+
+    const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `ermes_conversazione_${new Date().toISOString().slice(0, 10)}.md`
+    a.click()
+    URL.revokeObjectURL(url)
   }
 
   const needsLibrary = Boolean(onOpenLibraries) && (!selectedLibraryId || libraries.length === 0)
@@ -261,7 +294,39 @@ export default function ChatArea({
 
       {/* Input Form */}
       <div className={`p-5 sm:p-6 border-t ${t.chatFormBg}`}>
-        <div className="mb-3 flex max-w-5xl items-center gap-2 mx-auto"><span className="rounded-full border border-blue-500/15 bg-blue-500/5 px-2.5 py-1 text-[11px] font-medium text-blue-300">Stai consultando</span><select value={selectedLibraryId} onChange={event => onLibraryChange?.(event.target.value)} className={`min-w-0 rounded-lg border px-3 py-1.5 text-xs outline-none ${t.sidebarInput}`}><option value="">Seleziona una biblioteca</option>{libraries.map(library => <option key={library.id} value={library.id}>{library.name}</option>)}</select></div>
+        <div className="mb-3 flex max-w-5xl items-center justify-between gap-2 mx-auto">
+          <div className="flex items-center gap-2">
+            <span className="rounded-full border border-blue-500/15 bg-blue-500/5 px-2.5 py-1 text-[11px] font-medium text-blue-300">Stai consultando</span>
+            <select value={selectedLibraryId} onChange={event => onLibraryChange?.(event.target.value)} className={`min-w-0 rounded-lg border px-3 py-1.5 text-xs outline-none ${t.sidebarInput}`}>
+              <option value="">Seleziona una biblioteca</option>
+              {libraries.map(library => <option key={library.id} value={library.id}>{library.name}</option>)}
+            </select>
+          </div>
+          {messages.length > 0 && (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={exportChatMarkdown}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 px-2.5 py-1 text-xs text-slate-300 transition hover:border-white/20 hover:bg-white/5 hover:text-white cursor-pointer"
+                title="Esporta conversazione in Markdown"
+              >
+                <FileDown className="w-3.5 h-3.5 text-blue-400" />
+                <span>Esporta .md</span>
+              </button>
+              {onClearChat && (
+                <button
+                  type="button"
+                  onClick={onClearChat}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 px-2.5 py-1 text-xs text-slate-400 transition hover:border-rose-500/30 hover:bg-rose-500/10 hover:text-rose-300 cursor-pointer"
+                  title="Pulisci la conversazione attuale"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>Nuova chat</span>
+                </button>
+              )}
+            </div>
+          )}
+        </div>
         <form onSubmit={handleSubmit} className="flex gap-3 max-w-5xl mx-auto rounded-2xl border border-white/[0.08] bg-white/[0.025] p-2 shadow-lg shadow-slate-950/10">
           <input type="text" value={inputMessage}
             onChange={e => onInputChange(e.target.value)}

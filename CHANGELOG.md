@@ -2,6 +2,12 @@
 
 Registro leggibile del lavoro su questo progetto. Per il dettaglio fase-per-fase con motivazioni, vedi [docs/ROADMAP_V2.md](docs/ROADMAP_V2.md); per i finding tecnici completi, [docs/AUDIT_2026-08-19.md](docs/AUDIT_2026-08-19.md) e [docs/CODE_REVIEW.md](docs/CODE_REVIEW.md); per il registro operativo delle sessioni, [docs/WORK_PROGRESS.md](docs/WORK_PROGRESS.md).
 
+## 2026-09-12 — v2.2.2: Esportazione Chat in Markdown e Filtri Documenti Avanzati
+
+- **Esportazione conversazioni in Markdown**: in `ChatArea.tsx` aggiunto il pulsante "Esporta .md" che genera e scarica istantaneamente l'intera cronologia della conversazione con intestazione della biblioteca, data/ora, domande, risposte formattate e citazioni/passaggi verificati.
+- **Pulsante Nuova Chat**: aggiunta l'azione rapida "Nuova chat" che consente all'utente di azzerare la cronologia della sessione attiva e avviare una nuova consultazione senza dover ricaricare la pagina web.
+- **Filtri avanzati documenti per formato e nome**: in `DocumentsTab.tsx` aggiunta una toolbar di filtraggio rapido per estensione (`Tutti`, `PDF`, `DOCX`, `PPTX`, `XLSX`, `TXT`, `MD`) e campo di ricerca istantaneo per nome file, facilitando l'esplorazione e la gestione di biblioteche con decine o centinaia di documenti.
+
 ## 2026-09-12 — v2.2.1: Robustezza concorrenza governance e UX Copia Rapida
 
 - **Locking multi-processo e container-safety in Governance**: `core/governance.py` ora utilizza un gestore `_get_file_lock` con caching singleton per percorso canonico, garantendo rientranza per-thread e mutua esclusione atomica fra più worker (es. `uvicorn --workers N`). Il lock di `api_keys.json` è stato spostato dalla directory sorgente `core/` alla directory dati scrivibile `cfg.SECURITY_DIR`, eliminando errori in container con filesystem root in sola lettura (`read-only rootfs`). Esteso il FileLock a `users.json` e `oidc_group_mappings.json`.
