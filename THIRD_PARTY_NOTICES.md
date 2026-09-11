@@ -48,14 +48,14 @@ Declared in `requirements.txt`.
 | `psycopg` | 3.2.10 | GNU Lesser General Public License v3 (LGPLv3) |
 | `pydantic` | 2.13.4 | MIT |
 | `PyJWT` | 2.13.0 | MIT |
-| `pypdf` | 6.10.2 | BSD-3-Clause |
+| `pypdf` | 6.16.1 | BSD-3-Clause |
 | `pytest` | 9.0.3 | MIT |
 | `pytest-asyncio` | 1.3.0 | Apache-2.0 |
 | `pytest-benchmark` | 5.3.0 | BSD-2-Clause |
 | `pytest-timeout` | 2.4.0 | MIT |
 | `python-docx` | 1.2.0 | MIT |
 | `python-dotenv` | 1.2.2 | BSD-3-Clause |
-| `python-multipart` | 0.0.22 | Apache-2.0 |
+| `python-multipart` | 0.0.31 | Apache-2.0 |
 | `uvicorn` | 0.47.0 | BSD-3-Clause |
 
 ## JavaScript — application and build dependencies

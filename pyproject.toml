@@ -1,5 +1,6 @@
 [build-system]
-requires = ["setuptools>=64"]
+# >=83: pip-audit segnalava due vulnerabilita' note sulle versioni precedenti.
+requires = ["setuptools>=83"]
 build-backend = "setuptools.backends._legacy:_Backend"
 
 [project]
@@ -9,11 +10,13 @@ description = "Enterprise Knowledge Hub — RAG locale per documentazione aziend
 requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.115",
-    "python-multipart>=0.0.22",
+    "python-multipart>=0.0.31",
     "uvicorn[standard]>=0.30",
     "pydantic>=2.0",
     "python-docx>=1.1",
-    "pypdf>=5",
+    # Il pavimento sale a 6.16.1: le versioni precedenti hanno vulnerabilita'
+    # note, e pypdf legge file caricati dagli utenti.
+    "pypdf>=6.16.1",
     "python-dotenv>=1.0",
     "filelock>=3.0",
     "prometheus-client>=0.20",

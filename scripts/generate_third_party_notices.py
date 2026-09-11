@@ -42,32 +42,37 @@ PERMISSIVE = (
 )
 
 
-def dipendenze_dichiarate() -> list[str]:
-    nomi = []
+def dipendenze_dichiarate() -> dict[str, str]:
+    """{nome: versione fissata}. La versione viene da requirements.txt, non
+    dai metadati installati: l'inventario descrive quello che un deployment
+    ottiene, non quello che c'e' sulla macchina di chi lo rigenera — due cose
+    che divergono ogni volta che un pin cambia prima di un `pip install`."""
+    dichiarate: dict[str, str] = {}
     for riga in (RADICE / "requirements.txt").read_text(encoding="utf-8").splitlines():
         riga = riga.split("#")[0].strip()
         if not riga or riga.startswith("-"):
             continue
-        nomi.append(re.split(r"[=<>!\[]", riga)[0].strip())
-    return sorted(set(nomi), key=str.lower)
+        nome = re.split(r"[=<>!\[]", riga)[0].strip()
+        fissata = riga.split("==", 1)[1].strip() if "==" in riga else "(non fissata)"
+        dichiarate[nome] = fissata
+    return dict(sorted(dichiarate.items(), key=lambda v: v[0].lower()))
 
 
-def licenza_python(nome: str) -> tuple[str, str]:
-    """(versione, licenza). Legge PEP 639 (License-Expression), poi i
-    classifier, poi il campo libero: i pacchetti recenti usano il primo, quelli
-    piu' vecchi gli altri, e guardarne uno solo fa risultare mezza lista
-    "senza licenza"."""
+def licenza_python(nome: str) -> str:
+    """Legge PEP 639 (License-Expression), poi i classifier, poi il campo
+    libero: i pacchetti recenti usano il primo, quelli piu' vecchi gli altri, e
+    guardarne uno solo fa risultare mezza lista "senza licenza"."""
     try:
         dist = md.distribution(nome)
     except md.PackageNotFoundError:
-        return "?", "NON INSTALLATA"
+        return "NON INSTALLATA"
     meta = dist.metadata
     for chiave in ("License-Expression", "License"):
         valore = (meta.get(chiave) or "").strip()
         if valore and len(valore) < 80:
-            return dist.version, valore
+            return valore
     classifier = [c.split("::")[-1].strip() for c in (meta.get_all("Classifier") or []) if c.startswith("License ::")]
-    return dist.version, " / ".join(classifier) if classifier else "(non dichiarata)"
+    return " / ".join(classifier) if classifier else "(non dichiarata)"
 
 
 def permissiva(licenza: str) -> bool:
@@ -94,7 +99,7 @@ def dipendenze_javascript() -> list[tuple[str, str, str, bool]]:
 
 
 def main() -> int:
-    python_voci = [(nome, *licenza_python(nome)) for nome in dipendenze_dichiarate()]
+    python_voci = [(nome, versione, licenza_python(nome)) for nome, versione in dipendenze_dichiarate().items()]
     js_voci = dipendenze_javascript()
     js_diretti = [v for v in js_voci if v[3]]
 

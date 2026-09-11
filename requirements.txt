@@ -5,7 +5,10 @@
 fastapi==0.136.1
 uvicorn[standard]==0.47.0
 pydantic==2.13.4
-python-multipart==0.0.22
+# 0.0.22 fino all'11 settembre 2026: pip-audit segnalava 10 vulnerabilita'
+# note su questa versione (denial of service nel parsing multipart, cioe'
+# esattamente il percorso del caricamento documenti).
+python-multipart==0.0.31
 
 # LlamaIndex, ChromaDB e il client Ollama sono in requirements-legacy.txt: li
 # usa solo il motore storico WinSarp, che e' spento salvo
@@ -14,7 +17,11 @@ python-multipart==0.0.22
 
 # Document Processing
 python-docx==1.2.0
-pypdf==6.10.2
+# 6.10.2 fino all'11 settembre 2026: 33 vulnerabilita' note, la meta' del
+# totale segnalato da pip-audit. pypdf legge i PDF caricati dagli utenti, cioe'
+# ingresso non fidato per definizione: e' il posto peggiore dove restare
+# indietro di sei versioni correttive.
+pypdf==6.16.1
 
 # Configuration
 python-dotenv==1.2.2
