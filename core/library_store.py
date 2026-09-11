@@ -30,7 +30,8 @@ def _resolve_backend(database_path: str | Path | None) -> Backend:
     """Scegli il backend in base a ERMES_DATABASE_URL, con fallback sul path SQLite."""
     if database_path is not None:
         return SqliteBackend(str(database_path))
-    return create_backend(cfg.DATABASE_URL)
+    backend: Backend = create_backend(cfg.DATABASE_URL)
+    return backend
 
 
 # Common function words must not become the only "evidence" for a RAG answer.
@@ -1279,7 +1280,8 @@ class LibraryStore:
                 ).fetchall()
                 for r in emb_rows:
                     cid = r.get("id") if isinstance(r, dict) else r[0]
-                    candidate_chunk_ids.add(cid)
+                    if cid:
+                        candidate_chunk_ids.add(str(cid))
 
             if not candidate_chunk_ids and not semantic_used:
                 return [], {"mode": "keyword", "semantic_indexed_chunks": indexed_count, "semantic_used": False}

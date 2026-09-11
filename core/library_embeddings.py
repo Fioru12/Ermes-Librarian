@@ -37,7 +37,7 @@ def embed_texts(texts: list[str]) -> list[list[float]]:
             timeout=10,
         )
         response.raise_for_status()
-        embeddings = response.json().get("embeddings", [])
+        embeddings: list[list[float]] = response.json().get("embeddings", [])
         if len(embeddings) == len(texts) and all(isinstance(item, list) for item in embeddings):
             return embeddings
     except (httpx.HTTPError, ValueError, TypeError):
@@ -51,4 +51,4 @@ def min_semantic_score() -> float:
     Derivata da SCORE_THRESHOLD_LOW nel config: le corrispondenze con un
     punteggio semantico al di sotto di questa soglia vengono filtrate.
     """
-    return cfg.SCORE_THRESHOLD_LOW
+    return float(cfg.SCORE_THRESHOLD_LOW)

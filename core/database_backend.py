@@ -75,7 +75,7 @@ class SqliteBackend:
         with closing(self._connect()) as conn:
             cur = conn.execute(sql, params or ())
             conn.commit()
-            return cur.rowcount
+            return int(cur.rowcount)
 
     def execute_returning(self, sql: str, params: tuple | dict | None = None) -> dict | None:
         with closing(self._connect()) as conn:
@@ -87,7 +87,7 @@ class SqliteBackend:
         with closing(self._connect()) as conn:
             cur = conn.executemany(sql, params_seq)
             conn.commit()
-            return cur.rowcount
+            return int(cur.rowcount)
 
     def execute_script(self, sql: str) -> None:
         with closing(self._connect()) as conn:

@@ -11,7 +11,7 @@ from .openai_compat import OpenAICompatProvider
 
 _logger = logging.getLogger(__name__)
 
-PROVIDER_TYPES = {
+PROVIDER_TYPES: dict[str, type[BaseProvider]] = {
     "openai": OpenAICompatProvider,
     "anthropic": AnthropicProvider,
     "google": GoogleProvider,
@@ -161,7 +161,7 @@ class ProviderRegistry:
                 timeout,
             )
 
-        last_error = None
+        last_error: Exception | None = None
         for provider in providers_to_try:
             try:
                 result = provider.complete(
@@ -197,7 +197,7 @@ class ProviderRegistry:
     # ---- Internals ----
 
     def _from_dict(self, data: dict) -> BaseProvider | None:
-        ptype = data.get("type")
+        ptype = str(data.get("type") or "")
         provider_cls = PROVIDER_TYPES.get(ptype)
         if not provider_cls:
             return None
@@ -249,7 +249,7 @@ def _legacy_call_llm(
         messages.append({"role": "system", "content": system_prompt})
     messages.append({"role": "user", "content": prompt})
 
-    last_error = None
+    last_error: Exception | None = None
     for retry in range(2):
         for api_model in models_to_try:
             payload = {
@@ -271,10 +271,10 @@ def _legacy_call_llm(
                 msg = data["choices"][0]["message"]
                 content = msg.get("content")
                 if content is not None:
-                    return content
+                    return str(content)
                 reasoning = msg.get("reasoning")
                 if reasoning:
-                    return reasoning
+                    return str(reasoning)
                 return ""
             except httpx.HTTPStatusError as e:
                 status = e.response.status_code
@@ -292,7 +292,7 @@ def _legacy_call_llm(
                         msg = data["choices"][0]["message"]
                         content = msg.get("content")
                         if content is not None:
-                            return content
+                            return str(content)
                         return ""
                     except Exception:
                         pass
@@ -312,13 +312,15 @@ def _legacy_call_llm(
     raise last_error or RuntimeError("Nessun modello OpenRouter disponibile")
 
 
-def _legacy_ollama(prompt, model_id, system_prompt, temp, json_mode, timeout):
+def _legacy_ollama(
+    prompt: str, model_id: str, system_prompt: str | None, temp: float, json_mode: bool, timeout: float
+) -> str:
     import httpx
 
     from config import cfg
 
     url = f"{cfg.OLLAMA_HOST.rstrip('/')}/api/generate"
-    payload = {
+    payload: dict[str, object] = {
         "model": model_id,
         "prompt": prompt,
         "stream": False,
@@ -330,7 +332,7 @@ def _legacy_ollama(prompt, model_id, system_prompt, temp, json_mode, timeout):
         payload["format"] = "json"
     resp = httpx.post(url, json=payload, timeout=timeout)
     resp.raise_for_status()
-    return resp.json().get("response", "")
+    return str(resp.json().get("response", ""))
 
 
 # ---- Istanza globale ----

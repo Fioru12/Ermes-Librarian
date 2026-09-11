@@ -60,7 +60,7 @@ def _get_langfuse():
 def call_llm(
     prompt: str,
     model_id: str,
-    system_prompt: str = None,
+    system_prompt: str | None = None,
     temp: float = 0.1,
     json_mode: bool = False,
     timeout: int = 120,
@@ -114,7 +114,7 @@ def call_llm(
         from config import cfg as _cfg
 
         if not _cfg.OPENROUTER_API_KEY:
-            result = _call_ollama(prompt, model_id, system_prompt, temp, json_mode, timeout, _httpx, _cfg)
+            result = str(_call_ollama(prompt, model_id, system_prompt, temp, json_mode, timeout, _httpx, _cfg))
             _lf_end_trace(_lf_gen, _lf_start, result, None)
             return result
 
@@ -161,13 +161,13 @@ def call_llm(
                         if attempt > 0:
                             _logger.info("call_llm: %s -> %s (ok)", models_to_try[0], api_model)
                         _lf_end_trace(_lf_gen, _lf_start, content, None)
-                        return content
+                        return str(content)
                     reasoning = msg.get("reasoning")
                     if reasoning:
                         if attempt > 0:
                             _logger.info("call_llm: %s -> %s (reasoning ok)", models_to_try[0], api_model)
                         _lf_end_trace(_lf_gen, _lf_start, reasoning, None)
-                        return reasoning
+                        return str(reasoning)
                     _lf_end_trace(_lf_gen, _lf_start, "", None)
                     return ""
                 except _httpx.HTTPStatusError as e:
@@ -188,11 +188,11 @@ def call_llm(
                             content = msg.get("content")
                             if content is not None:
                                 _lf_end_trace(_lf_gen, _lf_start, content, None)
-                                return content
+                                return str(content)
                             reasoning = msg.get("reasoning")
                             if reasoning:
                                 _lf_end_trace(_lf_gen, _lf_start, reasoning, None)
-                                return reasoning
+                                return str(reasoning)
                             _lf_end_trace(_lf_gen, _lf_start, "", None)
                             return ""
                         except Exception as e2:

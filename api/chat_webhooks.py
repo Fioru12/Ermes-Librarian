@@ -105,7 +105,7 @@ async def _resolve_answer_text(store: LibraryStore, platform: str, external_chan
         raise HTTPException(429, motivo)
     actor = {"username": integration["created_by"], "role": "editor"}
     result = await asyncio.to_thread(_answer_question, store, integration["library_id"], question, 3, actor)
-    answer = result["answer"]
+    answer = str(result["answer"])
     filenames = sorted({item["filename"] for item in result["citations"]})
     if filenames:
         answer = f"{answer}\n\n📎 Fonti: {', '.join(filenames)}"

@@ -14,8 +14,8 @@ def analyze_audit(audit_file: str, days: int = 30) -> dict:
         return {"total_actions": 0, "actions_by_type": {}, "top_users": []}
     week_ago = datetime.now() - timedelta(days=days)
     total = 0
-    actions_by_type = defaultdict(int)
-    users_count = defaultdict(int)
+    actions_by_type: dict[str, int] = defaultdict(int)
+    users_count: dict[str, int] = defaultdict(int)
     try:
         with open(audit_file, encoding="utf-8") as f:
             for line in f:

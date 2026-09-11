@@ -117,7 +117,7 @@ def extract_source_units(filename: str, content: bytes) -> list[SourceUnit]:
 
             document = Document(BytesIO(content))
             heading = "Documento"
-            units: list[SourceUnit] = []
+            docx_units: list[SourceUnit] = []
             for number, paragraph in enumerate(document.paragraphs, start=1):
                 text = paragraph.text.strip()
                 if not text:
@@ -125,8 +125,8 @@ def extract_source_units(filename: str, content: bytes) -> list[SourceUnit]:
                 if paragraph.style and paragraph.style.name.lower().startswith("heading"):
                     heading = text
                     continue
-                units.append(SourceUnit(text, f"{heading}, paragrafo {number}"))
-            return units
+                docx_units.append(SourceUnit(text, f"{heading}, paragrafo {number}"))
+            return docx_units
         if suffix == ".xlsx":
             _validate_office_archive(content, "xlsx")
             return _extract_xlsx_units(content)

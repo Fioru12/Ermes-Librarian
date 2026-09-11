@@ -45,7 +45,7 @@ class OpenAICompatProvider(BaseProvider):
         if json_mode:
             payload["response_format"] = {"type": "json_object"}
 
-        last_error = None
+        last_error: Exception | None = None
         for retry in range(2):
             try:
                 resp = httpx.post(url, headers=headers, json=payload, timeout=timeout)
@@ -54,10 +54,10 @@ class OpenAICompatProvider(BaseProvider):
                 msg = data["choices"][0]["message"]
                 content = msg.get("content")
                 if content is not None:
-                    return content
+                    return str(content)
                 reasoning = msg.get("reasoning")
                 if reasoning:
-                    return reasoning
+                    return str(reasoning)
                 return ""
             except httpx.HTTPStatusError as e:
                 status = e.response.status_code
@@ -70,7 +70,7 @@ class OpenAICompatProvider(BaseProvider):
                         msg = data["choices"][0]["message"]
                         content = msg.get("content")
                         if content is not None:
-                            return content
+                            return str(content)
                         return ""
                     except Exception as e2:
                         last_error = e2

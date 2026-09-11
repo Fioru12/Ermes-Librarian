@@ -186,7 +186,7 @@ def _get_audit_secret() -> bytes:
 
     if cfg.AUDIT_SECRET:
         if _is_usable_audit_secret(cfg.AUDIT_SECRET):
-            return cfg.AUDIT_SECRET.encode("utf-8")
+            return str(cfg.AUDIT_SECRET).encode("utf-8")
         _logger.warning(
             "ERMES_AUDIT_SECRET e' un valore segnaposto pubblico: ignorato. "
             "Viene usata una chiave generata e persistita per questa installazione."

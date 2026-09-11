@@ -29,7 +29,7 @@ class GoogleProvider(BaseProvider):
         url = f"{base_url}/v1beta/models/{model_id}:generateContent?key={api_key}"
 
         contents = {"role": "user", "parts": [{"text": prompt}]}
-        payload = {
+        payload: dict[str, object] = {
             "contents": [contents],
             "generationConfig": {
                 "temperature": temp,
@@ -39,9 +39,11 @@ class GoogleProvider(BaseProvider):
         if system_prompt:
             payload["system_instruction"] = {"parts": [{"text": system_prompt}]}
         if json_mode:
-            payload["generationConfig"]["response_mime_type"] = "application/json"
+            generation_config = payload["generationConfig"]
+            assert isinstance(generation_config, dict)
+            generation_config["response_mime_type"] = "application/json"
 
-        last_error = None
+        last_error: Exception | None = None
         for retry in range(2):
             try:
                 resp = httpx.post(url, json=payload, timeout=timeout)
@@ -52,7 +54,7 @@ class GoogleProvider(BaseProvider):
                     parts = candidates[0].get("content", {}).get("parts", [])
                     text_parts = [p.get("text", "") for p in parts]
                     return "\n".join(text_parts)
-                return data.get("text", "")
+                return str(data.get("text", ""))
             except httpx.HTTPStatusError as e:
                 status = e.response.status_code
                 if status in (429, 502, 503, 504) or status >= 500:

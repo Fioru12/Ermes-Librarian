@@ -260,10 +260,9 @@ def get_analytics_summary(days: int = 30, library_ids: set[str] | None = None) -
     # indistinguibile da un dato reale per chi lo guarda.
     pos_rate = round((positive_fb / len(feedbacks) * 100.0), 1) if feedbacks else None
 
-    top_libraries = sorted(
-        [{"library_id": lib, "count": count} for lib, count in by_library.items()],
-        key=lambda x: -x["count"],
-    )[:10]
+    top_libraries = [
+        {"library_id": lib, "count": count} for lib, count in sorted(by_library.items(), key=lambda voce: -voce[1])[:10]
+    ]
 
     return {
         "period_days": days,

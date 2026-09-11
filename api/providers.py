@@ -187,7 +187,13 @@ async def set_active_provider(request: SetActiveProviderRequest, _auth: dict = D
 @router.post("/api/providers/detect", summary="Rileva automaticamente tipo e configurazione da una API key")
 async def detect_provider(request: DetectProviderRequest, _auth: dict = Depends(_require_role("admin"))):
     key = request.api_key.strip()
-    detected = {"api_key": key, "type": "openai", "base_url": "", "default_model": "", "match": "unknown"}
+    detected: dict[str, object] = {
+        "api_key": key,
+        "type": "openai",
+        "base_url": "",
+        "default_model": "",
+        "match": "unknown",
+    }
 
     for prefix, ptype, base_url, default_model in PROVIDER_SIGNATURES:
         if key.startswith(prefix):

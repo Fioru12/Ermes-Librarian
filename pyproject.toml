@@ -122,39 +122,12 @@ module = "legacy_winsarp.*"
 ignore_errors = true
 
 # ---------------------------------------------------------------------------
-# Debito di tipizzazione, elencato invece che nascosto.
+# Debito di tipizzazione: estinto l'11 settembre 2026.
 #
-# Il controllo dei tipi era "advisory" in CI: 92 segnalazioni che nessuno
-# poteva distinguere fra vecchie e nuove, quindi in pratica ignorate. Renderlo
-# bloccante di colpo avrebbe richiesto 48 correzioni in un colpo solo, molte
-# cosmetiche, alcune no.
-#
-# La via di mezzo e' un cricchetto: i moduli qui sotto sono gli unici ancora
-# esentati, e il controllo e' bloccante ovunque altro. Un file nuovo nasce
-# quindi pulito e deve restarlo, e questa lista puo' solo accorciarsi. Togliere
-# un nome e correggere quel modulo e' un'attivita' autonoma, adatta a chiunque.
-#
-# NON aggiungere nomi a questa lista per far passare la CI: significherebbe
-# tornare al punto di partenza con un passaggio in piu'.
-[[tool.mypy.overrides]]
-module = [
-    "api",
-    "api.chat_webhooks",
-    "api.providers",
-    "core.ai.providers.anthropic",
-    "core.ai.providers.google",
-    "core.ai.providers.ollama",
-    "core.ai.providers.openai_compat",
-    "core.ai.providers.registry",
-    "core.ai.utils",
-    "core.analytics",
-    "core.database_backend",
-    "core.document_parser",
-    "core.governance",
-    "core.library_embeddings",
-    "core.library_store",
-    "core.monitoring",
-    "core.pii_filter",
-    "core.rate_limiter",
-]
-ignore_errors = true
+# Qui c'era un elenco di 18 moduli esentati dal controllo dei tipi — un
+# cricchetto che poteva solo accorciarsi, nato quando rendere mypy bloccante
+# di colpo avrebbe richiesto 48 correzioni in una volta. Le 48 correzioni sono
+# state fatte (annotazioni mancanti, Optional impliciti, ritorni Any resi
+# espliciti, una variabile ridefinita, un dizionario tipizzato troppo stretto)
+# senza un solo `type: ignore`. Il controllo e' bloccante su tutto il codice
+# di prodotto. NON reintrodurre esenzioni per far passare la CI.

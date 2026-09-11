@@ -46,7 +46,7 @@ class AnthropicProvider(BaseProvider):
         if json_mode:
             payload["extra_headers"] = {"anthropic-beta": "json-mode-2024-05-31"}
 
-        last_error = None
+        last_error: Exception | None = None
         for retry in range(2):
             try:
                 resp = httpx.post(url, headers=headers, json=payload, timeout=timeout)

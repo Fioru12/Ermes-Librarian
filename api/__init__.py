@@ -28,7 +28,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 import httpx
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import APIRouter, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
@@ -370,17 +370,23 @@ from api.webhook_gateway import router as webhook_gateway_router
 # Il vecchio motore WinSarp resta disponibile per sviluppo interno, ma non fa
 # parte del percorso pubblico del bibliotecario. Si abilita esplicitamente solo
 # quando serve lavorare sul modulo legacy.
-formule_router = None
-graph_router = None
-query_router = None
-documents_router = None
-integrations_router = None
+formule_router: APIRouter | None = None
+graph_router: APIRouter | None = None
+query_router: APIRouter | None = None
+documents_router: APIRouter | None = None
+integrations_router: APIRouter | None = None
 if getattr(cfg, "ENABLE_LEGACY_WINSARP", False):
-    from api.documents import router as documents_router
-    from api.formule import router as formule_router
-    from api.graph import router as graph_router
-    from api.integrations import router as integrations_router
-    from api.query import router as query_router
+    from api.documents import router as _documents_router
+    from api.formule import router as _formule_router
+    from api.graph import router as _graph_router
+    from api.integrations import router as _integrations_router
+    from api.query import router as _query_router
+
+    documents_router = _documents_router
+    formule_router = _formule_router
+    graph_router = _graph_router
+    integrations_router = _integrations_router
+    query_router = _query_router
 
 app.include_router(auth_router)
 app.include_router(health_router)

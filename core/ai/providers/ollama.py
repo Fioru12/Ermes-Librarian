@@ -38,12 +38,12 @@ class OllamaProvider(BaseProvider):
         if json_mode:
             payload["format"] = "json"
 
-        last_error = None
+        last_error: Exception | None = None
         for retry in range(2):
             try:
                 resp = httpx.post(url, json=payload, timeout=timeout)
                 resp.raise_for_status()
-                return resp.json().get("response", "")
+                return str(resp.json().get("response", ""))
             except httpx.HTTPStatusError as e:
                 status = e.response.status_code
                 _logger.error("Ollama error (%s): status %s", model_id, status)

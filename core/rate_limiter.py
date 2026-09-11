@@ -27,7 +27,7 @@ class RateLimiter:
     Per produzione, usare Redis o simili per distribuito.
     """
 
-    def __init__(self, config: RateLimitConfig = None):
+    def __init__(self, config: RateLimitConfig | None = None):
         self.config = config or RateLimitConfig()
         self._requests: dict[str, list] = defaultdict(list)
         self._uploads: dict[str, list] = defaultdict(list)
@@ -149,7 +149,7 @@ class RateLimiter:
         self._upload_sizes[identifier] = sum(self._upload_sizes_log[identifier].values())
         return True, ""
 
-    def reset(self, identifier: str = None):
+    def reset(self, identifier: str | None = None) -> None:
         """Resetta i contatori per identifier o tutti se None."""
         if identifier:
             self._requests.pop(identifier, None)

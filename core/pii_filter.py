@@ -113,7 +113,7 @@ def get_pii_config() -> dict[str, Any]:
         if config_path.exists():
             try:
                 with open(config_path, encoding="utf-8") as f:
-                    loaded = json.load(f)
+                    loaded: dict[str, Any] = json.load(f)
                     _cached_config = loaded
                     return loaded
             except Exception as e:
@@ -137,7 +137,7 @@ def update_pii_config(new_config: dict[str, Any]) -> dict[str, Any]:
         custom_rules = new_config.get("custom_rules", [])
 
         # Sanitizza custom rules
-        sanitized_rules = []
+        sanitized_rules: list[dict[str, Any]] = []
         for r in custom_rules:
             if isinstance(r, dict) and r.get("name") and r.get("pattern") and r.get("replacement"):
                 # Testa se la regex e' valida
@@ -231,8 +231,8 @@ def filter_pii(text: str, enabled: bool = True) -> str:
                     matched = match.group(0)
                     if _validate_luhn(matched):
                         detected += 1
-                        return replacement
-                    return matched
+                        return str(replacement)
+                    return str(matched)
 
                 result = re.sub(pattern, _replace_cc, result)
             elif pid == "iban":
@@ -242,8 +242,8 @@ def filter_pii(text: str, enabled: bool = True) -> str:
                     matched = match.group(0)
                     if _validate_iban(matched):
                         detected += 1
-                        return replacement
-                    return matched
+                        return str(replacement)
+                    return str(matched)
 
                 result = re.sub(pattern, _replace_iban, result, flags=re.IGNORECASE)
             elif pid == "api_key_generic":
