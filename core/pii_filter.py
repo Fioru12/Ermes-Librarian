@@ -342,8 +342,3 @@ def detect_pii(text: str) -> list[dict[str, Any]]:
             pass
 
     return results
-
-
-def filter_pii_batch(texts: list[str], enabled: bool = True) -> list[str]:
-    """Applica filter_pii a una lista di testi."""
-    return [filter_pii(t, enabled=enabled) for t in texts]

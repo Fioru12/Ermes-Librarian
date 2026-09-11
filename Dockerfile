@@ -43,8 +43,7 @@ ENV PATH=/root/.local/bin:$PATH
 # Copy application code.
 # Copy the config package explicitly rather than globbing *.py: a glob silently
 # ships whatever happens to sit in the repository root into the production
-# image. config_legacy.py is a reference-only file and is deliberately NOT
-# copied. data/ is deliberately NOT copied — it holds the runtime SQLite
+# image. data/ is deliberately NOT copied — it holds the runtime SQLite
 # database, is untracked, and is created empty below; copying it broke
 # clean-clone builds.
 COPY config/ ./config/

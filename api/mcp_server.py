@@ -89,11 +89,10 @@ AVAILABLE_TOOLS = [
 ]
 
 
-class JSONRPCRequest(BaseModel):
-    jsonrpc: str = Field(default="2.0")
-    id: Any = None
-    method: str
-    params: dict[str, Any] = Field(default_factory=dict)
+# Non esiste un modello per la richiesta JSON-RPC: l'endpoint legge il corpo
+# grezzo di proposito. Con un modello Pydantic una richiesta malformata
+# diventava un 422 con il formato di errore di FastAPI, mentre il protocollo
+# vuole una risposta JSON-RPC con codice -32700/-32600 e l'id originale.
 
 
 class ToolCallRequest(BaseModel):

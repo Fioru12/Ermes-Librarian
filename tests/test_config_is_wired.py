@@ -36,8 +36,11 @@ import config
 RADICE = Path(__file__).resolve().parents[1]
 
 # Cartelle e file che DEFINISCONO la configurazione: cercare li' un campo
-# troverebbe solo la sua dichiarazione.
-_DEFINIZIONI = {"config_legacy.py"}
+# troverebbe solo la sua dichiarazione. Vuoto da quando config_legacy.py — il
+# vecchio config.py tenuto "per riferimento" dopo il passaggio al package
+# config/ — e' stato rimosso: la cronologia git lo conserva meglio di una copia
+# ferma nel repo, che ruff doveva escludere e questo test ignorare.
+_DEFINIZIONI: set[str] = set()
 _ESCLUSE = {".venv-ermes", "__pycache__", "legacy_winsarp", "node_modules", "tests"}
 
 # Campi dichiarati e non letti, con la ragione. Ogni voce e' un'impostazione
