@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import logging
 import re
+import threading
 
 import httpx
 
@@ -56,8 +57,22 @@ def _prompt(question: str, citations: list[dict]) -> str:
     return f"DOMANDA:\n{clean_question}\n\nEVIDENZE AUTORIZZATE:\n{evidence}"
 
 
+_client: httpx.Client | None = None
+_client_lock = threading.Lock()
+
+
+def _get_http_client() -> httpx.Client:
+    global _client
+    if _client is None or _client.is_closed:
+        with _client_lock:
+            if _client is None or _client.is_closed:
+                _client = httpx.Client()
+    return _client
+
+
 def _call_ollama(prompt: str) -> str:
-    response = httpx.post(
+    client = _get_http_client()
+    response = client.post(
         f"{cfg.OLLAMA_HOST.rstrip('/')}/api/chat",
         json={
             "model": cfg.DEFAULT_MODEL_ID,
@@ -74,7 +89,8 @@ def _call_ollama(prompt: str) -> str:
 def _call_approved_openrouter(prompt: str) -> str:
     if not cfg.LIBRARY_CLOUD_CONSENT or not cfg.OPENROUTER_API_KEY:
         raise RuntimeError("Provider cloud non autorizzato o non configurato")
-    response = httpx.post(
+    client = _get_http_client()
+    response = client.post(
         f"{cfg.OPENROUTER_BASE_URL.rstrip('/')}/chat/completions",
         headers={"Authorization": f"Bearer {cfg.OPENROUTER_API_KEY}", "Content-Type": "application/json"},
         json={

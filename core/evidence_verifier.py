@@ -51,7 +51,9 @@ avviene in silenzio — viene registrato, e la risposta porta
 passato.
 """
 
+import concurrent.futures
 import logging
+import threading
 
 import httpx
 
@@ -67,6 +69,18 @@ _ISTRUZIONE = (
 )
 
 _TIMEOUT_SECONDI = 60.0
+
+_client: httpx.Client | None = None
+_client_lock = threading.Lock()
+
+
+def _get_http_client() -> httpx.Client:
+    global _client
+    if _client is None or _client.is_closed:
+        with _client_lock:
+            if _client is None or _client.is_closed:
+                _client = httpx.Client(timeout=_TIMEOUT_SECONDI)
+    return _client
 
 
 def _modello() -> str:
@@ -117,7 +131,9 @@ def verify_citations(question: str, citations: list[dict]) -> tuple[list[dict], 
     invariate e `False`: il chiamante deve dichiararlo nella risposta invece di
     lasciar credere che il controllo sia passato.
     """
+    from core.injection_guard import inspect_passage
     from core.metrics import record_verifier_outcome
+    from core.pii_filter import filter_pii
 
     if not getattr(config.cfg, "EVIDENCE_VERIFIER_ENABLED", False):
         record_verifier_outcome("disabled")
@@ -126,9 +142,12 @@ def verify_citations(question: str, citations: list[dict]) -> tuple[list[dict], 
         # Niente da verificare non e' un degrado: non si conta.
         return citations, False
 
+    clean_question = filter_pii(question, enabled=config.cfg.PII_FILTER_ENABLED)
     superstiti: list[dict] = []
+    to_verify: list[tuple[int, dict, str]] = []  # (original_idx, citation, clean_text)
     almeno_una_verificata = False
-    for citazione in citations:
+
+    for idx, citazione in enumerate(citations):
         testo = str(citazione.get("excerpt") or citazione.get("text") or "").strip()
         if not testo:
             # Senza testo non c'e' niente da verificare: si conserva la
@@ -138,34 +157,42 @@ def verify_citations(question: str, citations: list[dict]) -> tuple[list[dict], 
         # Un passaggio con istruzioni rivolte al modello non va al modello, e
         # non conta come evidenza verificata: chi verifica non deve leggere
         # cio' che cerca di dirgli cosa rispondere.
-        from core.injection_guard import inspect_passage
-
         if inspect_passage(testo).sospetto:
             almeno_una_verificata = True
             continue
-        # Il testo va a un modello, quindi passa dal filtro PII come ogni
-        # altro percorso che lo fa (core/evidence_assistant.py). Mancava:
-        # questo modulo e' stato scritto il 9 settembre 2026 e il filtro non
-        # e' stato applicato, aprendo una via per cui dati sensibili
-        # raggiungevano il modello mentre la configurazione dichiarava di
-        # oscurarli.
-        from core.pii_filter import filter_pii
+        clean_text = filter_pii(testo, enabled=config.cfg.PII_FILTER_ENABLED)
+        to_verify.append((idx, citazione, clean_text))
 
-        esito = _passaggio_risponde(
-            filter_pii(question, enabled=config.cfg.PII_FILTER_ENABLED),
-            filter_pii(testo, enabled=config.cfg.PII_FILTER_ENABLED),
-        )
-        if esito is None:
-            # Il modello non risponde: si smette di verificare e si torna al
-            # comportamento senza verifica, per l'intera risposta.
-            _logger.warning("Verifica dell'evidenza interrotta: le citazioni non sono state controllate")
-            record_verifier_outcome("unavailable")
-            return citations, False
+    if to_verify:
         almeno_una_verificata = True
-        if esito:
-            superstiti.append(citazione)
+        # Esegui in parallelo se ci sono più passaggi candidati
+        if len(to_verify) == 1:
+            _, cit, c_text = to_verify[0]
+            esito = _passaggio_risponde(clean_question, c_text)
+            if esito is None:
+                _logger.warning("Verifica dell'evidenza interrotta: le citazioni non sono state controllate")
+                record_verifier_outcome("unavailable")
+                return citations, False
+            if esito:
+                superstiti.append(cit)
+        else:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=min(4, len(to_verify))) as executor:
+                verdicts = list(executor.map(lambda item: _passaggio_risponde(clean_question, item[2]), to_verify))
+
+            for (orig_idx, cit, _), esito in zip(to_verify, verdicts):
+                if esito is None:
+                    _logger.warning("Verifica dell'evidenza interrotta: le citazioni non sono state controllate")
+                    record_verifier_outcome("unavailable")
+                    return citations, False
+                if esito:
+                    superstiti.append(cit)
 
     if not almeno_una_verificata:
         return citations, False
+
+    # Ordina i superstiti per preservare l'ordine originale di pertinenza
+    orig_order = {id(c): i for i, c in enumerate(citations)}
+    superstiti.sort(key=lambda c: orig_order.get(id(c), 999))
+
     record_verifier_outcome("verified")
     return superstiti, True

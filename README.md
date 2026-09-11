@@ -86,7 +86,8 @@ Teams often have procedures, policies, manuals, contracts and internal know-how 
 - Model Context Protocol (MCP) Server: native JSON-RPC 2.0 (`/api/mcp/rpc`) and REST (`/api/mcp/tools`) for AI agents (Claude Desktop, Cursor, Antigravity, LangChain).
 - Automation Webhook Gateway: API Key-authenticated REST endpoints (`/api/integrations/automation/ask` and `/ingest`) tailored for n8n, Zapier, Make, and microservices.
 - Multi-channel Chat Integrations: Slack Slash Commands / Events, Microsoft Teams Outgoing Webhooks, and Telegram Bot API.
-- Dedicated React Interface with first-access onboarding wizard, Connectors & Automations tab, FastAPI backend, automated test suite (backend `pytest`, frontend `vitest`, Locust load scenarios, pytest performance benchmarks).
+- Real-time Server-Sent Events (SSE) Streaming: `/api/libraries/{library_id}/ask/stream` streams live status steps (`retrieving`, `verifying`, `composing`), verified citations, and generated answers directly to the React UI with zero polling.
+- Dedicated React Interface with real-time streaming feedback, first-access onboarding wizard, Connectors & Automations tab, FastAPI backend, automated test suite (backend `pytest`, frontend `vitest`, Locust load scenarios, pytest performance benchmarks).
 
 ![Libraries and documents, each with version, indexing state and a per-library assistant policy](docs/screenshots/libraries-and-documents.png)
 

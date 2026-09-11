@@ -280,6 +280,7 @@ def test_library_api_creates_and_uploads_a_document(tmp_path: Path, monkeypatch)
     # legittimo diventa "hybrid_local", quindi forziamo il fallback qui sotto
     # per mantenere il test deterministico su qualsiasi macchina.
     monkeypatch.setattr("core.ingestion_service.embed_texts", lambda _texts: [])
+    monkeypatch.setattr("core.evidence_verifier.verify_citations", lambda _q, c: (c, False))
     app.dependency_overrides[get_library_store] = lambda: LibraryStore(tmp_path / "api.sqlite3")
     app.dependency_overrides[_verify_api_key] = lambda: {"username": "test", "role": "admin"}
     try:

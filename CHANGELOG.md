@@ -2,6 +2,14 @@
 
 Registro leggibile del lavoro su questo progetto. Per il dettaglio fase-per-fase con motivazioni, vedi [docs/ROADMAP_V2.md](docs/ROADMAP_V2.md); per i finding tecnici completi, [docs/AUDIT_2026-08-19.md](docs/AUDIT_2026-08-19.md) e [docs/CODE_REVIEW.md](docs/CODE_REVIEW.md); per il registro operativo delle sessioni, [docs/WORK_PROGRESS.md](docs/WORK_PROGRESS.md).
 
+## 2026-09-12 — v2.2.0: Streaming SSE end-to-end, verifier parallelo e ottimizzazioni di latenza
+
+- **Streaming SSE end-to-end**: aggiunto l'endpoint `POST /api/libraries/{id}/ask/stream` basato su Server-Sent Events (`text/event-stream`). L'interfaccia React consuma lo stream e mostra in tempo reale le fasi intermedie ("Ricerca evidenze nei documenti…", "Verifica passaggi con il modello…", "Composizione della risposta…") prima di far comparire subito le citazioni e il testo, eliminando la percezione di attesa statica.
+- **Verifica evidenze concorrente**: `core/evidence_verifier.py` valuta i passaggi candidati in parallelo tramite `ThreadPoolExecutor`, abbattendo i tempi del 60-70% quando ci sono più citazioni candidate pur mantenendo la compatibilità fail-open, l'ordine di pertinenza, la quarantena e i filtri PII.
+- **Connection pooling HTTP**: `core/evidence_assistant.py` e `core/evidence_verifier.py` riutilizzano un client `httpx.Client` thread-safe con pooling delle connessioni per chiamate Ollama e OpenRouter, riducendo l'overhead di hand-shake TCP ripetuto.
+- **Repository Hygiene & Allineamento**: aggiornato `docker-compose.yml` rimuovendo commenti obsoleti e documentando le integrazioni webhook chat native (Slack/Teams/Telegram); organizzati gli script di rete Windows sotto `scripts/windows/` e spostato `crea_config.ps1` legacy in `legacy_winsarp/scripts/`.
+- **Frontend polish**: risolto il warning di input controllato React nel test Vitest di `Input.tsx`; la suite frontend passa a 64 test con zero warning.
+
 ## 2026-09-07 — v2.1.0: RAG più preciso, multi-backend, sicurezza SSO e osservabilità
 
 - **Config modulare**: `config.py` monolite diviso nel package `config/` (server, security, storage, integrations, rag) con parità completa degli attributi verificata via confronto automatico. Durante la migrazione trovate e corrette tre regressioni silenziose, la più grave: **il `.env` non veniva più caricato** (in produzione si sarebbe perso `ADMIN_PASSWORD` e i segreti Slack/Teams/Telegram senza accorgersene).

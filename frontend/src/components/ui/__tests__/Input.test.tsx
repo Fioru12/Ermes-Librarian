@@ -69,7 +69,7 @@ describe('Select', () => {
 
   it('applies value', () => {
     renderWithTheme(
-      <Select value="b">
+      <Select value="b" onChange={() => {}}>
         <option value="a">A</option>
         <option value="b">B</option>
       </Select>

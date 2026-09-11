@@ -122,24 +122,74 @@ function AppInner() {
     const controller = new AbortController()
     abortRef.current = controller
     try {
-      const response = await fetch(`/api/libraries/${selectedLibraryId}/ask`, {
+      const response = await fetch(`/api/libraries/${selectedLibraryId}/ask/stream`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ question, history }), signal: controller.signal,
         credentials: 'include',
       })
       if (!response.ok) throw new Error('Impossibile interrogare la biblioteca')
-      const data = await response.json()
-      const returnedId = data.answer_id || answerId
-      setMessages(previous => previous.map(message => message.id === answerId
-        ? {
-            ...message,
-            id: returnedId,
-            content: data.answer,
-            evidence: data.evidence,
-            sources: data.citations ?? [],
-            searchedAs: data.meta?.conversation?.question_rewritten_to ?? null,
+      if (!response.body) throw new Error('Streaming non supportato')
+
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        buffer += decoder.decode(value, { stream: true })
+        const events = buffer.split('\n\n')
+        buffer = events.pop() || ''
+
+        for (const evt of events) {
+          const lines = evt.split('\n')
+          let eventType = 'message'
+          let dataStr = ''
+          for (const line of lines) {
+            if (line.startsWith('event: ')) {
+              eventType = line.slice(7).trim()
+            } else if (line.startsWith('data: ')) {
+              dataStr = line.slice(6).trim()
+            }
           }
-        : message))
+          if (!dataStr) continue
+          try {
+            const parsed = JSON.parse(dataStr)
+            if (eventType === 'status') {
+              const stepLabel = parsed.step === 'retrieving' ? 'Ricerca evidenze nei documenti…'
+                : parsed.step === 'verifying' ? 'Verifica passaggi con il modello…'
+                : parsed.step === 'composing' ? 'Composizione della risposta…'
+                : parsed.step
+              setMessages(previous => previous.map(message => message.id === answerId
+                ? { ...message, statusStep: stepLabel }
+                : message))
+            } else if (eventType === 'citations') {
+              setMessages(previous => previous.map(message => message.id === answerId
+                ? { ...message, sources: parsed.citations ?? [] }
+                : message))
+            } else if (eventType === 'answer') {
+              setMessages(previous => previous.map(message => message.id === answerId
+                ? { ...message, content: parsed.chunk ?? '' }
+                : message))
+            } else if (eventType === 'done') {
+              const returnedId = parsed.answer_id || answerId
+              setMessages(previous => previous.map(message => message.id === answerId
+                ? {
+                    ...message,
+                    id: returnedId,
+                    content: parsed.answer,
+                    evidence: parsed.evidence,
+                    sources: parsed.citations ?? [],
+                    searchedAs: parsed.meta?.conversation?.question_rewritten_to ?? null,
+                    statusStep: null,
+                  }
+                : message))
+            }
+          } catch {
+            // Ignora frammenti non JSON
+          }
+        }
+      }
     } catch (error) {
       const content = error instanceof DOMException && error.name === 'AbortError'
         ? 'Richiesta annullata.'

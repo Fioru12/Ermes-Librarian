@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Literal
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, UploadFile
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
 from api.auth import _require_role, _verify_api_key, rate_limited
@@ -530,6 +530,218 @@ def ask_library(
         request.top_k,
         _auth,
         history=[turno.model_dump() for turno in request.history],
+    )
+
+
+def _answer_question_stream(
+    store: LibraryStore,
+    library_id: str,
+    question: str,
+    top_k: int,
+    actor: dict,
+    history: list[dict] | None = None,
+):
+    import json
+    import time
+
+    from core.question_rewriter import rewrite_with_history
+
+    t0 = time.perf_counter()
+    domanda_originale = question
+    riscrittura = rewrite_with_history(question, history)
+    question = riscrittura.question
+    from core.metrics import record_rewrite_outcome
+
+    record_rewrite_outcome(riscrittura.reason)
+    conversazione = {
+        "question_original": domanda_originale,
+        "question_rewritten_to": riscrittura.question if riscrittura.rewritten else None,
+        "rewrite": riscrittura.reason,
+    }
+
+    try:
+        library = store.get_library(library_id, actor)
+    except (LibraryNotFoundError, LibraryAccessError):
+        yield f"event: error\ndata: {json.dumps({'detail': 'Biblioteca non trovata'})}\n\n"
+        return
+
+    yield f"event: status\ndata: {json.dumps({'step': 'retrieving', 'question': question})}\n\n"
+
+    from core.metrics import rag_retrieval_timer
+
+    with rag_retrieval_timer():
+        citations, retrieval_profile = store.search_with_profile(library_id, question, limit=top_k, actor=actor)
+    if not citations:
+        from core.query_expander import expand_query
+
+        expanded_queries = expand_query(question)
+        for eq in expanded_queries[1:]:
+            citations, retrieval_profile = store.search_with_profile(library_id, eq, limit=top_k, actor=actor)
+            if citations:
+                break
+    if not citations and cfg.HYDE_ENABLED:
+        from core.hyde import generate_hypothetical_document
+
+        hyde_passage = generate_hypothetical_document(question, mode=library.get("assistant_mode"))
+        if hyde_passage and hyde_passage != question:
+            citations, retrieval_profile = store.search_with_profile(
+                library_id, hyde_passage, limit=top_k, actor=actor
+            )
+
+    yield f"event: status\ndata: {json.dumps({'step': 'verifying'})}\n\n"
+
+    from core.evidence_verifier import verify_citations
+
+    citations, evidence_verified = verify_citations(question, citations)
+
+    if not citations:
+        latency_ms = (time.perf_counter() - t0) * 1000.0
+        from core.analytics import record_query_event
+        from core.metrics import rag_question_recorded
+
+        rag_question_recorded(library_id, "abstained", result_count=0)
+        ans_id = record_query_event(
+            query=question,
+            library_id=library_id,
+            actor=actor.get("username", "anonymous"),
+            result_count=0,
+            latency_ms=latency_ms,
+            coverage="insufficient_evidence",
+            assistant_mode=library["assistant_mode"],
+            fallback_reason="Nessun passaggio corrispondente recuperato.",
+        )
+        abstained_payload = {
+            "answer_id": ans_id,
+            "library": {"id": library["id"], "name": library["name"]},
+            "question": question,
+            "answer": "Non ho trovato evidenza sufficiente nella biblioteca selezionata. Prova con parole più specifiche oppure carica il documento pertinente.",
+            "status": "abstained",
+            "evidence": {"coverage": "insufficient_evidence", "reason": "Nessun passaggio corrispondente recuperato."},
+            "citations": [],
+            "meta": {
+                "assistant_mode": library["assistant_mode"],
+                "assistant_provider": library.get("assistant_provider", ""),
+                "retrieval_profile": retrieval_profile,
+                "evidence_verified": evidence_verified,
+                "conversation": conversazione,
+                "created_at": datetime.now(UTC).isoformat(),
+            },
+        }
+        yield f"event: done\ndata: {json.dumps(abstained_payload)}\n\n"
+        return
+
+    from core.injection_guard import quarantine_citations
+    from core.metrics import record_injection_flagged
+
+    citations, sospette = quarantine_citations(citations)
+    if sospette:
+        record_injection_flagged(sospette)
+
+    formatted_citations = [
+        item["citation"]
+        | {
+            "excerpt": item["excerpt"],
+            "marker": index,
+            "relevance_score": item["relevance_score"],
+            "injection_suspected": bool(item.get("injection_suspected", False)),
+        }
+        for index, item in enumerate(citations, start=1)
+    ]
+    yield f"event: citations\ndata: {json.dumps({'citations': formatted_citations})}\n\n"
+    yield f"event: status\ndata: {json.dumps({'step': 'composing'})}\n\n"
+
+    answer, coverage, reason = answer_from_evidence(
+        question,
+        citations,
+        mode=library["assistant_mode"],
+        provider_name=library.get("assistant_provider", ""),
+    )
+
+    yield f"event: answer\ndata: {json.dumps({'chunk': answer})}\n\n"
+
+    latency_ms = (time.perf_counter() - t0) * 1000.0
+    from core.analytics import record_query_event
+    from core.metrics import rag_question_recorded, record_rerank_mode
+
+    rag_question_recorded(
+        library_id,
+        "answered" if coverage == "supported" else "abstained",
+        result_count=len(citations),
+    )
+    record_rerank_mode(citations[0].get("rerank_mode", "unknown"))
+    ans_id = record_query_event(
+        query=question,
+        library_id=library_id,
+        actor=actor.get("username", "anonymous"),
+        result_count=len(citations),
+        latency_ms=latency_ms,
+        coverage=coverage,
+        assistant_mode=library["assistant_mode"],
+        fallback_reason=reason,
+    )
+    append_audit(
+        cfg.AUDIT_FILE,
+        "library_answer",
+        actor["username"],
+        {
+            "library_id": library_id,
+            "question_rewritten": riscrittura.rewritten,
+            "injection_suspected_citations": sospette,
+            "assistant_mode": library["assistant_mode"],
+            "assistant_provider": library.get("assistant_provider", ""),
+            "retrieval_profile": retrieval_profile["mode"],
+            "citation_count": len(citations),
+            "coverage": coverage,
+        },
+    )
+
+    final_payload = {
+        "answer_id": ans_id,
+        "library": {"id": library["id"], "name": library["name"]},
+        "question": question,
+        "answer": answer,
+        "status": "answered" if coverage == "supported" else "abstained",
+        "evidence": {"coverage": coverage, "reason": reason},
+        "citations": formatted_citations,
+        "meta": {
+            "assistant_mode": library["assistant_mode"],
+            "assistant_provider": library.get("assistant_provider", ""),
+            "retrieval_profile": retrieval_profile,
+            "evidence_verified": evidence_verified,
+            "conversation": conversazione,
+            "created_at": datetime.now(UTC).isoformat(),
+        },
+    }
+    yield f"event: done\ndata: {json.dumps(final_payload)}\n\n"
+
+
+@router.post("/{library_id}/ask/stream", dependencies=[Depends(rate_limited)])
+def ask_library_stream(
+    library_id: str,
+    request: AskLibraryRequest,
+    _auth: dict = Depends(_verify_api_key),
+    store: LibraryStore = Depends(get_library_store),
+):
+    try:
+        store.get_library(library_id, _auth)
+    except (LibraryNotFoundError, LibraryAccessError) as error:
+        raise HTTPException(status_code=404, detail="Biblioteca non trovata") from error
+
+    return StreamingResponse(
+        _answer_question_stream(
+            store,
+            library_id,
+            request.question,
+            request.top_k,
+            _auth,
+            history=[turno.model_dump() for turno in request.history],
+        ),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
     )
 
 

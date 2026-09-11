@@ -5,6 +5,7 @@ export interface Message {
   timestamp: string
   evidence?: { coverage: 'supported' | 'partially_supported' | 'insufficient_evidence'; reason?: string | null }
   feedback?: 1 | -1 | null
+  statusStep?: string | null
   // La domanda che il sistema ha davvero cercato, quando una domanda di
   // raffinamento e' stata riscritta con la conversazione. Va mostrata: chi
   // legge deve poter vedere cosa e' stato chiesto ai documenti.
