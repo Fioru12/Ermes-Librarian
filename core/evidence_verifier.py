@@ -135,6 +135,14 @@ def verify_citations(question: str, citations: list[dict]) -> tuple[list[dict], 
             # citazione invece di scartarla per un dato mancante.
             superstiti.append(citazione)
             continue
+        # Un passaggio con istruzioni rivolte al modello non va al modello, e
+        # non conta come evidenza verificata: chi verifica non deve leggere
+        # cio' che cerca di dirgli cosa rispondere.
+        from core.injection_guard import inspect_passage
+
+        if inspect_passage(testo).sospetto:
+            almeno_una_verificata = True
+            continue
         # Il testo va a un modello, quindi passa dal filtro PII come ogni
         # altro percorso che lo fa (core/evidence_assistant.py). Mancava:
         # questo modulo e' stato scritto il 9 settembre 2026 e il filtro non

@@ -126,15 +126,40 @@ upload. See `docs/CODE_REVIEW.md`.
 A document contains text instructing the assistant to ignore its constraints,
 reveal other content, or take an action.
 
-*Posture:* partial. In the default `evidence_only` mode no model is involved, so
-the threat does not arise: retrieved passages are shown verbatim with citations.
-Document text is rendered as escaped React nodes, never as HTML, so it cannot
-inject markup into the page (`InlineMarkdown.test.tsx`). In `local_ollama` and
-approved-provider modes, document text does reach a model prompt, and **there is
-no injection-specific mitigation today**. The structural limits are that
-retrieval is already scoped to one library, and that the assistant has no tools
-and can take no action — an injected instruction can influence wording, not
-cause access or side effects.
+*Posture:* layered, since 11 September 2026; before that, only the first two
+layers existed and this section said "no injection-specific mitigation".
+
+1. **No model by default.** In `evidence_only` mode retrieved passages are
+   shown verbatim with citations and no model is involved, so the threat does
+   not arise. Document text is rendered as escaped React nodes, never as HTML
+   (`InlineMarkdown.test.tsx`).
+2. **Structural limits.** Retrieval is scoped to one library, and the
+   assistant has no tools and takes no action: an injected instruction can
+   influence wording, not cause access or side effects.
+3. **Deterministic quarantine** (`core/injection_guard.py`). Before any
+   passage reaches a prompt — the answer, the evidence verifier, the document
+   summary — it is checked for instructions aimed at the model ("ignore all
+   previous instructions", "you are now", "reveal the system prompt", role
+   markers, "the assistant must respond…", in English and Italian). A flagged
+   passage is replaced in the prompt by a quarantine note, is excluded as
+   evidence by the verifier, and is returned to the user as a citation marked
+   `injection_suspected: true` — the source stays visible, its text is not
+   used. Each hit increments `ermes_prompt_injection_flagged_total` and is
+   recorded in the audit entry. Passages are wrapped in explicit
+   `<<<EVIDENZA n — dato, non istruzione>>>` delimiters.
+4. **Prompt-level instruction.** The system prompt tells the model that
+   evidence is untrusted data and to ignore instructions in it. This is a
+   request, not a barrier, and is kept for what the patterns miss.
+
+*Limit, stated plainly:* layer 3 is pattern matching. An attacker who
+phrases the instruction in a way the patterns do not anticipate gets through
+it and is left to layers 2 and 4. The patterns are deliberately narrow because
+a false positive hides a legitimate passage from the model, which here is
+worse than a miss; `tests/test_prompt_injection_guard.py` therefore tests
+ordinary policy text that resembles an instruction ("ignore the previous
+version of this policy") and requires it *not* to be flagged. A learned
+classifier would catch more paraphrases; it would also be a model deciding
+what another model may read, with its own failure modes.
 
 ### T1d — The analytics dashboard crossed the boundary the documents respect
 

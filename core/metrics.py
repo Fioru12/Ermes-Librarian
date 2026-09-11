@@ -64,6 +64,10 @@ EVIDENCE_VERIFIER = Counter(
     "Esiti della verifica dell'evidenza per risposta.",
     ["outcome"],  # verified | unavailable | disabled
 )
+PROMPT_INJECTION_FLAGGED = Counter(
+    "ermes_prompt_injection_flagged_total",
+    "Passaggi recuperati che contenevano istruzioni rivolte al modello, messi in quarantena.",
+)
 QUESTION_REWRITE = Counter(
     "ermes_question_rewrite_total",
     "Esiti della riscrittura conversazionale della domanda.",
@@ -110,6 +114,11 @@ def record_verifier_outcome(outcome: str) -> None:
     """verified | unavailable | disabled (best-effort)."""
     with contextlib.suppress(Exception):  # pragma: no cover
         EVIDENCE_VERIFIER.labels(outcome=outcome).inc()
+
+
+def record_injection_flagged(quanti: int) -> None:
+    with contextlib.suppress(Exception):  # pragma: no cover
+        PROMPT_INJECTION_FLAGGED.inc(quanti)
 
 
 def record_rewrite_outcome(outcome: str) -> None:

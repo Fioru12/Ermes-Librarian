@@ -428,6 +428,16 @@ def _answer_question(
                 "created_at": datetime.now(UTC).isoformat(),
             },
         }
+    # Le citazioni tornano all'utente marcate se contengono istruzioni rivolte
+    # al modello: la fonte esiste e va mostrata, ma il suo testo non e' stato
+    # usato per rispondere. Il conteggio finisce nelle metriche e nell'audit.
+    from core.injection_guard import quarantine_citations
+    from core.metrics import record_injection_flagged
+
+    citations, sospette = quarantine_citations(citations)
+    if sospette:
+        record_injection_flagged(sospette)
+
     answer, coverage, reason = answer_from_evidence(
         question,
         citations,
@@ -464,6 +474,7 @@ def _answer_question(
             # con la memoria conversazionale la domanda recuperata puo' non
             # essere quella scritta dall'utente.
             "question_rewritten": riscrittura.rewritten,
+            "injection_suspected_citations": sospette,
             "assistant_mode": library["assistant_mode"],
             "assistant_provider": library.get("assistant_provider", ""),
             "retrieval_profile": retrieval_profile["mode"],
@@ -479,7 +490,16 @@ def _answer_question(
         "status": "answered" if coverage == "supported" else "abstained",
         "evidence": {"coverage": coverage, "reason": reason},
         "citations": [
-            item["citation"] | {"excerpt": item["excerpt"], "marker": index, "relevance_score": item["relevance_score"]}
+            item["citation"]
+            | {
+                "excerpt": item["excerpt"],
+                "marker": index,
+                "relevance_score": item["relevance_score"],
+                # La fonte esiste e si mostra; se contiene istruzioni rivolte
+                # al modello, chi legge deve sapere che il suo testo non e'
+                # stato usato per rispondere.
+                "injection_suspected": bool(item.get("injection_suspected", False)),
+            }
             for index, item in enumerate(citations, start=1)
         ],
         "meta": {
