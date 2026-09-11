@@ -36,7 +36,40 @@ def _hash_api_key(api_key: str) -> str:
     return hashlib.sha256(api_key.encode("utf-8")).hexdigest()
 
 
-_api_keys_lock = FileLock(os.path.join(os.path.dirname(__file__), ".apikeys_lock"), timeout=10)
+_file_locks: dict[str, FileLock] = {}
+_file_locks_guard = threading.Lock()
+
+
+def _get_file_lock(lock_path: str, timeout: float = 10.0) -> FileLock:
+    """Restituisce un'istanza singleton di FileLock per percorso canonico.
+
+    Garantisce sia la rientranza all'interno dello stesso processo/thread,
+    sia la mutua esclusione tra processi concorrenti.
+    """
+    canonical = os.path.abspath(lock_path)
+    with _file_locks_guard:
+        if canonical not in _file_locks:
+            _file_locks[canonical] = FileLock(canonical, timeout=timeout)
+        return _file_locks[canonical]
+
+
+def _get_api_keys_lock() -> FileLock:
+    from config import cfg
+
+    lock_dir = cfg.SECURITY_DIR
+    os.makedirs(lock_dir, exist_ok=True)
+    return _get_file_lock(os.path.join(lock_dir, ".apikeys_lock"), timeout=10.0)
+
+
+class _LazyApiKeysLock:
+    def __enter__(self):
+        return _get_api_keys_lock().__enter__()
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        return _get_api_keys_lock().__exit__(exc_type, exc_val, exc_tb)
+
+
+_api_keys_lock = _LazyApiKeysLock()
 
 
 def _load_api_keys() -> dict:
@@ -245,8 +278,14 @@ def _verify_audit_signature(entry: dict) -> bool:
 _users_lock = threading.RLock()
 
 
+def _get_users_lock(users_file: str) -> FileLock:
+    lock_path = users_file + ".lock"
+    os.makedirs(os.path.dirname(lock_path), exist_ok=True)
+    return _get_file_lock(lock_path, timeout=10.0)
+
+
 def _load_users(users_file: str) -> dict:
-    with _users_lock:
+    with _users_lock, _get_users_lock(users_file):
         if os.path.exists(users_file):
             try:
                 with open(users_file, encoding="utf-8") as f:
@@ -260,7 +299,7 @@ def _load_users(users_file: str) -> dict:
 
 def _save_users(users_file: str, data: dict) -> None:
     """Salva file utenti in modo atomico usando tempfile + rename."""
-    with _users_lock:
+    with _users_lock, _get_users_lock(users_file):
         os.makedirs(os.path.dirname(users_file), exist_ok=True)
         tmp_path: str | None = None
         try:
@@ -305,7 +344,7 @@ def ensure_default_admin(users_file: str, username: str, password: str) -> None:
     if not password:
         return
 
-    with _users_lock:
+    with _users_lock, _get_users_lock(users_file):
         data = _load_users(users_file)
         user = next((u for u in data["users"] if u.get("username") == username), None)
         if user is None:
@@ -336,7 +375,7 @@ def ensure_default_admin(users_file: str, username: str, password: str) -> None:
 
 def authenticate_user(users_file: str, username: str, password: str) -> dict | None:
     """Autentica utente con timing-safe comparison."""
-    with _users_lock:
+    with _users_lock, _get_users_lock(users_file):
         data = _load_users(users_file)
         user = next((u for u in data["users"] if u.get("username") == username), None)
 
@@ -434,7 +473,7 @@ def create_or_update_user(
     password: str,
     active: bool = True,
 ) -> None:
-    with _users_lock:
+    with _users_lock, _get_users_lock(users_file):
         data = _load_users(users_file)
         user = next((u for u in data["users"] if u.get("username") == username), None)
         if user is None:
@@ -495,23 +534,25 @@ def set_oidc_group_mapping(group: str, library_id: str, role: str) -> dict:
     biblioteca esista; l'idempotenza è completa (upsert per chiave)."""
     if role not in {"viewer", "editor"}:
         raise ValueError("Il ruolo da gruppo SSO può essere solo viewer o editor")
-    with _OIDC_MAPPINGS_LOCK:
+    path = _oidc_mappings_path()
+    with _OIDC_MAPPINGS_LOCK, _get_file_lock(path + ".lock"):
         mappings = load_oidc_group_mappings()
         entry = {"group": group, "library_id": library_id, "role": role}
         mappings = [m for m in mappings if not (m.get("group") == group and m.get("library_id") == library_id)]
         mappings.append(entry)
-        with open(_oidc_mappings_path(), "w", encoding="utf-8") as handle:
+        with open(path, "w", encoding="utf-8") as handle:
             json.dump({"mappings": mappings}, handle, indent=2, ensure_ascii=False)
     return entry
 
 
 def remove_oidc_group_mapping(group: str, library_id: str) -> bool:
-    with _OIDC_MAPPINGS_LOCK:
+    path = _oidc_mappings_path()
+    with _OIDC_MAPPINGS_LOCK, _get_file_lock(path + ".lock"):
         mappings = load_oidc_group_mappings()
         kept = [m for m in mappings if not (m.get("group") == group and m.get("library_id") == library_id)]
         if len(kept) == len(mappings):
             return False
-        with open(_oidc_mappings_path(), "w", encoding="utf-8") as handle:
+        with open(path, "w", encoding="utf-8") as handle:
             json.dump({"mappings": kept}, handle, indent=2, ensure_ascii=False)
     return True
 
@@ -580,7 +621,7 @@ def delete_user(users_file: str, username: str) -> bool:
     (`active: false`), che per il diritto alla cancellazione non basta — il
     record con nome utente e hash della password restava sul disco.
     """
-    with _users_lock:
+    with _users_lock, _get_users_lock(users_file):
         data = _load_users(users_file)
         prima = len(data["users"])
         data["users"] = [u for u in data["users"] if u.get("username") != username]

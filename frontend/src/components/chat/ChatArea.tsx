@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState } from 'react'
-import { Send, Square, HelpCircle, ArrowRight, BookOpen, Files, ShieldCheck, Download, X, ThumbsUp, ThumbsDown } from 'lucide-react'
+import { Send, Square, HelpCircle, ArrowRight, BookOpen, Files, ShieldCheck, Download, X, ThumbsUp, ThumbsDown, Copy, Check } from 'lucide-react'
 import { useTheme } from '../../hooks/useTheme'
 import { InlineMarkdown } from './InlineMarkdown'
 import type { Message } from '../../types'
@@ -61,6 +61,15 @@ export default function ChatArea({
   const chatEndRef = useRef<HTMLDivElement>(null)
   const [activeCitation, setActiveCitation] = useState<{ source: Source; marker: number } | null>(null)
   const [feedbackState, setFeedbackState] = useState<Record<string, number>>({})
+  const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null)
+
+  const handleCopy = (messageId: string, text: string) => {
+    if (!navigator.clipboard) return
+    navigator.clipboard.writeText(text).then(() => {
+      setCopiedMessageId(messageId)
+      setTimeout(() => setCopiedMessageId(prev => (prev === messageId ? null : prev)), 2000)
+    }).catch(() => {})
+  }
 
   useEffect(() => {
     if (typeof chatEndRef.current?.scrollIntoView === 'function') {
@@ -183,6 +192,29 @@ export default function ChatArea({
                   </div>)}</div></div>}
                 {m.role === 'assistant' && m.content !== '' && (
                   <div className="mt-3 flex items-center justify-end gap-2 border-t border-white/5 pt-2 text-xs text-slate-400">
+                    <button
+                      type="button"
+                      onClick={() => handleCopy(m.id, m.content)}
+                      className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-lg border transition text-[11px] font-medium ${
+                        copiedMessageId === m.id
+                          ? 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300'
+                          : 'border-white/5 hover:border-white/20 text-slate-400 hover:text-white'
+                      }`}
+                      title="Copia risposta negli appunti"
+                    >
+                      {copiedMessageId === m.id ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 text-emerald-400" />
+                          <span>Copiato!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3.5 h-3.5" />
+                          <span>Copia</span>
+                        </>
+                      )}
+                    </button>
+                    <span className="h-3 w-px bg-white/10 mx-1" />
                     <span className="text-[11px] text-slate-500">Risposta utile?</span>
                     <button
                       type="button"

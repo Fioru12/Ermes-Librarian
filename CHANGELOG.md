@@ -2,6 +2,12 @@
 
 Registro leggibile del lavoro su questo progetto. Per il dettaglio fase-per-fase con motivazioni, vedi [docs/ROADMAP_V2.md](docs/ROADMAP_V2.md); per i finding tecnici completi, [docs/AUDIT_2026-08-19.md](docs/AUDIT_2026-08-19.md) e [docs/CODE_REVIEW.md](docs/CODE_REVIEW.md); per il registro operativo delle sessioni, [docs/WORK_PROGRESS.md](docs/WORK_PROGRESS.md).
 
+## 2026-09-12 — v2.2.1: Robustezza concorrenza governance e UX Copia Rapida
+
+- **Locking multi-processo e container-safety in Governance**: `core/governance.py` ora utilizza un gestore `_get_file_lock` con caching singleton per percorso canonico, garantendo rientranza per-thread e mutua esclusione atomica fra più worker (es. `uvicorn --workers N`). Il lock di `api_keys.json` è stato spostato dalla directory sorgente `core/` alla directory dati scrivibile `cfg.SECURITY_DIR`, eliminando errori in container con filesystem root in sola lettura (`read-only rootfs`). Esteso il FileLock a `users.json` e `oidc_group_mappings.json`.
+- **UX Copia Risposta negli appunti**: in `ChatArea.tsx` aggiunto il pulsante "Copia" accanto ai controlli di feedback delle risposte dell'assistente, con feedback visivo temporaneo ("Copiato!" con icona di spunta verde) per esportare agilmente le risposte documentate verso ticket, email e documentazione.
+- **Test suite di concorrenza**: aggiunti test in `tests/test_governance.py` per verificare rientranza e persistenza dei lock.
+
 ## 2026-09-12 — v2.2.0: Streaming SSE end-to-end, verifier parallelo e ottimizzazioni di latenza
 
 - **Streaming SSE end-to-end**: aggiunto l'endpoint `POST /api/libraries/{id}/ask/stream` basato su Server-Sent Events (`text/event-stream`). L'interfaccia React consuma lo stream e mostra in tempo reale le fasi intermedie ("Ricerca evidenze nei documenti…", "Verifica passaggi con il modello…", "Composizione della risposta…") prima di far comparire subito le citazioni e il testo, eliminando la percezione di attesa statica.

@@ -3,18 +3,21 @@ import os
 
 
 from core.governance import (
+    _get_api_keys_lock,
+    _get_file_lock,
+    _get_users_lock,
+    _hash_password,
     _load_users,
     _save_users,
     _sign_audit_entry,
     _verify_audit_signature,
-    _hash_password,
+    append_audit,
     authenticate_user,
+    create_or_update_user,
+    ensure_default_admin,
+    list_users,
     validate_admin_user,
     validate_password_strength,
-    create_or_update_user,
-    list_users,
-    ensure_default_admin,
-    append_audit,
     verify_audit_log_integrity,
 )
 
@@ -224,3 +227,29 @@ class TestHashPassword:
         assert len(h) > 0
         # Should be hex chars only
         int(h, 16)
+
+
+class TestGovernanceFileLocks:
+    def test_get_file_lock_cached_singleton(self, temp_dir):
+        path = os.path.join(temp_dir, "test.lock")
+        l1 = _get_file_lock(path)
+        l2 = _get_file_lock(path)
+        assert l1 is l2
+        # Reentrant acquisition
+        with l1:
+            with l2:
+                pass
+
+    def test_users_lock_reentrancy_and_persistence(self, temp_dir):
+        users_file = os.path.join(temp_dir, "users.json")
+        lock = _get_users_lock(users_file)
+        assert lock.lock_file.endswith("users.json.lock")
+        # Ensure operations with nested locks succeed
+        create_or_update_user(users_file, "admin_user", "admin", "Admin1234!")
+        user = authenticate_user(users_file, "admin_user", "Admin1234!")
+        assert user is not None
+        assert user["username"] == "admin_user"
+
+    def test_api_keys_lock_uses_security_dir(self):
+        lock = _get_api_keys_lock()
+        assert ".apikeys_lock" in lock.lock_file
