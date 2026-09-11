@@ -438,7 +438,8 @@ fails on the previous code.
 
 Also holding: an upload size ceiling, the archive limits under T3, and a per-IP
 block on repeated failed logins (`core/login_guard.py`). No protection against a
-distributed attack, and none is intended at this scale. The counters are still per
+distributed attack, and none is intended at this scale. The counters live on the
+shared store since 11 September 2026, so several instances share each threshold.
 process, so several instances multiply every threshold.
 
 ### T9 — The system answers when it should abstain
@@ -477,17 +478,21 @@ marketing:
    shut by `tests/test_oidc_signature.py`. What is still missing: no token
    revocation or introspection (a stolen token stays usable until `exp`), no
    refresh flow, and a single configured audience per instance.
-3. **Rate limiting is per process, and covers only the expensive routes.**
-   Upload, search and ask are limited per authenticated user (T8); repeated failed
-   logins are blocked separately (`core/login_guard.py`) — before that change 50
-   wrong passwords in a row all returned 401, never 429. Everything else is
-   unlimited, and the counters live in process memory, so N instances allow N
-   times each threshold.
+3. **Rate limiting covers only the expensive routes.**
+   Upload, search, ask, the MCP tools, the automation gateway and the chat
+   webhooks are limited (T8); repeated failed logins are blocked separately
+   (`core/login_guard.py`) — before that change 50 wrong passwords in a row all
+   returned 401, never 429. Everything else is unlimited. Since 11 September
+   2026 the counters live on the shared store (`core/shared_rate_limiter.py`,
+   default; `ERMES_RATE_LIMIT_BACKEND=memory` opts out), so N instances share
+   one threshold instead of multiplying it — `tests/test_shared_rate_limiter.py`
+   shows two limiters over the same store refusing the fourth request that
+   two in-memory ones would both accept.
 4. **Horizontal scaling is only partly real.** Sessions and login attempts now
    live on the shared store, so a second instance recognises them
-   (`core/session_store.py`, `core/login_guard.py`). The request rate limiter and
-   the search cache remain per process: N instances multiply every rate
-   threshold by N, and each instance keeps its own cache. Until 10 September 2026
+   (`core/session_store.py`, `core/login_guard.py`), and so do the rate-limit
+   counters since 11 September 2026. The search cache remains per process:
+   each instance keeps its own, which costs repeated work, not correctness. Until 10 September 2026
    the shared *database* was also an illusion: `psycopg` was absent from
    `requirements.txt` and `create_backend` answered a missing driver by falling
    back to SQLite with a log line, so an operator who configured PostgreSQL for a

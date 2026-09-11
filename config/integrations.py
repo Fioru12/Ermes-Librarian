@@ -66,6 +66,13 @@ class IntegrationsConfig:
     # ---------------------------------------------------------
     # WEBHOOK GATEWAY
     # ---------------------------------------------------------
+    # Dove tenere i contatori del limitatore di frequenza. "shared" li mette
+    # nell'archivio condiviso, come sessioni e tentativi di accesso, cosi' due
+    # istanze dietro un bilanciatore contano insieme; "memory" torna al
+    # contatore per processo, che raddoppia ogni soglia a ogni istanza in piu'.
+    RATE_LIMIT_BACKEND: str = field(
+        default_factory=lambda: os.environ.get("ERMES_RATE_LIMIT_BACKEND", "shared").strip().lower() or "shared"
+    )
     WEBHOOK_RATE_LIMIT_PER_MIN: int = field(
         default_factory=lambda: int(os.environ.get("ERMES_WEBHOOK_RATE_LIMIT_PER_MIN", "60"))
     )

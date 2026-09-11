@@ -361,7 +361,7 @@ Due voci presenti nella prima stesura di questa roadmap sono state nel frattempo
 
 Restano da affrontare:
 - **Indice vettoriale distribuito**: transizione dall'indice locale a un cluster (Qdrant, oppure PostgreSQL con pgvector) per gestire milioni di documenti a latenza sub-secondo.
-- **Stato condiviso fra istanze**: i contatori del limitatore di frequenza e la cache di ricerca sono oggi per processo, quindi più istanze moltiplicano ogni soglia. È il primo intervento necessario per una scalabilità orizzontale reale.
+- **Cache di ricerca condivisa**: sessioni, tentativi di accesso e contatori del limitatore di frequenza vivono già sull'archivio condiviso, quindi più istanze contano insieme; la cache di ricerca resta per processo, il che costa lavoro ripetuto ma non correttezza.
 - **Mitigazione del prompt injection**: un documento immesso legittimamente può contenere istruzioni rivolte al modello. Oggi non esiste una contromisura, ed è dichiarato come tale nel modello delle minacce.
 - **Conservazione a termine**: cancellazione automatica degli eventi analitici e delle voci di audit oltre un periodo configurato. Esportazione e cancellazione su richiesta sono implementate (capitolo 5).
 - Osservabilità Avanzata tramite OpenTelemetry: integrazione di tracciamento distribuito (OTel) per monitorare latenze, metriche computazionali ed utilizzo dei token in tempo reale all'interno di dashboard aziendali Grafana/Datadog.

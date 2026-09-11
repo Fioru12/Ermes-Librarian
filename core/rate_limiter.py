@@ -177,8 +177,25 @@ class RateLimiter:
 
 # Istanza globale per uso in app
 _limiter = RateLimiter()
+_shared_limiter = None
 
 
-def get_rate_limiter() -> RateLimiter:
-    """Ritorna l'istanza globale del rate limiter."""
-    return _limiter
+def get_rate_limiter():
+    """L'istanza in uso: condivisa fra le istanze (default) o per processo.
+
+    Fino all'11 settembre 2026 esisteva solo quella per processo, e il threat
+    model (T8) dichiarava che "piu' istanze moltiplicano ogni soglia". La
+    versione condivisa (core/shared_rate_limiter.py) usa l'archivio delle
+    biblioteche come gia' fanno sessioni e tentativi di accesso. La scelta si
+    legge a ogni chiamata perche' i test sostituiscono la configurazione.
+    """
+    import config
+
+    if str(getattr(config.cfg, "RATE_LIMIT_BACKEND", "shared")).lower() == "memory":
+        return _limiter
+    global _shared_limiter
+    if _shared_limiter is None:
+        from core.shared_rate_limiter import SharedRateLimiter
+
+        _shared_limiter = SharedRateLimiter(_limiter.config)
+    return _shared_limiter
