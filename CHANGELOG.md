@@ -2,6 +2,14 @@
 
 Registro leggibile del lavoro su questo progetto. Per il dettaglio fase-per-fase con motivazioni, vedi [docs/ROADMAP_V2.md](docs/ROADMAP_V2.md); per i finding tecnici completi, [docs/AUDIT_2026-08-19.md](docs/AUDIT_2026-08-19.md) e [docs/CODE_REVIEW.md](docs/CODE_REVIEW.md); per il registro operativo delle sessioni, [docs/WORK_PROGRESS.md](docs/WORK_PROGRESS.md).
 
+## 2026-09-12 — v2.2.3: Glossario Aziendale Dinamico e Sinonimi Personalizzati
+
+- **Glossario Dinamico & Query Expansion Personalizzata**: `core/query_expander.py` è stato potenziato per supportare dizionari personalizzati persistiti su file JSON (`config/synonyms.json`, configurabile tramite `ERMES_SYNONYMS_FILE`). I sinonimi personalizzati dell'organizzazione/biblioteca vengono uniti a quelli base con priorità e deduplicazione automatica, consentendo di comprendere all'istante acronimi e terminologie proprietarie o gergali (es. *TFR, CCNL, DDT, CIG, CUP, GDPR, DVR, smart working*).
+- **Matching a frasi multi-parola e Ordinamento per Lunghezza**: la pipeline di espansione valuta i termini ordinandoli per lunghezza decrescente, garantendo che le locuzioni composte (es. "lavoro agile", "conto corrente", "documento di trasporto") vengano espanse correttamente prima dei singoli termini che le compongono.
+- **Concorrenza multi-processo atomica & Cache su mtime**: la lettura e scrittura del glossario aziendale sono protette da `FileLock` con percorsi canonici e scrittura atomica (tempfile + replace). Il caricamento sfrutta una cache in memoria invalidata automaticamente solo in caso di modifica del timestamp `mtime` su disco, garantendo zero overhead in fase di query.
+- **API REST Amministrativa Protetta (`/api/synonyms`)**: aggiunto il router `api/synonyms.py` con endpoint `GET /api/synonyms` (lettura per utenti autenticati), `POST /api/synonyms` (creazione/aggiornamento per ruoli `editor` e `admin`) e `DELETE /api/synonyms/{term}` con validazione rigorosa e audit logging tracciato nel log di sicurezza.
+- **Suite di Test Dedicata**: aggiunti test completi in `tests/test_query_expander.py` e `tests/test_synonyms_api.py` a copertura di tutte le operazioni CRUD, persistenza, lock concorrente e controlli di ruolo RBAC.
+
 ## 2026-09-12 — v2.2.2: Esportazione Chat in Markdown e Filtri Documenti Avanzati
 
 - **Esportazione conversazioni in Markdown**: in `ChatArea.tsx` aggiunto il pulsante "Esporta .md" che genera e scarica istantaneamente l'intera cronologia della conversazione con intestazione della biblioteca, data/ora, domande, risposte formattate e citazioni/passaggi verificati.

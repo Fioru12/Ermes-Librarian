@@ -51,6 +51,13 @@ class StorageConfig:
     def LOGS_DIR(self) -> str:
         return os.path.join(self.BASE_DIR, "logs")
 
+    @property
+    def SYNONYMS_FILE(self) -> str:
+        custom = os.environ.get("ERMES_SYNONYMS_FILE", "").strip()
+        if custom:
+            return custom
+        return os.path.join(self.BASE_DIR, "config", "synonyms.json")
+
     BACKUP_ENABLED: bool = field(
         default_factory=lambda: (
             os.environ.get("ERMES_BACKUP_ENABLED", "1").strip().lower() in {"1", "true", "yes", "on"}

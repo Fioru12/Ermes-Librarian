@@ -364,6 +364,7 @@ from api.pii import router as pii_router
 from api.privacy import router as privacy_router
 from api.providers import router as providers_router
 from api.shutdown import router as shutdown_router
+from api.synonyms import router as synonyms_router
 from api.users import router as users_router
 from api.webhook_gateway import router as webhook_gateway_router
 
@@ -402,6 +403,7 @@ app.include_router(libraries_router)
 app.include_router(chat_webhooks_router)
 app.include_router(mcp_server_router)
 app.include_router(privacy_router)
+app.include_router(synonyms_router)
 app.include_router(webhook_gateway_router)
 app.include_router(shutdown_router)
 
