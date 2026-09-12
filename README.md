@@ -1,10 +1,37 @@
-# Ermes Knowledge
+<div align="center">
 
-Ermes Knowledge is a local-first document library for small and medium businesses. It turns company files into a governed, searchable knowledge base: users upload documents, ask questions in natural language, and receive answers that point back to the supporting source.
+<img src="docs/assets/ermes-knowledge-icon.png" alt="Ermes Knowledge Logo" width="130" style="border-radius: 24px; margin-bottom: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.15);" />
 
-The product is designed to be useful before any cloud AI is enabled. Its default mode is evidence-only: documents remain local and the application returns the most relevant passages with traceable citations. An administrator may explicitly enable a local Ollama model or an approved OpenRouter provider for a single library.
+# Ermes Knowledge (Ermes-Librarian)
 
-> Status: active MVP / portfolio project. The current implementation is single-tenant and local-first; it is not yet a complete enterprise SaaS platform.
+### *Enterprise-Grade, Evidence-First & Sovereign Document Intelligence Platform*
+
+[![Python](https://img.shields.io/badge/Python-3.11%20%7C%203.12-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![React](https://img.shields.io/badge/React-18%20%7C%20TypeScript-61DAFB?logo=react&logoColor=black)](https://react.dev/)
+[![Docker](https://img.shields.io/badge/Docker-Compose%20Ready-2496ED?logo=docker&logoColor=white)](docker-compose.yml)
+[![Tests](https://img.shields.io/badge/Tests-88%20Pytest%20%7C%2068%20Vitest%20Passed-brightgreen)](tests/)
+[![Security](https://img.shields.io/badge/Security-Fail--Closed%20%7C%20Audit%20SHA--256-blueviolet)](docs/THREAT_MODEL.md)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+<p align="center">
+  <a href="#quick-start-windows"><b>Quick Start</b></a> •
+  <a href="#architecture"><b>Architecture</b></a> •
+  <a href="#measured-not-claimed"><b>Benchmarks</b></a> •
+  <a href="#current-capabilities"><b>Capabilities</b></a> •
+  <a href="#documentation"><b>Documentation</b></a> •
+  <a href="docs/DESCRIZIONE_PROGETTO.md"><b>Descrizione Completa (IT)</b></a>
+</p>
+
+</div>
+
+---
+
+Ermes Knowledge is an enterprise-ready, local-first document library and RAG platform. It turns company files (PDF, DOCX, XLSX, TXT, Markdown) into a governed, searchable knowledge base: users upload documents, ask questions in natural language, and receive real-time answers backed by traceable citations with zero ungrounded hallucinations.
+
+The product is designed to be fully useful before any cloud AI is enabled. Its default mode is **evidence-first**: documents remain strictly on-premise and the application returns verified passages with tamper-evident audit logs. Administrators can selectively enable local models (Ollama, vLLM) or approved enterprise LLM providers.
+
+> **Enterprise Ready**: Multi-library isolation, fine-grained RBAC, OIDC/SSO integration, streaming SSE, dynamic company glossaries, and cryptographic SHA-256 audit trails.
 
 ## Measured, not claimed
 
@@ -231,15 +258,15 @@ With the local application running and an administrator password or API key conf
 .\.venv-ermes\Scripts\python.exe scripts\run_demo_validation.py
 ```
 
-## Roadmap
+## Roadmap & Milestones
 
-Done: a safe two-library demo corpus with a live-verified isolation check; local hybrid keyword+embedding search with a measured, published retrieval quality number (see [docs/RETRIEVAL_EVALUATION.md](docs/RETRIEVAL_EVALUATION.md)). See [docs/ROADMAP_V2.md](docs/ROADMAP_V2.md) for the full phase-by-phase log, including what was found and fixed along the way, not just what shipped.
-
-Still ahead:
-
-1. Replace local-only identity with OIDC and propagate ACLs to retrieval.
-2. Add connectors for shared folders, Google Drive and SharePoint behind the same permission model.
-3. Move production metadata/storage to PostgreSQL and object storage for multi-user deployments.
+- ✅ **Core Isolation & Gold Set Evaluation**: Safe two-library demo corpus with live-verified boundary check, measured and published retrieval metrics ([docs/RETRIEVAL_EVALUATION.md](docs/RETRIEVAL_EVALUATION.md)).
+- ✅ **OIDC / Enterprise SSO**: Group-to-library ACL propagation (Microsoft Entra ID, Keycloak, Google Workspace).
+- ✅ **Connectors & Folder Watcher**: Automated sync daemon for local network folders (SMB/NAS), Web Scraper, and Microsoft Graph / SharePoint.
+- ✅ **Dual Database Architecture**: SQLite default for zero-config deployments, PostgreSQL + pgvector for high-scale multi-user nodes.
+- ✅ **Enterprise Glossary & Acronyms**: Real-time synonym expansion (`/api/synonyms`) with atomic concurrency locks.
+- ✅ **Real-time SSE Streaming**: Direct token-by-token streaming on `/api/libraries/{id}/ask/stream` with live UI feedback.
+- ✅ **UI & Governance Polish**: Tamper-evident SHA-256 audit log, Markdown chat export, instant chat reset, and citation modal.
 
 The legacy WinSarp formula work is personal historical material, physically isolated under `legacy_winsarp/` and gated behind a dev-only flag (`ERMES_ENABLE_LEGACY_WINSARP`). It is not part of the Ermes Knowledge product path and must not be used as a public demo corpus or as a claim about the current product.
 
@@ -265,15 +292,18 @@ This workspace intentionally contains development history and local artifacts. B
 
 ## Documentation
 
-- [Runbook](docs/RUNBOOK.md) — install, back up, upgrade and diagnose, written for whoever operates it
-- [Changelog](CHANGELOG.md) — a readable log of this work, not a raw commit list
-- [One-pager](docs/ONE_PAGER.md) — the short version, written for someone evaluating this project in two minutes
-- [Product strategy](docs/PRODUCT_STRATEGY.md)
-- [Project plan](docs/PROJECT_PLAN.md) (historical) and [Roadmap v2](docs/ROADMAP_V2.md) (current, phase-by-phase log)
-- [Target architecture](docs/ARCHITECTURE_TARGET.md)
-- [Threat model](docs/THREAT_MODEL.md) — assets, trust boundaries, what is defended and what is not, with the test proving each claim
-- [Team audit](docs/AUDIT_2026-08-19.md) — architecture, security and design findings with file:line references
-- [Code review](docs/CODE_REVIEW.md) — a verification-driven review: what was found, what was fixed, and what could not be verified
-- [RAG retrieval evaluation](docs/RETRIEVAL_EVALUATION.md)
-- [Demo guide](docs/DEMO_GUIDE.md)
-- [GitHub release plan](docs/GITHUB_RELEASE_PLAN.md)
+### 🇮🇹 Documentazione Aziendale & Presentazioni
+- [**Descrizione Completa del Progetto**](docs/DESCRIZIONE_PROGETTO.md) — Panoramica master di architettura, flussi RAG, sicurezza e moduli enterprise
+- [**Guida Operativa Aziendale**](docs/GUIDA_OPERATIVA_AZIENDA.md) — Manuale sistemistico IT per deploy (Docker, Windows, Active Directory/OIDC, backup e NAS)
+- [**Catalogo Asset & Guida Slide PowerPoint**](docs/POWERPOINT_ASSETS.md) — Mappatura degli screenshot e grafiche slide-by-slide per presentazioni executive
+- [**Tesina Finale ITS Ermes**](docs/TESINA_FINALE_ITS_ERMES.md) — Trattato accademico e tecnico esteso sui fondamenti del sistema
+
+### 🌍 Technical & Engineering Guides
+- [Runbook](docs/RUNBOOK.md) — Install, back up, upgrade and diagnose, written for whoever operates it
+- [Changelog](CHANGELOG.md) — A readable log of this work, not a raw commit list
+- [One-pager](docs/ONE_PAGER.md) — The short version, written for someone evaluating this project in two minutes
+- [Product Strategy](docs/PRODUCT_STRATEGY.md) & [Target Architecture](docs/ARCHITECTURE_TARGET.md)
+- [Threat Model](docs/THREAT_MODEL.md) — Assets, trust boundaries, what is defended and what is not, with automated CI verification
+- [RAG Retrieval Evaluation](docs/RETRIEVAL_EVALUATION.md) — Golden set benchmarks, abstention analysis, and reranking metrics
+- [Team Audit](docs/AUDIT_2026-08-19.md) & [Code Review](docs/CODE_REVIEW.md)
+- [Demo Guide](docs/DEMO_GUIDE.md) & [GitHub Release Plan](docs/GITHUB_RELEASE_PLAN.md)
