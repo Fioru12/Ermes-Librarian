@@ -1,7 +1,41 @@
 # Ermes Knowledge - Piano di Lavoro e Progresso
 
 > Documento vivo che traccia stato attuale, miglioramenti pianificati e progresso.
-> Ultimo aggiornamento: 2026-09-08
+> Ultimo aggiornamento: 2026-09-12
+
+## 🆕 2026-09-12 — v2.2.0 - v2.2.4: Streaming SSE, Concorrenza, Glossario Dinamico & UI Polish
+
+**Streaming SSE & RAG ad Alte Prestazioni (v2.2.0)**
+- Real-Time Server-Sent Events (`POST /api/libraries/{id}/ask/stream`) con feedback dinamico animato nel frontend (`Ricerca evidenze...`, `Verifica passaggi...`, `Composizione risposta...`).
+- Parallelizzazione della verifica evidenze con `ThreadPoolExecutor` in `core/evidence_verifier.py`, con abbattimento del 60–70% della latenza del verifier.
+- Connection pooling HTTP riusabile (`httpx.Client`) in `core/evidence_assistant.py` ed `evidence_verifier.py`.
+- Pulizia architetturale: script spostati in `scripts/windows/` e `legacy_winsarp/scripts/`.
+
+**Concorrenza Multi-Processo & Container-Safety (v2.2.1)**
+- `FileLock` singleton con cache per percorso canonico in `core/governance.py`.
+- Spostamento dei lockfile in `cfg.SECURITY_DIR` per compatibilità con container a filesystem root in sola lettura (`read-only rootfs`).
+- Tasto di copia rapida risposta con feedback visivo temporaneo in `ChatArea.tsx`.
+
+**Esportazione Markdown, Reset Chat & Filtri Documenti (v2.2.2)**
+- Azione "Esporta .md" della conversazione attiva con formattazione pulita di domande, risposte e citazioni in blockquote.
+- Azione "Nuova chat" per reset istantaneo della sessione senza reload della pagina.
+- Toolbar filtri formato (`Tutti`, `PDF`, `DOCX`, `PPTX`, `XLSX`, `TXT`, `MD`) e ricerca testuale istantanea in `DocumentsTab.tsx`.
+
+**Glossario Aziendale Dinamico & Query Expansion (v2.2.3)**
+- `core/query_expander.py` espanso con persistenza dinamica su `config/synonyms.json` (`ERMES_SYNONYMS_FILE`).
+- Fusione intelligente termini custom con built-in, priorità e deduplicazione automatica.
+- Ordinamento per lunghezza decrescente per matching prioritario di locuzioni multi-parola.
+- API protetta `/api/synonyms` (GET/POST/DELETE) con RBAC (`editor`/`admin`) e audit log.
+
+**UI Glossario & UX Citazioni Avanzate (v2.2.4)**
+- Componente `SynonymsSettingsPanel.tsx` integrato in `SettingsTab.tsx` per la gestione visuale dei sinonimi aziendali.
+- Modal citazioni in `ChatArea.tsx` potenziato con tasto Escape, click outside, copia citazione e area di lettura scrollabile.
+- Correzione bug WinError 3 su percorsi relativi in `_get_users_lock` e `append_audit`.
+
+**Validazione**:
+- Backend: 88/88 test passati sui moduli chiave;
+- Frontend: 68/68 test Vitest passati con 0 warning, bundle Vite compilato in 1.70s;
+- Ruff: 0 errori su tutto il repository.
 
 ## 🆕 2026-09-08 — Gate sicurezza: bandit pulito + mypy migliorato
 

@@ -87,6 +87,9 @@ Teams often have procedures, policies, manuals, contracts and internal know-how 
 - Automation Webhook Gateway: API Key-authenticated REST endpoints (`/api/integrations/automation/ask` and `/ingest`) tailored for n8n, Zapier, Make, and microservices.
 - Multi-channel Chat Integrations: Slack Slash Commands / Events, Microsoft Teams Outgoing Webhooks, and Telegram Bot API.
 - Real-time Server-Sent Events (SSE) Streaming: `/api/libraries/{library_id}/ask/stream` streams live status steps (`retrieving`, `verifying`, `composing`), verified citations, and generated answers directly to the React UI with zero polling.
+- Dynamic Enterprise Glossary & Synonym Disambiguation: configurable corporate acronyms, abbreviations and domain glossaries (`/api/synonyms`, `config/synonyms.json`), with multi-word phrase prioritization and interactive management in the Settings tab.
+- Advanced Chat & Document Actions: export full conversations with citations to Markdown (`.md`), reset active chat session without page reload, copy answers and citations with visual feedback, and real-time document filtering by extension (`PDF`, `DOCX`, `PPTX`, `XLSX`, `TXT`, `MD`) and filename.
+- Enterprise Documentation: Italian operational and deployment manual in [docs/GUIDA_OPERATIVA_AZIENDA.md](docs/GUIDA_OPERATIVA_AZIENDA.md) and English administrator guide in [docs/RUNBOOK.md](docs/RUNBOOK.md).
 - Dedicated React Interface with real-time streaming feedback, first-access onboarding wizard, Connectors & Automations tab, FastAPI backend, automated test suite (backend `pytest`, frontend `vitest`, Locust load scenarios, pytest performance benchmarks).
 
 ![Libraries and documents, each with version, indexing state and a per-library assistant policy](docs/screenshots/libraries-and-documents.png)
