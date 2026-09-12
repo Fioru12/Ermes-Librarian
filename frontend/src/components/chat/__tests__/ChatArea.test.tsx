@@ -56,4 +56,39 @@ describe('ChatArea', () => {
     renderChat({ libraries: [], selectedLibraryId: '', selectedLibraryDocumentCount: 0 })
     expect(screen.getByText('Crea la prima biblioteca')).toBeInTheDocument()
   })
+
+  it('opens citation detail modal on marker click and closes it with Escape key', () => {
+    renderChat({
+      selectedLibraryId: 'hr',
+      messages: [
+        {
+          id: 'a',
+          role: 'assistant' as const,
+          content: 'Risposta documentata.[1]',
+          timestamp: '10:01',
+          evidence: { coverage: 'supported' as const },
+          sources: [
+            {
+              document_id: 'd1',
+              filename: 'manuale.pdf',
+              version: 1,
+              locator: 'Pagina 5',
+              excerpt: 'Estratto di prova dal manuale.',
+              marker: 1,
+            },
+          ],
+        },
+      ],
+    })
+
+    // Clicca sul marcatore citazione [1]
+    fireEvent.click(screen.getByRole('button', { name: '1' }))
+    expect(screen.getByRole('dialog', { name: 'Dettaglio citazione' })).toBeInTheDocument()
+    expect(screen.getByText('Citazione [1]')).toBeInTheDocument()
+    expect(screen.getByText('Copia citazione')).toBeInTheDocument()
+
+    // Premi Escape per chiudere il modal
+    fireEvent.keyDown(window, { key: 'Escape' })
+    expect(screen.queryByRole('dialog', { name: 'Dettaglio citazione' })).not.toBeInTheDocument()
+  })
 })

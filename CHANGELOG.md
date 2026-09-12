@@ -2,6 +2,15 @@
 
 Registro leggibile del lavoro su questo progetto. Per il dettaglio fase-per-fase con motivazioni, vedi [docs/ROADMAP_V2.md](docs/ROADMAP_V2.md); per i finding tecnici completi, [docs/AUDIT_2026-08-19.md](docs/AUDIT_2026-08-19.md) e [docs/CODE_REVIEW.md](docs/CODE_REVIEW.md); per il registro operativo delle sessioni, [docs/WORK_PROGRESS.md](docs/WORK_PROGRESS.md).
 
+## 2026-09-12 — v2.2.4: Gestione UI Glossario Dinamico e UX Citazioni Avanzate
+
+- **Pannello UI Glossario & Sinonimi Dinamici**: in [`frontend/src/components/settings/SynonymsSettingsPanel.tsx`](file:///c:/Progetti/ProgettoRAG_DEV/frontend/src/components/settings/SynonymsSettingsPanel.tsx) e integrato in [`SettingsTab.tsx`](file:///c:/Progetti/ProgettoRAG_DEV/frontend/src/components/settings/SettingsTab.tsx), introdotta la gestione visiva completa del glossario aziendale: conteggio metriche, visualizzazione a chip dei sinonimi personalizzati, modulo per l'inserimento di nuovi acronimi/espansioni per amministratori ed editor, eliminazione rapida con conferma e sezione collassabile per esplorare i termini predefiniti di sistema.
+- **UX Dettaglio Citazione Avanzata**: in [`ChatArea.tsx`](file:///c:/Progetti/ProgettoRAG_DEV/frontend/src/components/chat/ChatArea.tsx), arricchito il modal di consultazione delle evidenze con:
+  - Chiusura rapida tramite tasto `Escape` e click all'esterno dell'overlay;
+  - Pulsante dedicato "Copia citazione" con feedback visivo (`Copiato!` con spunta verde);
+  - Area di lettura ingrandita e scrollabile per estratti lunghi con backdrop blur.
+- **Suite di Test Frontend Estesa**: aggiunti test unitari in `SynonymsSettingsPanel.test.tsx` e `ChatArea.test.tsx`, portando la suite frontend a 68/68 test Vitest superati e bundle Vite generato in meno di 2 secondi.
+
 ## 2026-09-12 — v2.2.3: Glossario Aziendale Dinamico e Sinonimi Personalizzati
 
 - **Glossario Dinamico & Query Expansion Personalizzata**: `core/query_expander.py` è stato potenziato per supportare dizionari personalizzati persistiti su file JSON (`config/synonyms.json`, configurabile tramite `ERMES_SYNONYMS_FILE`). I sinonimi personalizzati dell'organizzazione/biblioteca vengono uniti a quelli base con priorità e deduplicazione automatica, consentendo di comprendere all'istante acronimi e terminologie proprietarie o gergali (es. *TFR, CCNL, DDT, CIG, CUP, GDPR, DVR, smart working*).

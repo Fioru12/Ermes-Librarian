@@ -63,6 +63,7 @@ export default function ChatArea({
   const [activeCitation, setActiveCitation] = useState<{ source: Source; marker: number } | null>(null)
   const [feedbackState, setFeedbackState] = useState<Record<string, number>>({})
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null)
+  const [copiedCitation, setCopiedCitation] = useState(false)
 
   const handleCopy = (messageId: string, text: string) => {
     if (!navigator.clipboard) return
@@ -71,6 +72,24 @@ export default function ChatArea({
       setTimeout(() => setCopiedMessageId(prev => (prev === messageId ? null : prev)), 2000)
     }).catch(() => {})
   }
+
+  const handleCopyCitation = () => {
+    if (!navigator.clipboard || !activeCitation?.source?.excerpt) return
+    navigator.clipboard.writeText(activeCitation.source.excerpt).then(() => {
+      setCopiedCitation(true)
+      setTimeout(() => setCopiedCitation(false), 2000)
+    }).catch(() => {})
+  }
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && activeCitation) {
+        setActiveCitation(null)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [activeCitation])
 
   useEffect(() => {
     if (typeof chatEndRef.current?.scrollIntoView === 'function') {
@@ -347,23 +366,67 @@ export default function ChatArea({
         </form>
       </div>
       {activeCitation && (
-        <div className="absolute inset-0 z-30 flex items-center justify-center bg-slate-950/70 p-6" role="dialog" aria-label="Dettaglio citazione">
-          <section className={`w-full max-w-lg rounded-2xl border p-6 shadow-2xl ${t.card}`}>
+        <div
+          className="absolute inset-0 z-30 flex items-center justify-center bg-slate-950/75 p-4 sm:p-6 backdrop-blur-sm"
+          role="dialog"
+          aria-label="Dettaglio citazione"
+          onClick={e => {
+            if (e.target === e.currentTarget) setActiveCitation(null)
+          }}
+        >
+          <section className={`w-full max-w-xl rounded-2xl border p-6 shadow-2xl ${t.card}`}>
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h2 className="font-semibold">Citazione [{activeCitation.marker}]</h2>
-                <p className="mt-1 text-sm text-slate-400">{activeCitation.source.filename} · v{activeCitation.source.version} · {activeCitation.source.locator}</p>
+                <div className="flex items-center gap-2">
+                  <h2 className="font-semibold text-base">Citazione [{activeCitation.marker}]</h2>
+                  <span className="rounded bg-blue-500/20 px-2 py-0.5 text-[11px] font-mono text-blue-300">
+                    Fonte verificata
+                  </span>
+                </div>
+                <p className="mt-1 text-xs text-slate-400">
+                  {activeCitation.source.filename} · v{activeCitation.source.version} · {activeCitation.source.locator}
+                </p>
               </div>
-              <button onClick={() => setActiveCitation(null)} className="text-slate-400 hover:text-white" aria-label="Chiudi citazione"><X className="h-4 w-4" /></button>
+              <button
+                onClick={() => setActiveCitation(null)}
+                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-white/5 transition cursor-pointer"
+                aria-label="Chiudi citazione"
+              >
+                <X className="h-4 w-4" />
+              </button>
             </div>
-            <blockquote className="mt-4 rounded-lg border border-white/10 bg-white/[0.02] p-4 text-sm leading-6">
+            <blockquote className="mt-4 max-h-[55vh] overflow-y-auto rounded-xl border border-white/10 bg-white/[0.02] p-4 text-sm leading-relaxed text-slate-200">
               <InlineMarkdown text={activeCitation.source.excerpt} />
             </blockquote>
-            <div className="mt-4 flex justify-end">
+            <div className="mt-5 flex items-center justify-between gap-3 pt-2">
               <button
                 type="button"
-                onClick={() => window.open(`/api/libraries/${selectedLibraryId}/documents/${activeCitation.source.document_id}/download`, '_blank', 'noopener,noreferrer')}
-                className="flex items-center gap-1.5 rounded-lg border border-blue-500/30 bg-blue-500/10 px-3 py-1.5 text-xs font-semibold text-blue-300 transition hover:bg-blue-500/20"
+                onClick={handleCopyCitation}
+                className="flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-xs text-slate-300 transition hover:bg-white/5 hover:text-white cursor-pointer"
+                title="Copia il testo della citazione"
+              >
+                {copiedCitation ? (
+                  <>
+                    <Check className="h-3.5 w-3.5 text-emerald-400" />
+                    <span className="text-emerald-300 font-medium">Copiato!</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-3.5 w-3.5 text-slate-400" />
+                    <span>Copia citazione</span>
+                  </>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  window.open(
+                    `/api/libraries/${selectedLibraryId}/documents/${activeCitation.source.document_id}/download`,
+                    '_blank',
+                    'noopener,noreferrer'
+                  )
+                }
+                className="flex items-center gap-1.5 rounded-lg border border-blue-500/30 bg-blue-500/10 px-3.5 py-1.5 text-xs font-semibold text-blue-300 transition hover:bg-blue-500/20 cursor-pointer"
               >
                 <Download className="h-3.5 w-3.5" /> Apri originale
               </button>

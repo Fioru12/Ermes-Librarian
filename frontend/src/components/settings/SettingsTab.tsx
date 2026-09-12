@@ -2,6 +2,7 @@ import { Settings, ShieldCheck } from 'lucide-react'
 import { Card, CardTitle } from '../ui'
 import ProvidersTab from '../providers/ProvidersTab'
 import PiiSettingsPanel from './PiiSettingsPanel'
+import SynonymsSettingsPanel from './SynonymsSettingsPanel'
 
 interface SettingsTabProps {
   showNotif: (msg: string, type?: 'success' | 'error') => void
@@ -25,6 +26,9 @@ export default function SettingsTab({ showNotif, isAdmin = false }: SettingsTabP
           <p className="rounded-lg border border-white/5 bg-white/[0.02] p-3"><span className="block text-xs font-semibold uppercase tracking-wide text-slate-500">AI cloud</span><span className="mt-1 block text-slate-300">Disponibile solo quando autorizzata per una biblioteca.</span></p>
         </div>
       </Card>
+
+      {/* Glossario Aziendale & Sinonimi Dinamici */}
+      <SynonymsSettingsPanel showNotif={showNotif} isAdmin={isAdmin} />
 
       {/* Pannello Protezione Dati PII & DLP */}
       <PiiSettingsPanel showNotif={showNotif} isAdmin={isAdmin} />
