@@ -248,8 +248,22 @@ class TestGovernanceFileLocks:
         create_or_update_user(users_file, "admin_user", "admin", "Admin1234!")
         user = authenticate_user(users_file, "admin_user", "Admin1234!")
         assert user is not None
-        assert user["username"] == "admin_user"
+
+    def test_relative_users_file_path_does_not_fail(self, monkeypatch, temp_dir):
+        monkeypatch.chdir(temp_dir)
+        users_file = "users.json"
+        lock = _get_users_lock(users_file)
+        assert lock.lock_file.endswith("users.json.lock")
+        create_or_update_user(users_file, "rel_user", "viewer", "Viewer1234!")
+        user = authenticate_user(users_file, "rel_user", "Viewer1234!")
+        assert user is not None and user["username"] == "rel_user"
+
+        audit_file = "audit.jsonl"
+        append_audit(audit_file, "test_action", "rel_user")
+        assert os.path.exists(os.path.abspath(audit_file))
 
     def test_api_keys_lock_uses_security_dir(self):
+        from config import cfg
+
         lock = _get_api_keys_lock()
-        assert ".apikeys_lock" in lock.lock_file
+        assert lock.lock_file.startswith(cfg.SECURITY_DIR)

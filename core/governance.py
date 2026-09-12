@@ -279,7 +279,8 @@ _users_lock = threading.RLock()
 
 
 def _get_users_lock(users_file: str) -> FileLock:
-    lock_path = users_file + ".lock"
+    canonical = os.path.abspath(users_file)
+    lock_path = canonical + ".lock"
     os.makedirs(os.path.dirname(lock_path), exist_ok=True)
     return _get_file_lock(lock_path, timeout=10.0)
 
@@ -299,12 +300,14 @@ def _load_users(users_file: str) -> dict:
 
 def _save_users(users_file: str, data: dict) -> None:
     """Salva file utenti in modo atomico usando tempfile + rename."""
-    with _users_lock, _get_users_lock(users_file):
-        os.makedirs(os.path.dirname(users_file), exist_ok=True)
+    canonical = os.path.abspath(users_file)
+    target_dir = os.path.dirname(canonical)
+    with _users_lock, _get_users_lock(canonical):
+        os.makedirs(target_dir, exist_ok=True)
         tmp_path: str | None = None
         try:
             with tempfile.NamedTemporaryFile(
-                mode="w", dir=os.path.dirname(users_file), delete=False, encoding="utf-8", suffix=".tmp"
+                mode="w", dir=target_dir, delete=False, encoding="utf-8", suffix=".tmp"
             ) as tmp:
                 tmp_path = tmp.name
                 json.dump(data, tmp, ensure_ascii=False, indent=2)
@@ -665,7 +668,8 @@ def append_audit(audit_file: str, action: str, actor: str, detail: dict | None =
     Il campo 'signature' garantisce che l'entry non sia stata manipolata.
     Per verificare: _verify_audit_signature(entry)
     """
-    os.makedirs(os.path.dirname(audit_file), exist_ok=True)
+    canonical = os.path.abspath(audit_file)
+    os.makedirs(os.path.dirname(canonical), exist_ok=True)
     entry = {
         "ts": datetime.now().isoformat(),
         "action": action,
