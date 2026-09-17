@@ -7,11 +7,14 @@ external model or network connection.
 
 from __future__ import annotations
 
+import logging
 import re
 from dataclasses import dataclass
 from io import BytesIO
 from pathlib import Path
 from zipfile import ZipFile
+
+_logger = logging.getLogger("ermes.parser")
 
 
 class DocumentParseError(ValueError):
@@ -102,14 +105,16 @@ def extract_source_units(filename: str, content: bytes) -> list[SourceUnit]:
 
             reader = PdfReader(BytesIO(content))
             units: list[SourceUnit] = []
+            ocr = _OcrSession(content)
             for number, page in enumerate(reader.pages, start=1):
                 page_text = (page.extract_text() or "").strip()
                 if page_text:
                     units.append(SourceUnit(page_text, f"Pagina {number}"))
-                elif hasattr(page, "images") and page.images:
-                    ocr_text = _try_ocr_images(page.images)
-                    if ocr_text:
-                        units.append(SourceUnit(ocr_text, f"Pagina {number} (Scansione OCR)"))
+                    continue
+                ocr_text = ocr.page(number)
+                if ocr_text:
+                    units.append(SourceUnit(ocr_text, f"Pagina {number} (scansione, OCR)"))
+            ocr.report()
             return units
         if suffix == ".docx":
             _validate_office_archive(content, "docx")
@@ -142,24 +147,60 @@ def extract_source_units(filename: str, content: bytes) -> list[SourceUnit]:
     raise DocumentParseError("Formato documento non supportato")
 
 
-def _try_ocr_images(images) -> str:
-    """Attempt OCR extraction on extracted page images using pytesseract if available."""
-    try:
-        import pytesseract
-        from PIL import Image
+class _OcrSession:
+    """OCR delle pagine di un PDF prive di livello testo, con i limiti del config.
 
-        parts = []
-        for img in images:
-            try:
-                pil_img = Image.open(BytesIO(img.data))
-                text = pytesseract.image_to_string(pil_img, lang="ita+eng").strip()
-                if text:
-                    parts.append(text)
-            except Exception:
-                continue
-        return "\n\n".join(parts)
-    except Exception:
-        return ""
+    Una sessione per documento: decide una volta se l'OCR e' disponibile,
+    conta le pagine lavorate contro ERMES_OCR_MAX_PAGES e a fine documento
+    scrive nel log cosa e' stato saltato e perche'. Prima del 18 settembre
+    2026 una pagina scansionata spariva in silenzio.
+    """
+
+    def __init__(self, content: bytes) -> None:
+        from config import cfg
+        from core import ocr
+
+        self._content = content
+        self._lang = getattr(cfg, "OCR_LANG", "ita+eng")
+        self._dpi = int(getattr(cfg, "OCR_DPI", 200))
+        self._max_pages = int(getattr(cfg, "OCR_MAX_PAGES", 50))
+        self._done = 0
+        self._skipped_limit: list[int] = []
+        self._skipped_unavailable: list[int] = []
+        if not getattr(cfg, "OCR_ENABLED", True):
+            self._available, self._reason = False, "disattivato (ERMES_OCR_ENABLED=0)"
+        else:
+            self._available, self._reason = ocr.available()
+
+    def page(self, number: int) -> str:
+        if not self._available:
+            self._skipped_unavailable.append(number)
+            return ""
+        if self._done >= self._max_pages:
+            self._skipped_limit.append(number)
+            return ""
+        from core import ocr
+
+        self._done += 1
+        try:
+            return ocr.ocr_pdf_page(self._content, number - 1, lang=self._lang, dpi=self._dpi)
+        except Exception as error:
+            _logger.warning("OCR fallito sulla pagina %d: %s", number, error)
+            return ""
+
+    def report(self) -> None:
+        if self._skipped_unavailable:
+            _logger.warning(
+                "%d pagine senza testo non lette: OCR non disponibile (%s)",
+                len(self._skipped_unavailable),
+                self._reason,
+            )
+        if self._skipped_limit:
+            _logger.warning(
+                "%d pagine senza testo saltate: oltre ERMES_OCR_MAX_PAGES=%d",
+                len(self._skipped_limit),
+                self._max_pages,
+            )
 
 
 def _extract_csv_units(content: bytes) -> list[SourceUnit]:

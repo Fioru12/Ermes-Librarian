@@ -27,6 +27,11 @@ def istanza(tmp_path, monkeypatch):
     app_dir = tmp_path / "app"
     app_dir.mkdir()
     base = config.cfg.replace(BASE_DIR=str(app_dir), DATABASE_URL="", ENABLE_LEGACY_WINSARP=False)
+    # L'OCR e' acceso di default e dipende da un binario: senza fissarlo qui
+    # l'esito dipenderebbe da Tesseract installato o meno sulla macchina.
+    from core import ocr
+
+    monkeypatch.setattr(ocr, "available", lambda: (True, ""))
 
     def applica(**campi):
         nuovo = base.replace(**campi)
@@ -152,3 +157,25 @@ def test_a_verifier_that_could_not_run_is_counted_on_metrics(istanza, monkeypatc
     assert metrics.EVIDENCE_VERIFIER.labels(outcome="unavailable")._value.get() == prima + 1
     esposto = TestClient(app).get("/metrics").text
     assert 'ermes_evidence_verifier_total{outcome="unavailable"}' in esposto
+
+
+def test_ocr_enabled_without_tesseract_is_degraded(istanza, ollama, monkeypatch):
+    """Un PDF scansionato senza OCR viene indicizzato vuoto: e' contenuto
+    perso, e chi guarda il cruscotto deve vederlo senza leggere i log."""
+    from core import ocr
+
+    spenti = dict(
+        EVIDENCE_VERIFIER_ENABLED=False, CONVERSATION_MEMORY_ENABLED=False, LIBRARY_SEMANTIC_SEARCH_ENABLED=False
+    )
+    istanza(OCR_ENABLED=True, **spenti)
+    ollama.raggiungibile = False
+    monkeypatch.setattr(ocr, "available", lambda: (False, "binario Tesseract non trovato (tesseract)"))
+
+    corpo = TestClient(app).get("/health").json()
+
+    assert corpo["status"] == "degraded"
+    assert any("OCR attivo ma non eseguibile" in w for w in corpo["warnings"])
+
+    istanza(OCR_ENABLED=False, **spenti)
+    corpo = TestClient(app).get("/health").json()
+    assert corpo["status"] == "healthy", corpo["warnings"]

@@ -123,6 +123,23 @@ class RAGConfig:
     )
 
     # ---------------------------------------------------------
+    # OCR (pagine PDF senza livello testo)
+    # ---------------------------------------------------------
+    # Acceso di default: si applica solo alle pagine da cui pypdf non
+    # estrae testo, quindi un PDF nativo non paga nulla. Richiede il binario
+    # Tesseract (nel Dockerfile; su Windows va installato a parte): senza,
+    # le pagine scansionate restano vuote e /health lo segnala.
+    OCR_ENABLED: bool = field(
+        default_factory=lambda: os.environ.get("ERMES_OCR_ENABLED", "1").strip().lower() in {"1", "true", "yes", "on"}
+    )
+    OCR_LANG: str = field(default_factory=lambda: os.environ.get("ERMES_OCR_LANG", "ita+eng"))
+    # ~1-3 s per pagina su CPU: un limite evita che un PDF da 800 pagine
+    # scansionate tenga occupato l'upload per mezz'ora. Le pagine oltre il
+    # limite vengono saltate e il salto e' registrato nel log.
+    OCR_MAX_PAGES: int = field(default_factory=lambda: int(os.environ.get("ERMES_OCR_MAX_PAGES", "50")))
+    OCR_DPI: int = field(default_factory=lambda: int(os.environ.get("ERMES_OCR_DPI", "200")))
+
+    # ---------------------------------------------------------
     # HYDE (Hypothetical Document Embeddings)
     # ---------------------------------------------------------
     HYDE_ENABLED: bool = field(

@@ -71,6 +71,18 @@ def _model_dependent_warnings(reachable: bool, names: set[str]) -> list[str]:
         avvisi.append(
             f"ricerca semantica attiva ma non eseguibile (modello {embed_model}): il recupero e' solo per parole chiave"
         )
+    # Stessa logica per l'OCR, che non dipende da un modello ma da un binario:
+    # acceso di default, e se manca Tesseract ogni PDF scansionato viene
+    # indicizzato vuoto. Senza questo avviso l'unico segnale era una riga di
+    # log per documento.
+    if getattr(cfg, "OCR_ENABLED", True):
+        from core import ocr
+
+        ocr_ok, ocr_reason = ocr.available()
+        if not ocr_ok:
+            avvisi.append(
+                f"OCR attivo ma non eseguibile ({ocr_reason}): le pagine PDF scansionate non vengono indicizzate"
+            )
     return avvisi
 
 

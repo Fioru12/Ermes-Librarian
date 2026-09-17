@@ -32,9 +32,15 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
+# tesseract-ocr: OCR delle pagine PDF scansionate (core/ocr.py), con i dati
+# per italiano e inglese. Circa 30 MB: e' la differenza tra indicizzare o
+# perdere meta' dei documenti di un archivio aziendale reale.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     curl \
+    tesseract-ocr \
+    tesseract-ocr-ita \
+    tesseract-ocr-eng \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /root/.local /root/.local
