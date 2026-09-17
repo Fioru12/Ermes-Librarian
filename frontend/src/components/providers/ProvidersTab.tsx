@@ -3,6 +3,7 @@ import { Settings, Cpu, Zap, RefreshCw } from 'lucide-react'
 import { useTheme } from '../../hooks/useTheme'
 import { Card, CardTitle, Input, Select, Button } from '../ui'
 import type { ProviderConfig } from '../../types'
+import { errorMessage } from '../../lib/errors'
 
 interface ProvidersTabProps {
   showNotif: (msg: string, type?: 'success' | 'error') => void
@@ -64,7 +65,7 @@ export default function ProvidersTab({ showNotif }: ProvidersTabProps) {
       }))
       if (data.models) setModelsInput(data.models.join('\n'))
       showNotif(`Riconosciuto: ${data.type}${data.match !== 'unknown' ? ` (${data.match}...)` : ''}`, 'success')
-    } catch (e: any) { showNotif(e.message, 'error') }
+    } catch (e) { showNotif(errorMessage(e), 'error') }
     finally { setDetecting(false) }
   }
 
@@ -85,7 +86,7 @@ export default function ProvidersTab({ showNotif }: ProvidersTabProps) {
       } else {
         showNotif('Nessun modello trovato', 'error')
       }
-    } catch (e: any) { showNotif(e.message, 'error') }
+    } catch (e) { showNotif(errorMessage(e), 'error') }
     finally { setFetchingModels(false) }
   }
 
@@ -102,7 +103,7 @@ export default function ProvidersTab({ showNotif }: ProvidersTabProps) {
       } else {
         showNotif(await res.text(), 'error')
       }
-    } catch (e: any) { showNotif(e.message, 'error') }
+    } catch (e) { showNotif(errorMessage(e), 'error') }
   }
 
   const testProvider = async (p: ProviderConfig) => {

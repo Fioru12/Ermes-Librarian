@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { BookOpen, Plus, Trash2, RefreshCw, ChevronDown, ChevronUp, Tag } from 'lucide-react'
 import { Card, CardTitle, Button, Input } from '../ui'
+import { errorMessage } from '../../lib/errors'
 
 interface SynonymsSettingsPanelProps {
   showNotif: (msg: string, type?: 'success' | 'error') => void
@@ -27,8 +28,8 @@ export default function SynonymsSettingsPanel({ showNotif, isAdmin = false }: Sy
       const data = await res.json()
       setCustomSynonyms(data.custom || {})
       setAllSynonyms(data.all || {})
-    } catch (err: any) {
-      showNotif(err.message || 'Impossibile caricare il glossario aziendale', 'error')
+    } catch (err) {
+      showNotif(errorMessage(err) || 'Impossibile caricare il glossario aziendale', 'error')
     } finally {
       setLoading(false)
     }
@@ -70,8 +71,8 @@ export default function SynonymsSettingsPanel({ showNotif, isAdmin = false }: Sy
       setNewTerm('')
       setNewSynonyms('')
       await fetchSynonyms()
-    } catch (err: any) {
-      showNotif(err.message || 'Errore durante il salvataggio', 'error')
+    } catch (err) {
+      showNotif(errorMessage(err) || 'Errore durante il salvataggio', 'error')
     } finally {
       setSaving(false)
     }
@@ -86,8 +87,8 @@ export default function SynonymsSettingsPanel({ showNotif, isAdmin = false }: Sy
       if (!res.ok) throw new Error('Errore nella cancellazione del termine')
       showNotif(`Termine "${term}" rimosso`, 'success')
       await fetchSynonyms()
-    } catch (err: any) {
-      showNotif(err.message || 'Errore durante la rimozione', 'error')
+    } catch (err) {
+      showNotif(errorMessage(err) || 'Errore durante la rimozione', 'error')
     }
   }
 

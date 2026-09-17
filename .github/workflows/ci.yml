@@ -142,6 +142,11 @@ jobs:
         run: |
           cd frontend
           npm ci
+          # Lint bloccante dal 18 settembre 2026: esisteva (`npm run lint`)
+          # ma non girava in CI, e falliva con 2 errori reali (variabili
+          # usate prima della dichiarazione). no-explicit-any e
+          # no-unused-vars erano spente: riaccese, 0 violazioni.
+          npm run lint
           npm run build
       - name: Run frontend tests
         run: |

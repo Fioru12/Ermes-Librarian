@@ -39,6 +39,12 @@ CI resa un gate anche per ciò che finora era solo scritto:
 
 **Coda di indicizzazione locale** (`core/ingestion_worker.py`), senza broker: i job erano già persistiti e reclamati atomicamente, mancava la politica attorno. Ora: concorrenza limitata (`ERMES_INGESTION_WORKERS`, default 2 — prima cento upload erano cento parser in parallelo), retry con attesa per le sole cause transitorie (`ERMES_INGESTION_MAX_ATTEMPTS`, `ERMES_INGESTION_RETRY_SECONDS`; un documento illeggibile non viene riprovato), colonna `attempts` in `ingestion_jobs` (migrazione SQLite e Postgres), e recupero all'avvio dei job lasciati in `processing` da un crash — `recover_stale_ingestion_jobs` esisteva con "Startup calls this" nella docstring e non era chiamata da nessuno. Il contratto dello store (claim/finish/requeue) è quello che un worker separato userebbe. 5 test in `tests/test_ingestion_worker.py` (retry, no-retry, tetto tentativi, concorrenza, recupero).
 
+Frontend:
+
+- **Lint riattivato e in CI.** `npm run lint` esisteva ma non girava in CI e falliva con 2 errori reali (`ConnectorsTab`: funzioni usate in un effect prima della dichiarazione). `no-explicit-any` e `no-unused-vars` erano spente: i 23 `any` erano tutti `catch (err: any)` per leggere `.message` — sostituiti da `lib/errors.ts::errorMessage(unknown)`; le 8 variabili inutilizzate erano `catch (e)` vuoti. Ora entrambe le regole sono attive (nei test `any` resta lecito per i mock) e il lint è bloccante in CI.
+- **Code splitting**: ogni tab è un chunk caricato alla prima visita (`React.lazy` + `Suspense`). Bundle iniziale da 301 KB a 187 KB.
+- `window.open` con `noopener,noreferrer` sull'export biblioteca.
+
 Verificato e **non** corretto perché il claim non regge: lo streaming SSE non "sovrascrive i chunk" — il server manda un solo evento `answer` con la risposta completa (`api/libraries.py`), lo stream è di stati; `striprtf` assente da `requirements.txt` ha un fallback esplicito in `core/document_parser.py`. Rimandati (richiedono più di un giorno): adapter Postgres per le ~25 query via `_connection()` con `?` (oggi rotte su PG, confermato), migrazione ad Argon2, backup cifrati.
 
 ## 2026-09-12 — v2.2.4: Gestione UI Glossario Dinamico e UX Citazioni Avanzate

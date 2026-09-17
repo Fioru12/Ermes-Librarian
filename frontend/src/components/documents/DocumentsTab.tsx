@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { AlertTriangle, CheckCircle2, Clock3, Download, FileText, FolderCog, FolderPlus, Library, PackageOpen, RefreshCw, Search, ShieldCheck, Trash2, Upload, UserPlus, Users, XCircle } from 'lucide-react'
 import { useTheme } from '../../hooks/useTheme'
 import { CardTitle } from '../../components/ui'
+import { errorMessage } from '../../lib/errors'
 
 interface LibraryItem {
   id: string
@@ -317,8 +318,8 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
       await fetchLibraries()
       setSelectedLibraryId(library.id)
       showNotif(`Biblioteca “${library.name}” importata con successo!`)
-    } catch (err: any) {
-      showNotif(err.message || 'Impossibile importare il pacchetto', 'error')
+    } catch (err) {
+      showNotif(errorMessage(err) || 'Impossibile importare il pacchetto', 'error')
     } finally {
       event.target.value = ''
     }
@@ -668,7 +669,7 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>}
                 <button
-                  onClick={() => window.open(`/api/libraries/${selectedLibrary.id}/export`, '_blank')}
+                  onClick={() => window.open(`/api/libraries/${selectedLibrary.id}/export`, '_blank', 'noopener,noreferrer')}
                   className="rounded-xl border border-blue-500/30 bg-blue-500/10 px-3 py-2 text-xs font-medium text-blue-300 transition hover:bg-blue-500/20"
                   title="Esporta Knowledge Pack (.ermes)"
                 >

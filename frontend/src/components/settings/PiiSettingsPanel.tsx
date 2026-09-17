@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { ShieldAlert, Plus, Trash2, TestTube, CheckCircle, RefreshCw, Lock } from 'lucide-react'
 import { Card, CardTitle, Button, Input } from '../ui'
+import { errorMessage } from '../../lib/errors'
 
 interface PiiSettingsPanelProps {
   showNotif: (msg: string, type?: 'success' | 'error') => void
@@ -48,8 +49,8 @@ export default function PiiSettingsPanel({ showNotif, isAdmin = false }: PiiSett
       setStandardMeta(data.standard_patterns_meta || [])
       setEnabledPatterns(data.enabled_patterns || {})
       setCustomRules(data.custom_rules || [])
-    } catch (err: any) {
-      showNotif(err.message || 'Impossibile caricare configurazione DLP', 'error')
+    } catch (err) {
+      showNotif(errorMessage(err) || 'Impossibile caricare configurazione DLP', 'error')
     } finally {
       setLoading(false)
     }
@@ -76,7 +77,7 @@ export default function PiiSettingsPanel({ showNotif, isAdmin = false }: PiiSett
     // Valida sintassi regex client-side
     try {
       new RegExp(newRulePattern)
-    } catch (e) {
+    } catch {
       showNotif('Sintassi Regex non valida', 'error')
       return
     }
@@ -115,8 +116,8 @@ export default function PiiSettingsPanel({ showNotif, isAdmin = false }: PiiSett
 
       if (!res.ok) throw new Error('Errore durante il salvataggio della configurazione PII')
       showNotif('Regole PII / DLP salvate con successo!', 'success')
-    } catch (err: any) {
-      showNotif(err.message || 'Errore salvataggio PII', 'error')
+    } catch (err) {
+      showNotif(errorMessage(err) || 'Errore salvataggio PII', 'error')
     } finally {
       setSaving(false)
     }
@@ -137,8 +138,8 @@ export default function PiiSettingsPanel({ showNotif, isAdmin = false }: PiiSett
         masked: data.masked,
         detected: data.detected || [],
       })
-    } catch (err: any) {
-      showNotif(err.message || 'Test fallito', 'error')
+    } catch (err) {
+      showNotif(errorMessage(err) || 'Test fallito', 'error')
     } finally {
       setTesting(false)
     }

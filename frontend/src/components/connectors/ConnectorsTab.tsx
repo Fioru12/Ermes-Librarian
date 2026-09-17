@@ -12,6 +12,7 @@ import {
   Cloud,
   Layers,
 } from 'lucide-react'
+import { errorMessage } from '../../lib/errors'
 
 interface Library {
   id: string
@@ -52,11 +53,6 @@ export default function ConnectorsTab({ showNotif }: ConnectorsTabProps) {
   const [watcherStatus, setWatcherStatus] = useState<{ active?: boolean; monitored_sources_count?: number } | null>(null)
   const [isWatcherSyncing, setIsWatcherSyncing] = useState<boolean>(false)
 
-  useEffect(() => {
-    fetchLibraries()
-    fetchWatcherStatus()
-  }, [])
-
   const fetchLibraries = async () => {
     try {
       const res = await fetch('/api/libraries', { credentials: 'include' })
@@ -84,6 +80,11 @@ export default function ConnectorsTab({ showNotif }: ConnectorsTabProps) {
     }
   }
 
+  useEffect(() => {
+    fetchLibraries()
+    fetchWatcherStatus()
+  }, [])
+
   const handleTestFolder = async () => {
     if (!folderPath.trim()) {
       showNotif('Inserisci un percorso cartella valido', 'error')
@@ -109,8 +110,8 @@ export default function ConnectorsTab({ showNotif }: ConnectorsTabProps) {
         setFolderStatus({ ok: false, message: data.message || data.detail || 'Errore durante la verifica' })
         showNotif(data.message || data.detail || 'Verifica cartella fallita', 'error')
       }
-    } catch (err: any) {
-      setFolderStatus({ ok: false, message: err.message || 'Errore di rete' })
+    } catch (err) {
+      setFolderStatus({ ok: false, message: errorMessage(err) || 'Errore di rete' })
       showNotif('Impossibile verificare la cartella', 'error')
     } finally {
       setIsFolderTesting(false)
@@ -144,7 +145,7 @@ export default function ConnectorsTab({ showNotif }: ConnectorsTabProps) {
       } else {
         showNotif(data.detail || 'Errore durante la sincronizzazione', 'error')
       }
-    } catch (err: any) {
+    } catch {
       showNotif('Impossibile completare la sincronizzazione', 'error')
     } finally {
       setIsFolderSyncing(false)
@@ -176,8 +177,8 @@ export default function ConnectorsTab({ showNotif }: ConnectorsTabProps) {
         setWebStatus({ ok: false, message: data.message || data.detail || 'Impossibile raggiungere il sito' })
         showNotif(data.message || data.detail || 'Verifica web fallita', 'error')
       }
-    } catch (err: any) {
-      setWebStatus({ ok: false, message: err.message || 'Errore di rete' })
+    } catch (err) {
+      setWebStatus({ ok: false, message: errorMessage(err) || 'Errore di rete' })
       showNotif('Errore durante la connessione web', 'error')
     } finally {
       setIsWebTesting(false)
@@ -211,7 +212,7 @@ export default function ConnectorsTab({ showNotif }: ConnectorsTabProps) {
       } else {
         showNotif(data.detail || 'Errore durante lo scraping', 'error')
       }
-    } catch (err: any) {
+    } catch {
       showNotif('Impossibile completare lo scraping', 'error')
     } finally {
       setIsWebSyncing(false)
@@ -248,8 +249,8 @@ export default function ConnectorsTab({ showNotif }: ConnectorsTabProps) {
         setMsStatus({ ok: false, message: data.message || data.detail || 'Errore durante la verifica' })
         showNotif(data.message || data.detail || 'Verifica Microsoft Graph fallita', 'error')
       }
-    } catch (err: any) {
-      setMsStatus({ ok: false, message: err.message || 'Errore di rete' })
+    } catch (err) {
+      setMsStatus({ ok: false, message: errorMessage(err) || 'Errore di rete' })
       showNotif('Impossibile verificare Microsoft Graph', 'error')
     } finally {
       setIsMsTesting(false)
@@ -283,7 +284,7 @@ export default function ConnectorsTab({ showNotif }: ConnectorsTabProps) {
       } else {
         showNotif(data.detail || 'Errore durante la sincronizzazione', 'error')
       }
-    } catch (err: any) {
+    } catch {
       showNotif('Impossibile completare la sincronizzazione Microsoft', 'error')
     } finally {
       setIsMsSyncing(false)
@@ -304,7 +305,7 @@ export default function ConnectorsTab({ showNotif }: ConnectorsTabProps) {
       } else {
         showNotif(data.detail || 'Errore durante la sincronizzazione', 'error')
       }
-    } catch (err: any) {
+    } catch {
       showNotif('Impossibile forzare la sincronizzazione', 'error')
     } finally {
       setIsWatcherSyncing(false)

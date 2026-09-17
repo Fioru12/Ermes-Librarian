@@ -40,7 +40,7 @@ export default function UserManagement({ showNotif }: { showNotif: (m: string, t
         const data = await res.json();
         setUsers(data.users || []);
       }
-    } catch (e) { showNotif('Errore nel caricamento utenti', 'error'); }
+    } catch { showNotif('Errore nel caricamento utenti', 'error'); }
   };
 
   const fetchAccounts = async () => {
@@ -131,7 +131,7 @@ export default function UserManagement({ showNotif }: { showNotif: (m: string, t
       } else {
         showNotif(data.detail || 'Errore creazione', 'error');
       }
-    } catch (e) { showNotif('Errore richiesta', 'error'); }
+    } catch { showNotif('Errore richiesta', 'error'); }
   };
 
   const copyRevealedKey = async () => {
@@ -154,7 +154,7 @@ export default function UserManagement({ showNotif }: { showNotif: (m: string, t
       } else {
         showNotif('Errore revoca', 'error');
       }
-    } catch (e) { showNotif('Errore richiesta', 'error'); }
+    } catch { showNotif('Errore richiesta', 'error'); }
   };
 
   return (

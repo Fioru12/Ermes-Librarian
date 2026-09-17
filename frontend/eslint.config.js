@@ -25,8 +25,16 @@ export default defineConfig([
       'react-hooks/set-state-in-effect': 'off',
       'react-hooks/exhaustive-deps': 'off',
       'react-refresh/only-export-components': 'off',
-      '@typescript-eslint/no-explicit-any': 'off',
-      '@typescript-eslint/no-unused-vars': 'off',
+      // Both were 'off' until 18 September 2026. The only `any` in product
+      // code was `catch (err: any)` (23 times) — replaced by lib/errors.ts.
+      '@typescript-eslint/no-explicit-any': 'error',
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', caughtErrors: 'none' }],
     },
+  },
+  {
+    // Test doubles are untyped by nature: fetch mocks return whatever the
+    // test needs. Keeping `any` legal here is not a loophole for product code.
+    files: ['**/*.test.{ts,tsx}', '**/__tests__/**'],
+    rules: { '@typescript-eslint/no-explicit-any': 'off' },
   },
 ])

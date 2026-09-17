@@ -1,15 +1,18 @@
-import { useEffect, useRef, useState } from 'react'
+import { Suspense, lazy, useEffect, useRef, useState } from 'react'
 import { AlertTriangle, CheckCircle, LockKeyhole, ShieldCheck, Sparkles, KeyRound } from 'lucide-react'
-import UserManagement from './components/Admin/UserManagement'
-import AuditLogs from './components/Admin/AuditLogs'
-import AnalyticsDashboard from './components/Admin/AnalyticsDashboard'
 import Sidebar from './components/layout/Sidebar'
 import ChatArea from './components/chat/ChatArea'
-import DocumentsTab from './components/documents/DocumentsTab'
-import HealthTab from './components/health/HealthTab'
-import SettingsTab from './components/settings/SettingsTab'
-import ConnectorsTab from './components/connectors/ConnectorsTab'
-import OnboardingWizard from './components/OnboardingWizard/OnboardingWizard'
+// Every tab was in the main bundle: a viewer who only ever asks questions
+// downloaded the admin dashboards, the connector wizards and the settings
+// panels too. Each tab is now its own chunk, fetched on first visit.
+const UserManagement = lazy(() => import('./components/Admin/UserManagement'))
+const AuditLogs = lazy(() => import('./components/Admin/AuditLogs'))
+const AnalyticsDashboard = lazy(() => import('./components/Admin/AnalyticsDashboard'))
+const DocumentsTab = lazy(() => import('./components/documents/DocumentsTab'))
+const HealthTab = lazy(() => import('./components/health/HealthTab'))
+const SettingsTab = lazy(() => import('./components/settings/SettingsTab'))
+const ConnectorsTab = lazy(() => import('./components/connectors/ConnectorsTab'))
+const OnboardingWizard = lazy(() => import('./components/OnboardingWizard/OnboardingWizard'))
 import { ThemeProvider, useTheme } from './hooks/useTheme'
 import type { HealthStatus, Message, TabId } from './types'
 
@@ -257,16 +260,19 @@ function AppInner() {
 
   return <div className={`ermes-app-shell flex h-screen overflow-hidden font-sans antialiased ${t.bg}`}>
     {showOnboarding && currentUser && (
+      <Suspense fallback={null}>
       <OnboardingWizard
         onLibraryCreated={libraryId => { setShowOnboarding(false); setSelectedLibraryId(libraryId) }}
         showNotif={showNotif}
       />
+      </Suspense>
     )}
     <Sidebar activeTab={activeTab} onTabChange={setActiveTab} healthStatus={health ? { status: health.status } : undefined} onRefresh={fetchData} isAdmin={currentUser?.role === 'admin'} username={currentUser?.username} />
     <main className="relative flex flex-1 flex-col overflow-hidden">
       {notif && <div className={`absolute right-4 top-4 z-50 flex items-center gap-2.5 rounded-xl border px-4 py-3 shadow-lg ${notif.type === 'error' ? 'border-rose-800 bg-rose-950/90 text-rose-200' : 'border-emerald-800 bg-emerald-950/90 text-emerald-200'}`}>{notif.type === 'error' ? <AlertTriangle className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}<span className="text-sm font-medium">{notif.message}</span></div>}
       <header className={`z-10 flex h-[4.5rem] items-center justify-between border-b px-7 ${t.header}`}><div className="flex items-center gap-3"><div><p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">Spazio di lavoro</p><h2 className={`mt-0.5 text-sm font-semibold ${t.cardTitle}`}>{tabHeaders[activeTab]}</h2></div><span className="hidden rounded-full border border-blue-500/20 bg-blue-500/10 px-2.5 py-1 text-[10px] font-semibold text-blue-400 sm:inline">Biblioteca locale</span></div><p className={`text-xs ${t.cardDesc}`}>Policy AI per singola biblioteca</p></header>
       <div className="flex-1 overflow-hidden">
+        <Suspense fallback={<div className={`p-8 text-sm ${t.cardDesc}`}>Caricamento…</div>}>
         {activeTab === 'chat' && <ChatArea messages={messages} inputMessage={inputMessage} onInputChange={setInputMessage} onSend={sendQuestion} onStop={() => abortRef.current?.abort()} onClearChat={() => setMessages([])} isGenerating={isGenerating} suggestions={suggestions} libraries={libraries} selectedLibraryId={selectedLibraryId} onLibraryChange={setSelectedLibraryId} selectedLibraryDocumentCount={libraries.find(library => library.id === selectedLibraryId)?.document_count ?? 0} onOpenLibraries={() => setActiveTab('docs')} />}
         {activeTab === 'docs' && <DocumentsTab showNotif={showNotif} />}
         {activeTab === 'connectors' && <div className="h-full overflow-y-auto p-4"><ConnectorsTab showNotif={showNotif} /></div>}
@@ -275,6 +281,7 @@ function AppInner() {
         {activeTab === 'admin-analytics' && currentUser?.role === 'admin' && <div className="h-full overflow-y-auto p-8"><AnalyticsDashboard showNotif={showNotif} /></div>}
         {activeTab === 'admin-users' && currentUser?.role === 'admin' && <div className="h-full overflow-y-auto p-8"><UserManagement showNotif={showNotif} /></div>}
         {activeTab === 'admin-audit' && currentUser?.role === 'admin' && <div className="h-full overflow-y-auto p-8"><AuditLogs showNotif={showNotif} /></div>}
+        </Suspense>
       </div>
     </main>
   </div>
