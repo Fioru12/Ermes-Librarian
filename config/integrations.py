@@ -7,12 +7,32 @@ import os
 from dataclasses import dataclass, field
 
 
+def _env_either(prefixed: str, plain: str, default: str) -> str:
+    """Legge `ERMES_X` e, se assente, `X`.
+
+    Fino al 18 settembre 2026 il config leggeva solo `ERMES_OLLAMA_HOST`,
+    `ERMES_OPENROUTER_API_KEY` ed `ERMES_OPENROUTER_BASE_URL`, mentre
+    docker-compose.yml, .env.example, la CI e i test scrivevano i nomi senza
+    prefisso. In container Ollama restava quindi a localhost:11434 — cioe'
+    irraggiungibile, perche' il servizio si chiama `ollama` — e la chiave
+    OpenRouter impostata nel .env non arrivava mai. Il test che doveva
+    prenderlo (tests/test_env_example_matches_config.py) controllava solo le
+    variabili `ERMES_*`, e queste tre non lo sono.
+    """
+    value = os.environ.get(prefixed, "")
+    if value:
+        return value
+    return os.environ.get(plain, default)
+
+
 @dataclass(frozen=True)
 class IntegrationsConfig:
     # ---------------------------------------------------------
     # LLM PROVIDER
     # ---------------------------------------------------------
-    OLLAMA_HOST: str = field(default_factory=lambda: os.environ.get("ERMES_OLLAMA_HOST", "http://localhost:11434"))
+    OLLAMA_HOST: str = field(
+        default_factory=lambda: _env_either("ERMES_OLLAMA_HOST", "OLLAMA_HOST", "http://localhost:11434")
+    )
     # Il valore predefinito deve essere il modello che la documentazione dice
     # di installare. Fino all'11 settembre 2026 era "llama3.2:latest" mentre
     # .env.example, il README e le slide indicano qwen3.5:9b: su
@@ -35,9 +55,13 @@ class IntegrationsConfig:
             os.environ.get("ERMES_LIBRARY_CLOUD_CONSENT", "0").strip().lower() in {"1", "true", "yes", "on"}
         )
     )
-    OPENROUTER_API_KEY: str = field(default_factory=lambda: os.environ.get("ERMES_OPENROUTER_API_KEY", ""))
+    OPENROUTER_API_KEY: str = field(
+        default_factory=lambda: _env_either("ERMES_OPENROUTER_API_KEY", "OPENROUTER_API_KEY", "")
+    )
     OPENROUTER_BASE_URL: str = field(
-        default_factory=lambda: os.environ.get("ERMES_OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
+        default_factory=lambda: _env_either(
+            "ERMES_OPENROUTER_BASE_URL", "OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1"
+        )
     )
 
     # ---------------------------------------------------------

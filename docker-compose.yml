@@ -20,6 +20,10 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    # Nome esplicito: senza, Compose lo deriva dalla cartella del checkout,
+    # e la CI (che costruisce con buildx e avvia con --no-build) non
+    # troverebbe l'immagine appena costruita.
+    image: ${ERMES_IMAGE:-ermes-knowledge:local}
     container_name: ermes-ai-hub
     ports:
       - "${ERMES_HOST_PORT:-8502}:${ERMES_PORT:-8502}"
@@ -72,11 +76,21 @@ services:
       - ERMES_OIDC_CLIENT_ID=${ERMES_OIDC_CLIENT_ID:-}
       - ERMES_OIDC_CLIENT_SECRET=${ERMES_OIDC_CLIENT_SECRET:-}
       - ERMES_OIDC_AUDIENCE=${ERMES_OIDC_AUDIENCE:-}
-      - ERMES_RERANKER_ENABLED=${ERMES_RERANKER_ENABLED:-1}
+      # Spento, come nel config e nel README: il reranker e' stato misurato
+      # peggiore in ogni configurazione (docs/RETRIEVAL_EVALUATION.md). Fino
+      # al 17 settembre 2026 qui c'era `:-1`, quindi il container partiva con
+      # la configurazione bocciata mentre l'installazione nativa no.
+      - ERMES_RERANKER_ENABLED=${ERMES_RERANKER_ENABLED:-0}
       # Reranker neurale: richiede sentence-transformers nell'immagine
       # (pip install .[neural]); senza, ripiega sul reranker lessicale.
       - ERMES_RERANKER_MODEL=${ERMES_RERANKER_MODEL:-}
       - ERMES_RERANKER_NEURAL=${ERMES_RERANKER_NEURAL:-1}
+      # Verifica dell'evidenza: l'unico meccanismo misurato che mantiene
+      # l'astensione a scala. Richiede un modello: si accende con il profilo
+      # "verified" (docker-compose.verified.yml), non da qui.
+      - ERMES_EVIDENCE_VERIFIER=${ERMES_EVIDENCE_VERIFIER:-0}
+      - ERMES_EVIDENCE_VERIFIER_MODEL=${ERMES_EVIDENCE_VERIFIER_MODEL:-}
+      - ERMES_CONVERSATION_MEMORY=${ERMES_CONVERSATION_MEMORY:-0}
       - ERMES_SEARCH_CACHE_TTL_SECONDS=${ERMES_SEARCH_CACHE_TTL_SECONDS:-300}
       - ERMES_SEARCH_CACHE_MAX_ENTRIES=${ERMES_SEARCH_CACHE_MAX_ENTRIES:-200}
       - ERMES_DLP_AUDIT_ENABLED=${ERMES_DLP_AUDIT_ENABLED:-1}

@@ -1,0 +1,49 @@
+# Profilo "verified": Ermes con la verifica dell'evidenza accesa.
+#
+# Il default (docker-compose.yml) e' evidence_only e lessicale: nessun modello
+# nel percorso di risposta. Funziona, ma l'astensione degrada quando la
+# biblioteca cresce (README, "What does not work"): 0.333 con 100 passaggi di
+# rumore. La verifica dell'evidenza e' l'unico meccanismo misurato che la
+# riporta a 1.000, e costa una chiamata al modello per passaggio. Qui il
+# modello e' un requisito dichiarato, non un'opzione: Ollama viene popolato
+# all'avvio e l'app non parte finche' i modelli non sono scaricati.
+#
+# Uso:
+#   docker compose -f docker-compose.yml -f docker-compose.verified.yml up --build
+#
+# Il primo avvio scarica ~3 GB (qwen3.5:4b + nomic-embed-text). Sul golden set
+# qwen3.5:4b e qwen3.5:9b danno lo stesso risultato (config/rag.py), quindi il
+# piccolo basta.
+
+services:
+  ollama-pull:
+    image: ollama/ollama:latest
+    container_name: ermes-ollama-pull
+    depends_on:
+      ollama:
+        condition: service_healthy
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -e
+        for m in "${ERMES_EVIDENCE_VERIFIER_MODEL:-qwen3.5:4b}" "${ERMES_EMBED_MODEL_ID:-nomic-embed-text:latest}"; do
+          echo "pull $$m"
+          ollama pull "$$m"
+        done
+    restart: "no"
+    networks:
+      - ermes-network
+
+  app:
+    depends_on:
+      ollama:
+        condition: service_healthy
+      ollama-pull:
+        condition: service_completed_successfully
+    environment:
+      - ERMES_EVIDENCE_VERIFIER=1
+      - ERMES_EVIDENCE_VERIFIER_MODEL=${ERMES_EVIDENCE_VERIFIER_MODEL:-qwen3.5:4b}
+      - ERMES_DEFAULT_MODEL_ID=${ERMES_DEFAULT_MODEL_ID:-qwen3.5:4b}
+      - ERMES_LIBRARY_ASSISTANT_MODE=${ERMES_LIBRARY_ASSISTANT_MODE:-local_ollama}
