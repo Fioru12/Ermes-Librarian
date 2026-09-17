@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from pathlib import Path
 
 from config import cfg
@@ -10,11 +11,26 @@ from core.library_embeddings import embed_texts
 from core.library_store import LibraryStore, resolve_storage_path
 
 
-def process_ingestion_job(store: LibraryStore, job_id: str, storage_root: str | Path) -> None:
+@dataclass(frozen=True)
+class IngestionOutcome:
+    """Cosa e' successo al job, per chi decide se riprovare.
+
+    `transient` e' True quando la causa non sta nel documento: un modello di
+    embedding irraggiungibile, un errore di I/O, un'eccezione inattesa.
+    Un documento illeggibile (DocumentParseError) non e' transitorio —
+    riprovarlo produrrebbe lo stesso errore.
+    """
+
+    status: str  # "ready" | "failed" | "skipped"
+    transient: bool = False
+    error: str = ""
+
+
+def process_ingestion_job(store: LibraryStore, job_id: str, storage_root: str | Path) -> IngestionOutcome:
     """Parse one claimed job. It never exposes a partially built index."""
     job = store.claim_ingestion_job(job_id)
     if job is None:
-        return
+        return IngestionOutcome("skipped")
     document_id = job.get("document_id")
     try:
         if not document_id:
@@ -40,12 +56,15 @@ def process_ingestion_job(store: LibraryStore, job_id: str, storage_root: str | 
             store.store_chunk_embeddings(job["library_id"], document_id, embeddings, cfg.EMBED_MODEL_ID)
         store.finish_ingestion_job(job_id, "ready", document_id=document_id)
         _record_job_metric("ready")
+        return IngestionOutcome("ready")
     except Exception as error:
         if document_id:
             store.mark_document_status(job["library_id"], document_id, "failed")
+        transient = not isinstance(error, DocumentParseError)
         message = str(error) if isinstance(error, DocumentParseError) else "Errore durante l'indicizzazione"
         store.finish_ingestion_job(job_id, "failed", document_id=document_id, error_message=message)
         _record_job_metric("failed")
+        return IngestionOutcome("failed", transient=transient, error=message)
 
 
 def _record_job_metric(status: str) -> None:

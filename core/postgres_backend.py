@@ -109,8 +109,10 @@ CREATE TABLE IF NOT EXISTS ingestion_jobs (
     status TEXT NOT NULL,
     error_message TEXT NOT NULL DEFAULT '',
     created_at TEXT NOT NULL,
-    completed_at TEXT
+    completed_at TEXT,
+    attempts INTEGER NOT NULL DEFAULT 0
 );
+ALTER TABLE ingestion_jobs ADD COLUMN IF NOT EXISTS attempts INTEGER NOT NULL DEFAULT 0;
 CREATE INDEX IF NOT EXISTS jobs_by_library
     ON ingestion_jobs(library_id, created_at DESC);
 

@@ -338,7 +338,8 @@ class LibraryStore:
                     status TEXT NOT NULL,
                     error_message TEXT NOT NULL DEFAULT '',
                     created_at TEXT NOT NULL,
-                    completed_at TEXT
+                    completed_at TEXT,
+                    attempts INTEGER NOT NULL DEFAULT 0
                 );
                 CREATE INDEX IF NOT EXISTS jobs_by_library
                     ON ingestion_jobs(library_id, created_at DESC);
@@ -410,6 +411,9 @@ class LibraryStore:
                 connection.execute("ALTER TABLE document_chunks ADD COLUMN embedding_json TEXT NOT NULL DEFAULT ''")
             if "embedding_model" not in chunk_columns:
                 connection.execute("ALTER TABLE document_chunks ADD COLUMN embedding_model TEXT NOT NULL DEFAULT ''")
+            job_columns = {row[1] for row in connection.execute("PRAGMA table_info(ingestion_jobs)")}
+            if "attempts" not in job_columns:
+                connection.execute("ALTER TABLE ingestion_jobs ADD COLUMN attempts INTEGER NOT NULL DEFAULT 0")
             library_columns = {row[1] for row in connection.execute("PRAGMA table_info(libraries)")}
             if "owner_id" not in library_columns:
                 connection.execute("ALTER TABLE libraries ADD COLUMN owner_id TEXT NOT NULL DEFAULT 'system'")
@@ -799,6 +803,36 @@ class LibraryStore:
                 """UPDATE ingestion_jobs SET status = ?, document_id = ?, error_message = ?, completed_at = ? WHERE id = ?""",
                 (status, document_id, error_message[:500], self._timestamp(), job_id),
             )
+
+    def requeue_ingestion_job(self, job_id: str, max_attempts: int) -> bool:
+        """Rimette in coda un job fallito per una causa transitoria.
+
+        `attempts` conta i re-tentativi: con max_attempts=3 il job gira al
+        massimo tre volte (attempts finisce a 2). E' il chiamante a
+        decidere se la causa era transitoria (un modello di embedding
+        irraggiungibile lo e', un PDF illeggibile no). Restituisce False se
+        il job non e' in stato 'failed' o ha esaurito i tentativi.
+        """
+        with self._lock, self._connection() as connection:
+            result = connection.execute(
+                """UPDATE ingestion_jobs
+                   SET status = 'queued', error_message = '', completed_at = NULL, attempts = attempts + 1
+                   WHERE id = ? AND status = 'failed' AND attempts + 1 < ?""",
+                (job_id, max_attempts),
+            )
+            requeued: bool = result.rowcount == 1
+            return requeued
+
+    def ingestion_queue_stats(self) -> dict[str, int]:
+        with self._connection() as connection:
+            rows = connection.execute(
+                "SELECT status, COUNT(*) AS n FROM ingestion_jobs GROUP BY status"
+            ).fetchall()
+        stats = {"queued": 0, "processing": 0, "ready": 0, "failed": 0}
+        for row in rows:
+            record = self._row(row)
+            stats[str(record["status"])] = int(record["n"])
+        return stats
 
     def get_ingestion_job(self, job_id: str) -> dict | None:
         with self._connection() as connection:

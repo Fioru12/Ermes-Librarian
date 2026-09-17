@@ -154,15 +154,17 @@ async def lifespan(app: FastAPI):
 
     # Recover uploads accepted before a local restart. Jobs are persisted in
     # SQLite and claimed atomically, so this also remains safe when a worker is
-    # introduced later.
+    # introduced later. Fino al 18 settembre 2026 venivano ripresi solo i job
+    # 'queued': quelli lasciati in 'processing' da un crash restavano cosi'
+    # per sempre, visibili come "in corso" nella UI.
     try:
         from api.libraries import get_library_store
-        from core.ingestion_service import process_ingestion_job
+        from core.ingestion_worker import recover_on_startup, run_ingestion_job
 
         ingestion_store = get_library_store()
-        for job in ingestion_store.pending_ingestion_jobs():
+        for job_id in recover_on_startup(ingestion_store, cfg.LIBRARY_STORAGE_DIR):
             asyncio.create_task(
-                asyncio.to_thread(process_ingestion_job, ingestion_store, job["id"], cfg.LIBRARY_STORAGE_DIR)
+                asyncio.to_thread(run_ingestion_job, ingestion_store, job_id, cfg.LIBRARY_STORAGE_DIR)
             )
     except Exception as error:
         _logger.warning("Recupero job ingestion fallito: %s", error)

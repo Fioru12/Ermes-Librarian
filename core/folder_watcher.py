@@ -13,7 +13,7 @@ from pathlib import Path
 
 from config import cfg
 from core.folder_importer import scan_import_source
-from core.ingestion_service import process_ingestion_job
+from core.ingestion_worker import run_ingestion_job
 from core.library_store import LibraryStore
 
 logger = logging.getLogger(__name__)
@@ -48,7 +48,7 @@ def sync_all_sources(store: LibraryStore, storage_dir: str | Path | None = None)
                 job_id = item.get("job_id")
                 if job_id:
                     try:
-                        process_ingestion_job(store, job_id, storage_root)
+                        run_ingestion_job(store, job_id, storage_root)
                     except Exception as ex:
                         logger.error("Errore durante l'ingestion del job %s: %s", job_id, ex)
         except Exception as error:

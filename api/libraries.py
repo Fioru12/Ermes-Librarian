@@ -21,7 +21,7 @@ from core.document_summary import summarize_document
 from core.evidence_assistant import answer_from_evidence
 from core.folder_importer import scan_import_source
 from core.governance import append_audit
-from core.ingestion_service import process_ingestion_job
+from core.ingestion_worker import run_ingestion_job
 from core.input_validator import matches_expected_file_signature, sanitize_upload_name
 from core.library_embeddings import embed_texts
 from core.library_store import (
@@ -298,7 +298,7 @@ async def upload_document(
     job = store.start_ingestion_job(library_id, safe_name, document_id=document["id"])
     if background_tasks is None:  # chiamata diretta senza injection FastAPI
         background_tasks = BackgroundTasks()
-    background_tasks.add_task(process_ingestion_job, store, job["id"], cfg.LIBRARY_STORAGE_DIR)
+    background_tasks.add_task(run_ingestion_job, store, job["id"], cfg.LIBRARY_STORAGE_DIR)
     return {**document, "ingestion_job_id": job["id"], "status": "queued"}
 
 
@@ -1055,7 +1055,7 @@ def scan_library_source(
         raise HTTPException(status_code=404, detail="Sorgente non trovata") from error
     result = scan_import_source(store, library_id, source, cfg.LIBRARY_STORAGE_DIR)
     for imported in result["imported"]:
-        background_tasks.add_task(process_ingestion_job, store, imported["job_id"], cfg.LIBRARY_STORAGE_DIR)
+        background_tasks.add_task(run_ingestion_job, store, imported["job_id"], cfg.LIBRARY_STORAGE_DIR)
     append_audit(
         cfg.AUDIT_FILE,
         "import_source_scanned",
