@@ -230,7 +230,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="Ermes - Enterprise Knowledge Hub API",
     description="API REST per query RAG su documentazione aziendale",
-    version="2.1.0",
+    version="2.2.5",
     lifespan=lifespan,
 )
 
@@ -446,6 +446,10 @@ try:
                     description=_route.description,
                     include_in_schema=_route.include_in_schema,
                     response_model=_route.response_model,
+                    # Le dipendenze di rotta sono il rate limiting: senza
+                    # questa riga (fino al 18 settembre 2026) /v1/... era una
+                    # copia della rotta SENZA limite di frequenza.
+                    dependencies=list(_route.dependencies),
                 )
                 _v1_routes_added += 1
     _logger.info("Enterprise Routing: registrati %d endpoint con prefisso v1 per retrocompatibilità", _v1_routes_added)

@@ -14,6 +14,7 @@ Thread-safe, memory-bound (max configurabile), con hit/miss stats.
 
 from __future__ import annotations
 
+import copy
 import hashlib
 import logging
 import threading
@@ -103,7 +104,11 @@ class SemanticSearchCache:
                 return None
 
             self._stats.hits += 1
-            return entry.results, entry.profile
+            # Copia profonda: i chiamanti (library_store, injection_guard)
+            # arricchiscono i dizionari dei risultati sul posto. Restituire
+            # il riferimento faceva si' che la seconda richiesta ricevesse
+            # gia' le annotazioni della prima — e le accumulasse.
+            return copy.deepcopy(entry.results), dict(entry.profile)
 
     def put(
         self, library_id: str, query: str, current_doc_count: int, results: list[dict], profile: dict, scope: str = ""

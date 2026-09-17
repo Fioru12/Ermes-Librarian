@@ -139,6 +139,22 @@ class OidcSessionRequest(BaseModel):
     id_token: str = Field(min_length=10)
 
 
+def _cookie_secure(http_request: Request) -> bool:
+    """Il cookie di sessione e' Secure se la richiesta e' arrivata in HTTPS.
+
+    L'header X-Forwarded-Proto viene creduto: un client che lo falsifica su
+    HTTP ottiene un cookie che il suo browser rifiutera' di rimandare — si
+    nega il login da solo, non abbassa la protezione di nessun altro.
+    """
+    setting = getattr(cfg, "COOKIE_SECURE", "auto")
+    if setting in {"1", "true", "yes", "on"}:
+        return True
+    if setting in {"0", "false", "no", "off"}:
+        return False
+    forwarded = http_request.headers.get("x-forwarded-proto", "").split(",")[0].strip().lower()
+    return http_request.url.scheme == "https" or forwarded == "https"
+
+
 @router.get("/api/auth/oidc/config", include_in_schema=False)
 def oidc_config() -> dict:
     """Restituisce la configurazione pubblica OIDC per il client web."""
@@ -151,7 +167,7 @@ def oidc_config() -> dict:
 
 
 @router.post("/api/auth/oidc/session", include_in_schema=False)
-def oidc_session_login(request: OidcSessionRequest, response: Response) -> dict:
+def oidc_session_login(request: OidcSessionRequest, response: Response, http_request: Request) -> dict:
     """Crea una sessione browser a partire da un token OIDC verificato."""
     if not cfg.OIDC_ENABLED:
         raise HTTPException(status_code=503, detail="Autenticazione SSO/OIDC non abilitata")
@@ -168,7 +184,7 @@ def oidc_session_login(request: OidcSessionRequest, response: Response) -> dict:
         max_age=max(1, cfg.SESSION_TTL_HOURS) * 3600,
         httponly=True,
         samesite="lax",
-        secure=cfg.HOST not in {"127.0.0.1", "localhost", "0.0.0.0"},  # nosec B104: binding check, not binding
+        secure=_cookie_secure(http_request),
     )
     return {"username": user["username"], "role": user["role"], "provider": "oidc"}
 
@@ -205,9 +221,7 @@ def login(request: LoginRequest, response: Response, http_request: Request) -> d
         max_age=max(1, cfg.SESSION_TTL_HOURS) * 3600,
         httponly=True,
         samesite="lax",
-        # Local development commonly binds 0.0.0.0 but is still served over
-        # HTTP. Production deployments must terminate TLS before using the UI.
-        secure=cfg.HOST not in {"127.0.0.1", "localhost", "0.0.0.0"},  # nosec B104: binding check, not binding
+        secure=_cookie_secure(http_request),
     )
     return {"username": user["username"], "role": user["role"]}
 

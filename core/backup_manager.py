@@ -195,7 +195,15 @@ def create_backup(label: str = "") -> dict:
                     tar.add(str(lf), arcname=f"logs/{lf.name}")
                 items_backed_up.append(f"logs ({len(log_files)} files)")
 
-            for cfg_file in [".env", "config.py", "requirements.txt"]:
+            # `.env` NON entra nell'archivio (lo faceva fino al 18 settembre
+            # 2026): contiene la password amministrativa, le chiavi dei
+            # provider cloud e il client secret OIDC, e l'archivio non e'
+            # cifrato. Chi ripristina lo riscrive in un minuto da
+            # .env.example; chi copia un archivio su una share non deve
+            # portarsi dietro credenziali che il backup non serve a
+            # proteggere. `security/` invece resta: senza la chiave di firma
+            # il registro di audit ripristinato non e' piu' verificabile.
+            for cfg_file in ["config.py", "requirements.txt"]:
                 cfg_path = os.path.join(cfg.BASE_DIR, cfg_file)
                 if os.path.exists(cfg_path):
                     tar.add(cfg_path, arcname=cfg_file)

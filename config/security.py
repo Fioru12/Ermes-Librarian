@@ -48,6 +48,18 @@ class SecurityConfig:
     # SESSIONE
     # ---------------------------------------------------------
     SESSION_TTL_HOURS: int = field(default_factory=lambda: int(os.environ.get("ERMES_SESSION_TTL_HOURS", "24")))
+    # Flag Secure del cookie di sessione: "auto" (default), "1" o "0".
+    # Con "auto" il cookie e' Secure quando la richiesta e' arrivata in HTTPS,
+    # direttamente o tramite un proxy che dichiara X-Forwarded-Proto (Caddy
+    # nel profilo "public" lo fa). Fino al 18 settembre 2026 la decisione
+    # dipendeva dall'indirizzo di bind: con 0.0.0.0 il cookie non era mai
+    # Secure, e 0.0.0.0 e' esattamente cio' che docker-compose.yml imposta —
+    # quindi in ogni deploy Docker dietro TLS il cookie viaggiava anche in
+    # chiaro. "1" forza Secure (dietro un proxy che non manda l'header), "0"
+    # lo spegne per sviluppo su HTTP con hostname non locale.
+    COOKIE_SECURE: str = field(
+        default_factory=lambda: os.environ.get("ERMES_COOKIE_SECURE", "auto").strip().lower() or "auto"
+    )
 
     # ---------------------------------------------------------
     # ENTERPRISE SSO / OIDC

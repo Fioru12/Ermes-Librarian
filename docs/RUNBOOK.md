@@ -184,10 +184,14 @@ nobody until 10 September 2026: an instance configured before that date wrote
 to the default location whatever the `.env` said, so check where the archives
 actually are before trusting them.
 
-**The archive is not encrypted, and it contains `.env` and all of
-`security/`** — the audit signing key and the user file included. Give the
-backup directory the same protection as `security/` itself, and remember that
-copying an archive to a share or a USB disk copies those secrets with it.
+**The archive is not encrypted, and it contains all of `security/`** — the
+audit signing key and the user file included; without the key a restored audit
+log could not be verified. It does not contain `.env` (it did until 18
+September 2026: admin password, provider keys and the OIDC client secret
+travelled with every archive), so after a restore recreate `.env` from
+`.env.example`. Give the backup directory the same protection as `security/`
+itself, and remember that copying an archive to a share or a USB disk copies
+the signing key with it.
 
 The first archive after the timer starts is written one interval later, not at
 startup: a container restarted more often than the interval never takes one.

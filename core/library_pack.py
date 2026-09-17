@@ -18,7 +18,18 @@ import uuid
 from datetime import datetime
 from pathlib import Path
 
+from core.input_validator import sanitize_upload_name
 from core.library_store import LibraryStore, resolve_storage_path, storage_relative_path
+
+# Limiti dell'archivio in ingresso. Un .ermes e' un tar.gz e i suoi membri
+# dichiarano la dimensione decompressa nell'intestazione: si controlla quella
+# PRIMA di leggere, cosi' un archivio da pochi KB che si espande in gigabyte
+# (zip bomb) viene rifiutato senza allocare nulla. Fino al 18 settembre 2026
+# ogni membro veniva letto per intero in memoria senza alcun limite, e il
+# nome del file veniva preso dal manifest cosi' com'era.
+MAX_PACK_MEMBERS = 5_000
+MAX_MEMBER_BYTES_DEFAULT = 50 * 1024 * 1024
+MAX_TOTAL_BYTES_FACTOR = 20  # somma dei membri: al massimo 20 file "pieni"
 
 
 class KnowledgePackError(Exception):
@@ -102,6 +113,7 @@ def import_library_pack(
     storage_dir: str | Path,
     owner_id: str = "admin",
     override_name: str = "",
+    max_member_bytes: int = MAX_MEMBER_BYTES_DEFAULT,
 ) -> dict:
     """Import a .ermes knowledge pack and create a new library with all documents and chunks."""
     pack_file = Path(pack_path)
@@ -116,10 +128,19 @@ def import_library_pack(
         raise KnowledgePackError(f"File pacchetto non valido o corrotto: {e}") from e
 
     try:
-        # Validate members against directory traversal
-        for member in tar.getmembers():
+        # Validate members against directory traversal and size
+        members = tar.getmembers()
+        if len(members) > MAX_PACK_MEMBERS:
+            raise KnowledgePackError(f"Pacchetto non valido: piu' di {MAX_PACK_MEMBERS} file")
+        total = 0
+        for member in members:
             if member.name.startswith("/") or ".." in member.name:
                 raise KnowledgePackError("Pacchetto non valido: percorso sospetto rilevato")
+            if member.size > max_member_bytes:
+                raise KnowledgePackError(f"Pacchetto non valido: {member.name} supera il limite per file")
+            total += member.size
+            if total > max_member_bytes * MAX_TOTAL_BYTES_FACTOR:
+                raise KnowledgePackError("Pacchetto non valido: dimensione complessiva oltre il limite")
 
         # Read manifest
         try:
@@ -174,7 +195,12 @@ def import_library_pack(
                 continue
             doc_meta: dict = record.get("document") or {}
             chunks: list = record.get("chunks") or []
-            filename = doc_meta.get("filename", "documento.txt")
+            # Il nome viene dal manifest, cioe' da chi ha costruito
+            # l'archivio: stesse regole di un upload (basename, caratteri
+            # ammessi, estensione nota), non "quello che c'e' scritto".
+            filename = sanitize_upload_name(str(doc_meta.get("filename", "documento.txt")))
+            if filename is None:
+                raise KnowledgePackError("Pacchetto non valido: nome di documento non ammesso")
             media_type = doc_meta.get("media_type", "text/plain")
 
             # Check if file binary exists in archive

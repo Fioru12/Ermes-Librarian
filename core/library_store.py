@@ -20,14 +20,23 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from config import cfg
-from core.database_backend import Backend, SqliteBackend, create_backend
+from core.database_backend import INTEGRITY_ERRORS, Backend, SqliteBackend, create_backend
 from core.library_embeddings import cosine_similarity, embed_texts, min_semantic_score
 from core.query_expander import expand_query
 from core.search_cache import get_search_cache
 
 
-def _resolve_backend(database_path: str | Path | None) -> Backend:
-    """Scegli il backend in base a ERMES_DATABASE_URL, con fallback sul path SQLite."""
+def _resolve_backend(database_path: str | Path | None, database_url: str | None = None) -> Backend:
+    """Scegli il backend: URL esplicito, altrimenti ERMES_DATABASE_URL, altrimenti il path SQLite.
+
+    `database_url` esiste perche' `cfg` e' un frozen dataclass costruito
+    all'import: un test che imposta ERMES_DATABASE_URL nell'ambiente dopo
+    l'import non cambia `cfg.DATABASE_URL`, e ottiene SQLite credendo di
+    avere Postgres. E' successo per mesi ai test di parita'.
+    """
+    if database_url:
+        esplicito: Backend = create_backend(database_url)
+        return esplicito
     if database_path is not None:
         return SqliteBackend(str(database_path))
     backend: Backend = create_backend(cfg.DATABASE_URL)
@@ -182,9 +191,9 @@ class LibraryAccessError(PermissionError):
 
 
 class LibraryStore:
-    def __init__(self, database_path: str | Path | None = None) -> None:
+    def __init__(self, database_path: str | Path | None = None, database_url: str | None = None) -> None:
         self._lock = threading.RLock()
-        self._backend = _resolve_backend(database_path)
+        self._backend = _resolve_backend(database_path, database_url)
         self._is_postgres = self._backend.__class__.__name__ == "PostgresBackend"
         self._initialize()
 
@@ -1010,7 +1019,7 @@ class LibraryStore:
                     """,
                     (str(uuid.uuid4()), library_id, normalized, created_by, now),
                 )
-            except sqlite3.IntegrityError as error:
+            except INTEGRITY_ERRORS as error:
                 raise ValueError("Sorgente già registrata per questa biblioteca") from error
         return self.get_import_source(library_id, normalized)
 
@@ -1087,7 +1096,7 @@ class LibraryStore:
                     """,
                     (integration_id, library_id, platform, external_channel_id, created_by, now),
                 )
-            except sqlite3.IntegrityError as error:
+            except INTEGRITY_ERRORS as error:
                 raise ValueError("Questo canale è già collegato a una biblioteca") from error
         return self.get_chat_integration_by_id(library_id, integration_id)
 
@@ -1166,6 +1175,9 @@ class LibraryStore:
                     """,
                     (str(uuid.uuid4()), document_id, ordinal, text, locator, now),
                 )
+        # Il conteggio dei documenti non cambia, quindi la cache non se ne
+        # accorgerebbe: i chunk si', e sono cio' che viene citato.
+        get_search_cache().invalidate(library_id)
         return self.get_document(library_id, document_id)
 
     def _keyword_candidates(self, connection, library_id: str, query: str, hidden: set[str]) -> set[str]:
@@ -1454,6 +1466,9 @@ class LibraryStore:
                     for row, embedding in zip(rows, embeddings)
                 ],
             )
+        # Una ricerca memorizzata prima degli embedding era lessicale; con
+        # la semantica accesa deve essere rifatta.
+        get_search_cache().invalidate(library_id)
         return len(embeddings)
 
     def delete_document(self, library_id: str, document_id: str) -> list[str]:

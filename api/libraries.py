@@ -584,9 +584,7 @@ def _answer_question_stream(
 
         hyde_passage = generate_hypothetical_document(question, mode=library.get("assistant_mode"))
         if hyde_passage and hyde_passage != question:
-            citations, retrieval_profile = store.search_with_profile(
-                library_id, hyde_passage, limit=top_k, actor=actor
-            )
+            citations, retrieval_profile = store.search_with_profile(library_id, hyde_passage, limit=top_k, actor=actor)
 
     yield f"event: status\ndata: {json.dumps({'step': 'verifying'})}\n\n"
 
@@ -1394,7 +1392,7 @@ def export_library_endpoint(
         raise HTTPException(status_code=500, detail=f"Errore durante l'esportazione: {error}") from error
 
 
-@router.post("/import-pack", status_code=201)
+@router.post("/import-pack", status_code=201, dependencies=[Depends(rate_limited)])
 async def import_library_pack_endpoint(
     file: UploadFile = File(...),
     name: str = Form(""),
@@ -1404,13 +1402,26 @@ async def import_library_pack_endpoint(
     """Import a .ermes knowledge pack and create a new library with full indexing."""
     import tempfile
 
-    from core.library_pack import KnowledgePackError, import_library_pack
+    from core.library_pack import MAX_TOTAL_BYTES_FACTOR, KnowledgePackError, import_library_pack
 
+    # Un pacchetto contiene molti documenti, quindi il limite e' un multiplo
+    # di quello per singolo upload. Si scrive su disco a blocchi: fino al 18
+    # settembre 2026 `await file.read()` senza limite caricava l'intero
+    # archivio in memoria, e la rotta era l'unica con upload senza
+    # rate_limited.
+    max_member_bytes = cfg.ADMIN_MAX_UPLOAD_MB * 1024 * 1024
+    max_pack_bytes = max_member_bytes * MAX_TOTAL_BYTES_FACTOR
     temp_pack = tempfile.NamedTemporaryFile(suffix=".ermes", delete=False)
     try:
-        content = await file.read()
-        temp_pack.write(content)
+        written = 0
+        while chunk := await file.read(1024 * 1024):
+            written += len(chunk)
+            if written > max_pack_bytes:
+                raise HTTPException(status_code=413, detail="Pacchetto troppo grande")
+            temp_pack.write(chunk)
         temp_pack.close()
+        if written == 0:
+            raise HTTPException(status_code=400, detail="Pacchetto vuoto")
 
         library = import_library_pack(
             store=store,
@@ -1418,6 +1429,7 @@ async def import_library_pack_endpoint(
             storage_dir=cfg.LIBRARY_STORAGE_DIR,
             owner_id=_auth["username"],
             override_name=name,
+            max_member_bytes=max_member_bytes,
         )
         append_audit(
             cfg.AUDIT_FILE,
@@ -1426,11 +1438,14 @@ async def import_library_pack_endpoint(
             {"library_id": library["id"], "name": library["name"]},
         )
         return library
+    except HTTPException:
+        raise
     except KnowledgePackError as error:
         raise HTTPException(status_code=400, detail=str(error)) from error
     except Exception as error:
         raise HTTPException(status_code=500, detail=f"Errore durante l'importazione: {error}") from error
     finally:
+        temp_pack.close()
         if os.path.exists(temp_pack.name):
             with contextlib.suppress(OSError):
                 os.unlink(temp_pack.name)

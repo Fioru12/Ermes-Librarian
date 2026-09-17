@@ -59,6 +59,26 @@ class TestCreateBackup:
             names = tar.getnames()
             assert len(names) > 0
 
+    def test_env_file_never_enters_the_archive(self, temp_dir, monkeypatch):
+        """`.env` porta password amministrativa, chiavi dei provider e client
+        secret OIDC, e l'archivio non e' cifrato: fino al 18 settembre 2026
+        entrava in ogni backup. `security/` invece deve restare, perche'
+        senza la chiave di firma l'audit ripristinato non e' verificabile."""
+        backup_dir = os.path.join(temp_dir, "backups")
+        monkeypatch.setattr(bm, "cfg", _fake_cfg(temp_dir, backup_dir))
+        with open(os.path.join(temp_dir, ".env"), "w", encoding="utf-8") as f:
+            f.write("ERMES_ADMIN_PASSWORD=segreto")
+        os.makedirs(os.path.join(temp_dir, "security"))
+        with open(os.path.join(temp_dir, "security", ".audit_secret"), "w", encoding="utf-8") as f:
+            f.write("chiave")
+        result = bm.create_backup(label="env")
+        with tarfile.open(result["path"], "r:gz") as tar:
+            names = tar.getnames()
+        assert ".env" not in names
+        assert not any(n.endswith("/.env") for n in names)
+        assert any("audit_secret" in n for n in names)
+        assert ".env" not in result["items"]
+
     def test_backup_without_label(self, temp_dir, monkeypatch):
         backup_dir = os.path.join(temp_dir, "backups")
         monkeypatch.setattr(bm, "cfg", _fake_cfg(temp_dir, backup_dir))

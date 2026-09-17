@@ -124,3 +124,99 @@ def test_library_pack_api_endpoints(tmp_path: Path, monkeypatch):
     assert import_resp.status_code == 201
     imported_data = import_resp.json()
     assert imported_data["name"] == "Catalogo Clonato"
+
+
+def _pack_bytes(documents: list[dict], files: dict[str, bytes] | None = None) -> bytes:
+    """Costruisce un .ermes a mano: e' cio' che farebbe chi lo manipola."""
+    import io
+    import json
+    import tarfile
+
+    buffer = io.BytesIO()
+    with tarfile.open(fileobj=buffer, mode="w:gz") as tar:
+
+        def _add(name: str, data: bytes) -> None:
+            info = tarfile.TarInfo(name)
+            info.size = len(data)
+            tar.addfile(info, io.BytesIO(data))
+
+        _add("manifest.json", json.dumps({"library": {"name": "Ostile"}}).encode())
+        _add("documents.json", json.dumps(documents).encode())
+        for name, data in (files or {}).items():
+            _add(name, data)
+    return buffer.getvalue()
+
+
+def test_manifest_filename_is_sanitized_like_an_upload(tmp_path: Path):
+    """Il nome del documento viene dal manifest, cioe' dall'autore
+    dell'archivio. Fino al 18 settembre 2026 finiva nel percorso di
+    destinazione cosi' com'era: ora passa dalle stesse regole di un upload
+    (basename, caratteri ammessi, estensione nota)."""
+    store = LibraryStore(tmp_path / "db.sqlite3")
+    storage = tmp_path / "storage"
+
+    pack = tmp_path / "traversal.ermes"
+    pack.write_bytes(_pack_bytes([{"document": {"id": "d1", "filename": "../../evaso.txt"}, "chunks": []}]))
+    library = import_library_pack(store, pack, storage)
+    scritti = [p for p in storage.rglob("*") if p.is_file()]
+    assert scritti and all(p.is_relative_to(storage / library["id"]) for p in scritti)
+    assert all(p.name.endswith("_evaso.txt") for p in scritti)
+    assert not (tmp_path / "evaso.txt").exists()
+
+    pack = tmp_path / "estensione.ermes"
+    pack.write_bytes(_pack_bytes([{"document": {"id": "d1", "filename": "payload.exe"}, "chunks": []}]))
+    with pytest.raises(KnowledgePackError, match="nome di documento"):
+        import_library_pack(store, pack, storage)
+
+
+def test_oversized_member_is_rejected_before_being_read(tmp_path: Path):
+    """La dimensione decompressa e' nell'intestazione del membro: si rifiuta
+    da li', senza leggere il contenuto — quindi una bomba gz non si espande."""
+    store = LibraryStore(tmp_path / "db.sqlite3")
+    pack = tmp_path / "bomba.ermes"
+    pack.write_bytes(
+        _pack_bytes(
+            [{"document": {"id": "d1", "filename": "grande.txt"}, "chunks": []}],
+            files={"files/d1_grande.txt": b"\0" * 2048},
+        )
+    )
+    with pytest.raises(KnowledgePackError, match="limite per file"):
+        import_library_pack(store, pack, tmp_path / "storage", max_member_bytes=1024)
+
+
+def test_import_api_streams_to_disk_and_caps_the_pack(tmp_path: Path, monkeypatch):
+    from fastapi.testclient import TestClient
+    from api import app
+    from api.auth import session_store
+    from config import cfg
+
+    app_dir = tmp_path / "app"
+    app_dir.mkdir()
+    test_cfg = cfg.replace(
+        BASE_DIR=str(app_dir),
+        ADMIN_USERNAME="admin",
+        ADMIN_PASSWORD="admin_password_123!",
+        API_KEY="",
+        ADMIN_MAX_UPLOAD_MB=1,
+    )
+    monkeypatch.setattr("config.cfg", test_cfg)
+    monkeypatch.setattr("api.auth.cfg", test_cfg)
+    monkeypatch.setattr("api.libraries.cfg", test_cfg)
+    session_store.clear()
+    import api.libraries
+
+    monkeypatch.setattr(api.libraries, "_store", None)
+    client = TestClient(app)
+    assert (
+        client.post("/api/auth/login", json={"username": "admin", "password": "admin_password_123!"}).status_code == 200
+    )
+
+    # 1 MB per file x fattore 20 = 20 MB: 21 MB di archivio vengono rifiutati.
+    from core.library_pack import MAX_TOTAL_BYTES_FACTOR
+
+    troppo = b"\0" * ((MAX_TOTAL_BYTES_FACTOR + 1) * 1024 * 1024)
+    resp = client.post("/api/libraries/import-pack", files={"file": ("x.ermes", troppo, "application/gzip")})
+    assert resp.status_code == 413
+
+    resp = client.post("/api/libraries/import-pack", files={"file": ("x.ermes", b"", "application/gzip")})
+    assert resp.status_code == 400

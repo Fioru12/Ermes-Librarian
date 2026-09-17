@@ -128,3 +128,21 @@ class TestSemanticSearchCache:
         cache.put("lib-1", "query", 1, [{"id": "r1"}], {})
         assert cache.get("lib-1", "query", 1) is not None
         assert cache.get("lib-1", "query", 1, scope="") is not None
+
+
+class TestCachedResultsAreNotShared:
+    def test_hit_returns_a_copy_that_callers_may_mutate(self):
+        """library_store e injection_guard annotano i risultati sul posto.
+        Fino al 18 settembre 2026 la cache restituiva il riferimento interno:
+        la seconda richiesta riceveva le annotazioni della prima, e le
+        accumulava."""
+        cache = SemanticSearchCache()
+        cache.put("lib-1", "query", 5, [{"id": "r1", "citation": {"locator": "p. 1"}}], {"mode": "keyword"})
+
+        primo, _ = cache.get("lib-1", "query", 5)
+        primo[0]["quarantined"] = True
+        primo[0]["citation"]["locator"] = "manomesso"
+
+        secondo, _ = cache.get("lib-1", "query", 5)
+        assert "quarantined" not in secondo[0]
+        assert secondo[0]["citation"]["locator"] == "p. 1"

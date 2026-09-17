@@ -158,3 +158,21 @@ def test_uploading_repeatedly_eventually_gets_refused(istanza, monkeypatch):
         )
 
     assert esiti[-1] == 429
+
+
+# ============================================================
+# Le copie /v1 ereditano il limite
+# ============================================================
+
+
+def test_v1_alias_shares_the_same_limit(istanza, monkeypatch):
+    """`/v1/api/...` e' registrata copiando ogni rotta; fino al 18 settembre
+    2026 la copia non portava con se' le dipendenze di rotta, cioe' proprio
+    `rate_limited`: chi era stato rifiutato su /api poteva continuare su /v1."""
+    client = _accedi()
+    library_id = _biblioteca(client)
+    _abbassa_il_limite(monkeypatch, 2)
+
+    esiti = [client.get(f"/v1/api/libraries/{library_id}/search?q=ferie").status_code for _ in range(4)]
+
+    assert esiti[-1] == 429

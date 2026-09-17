@@ -507,3 +507,36 @@ class TestStoragePathPortability:
         resolved = resolve_storage_path("/root/.ssh/lib-1/segreto.pdf", tmp_path)
 
         assert resolved == tmp_path / "lib-1" / "segreto.pdf"
+
+
+def test_reindexing_a_document_invalidates_cached_searches(tmp_path: Path):
+    """La cache di ricerca si invalidava solo quando cambiava il NUMERO di
+    documenti. Reindicizzare (nuova versione, stesso conteggio) lasciava in
+    cache i chunk vecchi: la domanda gia' fatta continuava a citare il testo
+    precedente finche' la voce non scadeva."""
+    from core.search_cache import reset_search_cache
+
+    reset_search_cache()
+    store = LibraryStore(tmp_path / "cache.sqlite3")
+    library = store.create_library("Cache", "", "shared", owner_id="admin")
+    document = store.add_document(
+        library_id=library["id"],
+        filename="ferie.md",
+        media_type="text/markdown",
+        content=b"Le ferie vanno richieste con 15 giorni di anticipo.",
+        storage_path="/tmp/ferie.md",
+        chunks=[("Le ferie vanno richieste con 15 giorni di anticipo.", "Sezione: Ferie")],
+    )
+    prima = store.search_documents(library["id"], "ferie anticipo")
+    assert "15 giorni" in prima[0]["excerpt"]
+
+    store.replace_document_index(
+        library["id"],
+        document["id"],
+        "Le ferie vanno richieste con 30 giorni di anticipo.",
+        1,
+        [("Le ferie vanno richieste con 30 giorni di anticipo.", "Sezione: Ferie")],
+    )
+    dopo = store.search_documents(library["id"], "ferie anticipo")
+    assert "30 giorni" in dopo[0]["excerpt"], "risultato servito dalla cache dopo la reindicizzazione"
+    reset_search_cache()
