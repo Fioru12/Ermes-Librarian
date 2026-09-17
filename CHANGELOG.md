@@ -32,6 +32,11 @@ Secondo blocco della stessa revisione, sempre verificato prima:
 - **Cache di ricerca**: restituiva il riferimento interno (i chiamanti annotano i risultati sul posto → la seconda richiesta vedeva le annotazioni della prima) e non veniva invalidata da `replace_document_index` / `store_chunk_embeddings` (stesso numero di documenti, chunk diversi → citazioni vecchie fino alla scadenza). Ora copia profonda in uscita e invalidazione in entrambi. Test in `test_search_cache.py` e `test_library_store.py`.
 - **Audit append sotto `FileLock`**, come users.json e api keys: due processi che scrivono insieme producevano righe intrecciate, cioè voci che non verificano.
 
+CI resa un gate anche per ciò che finora era solo scritto:
+
+- **E2E Playwright eseguiti davvero.** Esistevano da mesi con `test.skip(!PASSWORD)`: in CI nessuna istanza, nessuna password, sempre saltati. Ora girano dentro `compose-smoke` contro il container, dopo il caricamento del corpus demo, con trace caricate come artifact in caso di fallimento. Il primo run reale ha trovato un'asserzione invecchiata (testo di una card rimosso dalla UI) — corretta. 4/4 verdi anche in locale contro l'app nativa.
+- **gitleaks** sull'intera history (job `secrets`, bloccante per il deploy) e **Trivy** sull'immagine appena costruita (advisory, come pip-audit e per la stessa ragione).
+
 Verificato e **non** corretto perché il claim non regge: lo streaming SSE non "sovrascrive i chunk" — il server manda un solo evento `answer` con la risposta completa (`api/libraries.py`), lo stream è di stati; `striprtf` assente da `requirements.txt` ha un fallback esplicito in `core/document_parser.py`. Rimandati (richiedono più di un giorno): adapter Postgres per le ~25 query via `_connection()` con `?` (oggi rotte su PG, confermato), migrazione ad Argon2, backup cifrati.
 
 ## 2026-09-12 — v2.2.4: Gestione UI Glossario Dinamico e UX Citazioni Avanzate

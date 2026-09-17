@@ -71,6 +71,20 @@ jobs:
         continue-on-error: true
         run: pip-audit
 
+  # Il piano di release (docs/GITHUB_RELEASE_PLAN.md) chiede secret scan e
+  # container scan come gate. Il secret scan e' stato fatto a mano una volta
+  # (agosto 2026) e un documento riservato e' stato trovato; questo lo rende
+  # permanente. Bloccante: un segreto committato non e' un'opinione.
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   test:
     runs-on: ubuntu-latest
     # PostgreSQL vero, non simulato. Gli otto test di parita' in
@@ -157,6 +171,18 @@ jobs:
           load: true
           tags: ermes-knowledge:local
           cache-from: type=gha
+      # Scansione dell'immagine appena costruita. Come pip-audit: advisory,
+      # perche' una CVE pubblicata stanotte in una libreria di sistema
+      # dell'immagine base non e' una regressione di questo repository —
+      # ma deve restare visibile (gialla), non nascosta.
+      - name: Trivy image scan (advisory)
+        continue-on-error: true
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ermes-knowledge:local
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
       - name: Start app (evidence_only, no model)
         # --no-deps: il default non usa alcun modello, e scaricare Ollama
         # solo per soddisfare depends_on renderebbe il job lento e fragile.
@@ -180,6 +206,31 @@ jobs:
         run: |
           python3 -m pip install --quiet httpx python-dotenv
           ERMES_DEMO_URL=http://127.0.0.1:8502 python3 scripts/run_demo_validation.py
+      # Gli E2E Playwright esistevano dall'inizio ma nessun job li eseguiva:
+      # `test.skip(!PASSWORD)` li faceva saltare ovunque non ci fosse
+      # un'istanza avviata con credenziali note — cioe' sempre, in CI.
+      # Qui l'istanza c'e' (il container), il corpus demo e' appena stato
+      # caricato dal passo sopra, e la password e' quella del job.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+      - name: Browser E2E against the container
+        env:
+          ERMES_E2E_URL: http://127.0.0.1:8502
+          ERMES_ADMIN_USERNAME: admin
+        run: |
+          cd frontend
+          npm ci
+          npx playwright install --with-deps chromium
+          npm run e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-traces
+          path: frontend/test-results/
+          retention-days: 7
       - name: Container logs on failure
         if: failure()
         run: docker compose logs app
@@ -189,7 +240,7 @@ jobs:
 
   pre-deploy-backup:
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
-    needs: [lint, test, frontend, compose-smoke]
+    needs: [lint, test, frontend, compose-smoke, secrets]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

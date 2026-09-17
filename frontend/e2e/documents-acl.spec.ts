@@ -75,5 +75,9 @@ test('upload, indicizzazione e gestione accessi per-documento', async ({ page })
   // ── Health: la nuova card coerenza indice e' presente e senza anomalie ──
   await page.getByRole('button', { name: /stato sistema/i }).click()
   await expect(page.getByText(/coerenza indice/i)).toBeVisible({ timeout: 15_000 })
-  await expect(page.getByText(/originali, vettori e righe allineati/i)).toBeVisible()
+  // La card riporta i conteggi, non una frase: fino al 18 settembre 2026 il
+  // test cercava un testo rimosso dalla UI mesi prima, e nessuno lo vedeva
+  // perche' in CI gli E2E si auto-saltavano.
+  await expect(page.getByText(/Documenti verificati:/)).toBeVisible()
+  await expect(page.getByText(/Problemi:\s*0/)).toBeVisible()
 })
