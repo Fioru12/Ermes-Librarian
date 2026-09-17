@@ -193,13 +193,18 @@ def pg_store(tmp_path):
 
     backend.execute_script(POSTGRES_SCHEMA)
     backend.close()
-    _os.environ["ERMES_DATABASE_URL"] = dsn
     from core.library_store import LibraryStore
 
-    store = LibraryStore(database_path=None)
+    # Fino al 18 settembre 2026 questo fixture impostava ERMES_DATABASE_URL
+    # nell'ambiente e costruiva `LibraryStore(database_path=None)`. Ma `cfg`
+    # e' un frozen dataclass letto all'import: la variabile arrivava troppo
+    # tardi, cfg.DATABASE_URL restava vuoto e lo store apriva SQLite. Tre
+    # test "PostgreSQL" passavano in CI su SQLite, mentre su Postgres vero
+    # ogni `connection.execute("... ?")` dello store falliva. L'asserzione
+    # sotto impedisce che succeda di nuovo.
+    store = LibraryStore(database_url=dsn)
+    assert store._is_postgres, "il fixture pg_store deve usare PostgreSQL, non SQLite"
     yield store
-    if "ERMES_TEST_DATABASE_URL" not in _os.environ:
-        del _os.environ["ERMES_DATABASE_URL"]
 
 
 @requires_pg
@@ -294,3 +299,59 @@ def test_the_connection_has_an_explicit_timeout():
 
     assert getattr(PostgresBackend, "_CONNECT_TIMEOUT_SECONDI", 0) > 0
     assert PostgresBackend._CONNECT_TIMEOUT_SECONDI <= 30, "un timeout lungo riporta il problema che risolve"
+
+
+# ============================================================
+# I percorsi `with self._connection()` — quelli scritti con `?` — su Postgres
+# ============================================================
+
+
+@requires_pg
+def test_pg_document_lifecycle_through_raw_connection_paths(pg_store):
+    """add_document, list, replace_document_index, versioni, members, delete:
+    tutti passano da `_connection()` con segnaposto `?`. Prima
+    dell'adapter ognuno di questi falliva con "the query has 0
+    placeholders"."""
+    lib = pg_store.create_library("Ciclo PG", "", "private", owner_id="owner")
+    doc = pg_store.add_document(
+        library_id=lib["id"],
+        filename="ferie.md",
+        media_type="text/markdown",
+        content=b"Le ferie vanno richieste con 15 giorni di anticipo.",
+        storage_path=f"{lib['id']}/ferie.md",
+        status="ready",
+        chunks=[("Le ferie vanno richieste con 15 giorni di anticipo.", "Sezione: Ferie")],
+    )
+    assert [d["id"] for d in pg_store.list_documents(lib["id"])] == [doc["id"]]
+
+    results, _ = pg_store.search_with_profile(lib["id"], "ferie anticipo")
+    assert results and results[0]["citation"]["locator"] == "Sezione: Ferie"
+
+    aggiornato = pg_store.replace_document_index(
+        lib["id"],
+        doc["id"],
+        "Le ferie vanno richieste con 30 giorni di anticipo.",
+        1,
+        [("Le ferie vanno richieste con 30 giorni di anticipo.", "Sezione: Ferie")],
+    )
+    assert aggiornato["status"] == "ready"
+    results, _ = pg_store.search_with_profile(lib["id"], "ferie anticipo")
+    assert "30 giorni" in results[0]["excerpt"]
+
+    pg_store.set_library_member(lib["id"], "collega", "viewer")
+    assert pg_store.get_library(lib["id"], {"username": "collega", "role": "viewer"})["id"] == lib["id"]
+
+    pg_store.delete_document(lib["id"], doc["id"])
+    assert pg_store.list_documents(lib["id"]) == []
+    pg_store.delete_library(lib["id"])
+
+
+@requires_pg
+def test_pg_duplicate_member_is_an_integrity_error_not_a_500(pg_store):
+    """`except sqlite3.IntegrityError` non cattura psycopg.IntegrityError."""
+    lib = pg_store.create_library("Vincoli PG", "", "private", owner_id="owner")
+    pg_store.set_library_member(lib["id"], "collega", "viewer")
+    # La seconda scrittura e' un upsert o un errore gestito: mai un'eccezione
+    # del driver che risale fino alla rotta.
+    pg_store.set_library_member(lib["id"], "collega", "editor")
+    pg_store.delete_library(lib["id"])

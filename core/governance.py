@@ -16,6 +16,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from argon2 import PasswordHasher
+from argon2.exceptions import InvalidHashError, VerificationError, VerifyMismatchError
 from filelock import FileLock
 
 _logger = logging.getLogger(__name__)
@@ -334,12 +336,53 @@ _hash_lock = threading.Lock()
 
 
 def _hash_password(password: str, salt: str) -> str:
+    """Schema PRECEDENTE (SHA-256 salato, 5000 iterazioni): solo per verificare
+    gli hash gia' salvati. Dal 18 settembre 2026 le password nuove e quelle
+    verificate con successo passano ad Argon2id; nessun hash viene piu'
+    scritto con questa funzione."""
     pwd_bytes = password.encode("utf-8")
     salt_bytes = (salt if salt else "ermes_fallback_salt").encode("utf-8")
     h = hashlib.sha256(salt_bytes + pwd_bytes).digest()
     for _ in range(5000):
         h = hashlib.sha256(h + salt_bytes + pwd_bytes).digest()
     return h.hex()
+
+
+# Argon2id con i parametri predefiniti di argon2-cffi (t=3, m=64 MiB, p=4),
+# che seguono la raccomandazione RFC 9106. La documentazione dichiarava
+# "PBKDF2/Argon2" da prima che il codice lo facesse: ora lo fa.
+_argon2 = PasswordHasher()
+# Hash fittizio verificato quando l'utente non esiste, cosi' il tempo di
+# risposta non rivela se il nome e' noto (stesso scopo del vecchio
+# `_hash_password(password, salt_casuale)`).
+_DUMMY_ARGON2_HASH = _argon2.hash("ermes-dummy-password-for-timing")
+
+
+def _is_argon2(stored_hash: str) -> bool:
+    return stored_hash.startswith("$argon2")
+
+
+def _new_password_hash(password: str) -> str:
+    return _argon2.hash(password)
+
+
+def _verify_password(password: str, stored_hash: str, salt: str) -> tuple[bool, bool]:
+    """(password valida, hash da riscrivere).
+
+    Il secondo valore e' True quando l'hash e' nello schema precedente o in
+    un Argon2 con parametri ormai deboli: chi ha appena dimostrato di
+    conoscere la password e' l'unico momento in cui si puo' ricalcolarla.
+    """
+    if _is_argon2(stored_hash):
+        try:
+            _argon2.verify(stored_hash, password)
+        except (VerifyMismatchError, VerificationError, InvalidHashError):
+            return False, False
+        return True, _argon2.check_needs_rehash(stored_hash)
+    if not salt or not stored_hash:
+        return False, False
+    valid = hmac.compare_digest(_hash_password(password, salt), stored_hash)
+    return valid, valid
 
 
 def ensure_default_admin(users_file: str, username: str, password: str) -> None:
@@ -351,25 +394,22 @@ def ensure_default_admin(users_file: str, username: str, password: str) -> None:
         data = _load_users(users_file)
         user = next((u for u in data["users"] if u.get("username") == username), None)
         if user is None:
-            salt = secrets.token_hex(16)
             data["users"].append(
                 {
                     "username": username,
                     "role": "admin",
                     "active": True,
-                    "salt": salt,
-                    "password_hash": _hash_password(password, salt),
+                    "salt": "",
+                    "password_hash": _new_password_hash(password),
                     "created_at": datetime.now().isoformat(),
                 }
             )
             _save_users(users_file, data)
         else:
-            existing_hash = user.get("password_hash", "")
-            salt = user.get("salt", "")
-            if not salt or not existing_hash or not hmac.compare_digest(_hash_password(password, salt), existing_hash):
-                new_salt = secrets.token_hex(16)
-                user["salt"] = new_salt
-                user["password_hash"] = _hash_password(password, new_salt)
+            valid, rehash = _verify_password(password, user.get("password_hash", ""), user.get("salt", ""))
+            if not valid or rehash:
+                user["salt"] = ""
+                user["password_hash"] = _new_password_hash(password)
                 user["role"] = "admin"
                 user["active"] = True
                 user["updated_at"] = datetime.now().isoformat()
@@ -385,19 +425,24 @@ def authenticate_user(users_file: str, username: str, password: str) -> dict | N
         # SECURITY: Timing-safe password check anche quando user non trovato
         # Usa un salt casuale per ogni tentativo per evitare timing e user enumeration
         if not user:
-            _hash_password(password, secrets.token_hex(16))  # Hash dummy per timing match
+            with contextlib.suppress(VerifyMismatchError, VerificationError, InvalidHashError):
+                _argon2.verify(_DUMMY_ARGON2_HASH, password)  # tempo comparabile a un utente esistente
             return None
 
         if not user.get("active", True):
             return None
 
-        salt = user.get("salt", "")
-        expected = user.get("password_hash", "")
-        got = _hash_password(password, salt)
-
-        if hmac.compare_digest(got, expected):
-            return {"username": user["username"], "role": user.get("role", "viewer")}
-        return None
+        valid, rehash = _verify_password(password, user.get("password_hash", ""), user.get("salt", ""))
+        if not valid:
+            return None
+        if rehash:
+            # Migrazione trasparente dallo schema precedente: avviene qui,
+            # l'unico momento in cui la password in chiaro e' disponibile.
+            user["salt"] = ""
+            user["password_hash"] = _new_password_hash(password)
+            user["updated_at"] = datetime.now().isoformat()
+            _save_users(users_file, data)
+        return {"username": user["username"], "role": user.get("role", "viewer")}
 
 
 def validate_admin_user(admin_user: dict | None) -> bool:
@@ -480,21 +525,22 @@ def create_or_update_user(
         data = _load_users(users_file)
         user = next((u for u in data["users"] if u.get("username") == username), None)
         if user is None:
-            salt = secrets.token_hex(16)
             user_entry: dict[str, Any] = {
                 "username": username,
                 "created_at": datetime.now().isoformat(),
             }
             user = user_entry
             data["users"].append(user)
-        else:
-            salt = user.get("salt") or secrets.token_hex(16)
 
         user["role"] = role
         user["active"] = active
-        user["salt"] = salt
         if password:
-            user["password_hash"] = _hash_password(password, salt)
+            # Il campo `salt` resta per gli hash precedenti; Argon2 porta il
+            # proprio salt dentro la stringa PHC.
+            user["salt"] = ""
+            user["password_hash"] = _new_password_hash(password)
+        else:
+            user.setdefault("salt", "")
         user["updated_at"] = datetime.now().isoformat()
         _save_users(users_file, data)
 
@@ -679,7 +725,11 @@ def append_audit(audit_file: str, action: str, actor: str, detail: dict | None =
     # Calcola firma HMAC per integrità
     entry_str = json.dumps(entry, ensure_ascii=False)
     entry["signature"] = _sign_audit_entry(entry_str)
-    with open(audit_file, "a", encoding="utf-8") as f:
+    # Stesso lock per percorso usato per users.json e api keys: l'append di
+    # una riga e' atomico su POSIX sotto PIPE_BUF, non su Windows e non per
+    # voci lunghe. Due processi (app + worker) che scrivono insieme
+    # producevano righe intrecciate, cioe' voci che non verificano.
+    with _get_file_lock(canonical + ".lock"), open(canonical, "a", encoding="utf-8") as f:
         f.write(json.dumps(entry, ensure_ascii=False) + "\n")
 
 

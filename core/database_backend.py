@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import sqlite3
 from collections.abc import Iterator
 from contextlib import closing, contextmanager
 from pathlib import Path
@@ -167,7 +168,11 @@ class PostgresBackend:
             return cur.fetchone() if cur.description else None
 
     def executemany(self, sql: str, params_seq: list[tuple | dict]) -> int:
-        sql, _ = self._translate(sql, None)
+        # Con None _translate non tocca la query (nessun parametro, nessun
+        # segnaposto da tradurre): qui i parametri ci sono, sono nella
+        # sequenza. Fino al 18 settembre 2026 passava None e `?` arrivava al
+        # driver intatto.
+        sql, _ = self._translate(sql, ())
         with self._connection.cursor() as cur:
             cur.executemany(sql, params_seq)
             self._connection.commit()
@@ -192,12 +197,76 @@ class PostgresBackend:
 
     @contextmanager
     def transaction(self):
+        # Yielda l'ADAPTER, non la connessione psycopg. LibraryStore ha un
+        # centinaio di `connection.execute("... ?", params)` scritti per
+        # SQLite dentro `with self._connection()`; psycopg rifiuta `?`
+        # ("the query has 0 placeholders"). La docstring di
+        # LibraryStore._connection prometteva "Postgres: restituisce un
+        # adapter dict-based" dal primo giorno, ma fino al 18 settembre 2026
+        # qui usciva la connessione nuda — e i test di parita' che avrebbero
+        # dovuto accorgersene giravano su SQLite senza saperlo (vedi
+        # tests/test_postgres_parity.py, fixture pg_store).
+        adapter = PostgresConnectionAdapter(self._connection, self._translate)
         try:
-            yield self._connection
+            yield adapter
             self._connection.commit()
         except Exception:
             self._connection.rollback()
             raise
+
+
+class PostgresConnectionAdapter:
+    """La superficie di `sqlite3.Connection` che LibraryStore usa, su psycopg.
+
+    `execute` traduce `?` in `%s` e restituisce il cursore psycopg, che ha
+    `fetchone`/`fetchall`/`rowcount` come quello di sqlite3; le righe sono
+    dict (row_factory=dict_row), accessibili per nome come sqlite3.Row.
+    """
+
+    def __init__(self, connection, translate) -> None:
+        self._connection = connection
+        self._translate = translate
+
+    def execute(self, sql: str, params: tuple | dict | None = None):
+        sql, params = self._translate(sql, params)
+        return self._connection.execute(sql, params)
+
+    def executemany(self, sql: str, params_seq) -> None:
+        sql, _ = self._translate(sql, ())
+        with self._connection.cursor() as cur:
+            cur.executemany(sql, list(params_seq))
+
+    def executescript(self, sql: str) -> None:
+        for statement in sql.split(";"):
+            statement = statement.strip()
+            if statement:
+                self._connection.execute(statement)
+
+    def commit(self) -> None:
+        self._connection.commit()
+
+    def rollback(self) -> None:
+        self._connection.rollback()
+
+
+def integrity_errors() -> tuple[type[Exception], ...]:
+    """Le eccezioni di vincolo violato, per entrambi i driver.
+
+    `except sqlite3.IntegrityError` su Postgres lasciava passare
+    psycopg.IntegrityError: un nome utente duplicato diventava un 500 invece
+    del 409 previsto.
+    """
+    tipi: list[type[Exception]] = [sqlite3.IntegrityError]
+    try:
+        import psycopg
+
+        tipi.append(psycopg.IntegrityError)
+    except ImportError:
+        pass
+    return tuple(tipi)
+
+
+INTEGRITY_ERRORS = integrity_errors()
 
 
 def create_backend(url: str | None = None):
