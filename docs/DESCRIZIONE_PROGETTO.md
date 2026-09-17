@@ -1,6 +1,6 @@
 # 📘 Ermes Knowledge (Ermes-Librarian) — Documento Descrittivo Completo di Progetto
 
-> **Versione:** 2.2.6 Enterprise Ready  
+> **Versione:** 2.2.5  
 > **Stato:** Produzione / On-Premise & Cloud Privato  
 > **Repository:** `c:\Progetti\ProgettoRAG_DEV`  
 > **Licenza:** Open Source / MIT con conformità Enterprise  
@@ -14,7 +14,7 @@
 A differenza delle soluzioni basate su chatbot cloud commerciali (es. ChatGPT, Copilot generici), Ermes Knowledge è sviluppata seguendo il paradigma **Local-First & Data Sovereignty**:
 - **Zero data-leakage**: nessun documento o query abbandona il perimetro aziendale a meno che non sia esplicitamente configurato un connettore cloud approvato.
 - **Evidence-First**: nessuna risposta viene generata senza una prova documentale esplicita; se l'informazione non è presente nei documenti autorizzati, il sistema dichiara con precisione di non poter rispondere.
-- **Isolamento e Sicurezza Rigorosa**: controllo accessi basato su ruoli (RBAC), integrazione Single Sign-On (SSO / OIDC), mascheramento dati sensibili (DLP) e registro di audit crittograficamente immutabile (hash-chaining SHA-256).
+- **Isolamento e Sicurezza Rigorosa**: controllo accessi basato su ruoli (RBAC), integrazione Single Sign-On (SSO / OIDC), mascheramento dati sensibili (DLP) e registro di audit tamper-evident (ogni voce firmata HMAC-SHA256 con chiave per installazione).
 
 ---
 
@@ -41,7 +41,7 @@ Nelle moderne organizzazioni, oltre l'80% delle informazioni risiede in **docume
 4. **Documenti come Input Non Fidato (Prompt Injection Defense)**:
    Il testo estratto dai documenti viene trattato rigorosamente come dato in sola lettura, sanificato e confinato per impedire tentativi di prompt injection indiretta.
 5. **Tracciabilità Crittografica Immutabile**:
-   Ogni query, upload, modifica o download è registrato in un file di audit protetto da concatenazione crittografica di hash SHA-256. Qualsiasi manomissione esterna rende l'intero log invalido e rilevabile istantaneamente.
+   Ogni query, upload, modifica o download è registrato in un file di audit in cui ogni voce è firmata HMAC-SHA256 con una chiave generata per installazione. Una voce alterata non verifica più la firma ed è segnalata dall'interfaccia; la cancellazione di una voce non è rilevata (non è una hash-chain: vedi `docs/THREAT_MODEL.md`, T6).
 
 ---
 
@@ -80,7 +80,7 @@ Ermes Knowledge applica una rigida separazione tra il **Control Plane** (identit
  │                                 ▼                                                           │
  │                ┌──────────────────────────────────┐                                         │
  │                │ Reciprocal Rank Fusion & Rerank │                                         │
- │                │ (Cross-Encoder Neural Reranker)  │                                         │
+ │                │ (reranker: off di default, misurato) │                                     │
  │                └────────────────┬─────────────────┘                                         │
  │                                 ▼                                                           │
  │                ┌──────────────────────────────────┐                                         │
@@ -120,9 +120,9 @@ Il ciclo di vita dell'informazione in Ermes Knowledge si articola in 7 fasi alta
 - Modulo di espansione terminologica con caricamento dinamico e prioritario di acronimi e sinonimi (`config/synonyms.json`).
 - Permette all'utente di definire acronimi aziendali (es. "DURC", "SLA", "PDR") che vengono tradotti ed espansi automaticamente durante la ricerca.
 
-### Fase 5: Retrieval Ibrido e Reranking Neurale
-- **Reciprocal Rank Fusion (RRF)**: fusione dei punteggi lessicali e semantici per produrre una prima graduatoria di candidati.
-- **Cross-Encoder Reranker**: modello neurale di scoring profondo che valuta la pertinenza effettiva di ciascun frammento rispetto alla domanda dell'utente, filtrando il rumore.
+### Fase 5: Retrieval Ibrido e Reranking
+- **Reciprocal Rank Fusion (RRF)**: fusione dei punteggi lessicali e semantici per produrre una prima graduatoria di candidati (la ricerca semantica è disponibile ma spenta di default: raddoppia il recall sulle parafrasi e azzera l'astensione).
+- **Reranker**: esiste un reranker lessicale e un cross-encoder neurale opzionale, ma sono **spenti di default**: misurati sul gold set, peggiorano ogni configurazione (`docs/RETRIEVAL_EVALUATION.md`). Il meccanismo che funziona è la verifica dell'evidenza (Fase 6).
 
 ### Fase 6: Evidence Verifier Concorrente
 - Verifica multi-thread ad alte prestazioni (`ThreadPoolExecutor`) con connection pooling HTTP: verifica che i passaggi selezionati contengano prove logiche per rispondere alla domanda prima di invocare il modello generativo.
@@ -163,9 +163,9 @@ La sicurezza di Ermes Knowledge è progettata secondo i principi di **Defense in
 
 | Componente di Sicurezza | Implementazione in Ermes |
 |---|---|
-| **Autenticazione** | Supporto nativo OIDC (Microsoft Entra ID, Keycloak, Google Workspace) + credenziali locali hashate con PBKDF2/Argon2. |
-| **Fail-Closed Authorization** | Un utente non autenticato o non autorizzato riceve un codice HTTP `404 Not Found` (invece di `403 Forbidden`) per prevenire l'enumerazione di risorse riservate. |
-| **Audit Log Tamper-Evident** | Ogni evento scrive un record concatenato crittograficamente con hash SHA-256 del record precedente (`audit.jsonl`). Una pagina dedicata ne valida costantemente l'integrità. |
+| **Autenticazione** | Supporto nativo OIDC (Microsoft Entra ID, Keycloak, Google Workspace) + credenziali locali con Argon2id (`core/governance.py`); gli hash SHA-256 salati delle versioni precedenti vengono riscritti al primo accesso riuscito. |
+| **Fail-Closed Authorization** | Un utente non autenticato riceve `401`; una biblioteca a cui non si ha accesso risponde `404 Not Found` come una inesistente, per non rivelarne l'esistenza. Le operazioni negate su risorse note rispondono `403`. |
+| **Audit Log Tamper-Evident** | Ogni evento scrive un record firmato HMAC-SHA256 con la chiave dell'installazione (`audit.jsonl`). Una pagina dedicata verifica ogni firma e segnala le voci alterate. |
 | **Protezione RootFS Read-Only** | Compatibilità completa con container Docker immutabili (`read_only: true`): file temporanei e lock di sincronizzazione posizionati in cartelle scrivibili dedicate. |
 | **Multi-Process FileLock** | Concorrenza di scrittura protetta su Windows e Linux per utenti, audit log e sinonimi. |
 

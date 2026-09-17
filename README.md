@@ -10,7 +10,7 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![React](https://img.shields.io/badge/React-18%20%7C%20TypeScript-61DAFB?logo=react&logoColor=black)](https://react.dev/)
 [![Docker](https://img.shields.io/badge/Docker-Compose%20Ready-2496ED?logo=docker&logoColor=white)](docker-compose.yml)
-[![Tests](https://img.shields.io/badge/Tests-88%20Pytest%20%7C%2068%20Vitest%20Passed-brightgreen)](tests/)
+[![CI](https://img.shields.io/badge/CI-pytest%20%7C%20vitest%20%7C%20compose--smoke-brightgreen)](.github/workflows/ci.yml)
 [![Security](https://img.shields.io/badge/Security-Fail--Closed%20%7C%20Audit%20SHA--256-blueviolet)](docs/THREAT_MODEL.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
@@ -27,7 +27,9 @@
 
 ---
 
-Ermes Knowledge is an enterprise-ready, local-first document library and RAG platform. It turns company files (PDF, DOCX, XLSX, TXT, Markdown) into a governed, searchable knowledge base: users upload documents, ask questions in natural language, and receive real-time answers backed by traceable citations with zero ungrounded hallucinations.
+Ermes Knowledge is an enterprise-ready, local-first document library and RAG platform. It turns company files (PDF — scanned pages included, via OCR — DOCX, XLSX, PPTX, TXT, Markdown) into a governed, searchable knowledge base: users upload documents, ask questions in natural language, and receive real-time answers backed by traceable citations with zero ungrounded hallucinations.
+
+> **Where is the vector search?** Off by default, on purpose. Ermes ships with lexical retrieval because on its own golden set semantic search doubles paraphrase recall *and* destroys abstention (1.000 → 0.000), and the neural reranker made every configuration worse. Both are implemented and one flag away (`ERMES_LIBRARY_SEMANTIC_SEARCH=1`, `ERMES_RERANKER_ENABLED=1`); the mechanism that was measured to keep abstention at scale is evidence verification, enabled by the [verified profile](#verified-profile-ollama-required). The numbers, and the three rejected fixes, are below.
 
 The product is designed to be fully useful before any cloud AI is enabled. Its default mode is **evidence-first**: documents remain strictly on-premise and the application returns verified passages with tamper-evident audit logs. Administrators can selectively enable local models (Ollama, vLLM) or approved enterprise LLM providers.
 
@@ -48,6 +50,15 @@ here too — they are the reason several features are switched off.
 | Paraphrased questions | 0.500 | **0.875** | 0.625 |
 | Correctly refusing to answer | **1.000** | 0.000 | **1.000** |
 
+**Same corpus, RAGAS definitions** (`python evaluation/ragas_report.py`), so the
+numbers can sit next to other projects' — shipped default, k=3:
+
+| context_precision | context_recall | MRR | abstention precision | false abstention |
+|---|---|---|---|---|
+| 0.792 | 0.833 | 0.792 | 1.000 | 0.042 |
+
+Direct questions: precision 0.938 / recall 1.000 (one question finds its citation at rank 2, not 1). Paraphrased: 0.500 / 0.500. Faithfulness and answer relevancy are *not* reported: in the default evidence-only mode there is no generated answer to judge, and reporting them would require a generator plus a judge model — a different measurement, kept separate rather than decorated in.
+
 **Speed on an office-sized archive** (`python evaluation/archive_scale.py`):
 
 | Passages | Indexing | Typical search | Worst-case search |
@@ -61,7 +72,9 @@ here too — they are the reason several features are switched off.
   0.333 once 100 passages of unrelated prose are added: any single shared term
   is enough to be cited as evidence. Evidence verification restores it to
   1.000, and at that size also improves overall recall — but it needs a model
-  running, so it is off by default. Reproduce with
+  running, so it is off by default. For libraries beyond a demo corpus, run
+  the [verified profile](#verified-profile-ollama-required), which makes the
+  model a declared requirement. Reproduce with
   `python evaluation/scale_check.py --sizes 0,25,97`.
 - **The neural reranker is disabled**, because measuring it showed it makes
   every configuration worse — the previously shipped default was the worst of
@@ -137,7 +150,7 @@ Teams often have procedures, policies, manuals, contracts and internal know-how 
 
 ## Quick start (Windows)
 
-Prerequisites: Python 3.11+, Node.js 18+ and npm. Ollama is optional unless you select `local_ollama` or local semantic search.
+Prerequisites: Python 3.11+, Node.js 18+ and npm. Ollama is optional unless you select `local_ollama` or local semantic search. [Tesseract](https://github.com/tesseract-ocr/tesseract) (with the `ita` data) is needed for scanned PDFs: the Docker image includes it; without it the application starts, `/health` reports the degradation, and pages with no text layer are skipped rather than indexed empty.
 
 ```powershell
 Copy-Item .env.example .env
@@ -192,13 +205,25 @@ They read the administrator credentials from `ERMES_ADMIN_USERNAME` and
 
 ## Docker
 
-```powershell
+```bash
 docker compose up --build
 ```
 
+This is the shipped default: evidence-only, lexical retrieval, no model in the answer path. CI runs exactly this on a clean Linux clone (`compose-smoke` in [.github/workflows/ci.yml](.github/workflows/ci.yml)): it builds the image, starts the container without Ollama, waits for `/health` to report `healthy`, then runs [scripts/run_demo_validation.py](scripts/run_demo_validation.py) against it — five documents indexed, four cited answers, one abstention, one cross-library isolation check.
+
+### Verified profile (Ollama required)
+
+The default's abstention degrades as a library grows (see above). The fix that was measured to work, evidence verification, needs a model — so this profile declares one as a requirement rather than an option, pulls it on first start, and does not start the app until it is there:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.verified.yml up --build
+```
+
+The first start downloads about 3 GB (`qwen3.5:4b` and `nomic-embed-text`); a small model is enough, the 4B and 9B variants scored identically on the golden set. On CPU expect several seconds per question. See [docker-compose.verified.yml](docker-compose.verified.yml) for what it changes.
+
 Runtime documents and the SQLite library database are mounted in `storage/` and are intentionally ignored by Git. For a corporate TLS-inspection network, pass the internal root certificate as a Docker BuildKit secret rather than copying it into the image:
 
-```powershell
+```bash
 docker build --secret id=corporate_ca,src=company-ca.crt -t ermes-knowledge .
 ```
 
