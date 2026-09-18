@@ -825,9 +825,7 @@ class LibraryStore:
 
     def ingestion_queue_stats(self) -> dict[str, int]:
         with self._connection() as connection:
-            rows = connection.execute(
-                "SELECT status, COUNT(*) AS n FROM ingestion_jobs GROUP BY status"
-            ).fetchall()
+            rows = connection.execute("SELECT status, COUNT(*) AS n FROM ingestion_jobs GROUP BY status").fetchall()
         stats = {"queued": 0, "processing": 0, "ready": 0, "failed": 0}
         for row in rows:
             record = self._row(row)
@@ -1231,19 +1229,26 @@ class LibraryStore:
             return set()
 
         if self._is_postgres:
-            # PostgreSQL: usa search_tsv (generated column) con plainto_tsquery
+            # Stessa semantica del ramo SQLite: la frase intera OPPURE uno
+            # qualunque dei token (prefisso). Fino al 18 settembre 2026 la
+            # frase era scritta con le virgolette di FTS5 — sintassi che
+            # tsquery non ha ("syntax error in tsquery", primo run reale su
+            # Postgres) — e i token erano in AND: con l'espansione dei
+            # sinonimi (sei token per "sicurezza") non trovava mai niente.
+            # `phraseto_tsquery` gestisce la frase da solo; i token sono
+            # \w puri, quindi `|` fra prefissi e' una tsquery valida.
             clean_phrase = re.sub(r"[^\wÀ-ÿ\s]", " ", query).strip()
-            # Costruisci una query tsquery con AND tra i token
-            tsquery = " & ".join(f"{t}:*" for t in tokens)
-            if len(clean_phrase.split()) > 1:
-                tsquery = f'"{clean_phrase}" | ({tsquery})'
+            clean_tokens = [re.sub(r"[^\wÀ-ÿ]", "", t) for t in tokens]
+            token_query = " | ".join(f"{t}:*" for t in clean_tokens if t)
             rows = connection.execute(
                 """
                 SELECT c.id AS chunk_id FROM document_chunks c
                 JOIN documents d ON d.id = c.document_id
-                WHERE d.library_id = ? AND c.search_tsv @@ to_tsquery('simple', ?)
+                WHERE d.library_id = ?
+                  AND (c.search_tsv @@ to_tsquery('simple', ?)
+                       OR (? <> '' AND c.search_tsv @@ phraseto_tsquery('simple', ?)))
                 """,
-                (library_id, tsquery),
+                (library_id, token_query, clean_phrase if len(clean_phrase.split()) > 1 else "", clean_phrase),
             ).fetchall()
         else:
             # SQLite: FTS5
