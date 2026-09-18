@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { ThemeProvider } from '../../../hooks/useTheme'
 import ChatArea from '../ChatArea'
@@ -85,10 +85,30 @@ describe('ChatArea', () => {
     fireEvent.click(screen.getByRole('button', { name: '1' }))
     expect(screen.getByRole('dialog', { name: 'Dettaglio citazione' })).toBeInTheDocument()
     expect(screen.getByText('Citazione [1]')).toBeInTheDocument()
-    expect(screen.getByText('Copia citazione')).toBeInTheDocument()
+    expect(screen.getByText('Copia estratto')).toBeInTheDocument()
 
     // Premi Escape per chiudere il modal
     fireEvent.keyDown(window, { key: 'Escape' })
     expect(screen.queryByRole('dialog', { name: 'Dettaglio citazione' })).not.toBeInTheDocument()
+  })
+
+  it('a negative feedback asks for a reason and sends it as the comment', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response('{}', { status: 200 }))
+    vi.stubGlobal('fetch', fetchMock)
+    try {
+      renderChat({ messages: [{ id: 'ev-1', role: 'assistant', content: 'Risposta.', timestamp: '10:00', sources: [] }] })
+
+      fireEvent.click(screen.getByTitle(/non utile/i))
+      expect(screen.getByText('Segnala motivo gap:')).toBeInTheDocument()
+      fireEvent.click(screen.getByText(/Fonte non pertinente/))
+
+      await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1))
+      const [url, init] = fetchMock.mock.calls[0]
+      expect(url).toBe('/api/analytics/feedback')
+      expect(JSON.parse(String(init.body))).toEqual({ event_id: 'ev-1', rating: -1, comment: 'Fonte non pertinente' })
+      expect(screen.queryByText('Segnala motivo gap:')).not.toBeInTheDocument()
+    } finally {
+      vi.unstubAllGlobals()
+    }
   })
 })

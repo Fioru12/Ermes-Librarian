@@ -46,6 +46,8 @@ Frontend:
 - `window.open` con `noopener,noreferrer` sull'export biblioteca.
 - **Primi test su `App`** (`src/__tests__/App.test.tsx`, 6): gate di autenticazione (login riuscito/rifiutato, `credentials: include`), parsing dello stream SSE con `ReadableStream` costruito a mano e spezzato a metà evento (status → citations → answer → done, stato ripulito a fine stream), cronologia limitata alle ultime tre domande dell'utente senza risposte, `Stop` che aborta la richiesta, errore HTTP che lascia un messaggio leggibile. Fino a oggi `App` aveva zero test e gli E2E che avrebbero coperto lo stesso percorso si auto-saltavano.
 
+- **Motivo del feedback negativo → Knowledge Gaps.** Il pollice giù in chat apre quattro motivi (informazione mancante, fonte non pertinente, risposta poco chiara, altro); il motivo viaggia come `comment` del feedback, `get_knowledge_gaps` lo aggrega per domanda (deduplicato, vuoti ignorati) e il cruscotto lo mostra come chip accanto alla domanda. Test: backend (aggregazione e caso senza motivo), `ChatArea` (menu → POST con `comment`), e l'asserzione sul modal citazione aggiornata al nuovo testo "Copia estratto".
+
 Verificato e **non** corretto perché il claim non regge: lo streaming SSE non "sovrascrive i chunk" — il server manda un solo evento `answer` con la risposta completa (`api/libraries.py`), lo stream è di stati; `striprtf` assente da `requirements.txt` ha un fallback esplicito in `core/document_parser.py`. Rimandati (richiedono più di un giorno): adapter Postgres per le ~25 query via `_connection()` con `?` (oggi rotte su PG, confermato), migrazione ad Argon2, backup cifrati.
 
 ## 2026-09-12 — v2.2.4: Gestione UI Glossario Dinamico e UX Citazioni Avanzate

@@ -319,10 +319,16 @@ def get_knowledge_gaps(days: int = 30, limit: int = 20, library_ids: set[str] | 
                     # nella stessa iterazione: un feedback negativo ne
                     # contava due.
                     "negative_feedback": 0,
+                    "feedback_reasons": [],
                 }
             frequency_map[normalized_q]["count"] += 1
             if has_negative_fb:
                 frequency_map[normalized_q]["negative_feedback"] += 1
+                # `fb` non e' None qui (has_negative_fb lo garantisce), ma
+                # mypy non segue la narrowing attraverso la variabile.
+                comment = ((fb or {}).get("comment") or "").strip()
+                if comment and comment not in frequency_map[normalized_q]["feedback_reasons"]:
+                    frequency_map[normalized_q]["feedback_reasons"].append(comment)
 
     sorted_gaps = sorted(
         frequency_map.values(),

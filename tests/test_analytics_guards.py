@@ -286,3 +286,32 @@ def test_a_question_that_looks_like_a_formula_is_neutralised_in_the_csv(istanza,
     righe = [r for r in esito.text.splitlines() if "HYPERLINK" in r]
     assert righe, "la domanda non e' nel rapporto: il test non prova niente"
     assert not righe[0].lstrip('"').startswith("=HYPERLINK"), f"formula non neutralizzata: {righe[0][:60]}"
+
+
+def test_negative_feedback_reasons_are_aggregated_per_gap(istanza, due_biblioteche):
+    """Il motivo scelto nella chat arriva al rapporto: deduplicato, senza
+    vuoti, cosi' chi decide quali documenti scrivere sa anche perche'."""
+    capo, _ospite, _riservata = due_biblioteche
+    eventi = [e for e in _eventi(istanza) if e.get("type") == "query"]
+    assert eventi
+    capo.post(
+        "/api/analytics/feedback",
+        json={"event_id": eventi[0]["event_id"], "rating": -1, "comment": "  Fonte non pertinente "},
+    )
+
+    gaps = capo.get("/api/analytics/knowledge-gaps").json()["gaps"]
+
+    gap = next(g for g in gaps if g["negative_feedback"] > 0)
+    assert gap["feedback_reasons"] == ["Fonte non pertinente"]
+
+
+def test_a_negative_feedback_without_reason_adds_no_empty_entry(istanza, due_biblioteche):
+    capo, _ospite, _riservata = due_biblioteche
+    evento = next(e for e in _eventi(istanza) if e.get("type") == "query")
+    capo.post("/api/analytics/feedback", json={"event_id": evento["event_id"], "rating": -1})
+
+    gaps = capo.get("/api/analytics/knowledge-gaps").json()["gaps"]
+
+    gap = next(g for g in gaps if g["negative_feedback"] > 0)
+    assert gap["feedback_reasons"] == []
+

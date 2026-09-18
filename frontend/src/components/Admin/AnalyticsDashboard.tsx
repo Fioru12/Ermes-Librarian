@@ -32,6 +32,7 @@ interface KnowledgeGap {
   last_seen: string
   reason: string
   negative_feedback: number
+  feedback_reasons?: string[]
 }
 
 interface AnalyticsDashboardProps {
@@ -100,7 +101,7 @@ export default function AnalyticsDashboard({ showNotif }: AnalyticsDashboardProp
             <option value={90}>Ultimi 90 giorni</option>
           </select>
           <button
-            onClick={() => window.open(`/api/analytics/export?days=${days}`, '_blank')}
+            onClick={() => window.open(`/api/analytics/export?days=${days}`, '_blank', 'noopener,noreferrer')}
             className={`flex items-center gap-1.5 text-xs font-semibold rounded-xl px-3 py-2 border hover:opacity-80 transition ${t.sidebarInput} text-blue-400`}
             title="Scarica report in formato CSV"
           >
@@ -225,8 +226,22 @@ export default function AnalyticsDashboard({ showNotif }: AnalyticsDashboardProp
               <tbody className="divide-y divide-white/[0.04]">
                 {filteredGaps.map((gap, idx) => (
                   <tr key={idx} className="hover:bg-white/[0.02] transition">
-                    <td className="py-3 px-4 font-medium text-white max-w-md truncate" title={gap.query}>
-                      {gap.query}
+                    <td className="py-3 px-4 max-w-md">
+                      <div className="font-medium text-white truncate" title={gap.query}>
+                        {gap.query}
+                      </div>
+                      {gap.feedback_reasons && gap.feedback_reasons.length > 0 && (
+                        <div className="mt-1 flex items-center gap-1.5 flex-wrap">
+                          {gap.feedback_reasons.map((r, rIdx) => (
+                            <span
+                              key={rIdx}
+                              className="inline-block px-1.5 py-0.5 rounded text-[10px] font-medium bg-rose-500/10 text-rose-300 border border-rose-500/20"
+                            >
+                              • {r}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </td>
                     <td className="py-3 px-4">
                       <span className="inline-block px-2 py-0.5 rounded-full text-[11px] font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/20">

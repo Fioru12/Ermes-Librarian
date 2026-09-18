@@ -62,8 +62,25 @@ export default function ChatArea({
   const chatEndRef = useRef<HTMLDivElement>(null)
   const [activeCitation, setActiveCitation] = useState<{ source: Source; marker: number } | null>(null)
   const [feedbackState, setFeedbackState] = useState<Record<string, number>>({})
+  const [negativeFeedbackOpen, setNegativeFeedbackOpen] = useState<string | null>(null)
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null)
   const [copiedCitation, setCopiedCitation] = useState(false)
+
+  const feedbackReasons = [
+    'Informazione mancante',
+    'Fonte non pertinente',
+    'Risposta poco chiara',
+    'Altro',
+  ]
+
+  const getFileBadge = (filename: string) => {
+    const ext = filename.split('.').pop()?.toUpperCase() || 'DOC'
+    if (ext === 'PDF') return { color: 'bg-rose-500/15 text-rose-300 border-rose-500/30', label: 'PDF' }
+    if (ext === 'DOCX' || ext === 'DOC') return { color: 'bg-blue-500/15 text-blue-300 border-blue-500/30', label: 'DOCX' }
+    if (ext === 'XLSX' || ext === 'CSV') return { color: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30', label: 'EXCEL' }
+    if (ext === 'PPTX') return { color: 'bg-amber-500/15 text-amber-300 border-amber-500/30', label: 'SLIDES' }
+    return { color: 'bg-purple-500/15 text-purple-300 border-purple-500/30', label: ext }
+  }
 
   const handleCopy = (messageId: string, text: string) => {
     if (!navigator.clipboard) return
@@ -83,13 +100,14 @@ export default function ChatArea({
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && activeCitation) {
-        setActiveCitation(null)
+      if (e.key === 'Escape') {
+        if (activeCitation) setActiveCitation(null)
+        if (negativeFeedbackOpen) setNegativeFeedbackOpen(null)
       }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [activeCitation])
+  }, [activeCitation, negativeFeedbackOpen])
 
   useEffect(() => {
     if (typeof chatEndRef.current?.scrollIntoView === 'function') {
@@ -97,13 +115,14 @@ export default function ChatArea({
     }
   }, [messages, isGenerating])
 
-  const handleFeedback = async (messageId: string, rating: 1 | -1) => {
+  const handleFeedback = async (messageId: string, rating: 1 | -1, comment: string = '') => {
     try {
       setFeedbackState(prev => ({ ...prev, [messageId]: rating }))
+      setNegativeFeedbackOpen(null)
       await fetch('/api/analytics/feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ event_id: messageId, rating }),
+        body: JSON.stringify({ event_id: messageId, rating, comment }),
         credentials: 'include',
       })
     } catch {
@@ -280,18 +299,41 @@ export default function ChatArea({
                     >
                       <ThumbsUp className="w-3.5 h-3.5" />
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => handleFeedback(m.id, -1)}
-                      className={`p-1.5 rounded-lg border transition ${
-                        feedbackState[m.id] === -1
-                          ? 'border-rose-500/40 bg-rose-500/20 text-rose-300'
-                          : 'border-white/5 hover:border-white/20 text-slate-400 hover:text-white'
-                      }`}
-                      title="Non utile"
-                    >
-                      <ThumbsDown className="w-3.5 h-3.5" />
-                    </button>
+                    <div className="relative inline-flex items-center">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (negativeFeedbackOpen === m.id) {
+                            setNegativeFeedbackOpen(null)
+                          } else {
+                            setNegativeFeedbackOpen(m.id)
+                          }
+                        }}
+                        className={`p-1.5 rounded-lg border transition ${
+                          feedbackState[m.id] === -1
+                            ? 'border-rose-500/40 bg-rose-500/20 text-rose-300'
+                            : 'border-white/5 hover:border-white/20 text-slate-400 hover:text-white'
+                        }`}
+                        title="Non utile (clicca per specificare motivo)"
+                      >
+                        <ThumbsDown className="w-3.5 h-3.5" />
+                      </button>
+                      {negativeFeedbackOpen === m.id && (
+                        <div className="absolute right-0 bottom-full mb-2 z-20 flex flex-col gap-1.5 p-2.5 rounded-xl border border-white/10 bg-[#141b2d] shadow-2xl min-w-[210px] text-xs animate-fadeIn backdrop-blur-md">
+                          <p className="text-[11px] font-semibold text-slate-400 px-1 border-b border-white/5 pb-1">Segnala motivo gap:</p>
+                          {feedbackReasons.map((reason) => (
+                            <button
+                              key={reason}
+                              type="button"
+                              onClick={() => handleFeedback(m.id, -1, reason)}
+                              className="text-left px-2.5 py-1.5 rounded-lg hover:bg-rose-500/15 text-slate-300 hover:text-rose-200 text-xs transition font-medium border border-transparent hover:border-rose-500/30"
+                            >
+                              • {reason}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
                 {m.role === 'assistant' && m.content === '' && (
@@ -340,13 +382,13 @@ export default function ChatArea({
                   title="Pulisci la conversazione attuale"
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
-                  <span>Nuova chat</span>
+                  <span>Pulisci</span>
                 </button>
               )}
             </div>
           )}
         </div>
-        <form onSubmit={handleSubmit} className="flex gap-3 max-w-5xl mx-auto rounded-2xl border border-white/[0.08] bg-white/[0.025] p-2 shadow-lg shadow-slate-950/10">
+        <form onSubmit={handleSubmit} className="flex gap-3 max-w-5xl mx-auto">
           <input type="text" value={inputMessage}
             onChange={e => onInputChange(e.target.value)}
             disabled={isGenerating || needsLibrary || needsDocuments}
@@ -367,53 +409,70 @@ export default function ChatArea({
       </div>
       {activeCitation && (
         <div
-          className="absolute inset-0 z-30 flex items-center justify-center bg-slate-950/75 p-4 sm:p-6 backdrop-blur-sm"
+          className="absolute inset-0 z-30 flex items-center justify-center bg-slate-950/80 p-4 sm:p-6 backdrop-blur-sm animate-fadeIn"
           role="dialog"
           aria-label="Dettaglio citazione"
           onClick={e => {
             if (e.target === e.currentTarget) setActiveCitation(null)
           }}
         >
-          <section className={`w-full max-w-xl rounded-2xl border p-6 shadow-2xl ${t.card}`}>
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <div className="flex items-center gap-2">
-                  <h2 className="font-semibold text-base">Citazione [{activeCitation.marker}]</h2>
-                  <span className="rounded bg-blue-500/20 px-2 py-0.5 text-[11px] font-mono text-blue-300">
-                    Fonte verificata
+          <section className={`w-full max-w-2xl rounded-2xl border p-6 shadow-2xl ${t.card}`}>
+            <div className="flex items-start justify-between gap-4 pb-4 border-b border-white/10">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h2 className="font-semibold text-base text-white">Citazione [{activeCitation.marker}]</h2>
+                  <span className="rounded-full bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-300">
+                    Evidenza verificata
+                  </span>
+                  {(() => {
+                    const badge = getFileBadge(activeCitation.source.filename)
+                    return (
+                      <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold tracking-wider ${badge.color}`}>
+                        {badge.label}
+                      </span>
+                    )
+                  })()}
+                </div>
+                <div className="flex items-center gap-2 text-xs text-slate-400">
+                  <span className="font-medium text-slate-200">{activeCitation.source.filename}</span>
+                  <span>·</span>
+                  <span>v{activeCitation.source.version}</span>
+                  <span>·</span>
+                  <span className="rounded bg-blue-500/10 border border-blue-500/20 px-1.5 py-0.5 text-blue-300 font-mono text-[11px]">
+                    {activeCitation.source.locator}
                   </span>
                 </div>
-                <p className="mt-1 text-xs text-slate-400">
-                  {activeCitation.source.filename} · v{activeCitation.source.version} · {activeCitation.source.locator}
-                </p>
               </div>
               <button
                 onClick={() => setActiveCitation(null)}
-                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-white/5 transition cursor-pointer"
+                className="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition cursor-pointer"
                 aria-label="Chiudi citazione"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
-            <blockquote className="mt-4 max-h-[55vh] overflow-y-auto rounded-xl border border-white/10 bg-white/[0.02] p-4 text-sm leading-relaxed text-slate-200">
-              <InlineMarkdown text={activeCitation.source.excerpt} />
-            </blockquote>
-            <div className="mt-5 flex items-center justify-between gap-3 pt-2">
+            <div className="mt-4">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-2">Estratto documentale collegato:</p>
+              <blockquote className="max-h-[50vh] overflow-y-auto rounded-xl border border-amber-500/20 bg-amber-500/[0.03] p-4 text-sm leading-relaxed text-slate-200 border-l-4 border-l-amber-400/70 shadow-inner">
+                <InlineMarkdown text={activeCitation.source.excerpt} />
+              </blockquote>
+            </div>
+            <div className="mt-5 flex items-center justify-between gap-3 pt-3 border-t border-white/10">
               <button
                 type="button"
                 onClick={handleCopyCitation}
-                className="flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-xs text-slate-300 transition hover:bg-white/5 hover:text-white cursor-pointer"
+                className="flex items-center gap-1.5 rounded-lg border border-white/10 px-3.5 py-2 text-xs font-medium text-slate-300 transition hover:bg-white/5 hover:text-white cursor-pointer"
                 title="Copia il testo della citazione"
               >
                 {copiedCitation ? (
                   <>
                     <Check className="h-3.5 w-3.5 text-emerald-400" />
-                    <span className="text-emerald-300 font-medium">Copiato!</span>
+                    <span className="text-emerald-300 font-medium">Copiato negli appunti!</span>
                   </>
                 ) : (
                   <>
                     <Copy className="h-3.5 w-3.5 text-slate-400" />
-                    <span>Copia citazione</span>
+                    <span>Copia estratto</span>
                   </>
                 )}
               </button>
@@ -426,9 +485,9 @@ export default function ChatArea({
                     'noopener,noreferrer'
                   )
                 }
-                className="flex items-center gap-1.5 rounded-lg border border-blue-500/30 bg-blue-500/10 px-3.5 py-1.5 text-xs font-semibold text-blue-300 transition hover:bg-blue-500/20 cursor-pointer"
+                className="flex items-center gap-1.5 rounded-lg border border-blue-500/30 bg-blue-500/15 hover:bg-blue-500/25 px-4 py-2 text-xs font-semibold text-blue-200 transition shadow-sm cursor-pointer"
               >
-                <Download className="h-3.5 w-3.5" /> Apri originale
+                <Download className="h-3.5 w-3.5 text-blue-400" /> Scarica documento originale
               </button>
             </div>
           </section>
