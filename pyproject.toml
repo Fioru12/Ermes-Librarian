@@ -42,17 +42,6 @@ postgres = [
 metrics = [
     "prometheus-client>=0.20",
 ]
-# Il motore storico WinSarp (legacy_winsarp/), spento salvo
-# ERMES_ENABLE_LEGACY_WINSARP. Vedi requirements-legacy.txt.
-legacy = [
-    "llama-index-core>=0.11",
-    "llama-index-llms-ollama>=0.4",
-    "llama-index-embeddings-ollama>=0.4",
-    "llama-index-vector-stores-chroma>=0.3",
-    "llama-index-readers-file>=0.3",
-    "chromadb>=1.5",
-    "ollama>=0.4",
-]
 # Benchmark di performance (pytest per i test in tests/test_performance.py).
 benchmark = [
     "pytest-benchmark>=4.0",
@@ -61,11 +50,6 @@ benchmark = [
 [tool.ruff]
 line-length = 120
 target-version = "py311"
-# Il motore formule WinSarp e' codice storico congelato (vedi
-# legacy_winsarp/README.md): non viene piu' modificato e non fa parte del
-# percorso di prodotto. Analizzarlo produceva 551 violazioni su 616 totali,
-# che seppellivano le 65 reali del prodotto e rendevano il gate inutilizzabile.
-exclude = ["legacy_winsarp"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "W", "UP", "SIM"]
@@ -106,12 +90,6 @@ markers = [
     # vengono saltati automaticamente se il DB non è raggiungibile.
     "postgres: requires a live PostgreSQL server",
 ]
-# WinSarp e' un verticale legacy isolato in legacy_winsarp/ (ROADMAP_V2.md nella cronologia Git,
-# Fase A) e non e' piu' incluso in testpaths. Il suo test_winsarp_robustness.py
-# fa riferimento a helper gia' rimossi dal contratto pubblico del modulo prima
-# dell'isolamento; l'ignore resta qui solo per chi esegue
-# `pytest legacy_winsarp/tests` esplicitamente.
-addopts = ["--ignore=legacy_winsarp/tests/test_winsarp_robustness.py"]
 
 [tool.mypy]
 python_version = "3.11"
@@ -120,16 +98,7 @@ warn_unused_configs = true
 disallow_untyped_defs = false
 check_untyped_defs = true
 ignore_missing_imports = true
-exclude = ["backups", ".venv", "legacy_winsarp"]
-
-# `exclude` non basta: mypy entra comunque in legacy_winsarp seguendo gli
-# import dal percorso di prodotto, e quel motore congelato — fuori ambito per
-# dichiarazione esplicita nel threat model, raggiungibile solo con
-# ENABLE_LEGACY_WINSARP=1 — produceva da solo 40 dei 92 errori, rendendo
-# impossibile distinguere le segnalazioni che riguardano il prodotto.
-[[tool.mypy.overrides]]
-module = "legacy_winsarp.*"
-ignore_errors = true
+exclude = ["backups", ".venv"]
 
 # ---------------------------------------------------------------------------
 # Debito di tipizzazione: estinto l'11 settembre 2026.

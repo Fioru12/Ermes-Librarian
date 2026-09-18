@@ -48,25 +48,6 @@ class ServerConfig:
         return os.path.join(self.CHROMA_DIR, "semantic_cache.json")
 
     # ---------------------------------------------------------
-    # LEGACY WINSARP (isolato, attivo solo con flag dev)
-    # ---------------------------------------------------------
-    @property
-    def WINSARP_DIR(self) -> str:
-        return os.path.join(self.DOCS_DIR, "WinSarp")
-
-    @property
-    def CATALOGO_PATH(self) -> str:
-        return os.path.join(self.WINSARP_DIR, "WinSarp_Formule.txt")
-
-    @property
-    def CATALOGO_JSON_PATH(self) -> str:
-        return os.path.join(self.WINSARP_DIR, "WinSarp_Formule.json")
-
-    @property
-    def GRAPH_PATH(self) -> str:
-        return os.path.join(self.BASE_DIR, "legacy_winsarp", "data", "winsarp_graph.json")
-
-    # ---------------------------------------------------------
     # CORS
     # ---------------------------------------------------------
     CORS_ORIGINS: tuple = field(

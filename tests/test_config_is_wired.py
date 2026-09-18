@@ -41,7 +41,7 @@ RADICE = Path(__file__).resolve().parents[1]
 # config/ — e' stato rimosso: la cronologia git lo conserva meglio di una copia
 # ferma nel repo, che ruff doveva escludere e questo test ignorare.
 _DEFINIZIONI: set[str] = set()
-_ESCLUSE = {".venv-ermes", "__pycache__", "legacy_winsarp", "node_modules", "tests"}
+_ESCLUSE = {".venv-ermes", "__pycache__", "node_modules", "tests"}
 
 # Campi dichiarati e non letti, con la ragione. Ogni voce e' un'impostazione
 # che oggi non fa niente: la voce dice perche' non e' stata semplicemente
@@ -57,23 +57,20 @@ _NON_COLLEGATI_NOTI = {
     "EMBEDDING_DIMENSION": "la dimensione la decide il modello di embedding, non la configurazione",
     "EMBEDDING_BATCH_SIZE": "l'indicizzazione non lavora a lotti: il campo anticipa un lavoro non fatto",
     # Resti del prodotto precedente.
-    "ENABLE_FORMULA_GENERATION": "riguarda il motore WinSarp, dietro ENABLE_LEGACY_WINSARP",
     "DLP_AUDIT_ENABLED": "il filtro PII si attiva con PII_FILTER_ENABLED; questa non ha mai avuto un consumatore",
     # Autenticazione.
     "OIDC_CLIENT_SECRET": "l'app verifica i token via JWKS e non scambia mai un codice: nessun client secret serve",
     # Percorso dei provider.
     "PROVIDERS_CONFIG_PATH": "core/ai/providers/registry.py apre providers.json per percorso fisso",
-    # Lette soltanto da legacy_winsarp/, che e' un'altra applicazione dietro
-    # ENABLE_LEGACY_WINSARP e non fa parte del prodotto attuale: per il
-    # bibliotecario sono inerti, e la scansione esclude quella cartella a
-    # ragione. Vanno rimosse dalla configurazione quando il modulo legacy
-    # verra' eliminato, non collegate.
-    "PORT": "letta solo da legacy_winsarp/ e da scripts di avvio esterni al codice Python",
-    "PROMPT_MAX_CHARS": "letta solo da legacy_winsarp/app.py",
-    "TOKEN_TIMEOUT_SEC": "letta solo da legacy_winsarp/app.py",
-    "TYPING_TIMEOUT_SEC": "letta solo da legacy_winsarp/app.py",
-    "LOG_RETENTION_DAYS": "letta solo da legacy_winsarp/app.py; il bibliotecario ruota l'audit con retention_days fisso",
-    "SCORE_THRESHOLD_MED": "letta solo da legacy_winsarp/core/rag_engine.py",
+    # Residui del motore storico WinSarp (rimosso il 18 settembre 2026):
+    # campi che nessuno legge piu'. Il cricchetto vale anche per loro —
+    # l'unica direzione ammessa e' toglierli dal config.
+    "PORT": "letta solo da scripts di avvio esterni al codice Python",
+    "PROMPT_MAX_CHARS": "la leggeva solo il motore storico, rimosso; da eliminare dal config",
+    "TOKEN_TIMEOUT_SEC": "la leggeva solo il motore storico, rimosso; da eliminare dal config",
+    "TYPING_TIMEOUT_SEC": "la leggeva solo il motore storico, rimosso; da eliminare dal config",
+    "LOG_RETENTION_DAYS": "la leggeva il motore storico, rimosso; il bibliotecario ruota l'audit con retention_days fisso",
+    "SCORE_THRESHOLD_MED": "la leggeva solo il motore storico, rimosso; da eliminare dal config",
 }
 
 

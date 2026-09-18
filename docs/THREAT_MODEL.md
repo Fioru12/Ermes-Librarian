@@ -5,9 +5,10 @@ document library. This describes what the current implementation actually
 defends against and what it does not. Where a defence is claimed, the test that
 proves it is named; where there is none, that is stated rather than omitted.
 
-Out of scope: the frozen WinSarp engine under `legacy_winsarp/`, reachable only
-with `ENABLE_LEGACY_WINSARP=1`. That path has no per-library ACL and is not
-intended for shared or production deployments.
+The frozen WinSarp engine that used to sit under `legacy_winsarp/` behind a
+dev-only flag — and that this document listed as out of scope because it had
+no per-library ACL — was removed from the repository on 18 September 2026.
+Nothing in the threat model below depends on it any more.
 
 ## Assets
 
@@ -525,8 +526,8 @@ marketing:
    signed, and an operator with host access can edit them.
 7. **Type debt is fenced, not paid off.** `mypy` and `bandit` now block the
    build instead of reporting advisories nobody could triage — 92 findings with
-   no way to tell new from old were, in practice, ignored. `legacy_winsarp` is
-   excluded (it is out of scope, and produced 40 of them by itself), and the 18
+   no way to tell new from old were, in practice, ignored. `legacy_winsarp` was
+   excluded (out of scope; it produced 40 of them by itself, and has since been removed), and the 18
    product modules that still carry findings are listed by name in
    `pyproject.toml`. Everything else must stay clean, so new code starts clean;
    that list can only shrink. `pip-audit` stays advisory on purpose: it depends

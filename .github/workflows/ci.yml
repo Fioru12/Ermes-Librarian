@@ -49,7 +49,7 @@ jobs:
       # deve restare pulito. Quella lista puo' solo accorciarsi.
       - name: MyPy check
         # Scoped to product dirs and --explicit-package-bases: su `mypy .`
-        # l'analisi si fermava subito su moduli duplicati (legacy_winsarp,
+        # l'analisi si fermava subito su moduli duplicati (evaluation,
         # evaluation) e non controllava nulla.
         run: mypy api/ core/ config/ --ignore-missing-imports --explicit-package-bases
       # Bloccante: oggi non riporta nulla a media/alta severita', quindi
@@ -123,7 +123,6 @@ jobs:
           echo "ERMES_HOST=127.0.0.1" >> .env
           echo "OLLAMA_HOST=http://127.0.0.1:11434" >> .env
           echo "ERMES_DEFAULT_MODEL_ID=test-model" >> .env
-          echo "ERMES_ENABLE_FORMULA_GENERATION=1" >> .env
           echo "ERMES_API_KEY=test-key-123" >> .env
           echo "ERMES_BACKUP_ENABLED=0" >> .env
       - name: Run tests

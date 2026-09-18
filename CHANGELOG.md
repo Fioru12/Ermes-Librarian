@@ -64,6 +64,11 @@ Terza tornata della stessa revisione (21 settembre), `tests/test_review_round_3.
 - Frontend: un solo timer per le notifiche (due notifiche ravvicinate: la prima chiudeva la seconda); il feedback ottimistico viene annullato se il server rifiuta.
 - `DESCRIZIONE_PROGETTO.md` non dichiara più "88+ Pytest": rimanda a `pytest --collect-only`.
 
+**Potatura del repository pubblico** (ramo `chore/prune-public-repo`):
+
+- `docs/` da 22 a 11 file: fuori tesina, slide, catalogo asset e i suoi screenshot da 2 MB, `notebooklm/`, registro sessioni, roadmap per fasi, piano/strategia interni, script di generazione pptx/pdf, cartella `archive/`. La cronologia Git conserva tutto; copia locale in `../ProgettoRAG_archive`. Indice documentazione del README riscritto come ordine di lettura.
+- **Motore storico WinSarp rimosso** (`legacy_winsarp/`, 182 file, `requirements-legacy.txt`, extra `[legacy]`, flag `ERMES_ENABLE_LEGACY_WINSARP` e `ERMES_ENABLE_FORMULA_GENERATION`, rami in `api/__init__`, `health`, `models`, proprietà `WINSARP_*` del config, esclusioni mypy/ruff/pytest, tab `kb`/`providers`/`admin-import` mai renderizzate). Il ramo dietro la flag importava cinque router che non esistevano più in `api/`: accenderlo avrebbe fatto crashare l'avvio. `tests/test_legacy_packages_stay_out.py` continua a bloccare il rientro di LlamaIndex/ChromaDB/ollama nel prodotto (150 pacchetti contro 56). `/health` mantiene `modules_available` e `chroma_ok` per compatibilità dei client.
+
 Verificato e **non** corretto perché il claim non regge: lo streaming SSE non "sovrascrive i chunk" — il server manda un solo evento `answer` con la risposta completa (`api/libraries.py`), lo stream è di stati; `striprtf` assente da `requirements.txt` ha un fallback esplicito in `core/document_parser.py`. Rimandati (richiedono più di un giorno): adapter Postgres per le ~25 query via `_connection()` con `?` (oggi rotte su PG, confermato), migrazione ad Argon2, backup cifrati.
 
 ## 2026-09-12 — v2.2.4: Gestione UI Glossario Dinamico e UX Citazioni Avanzate

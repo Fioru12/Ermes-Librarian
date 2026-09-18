@@ -10,10 +10,10 @@ pydantic==2.13.4
 # esattamente il percorso del caricamento documenti).
 python-multipart==0.0.31
 
-# LlamaIndex, ChromaDB e il client Ollama sono in requirements-legacy.txt: li
-# usa solo il motore storico WinSarp, che e' spento salvo
-# ERMES_ENABLE_LEGACY_WINSARP e che la CI non esegue. Tenerli qui faceva
-# installare 94 pacchetti in piu' a ogni deployment del prodotto.
+# LlamaIndex, ChromaDB e il client Ollama NON sono dipendenze del prodotto:
+# servivano al motore storico WinSarp, rimosso dal repository il 18 settembre
+# 2026. Tenerli qui faceva installare 94 pacchetti in piu' a ogni deployment;
+# tests/test_legacy_packages_stay_out.py impedisce che tornino.
 
 # Document Processing
 python-docx==1.2.0

@@ -354,10 +354,10 @@ function AppInner() {
   }
 
   const tabHeaders: Record<TabId, string> = {
-    chat: 'Assistente documentale', docs: 'Biblioteche e documenti', connectors: 'Connettori & Automazioni', kb: 'Knowledge Graph',
-    health: 'Stato sistema', providers: 'Provider LLM', settings: 'Impostazioni',
+    chat: 'Assistente documentale', docs: 'Biblioteche e documenti', connectors: 'Connettori & Automazioni',
+    health: 'Stato sistema', settings: 'Impostazioni',
     'admin-analytics': 'Analytics & Knowledge Gaps',
-    'admin-users': 'Accessi e chiavi API', 'admin-audit': 'Audit log', 'admin-import': 'Import legacy',
+    'admin-users': 'Accessi e chiavi API', 'admin-audit': 'Audit log',
   }
 
   if (authState !== 'authenticated') {
