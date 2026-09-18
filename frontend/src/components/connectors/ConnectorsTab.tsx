@@ -281,6 +281,9 @@ export default function ConnectorsTab({ showNotif }: ConnectorsTabProps) {
       const data = await res.json()
       if (res.ok) {
         showNotif(`Sincronizzati ${data.imported_count} documenti Microsoft 365!`, 'success')
+        // The secret has done its job: it does not stay in component state
+        // (React devtools, error boundaries, the next screenshot).
+        setMsClientSecret('')
       } else {
         showNotif(data.detail || 'Errore durante la sincronizzazione', 'error')
       }
