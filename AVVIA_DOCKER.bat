@@ -26,11 +26,11 @@ if %ERRORLEVEL% EQU 0 (
     echo ==============================================================================
     echo  Container avviati con successo!
     echo  Accedi a Ermes Knowledge dal tuo browser all'indirizzo:
-    echo   -> http://localhost:8000
+    echo   -> http://localhost:8502
     echo ==============================================================================
     echo.
     timeout /t 3 >nul
-    start http://localhost:8000
+    start http://localhost:8502
 ) else (
     color 0C
     echo.

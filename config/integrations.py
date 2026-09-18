@@ -58,6 +58,12 @@ class IntegrationsConfig:
     OPENROUTER_API_KEY: str = field(
         default_factory=lambda: _env_either("ERMES_OPENROUTER_API_KEY", "OPENROUTER_API_KEY", "")
     )
+    # Modello da chiedere a OpenRouter nella modalita' approved_openrouter.
+    # Vuoto = si mappa DEFAULT_MODEL_ID con core/ai/llm_bridge.py. Fino al 18
+    # settembre 2026 core/evidence_assistant.py mandava DEFAULT_MODEL_ID cosi'
+    # com'era — un nome Ollama, es. qwen3.5:9b — e OpenRouter rispondeva
+    # "modello inesistente".
+    OPENROUTER_MODEL: str = field(default_factory=lambda: _env_either("ERMES_OPENROUTER_MODEL", "OPENROUTER_MODEL", ""))
     OPENROUTER_BASE_URL: str = field(
         default_factory=lambda: _env_either(
             "ERMES_OPENROUTER_BASE_URL", "OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1"

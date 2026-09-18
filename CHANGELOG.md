@@ -53,6 +53,15 @@ Frontend:
 
 - **Conferme nello stile dell'app** (`ui/ConfirmDialog.tsx`, `useConfirm()`): i sei `window.confirm` nativi (elimina documento/biblioteca/sorgente, revoca accesso, rimuovi sinonimo, attiva provider cloud) diventano un dialogo con titolo, spiegazione delle conseguenze, azione pericolosa evidenziata, Esc/click fuori per annullare, fuoco sul bottone di conferma. Senza provider (componente in isolamento) ripiega su `window.confirm`, così i test esistenti che lo stubbano restano validi. 4 test.
 
+Sei residui minori della stessa revisione, verificati e chiusi (`tests/test_review_residuals.py`):
+
+- `AVVIA_DOCKER.bat` apriva `:8000`; l'app è su `:8502`.
+- `restore_document_version` salvava lo `storage_path` assoluto della macchina: un backup ripristinato altrove perdeva l'originale. Ora relativo, come ogni upload.
+- La modalità `approved_openrouter` mandava a OpenRouter `ERMES_DEFAULT_MODEL_ID` così com'era — un nome Ollama. Ora `ERMES_OPENROUTER_MODEL` esplicito, altrimenti la mappatura già presente in `llm_bridge`.
+- **Connessione Postgres condivisa fra thread senza lock**: psycopg non è thread-safe, `LibraryStore` serializzava solo le scritture, uvicorn serve le rotte sincrone da un pool. Lock per backend che serializza ogni accesso.
+- I segreti webhook (`ERMES_TEAMS_WEBHOOK_SECRET`, Slack, Telegram) impostati al segnaposto `CHANGE_ME` sono ora un errore fatale di configurazione, come già per password admin e chiave audit.
+- `msClientSecret` azzerato nello stato React dopo una sincronizzazione riuscita.
+
 Verificato e **non** corretto perché il claim non regge: lo streaming SSE non "sovrascrive i chunk" — il server manda un solo evento `answer` con la risposta completa (`api/libraries.py`), lo stream è di stati; `striprtf` assente da `requirements.txt` ha un fallback esplicito in `core/document_parser.py`. Rimandati (richiedono più di un giorno): adapter Postgres per le ~25 query via `_connection()` con `?` (oggi rotte su PG, confermato), migrazione ad Argon2, backup cifrati.
 
 ## 2026-09-12 — v2.2.4: Gestione UI Glossario Dinamico e UX Citazioni Avanzate

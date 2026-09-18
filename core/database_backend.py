@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import re
 import sqlite3
+import threading
 from collections.abc import Iterator
 from contextlib import closing, contextmanager
 from pathlib import Path
@@ -153,32 +154,40 @@ class PostgresBackend:
             autocommit=False,
             connect_timeout=self._CONNECT_TIMEOUT_SECONDI,
         )
+        # Una connessione psycopg non e' thread-safe: due cursori attivi
+        # insieme dallo stesso oggetto si corrompono a vicenda. LibraryStore
+        # serializza le scritture con il proprio RLock ma non le letture, e
+        # uvicorn serve le rotte sincrone da un pool di thread. Fino al 18
+        # settembre 2026 qui non c'era nessun lock. Un lock per backend
+        # serializza tutto l'accesso al database del processo: alla scala di
+        # questo prodotto costa meno di un pool e non puo' sbagliare.
+        self._serial = threading.RLock()
 
     def _translate(self, sql: str, params: tuple | dict | None) -> tuple[str, tuple | dict | None]:
         return _translate_params(sql, params, "format")
 
     def execute(self, sql: str, params: tuple | dict | None = None) -> list[dict]:
         sql, params = self._translate(sql, params)
-        with self._connection.cursor() as cur:
+        with self._serial, self._connection.cursor() as cur:
             cur.execute(sql, params)
             return list(cur.fetchall()) if cur.description else []
 
     def execute_one(self, sql: str, params: tuple | dict | None = None) -> dict | None:
         sql, params = self._translate(sql, params)
-        with self._connection.cursor() as cur:
+        with self._serial, self._connection.cursor() as cur:
             cur.execute(sql, params)
             return cur.fetchone() if cur.description else None
 
     def execute_write(self, sql: str, params: tuple | dict | None = None) -> int:
         sql, params = self._translate(sql, params)
-        with self._connection.cursor() as cur:
+        with self._serial, self._connection.cursor() as cur:
             cur.execute(sql, params)
             self._connection.commit()
             return cur.rowcount
 
     def execute_returning(self, sql: str, params: tuple | dict | None = None) -> dict | None:
         sql, params = self._translate(sql, params)
-        with self._connection.cursor() as cur:
+        with self._serial, self._connection.cursor() as cur:
             cur.execute(sql, params)
             self._connection.commit()
             return cur.fetchone() if cur.description else None
@@ -189,12 +198,16 @@ class PostgresBackend:
         # sequenza. Fino al 18 settembre 2026 passava None e `?` arrivava al
         # driver intatto.
         sql, _ = self._translate(sql, ())
-        with self._connection.cursor() as cur:
+        with self._serial, self._connection.cursor() as cur:
             cur.executemany(sql, params_seq)
             self._connection.commit()
             return cur.rowcount
 
     def execute_script(self, sql: str) -> None:
+        with self._serial:
+            self._execute_script(sql)
+
+    def _execute_script(self, sql: str) -> None:
         for raw in sql.split(";"):
             lines = [ln for ln in raw.splitlines() if not ln.strip().startswith("--")]
             statement = "\n".join(lines).strip()
@@ -223,12 +236,13 @@ class PostgresBackend:
         # dovuto accorgersene giravano su SQLite senza saperlo (vedi
         # tests/test_postgres_parity.py, fixture pg_store).
         adapter = PostgresConnectionAdapter(self._connection, self._translate)
-        try:
-            yield adapter
-            self._connection.commit()
-        except Exception:
-            self._connection.rollback()
-            raise
+        with self._serial:
+            try:
+                yield adapter
+                self._connection.commit()
+            except Exception:
+                self._connection.rollback()
+                raise
 
 
 class PostgresConnectionAdapter:
@@ -248,6 +262,7 @@ class PostgresConnectionAdapter:
         return self._connection.execute(sql, params)
 
     def executemany(self, sql: str, params_seq) -> None:
+        # L'adapter vive solo dentro transaction(), che tiene gia' il lock.
         sql, _ = self._translate(sql, ())
         with self._connection.cursor() as cur:
             cur.executemany(sql, list(params_seq))
