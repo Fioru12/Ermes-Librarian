@@ -39,6 +39,7 @@ Declared in `requirements.txt`.
 
 | Package | Version | License |
 |---|---|---|
+| `argon2-cffi` | 25.1.0 | MIT |
 | `fastapi` | 0.136.1 | MIT |
 | `filelock` | 3.29.0 | MIT |
 | `httpx` | 0.28.1 | BSD-3-Clause |
@@ -49,6 +50,8 @@ Declared in `requirements.txt`.
 | `pydantic` | 2.13.4 | MIT |
 | `PyJWT` | 2.13.0 | MIT |
 | `pypdf` | 6.16.1 | BSD-3-Clause |
+| `pypdfium2` | 5.13.0 | BSD-3-Clause, Apache-2.0, dependency licenses |
+| `pytesseract` | 0.3.13 | Apache License 2.0 |
 | `pytest` | 9.0.3 | MIT |
 | `pytest-asyncio` | 1.3.0 | Apache-2.0 |
 | `pytest-benchmark` | 5.3.0 | BSD-2-Clause |
@@ -60,7 +63,7 @@ Declared in `requirements.txt`.
 
 ## JavaScript — application and build dependencies
 
-Declared in `frontend/package.json` (26 direct, 499 resolved in the lock file).
+Declared in `frontend/package.json` (24 direct, 429 resolved in the lock file).
 
 | Package | Version | License |
 |---|---|---|
@@ -69,12 +72,10 @@ Declared in `frontend/package.json` (26 direct, 499 resolved in the lock file).
 | `@testing-library/jest-dom` | 6.9.1 | MIT |
 | `@testing-library/react` | 16.3.2 | MIT |
 | `@testing-library/user-event` | 14.6.1 | MIT |
-| `@types/d3` | 7.4.3 | MIT |
 | `@types/react` | 18.3.31 | MIT |
 | `@types/react-dom` | 18.3.7 | MIT |
 | `@vitejs/plugin-react` | 4.7.0 | MIT |
 | `autoprefixer` | 10.5.0 | MIT |
-| `d3` | 7.9.0 | ISC |
 | `eslint` | 10.8.1 | MIT |
 | `eslint-plugin-react-hooks` | 7.1.1 | MIT |
 | `eslint-plugin-react-refresh` | 0.5.4 | MIT |
@@ -91,7 +92,7 @@ Declared in `frontend/package.json` (26 direct, 499 resolved in the lock file).
 | `vite` | 7.3.6 | MIT |
 | `vitest` | 4.1.10 | MIT |
 
-Licenses across the full resolved tree: MIT (387), ISC (51), Apache-2.0 (24), MPL-2.0 (12), BSD-2-Clause (8), BSD-3-Clause (5), BlueOak-1.0.0 (4), MIT-0 (2), Python-2.0 (1), CC-BY-4.0 (1), CC0-1.0 (1), Unlicense (1), 0BSD (1), (MIT OR CC0-1.0) (1).
+Licenses across the full resolved tree: MIT (352), Apache-2.0 (24), ISC (19), MPL-2.0 (12), BSD-2-Clause (8), BlueOak-1.0.0 (4), BSD-3-Clause (3), MIT-0 (2), Python-2.0 (1), CC-BY-4.0 (1), CC0-1.0 (1), 0BSD (1), (MIT OR CC0-1.0) (1).
 
 ## Machine-readable SBOM
 

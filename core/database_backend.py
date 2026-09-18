@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import re
 import sqlite3
 from collections.abc import Iterator
 from contextlib import closing, contextmanager
@@ -39,9 +40,24 @@ class Backend(Protocol):
     def transaction(self) -> Iterator[Any]: ...
 
 
+_NAMED_PARAM = re.compile(r"(?<!:):([A-Za-z_][A-Za-z0-9_]*)")
+
+
 def _translate_params(sql: str, params: tuple | dict | None, style: str) -> tuple[str, tuple | dict | None]:
-    """Traduci i placeholder positional nel formato richiesto dal driver."""
-    if style == "qmark" or params is None or "?" not in sql:
+    """Traduci i segnaposto sqlite3 nel formato psycopg.
+
+    Positional: `?` -> `%s`. Nominati (parametri in un dict): `:nome` ->
+    `%(nome)s`. Il lookbehind esclude `::text` e simili, che sono cast
+    Postgres e non segnaposto. Fino al 18 settembre 2026 venivano tradotti
+    solo i `?`: le INSERT con `VALUES (:id, :name, ...)` di LibraryStore
+    fallivano su Postgres con "syntax error at or near ':'" — la prima run
+    dei test di parita' su un Postgres vero l'ha mostrato.
+    """
+    if style == "qmark" or params is None:
+        return sql, params
+    if isinstance(params, dict):
+        return _NAMED_PARAM.sub(lambda m: "%(" + m.group(1) + ")s", sql), params
+    if "?" not in sql:
         return sql, params
     return "%s".join(sql.split("?")), params
 

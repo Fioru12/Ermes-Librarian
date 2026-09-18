@@ -77,3 +77,19 @@ def test_integrity_errors_cover_both_drivers():
 
     assert psycopg.IntegrityError in INTEGRITY_ERRORS
     assert issubclass(psycopg.errors.UniqueViolation, INTEGRITY_ERRORS)
+
+
+def test_named_placeholders_become_pyformat_and_casts_are_left_alone():
+    """`VALUES (:id, :name)` con un dict -> `%(id)s, %(name)s`; `::text` resta."""
+    conn = _FakePsycopgConnection()
+    _adapter(conn).execute(
+        "INSERT INTO t (id, name) VALUES (:id, :name) RETURNING embedding_json::text",
+        {"id": "x", "name": "y"},
+    )
+    assert conn.log == [
+        (
+            "one",
+            "INSERT INTO t (id, name) VALUES (%(id)s, %(name)s) RETURNING embedding_json::text",
+            {"id": "x", "name": "y"},
+        )
+    ]

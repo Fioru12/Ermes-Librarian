@@ -182,7 +182,7 @@ jobs:
       # ma deve restare visibile (gialla), non nascosta.
       - name: Trivy image scan (advisory)
         continue-on-error: true
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ermes-knowledge:local
           severity: HIGH,CRITICAL
