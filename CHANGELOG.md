@@ -53,6 +53,15 @@ Frontend:
 
 - **Conferme nello stile dell'app** (`ui/ConfirmDialog.tsx`, `useConfirm()`): i sei `window.confirm` nativi (elimina documento/biblioteca/sorgente, revoca accesso, rimuovi sinonimo, attiva provider cloud) diventano un dialogo con titolo, spiegazione delle conseguenze, azione pericolosa evidenziata, Esc/click fuori per annullare, fuoco sul bottone di conferma. Senza provider (componente in isolamento) ripiega su `window.confirm`, così i test esistenti che lo stubbano restano validi. 4 test.
 
+Sei residui minori della stessa revisione, verificati e chiusi (`tests/test_review_residuals.py`):
+
+- `AVVIA_DOCKER.bat` apriva `:8000`; l'app è su `:8502`.
+- `restore_document_version` salvava lo `storage_path` assoluto della macchina: un backup ripristinato altrove perdeva l'originale. Ora relativo, come ogni upload.
+- La modalità `approved_openrouter` mandava a OpenRouter `ERMES_DEFAULT_MODEL_ID` così com'era — un nome Ollama. Ora `ERMES_OPENROUTER_MODEL` esplicito, altrimenti la mappatura già presente in `llm_bridge`.
+- **Connessione Postgres condivisa fra thread senza lock**: psycopg non è thread-safe, `LibraryStore` serializzava solo le scritture, uvicorn serve le rotte sincrone da un pool. Lock per backend che serializza ogni accesso.
+- I segreti webhook (`ERMES_TEAMS_WEBHOOK_SECRET`, Slack, Telegram) impostati al segnaposto `CHANGE_ME` sono ora un errore fatale di configurazione, come già per password admin e chiave audit.
+- `msClientSecret` azzerato nello stato React dopo una sincronizzazione riuscita.
+
 Terza tornata della stessa revisione (21 settembre), `tests/test_review_round_3.py` + 1 test frontend:
 
 - **Regole PII custom con controllo anti-ReDoS**: `re` non ha timeout, quindi un pattern come `(a+)+` salvato da un amministratore diventava un DoS di CPU su ogni documento e risposta. Ora al salvataggio si rifiutano gruppi quantificati con contenuto quantificato o alternato (riduzione dei gruppi dall'interno verso l'esterno, così l'annidamento non conta); i pattern reali (IBAN, telefono, CF) passano. `POST /api/pii/test` è solo admin e con limite di frequenza — era per qualunque autenticato, senza limite.

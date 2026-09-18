@@ -1809,7 +1809,10 @@ def restore_document_version(
         filename=source["filename"],
         media_type=source["media_type"],
         content=content,
-        storage_path=str(source_path),
+        # Relativo allo storage, come per ogni upload: fino al 18 settembre
+        # 2026 qui finiva il percorso assoluto della macchina, e un restore su
+        # un'altra cartella (backup, container) perdeva l'originale.
+        storage_path=storage_relative_path(library_id, source_path.name),
         extracted_text="\n\n".join(unit.text for unit in source_units),
         source_units=len(source_units),
         chunks=chunk_source_units(source_units),

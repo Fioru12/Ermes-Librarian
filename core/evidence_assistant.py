@@ -86,6 +86,17 @@ def _call_ollama(prompt: str) -> str:
     return str(response.json().get("message", {}).get("content", "")).strip()
 
 
+def openrouter_model_id() -> str:
+    """Il modello da chiedere a OpenRouter: quello configurato, altrimenti la
+    mappatura del modello locale (un nome Ollama non e' un modello OpenRouter)."""
+    explicit = getattr(cfg, "OPENROUTER_MODEL", "")
+    if explicit:
+        return explicit
+    from core.ai.llm_bridge import _map_to_openrouter_model
+
+    return _map_to_openrouter_model(cfg.DEFAULT_MODEL_ID)
+
+
 def _call_approved_openrouter(prompt: str) -> str:
     if not cfg.LIBRARY_CLOUD_CONSENT or not cfg.OPENROUTER_API_KEY:
         raise RuntimeError("Provider cloud non autorizzato o non configurato")
@@ -94,7 +105,7 @@ def _call_approved_openrouter(prompt: str) -> str:
         f"{cfg.OPENROUTER_BASE_URL.rstrip('/')}/chat/completions",
         headers={"Authorization": f"Bearer {cfg.OPENROUTER_API_KEY}", "Content-Type": "application/json"},
         json={
-            "model": cfg.DEFAULT_MODEL_ID,
+            "model": openrouter_model_id(),
             "messages": [{"role": "system", "content": _SYSTEM_PROMPT}, {"role": "user", "content": prompt}],
             "temperature": 0.1,
         },
