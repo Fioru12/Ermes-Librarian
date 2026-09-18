@@ -3,6 +3,7 @@ import { AlertTriangle, CheckCircle2, Clock3, Download, FileText, FolderCog, Fol
 import { useTheme } from '../../hooks/useTheme'
 import { CardTitle } from '../../components/ui'
 import { errorMessage } from '../../lib/errors'
+import { useConfirm } from '../ui/ConfirmDialog'
 
 interface LibraryItem {
   id: string
@@ -92,6 +93,7 @@ const documentStatus = (status: string) => {
 
 export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
   const { t } = useTheme()
+  const confirm = useConfirm()
   const [libraries, setLibraries] = useState<LibraryItem[]>([])
   const [documents, setDocuments] = useState<LibraryDocument[]>([])
   const [selectedLibraryId, setSelectedLibraryId] = useState<string | null>(null)
@@ -328,7 +330,7 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
   const changeAssistantMode = async (mode: LibraryItem['assistant_mode'], providerName = '') => {
     if (!selectedLibrary) return
     const providerLabel = mode === 'approved_provider' ? providerName : 'OpenRouter'
-    if ((mode === 'approved_openrouter' || mode === 'approved_provider') && !window.confirm(`I passaggi recuperati da questa biblioteca potranno essere inviati a ${providerLabel} per generare le risposte. Vuoi continuare?`)) return
+    if ((mode === 'approved_openrouter' || mode === 'approved_provider') && !(await confirm({ title: 'Inviare passaggi a un provider cloud?', message: `I passaggi recuperati da questa biblioteca potranno essere inviati a ${providerLabel} per generare le risposte. Solo gli estratti autorizzati escono dal perimetro, mai i documenti interi.`, confirmLabel: 'Attiva' }))) return
     try {
       const response = await fetch(`/api/libraries/${selectedLibrary.id}/assistant-policy`, {
         method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mode, provider_name: providerName }),
@@ -495,7 +497,7 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
 
   const deleteDocument = async (document: LibraryDocument) => {
     if (!selectedLibraryId) return
-    if (!window.confirm(`Eliminare “${document.filename}” e tutte le sue versioni? L'operazione non è reversibile.`)) return
+    if (!(await confirm({ title: 'Eliminare il documento?', message: `“${document.filename}” e tutte le sue versioni verranno eliminati. L'operazione non è reversibile.`, confirmLabel: 'Elimina', danger: true }))) return
     setDeletingDocumentId(document.id)
     try {
       const response = await fetch(`/api/libraries/${selectedLibraryId}/documents/${document.id}`, { method: 'DELETE', credentials: 'include' })
@@ -513,7 +515,7 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
 
   const deleteLibrary = async () => {
     if (!selectedLibrary) return
-    if (!window.confirm(`Eliminare la biblioteca “${selectedLibrary.name}” con tutti i suoi ${selectedLibrary.document_count} documenti? L'operazione non è reversibile.`)) return
+    if (!(await confirm({ title: 'Eliminare la biblioteca?', message: `“${selectedLibrary.name}” e i suoi ${selectedLibrary.document_count} documenti verranno eliminati. L'operazione non è reversibile.`, confirmLabel: 'Elimina', danger: true }))) return
     setDeletingLibrary(true)
     try {
       const response = await fetch(`/api/libraries/${selectedLibrary.id}`, { method: 'DELETE', credentials: 'include' })
@@ -554,7 +556,7 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
 
   const removeSource = async (source: ImportSource) => {
     if (!selectedLibraryId) return
-    if (!window.confirm(`Rimuovere la sorgente “${source.path}”? I documenti già importati non vengono eliminati.`)) return
+    if (!(await confirm({ title: 'Rimuovere la sorgente?', message: `“${source.path}” non verrà più sincronizzata. I documenti già importati restano.`, confirmLabel: 'Rimuovi', danger: true }))) return
     try {
       const response = await fetch(`/api/libraries/${selectedLibraryId}/sources/${source.id}`, { method: 'DELETE', credentials: 'include' })
       if (!response.ok) throw new Error('remove source failed')

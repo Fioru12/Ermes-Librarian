@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Check, Copy, KeyRound, Trash2, UserPlus, X } from 'lucide-react';
+import { useConfirm } from '../ui/ConfirmDialog'
 
 interface User {
   username: string;
@@ -20,6 +21,7 @@ interface LocalAccountDraft {
 }
 
 export default function UserManagement({ showNotif }: { showNotif: (m: string, t: 'success' | 'error') => void }) {
+  const confirm = useConfirm()
   const [users, setUsers] = useState<User[]>([]);
   const [accounts, setAccounts] = useState<LocalAccount[]>([]);
   const [newUsername, setNewUsername] = useState('');
@@ -145,7 +147,7 @@ export default function UserManagement({ showNotif }: { showNotif: (m: string, t
   };
 
   const deleteUser = async (username: string) => {
-    if (!confirm(`Revocare accesso a ${username}?`)) return;
+    if (!(await confirm({ title: "Revocare l'accesso?", message: `L'utente ${username} non potrà più accedere. Le sue chiavi API restano da revocare a parte.`, confirmLabel: 'Revoca', danger: true }))) return;
     try {
       const res = await fetch(`/api/users/${username}`, {  method: 'DELETE', credentials: 'include' });
       if (res.ok) {

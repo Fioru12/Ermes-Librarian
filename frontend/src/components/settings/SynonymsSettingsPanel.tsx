@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { BookOpen, Plus, Trash2, RefreshCw, ChevronDown, ChevronUp, Tag } from 'lucide-react'
 import { Card, CardTitle, Button, Input } from '../ui'
 import { errorMessage } from '../../lib/errors'
+import { useConfirm } from '../ui/ConfirmDialog'
 
 interface SynonymsSettingsPanelProps {
   showNotif: (msg: string, type?: 'success' | 'error') => void
@@ -9,6 +10,7 @@ interface SynonymsSettingsPanelProps {
 }
 
 export default function SynonymsSettingsPanel({ showNotif, isAdmin = false }: SynonymsSettingsPanelProps) {
+  const confirm = useConfirm()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [customSynonyms, setCustomSynonyms] = useState<Record<string, string[]>>({})
@@ -79,7 +81,7 @@ export default function SynonymsSettingsPanel({ showNotif, isAdmin = false }: Sy
   }
 
   const handleDeleteSynonym = async (term: string) => {
-    if (!confirm(`Rimuovere il termine "${term}" dai sinonimi personalizzati?`)) return
+    if (!(await confirm({ title: 'Rimuovere il termine?', message: `"${term}" verrà tolto dai sinonimi personalizzati. Le ricerche non lo espanderanno più.`, confirmLabel: 'Rimuovi', danger: true }))) return
     try {
       const res = await fetch(`/api/synonyms/${encodeURIComponent(term)}`, {
         method: 'DELETE',

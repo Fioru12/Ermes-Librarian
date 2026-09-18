@@ -14,6 +14,7 @@ const SettingsTab = lazy(() => import('./components/settings/SettingsTab'))
 const ConnectorsTab = lazy(() => import('./components/connectors/ConnectorsTab'))
 const OnboardingWizard = lazy(() => import('./components/OnboardingWizard/OnboardingWizard'))
 import { ThemeProvider, useTheme } from './hooks/useTheme'
+import { ConfirmProvider } from './components/ui/ConfirmDialog'
 import type { HealthStatus, Message, TabId } from './types'
 import { beginLogin, completeLogin, isCallback, type OidcConfig } from './lib/oidc'
 import { errorMessage } from './lib/errors'
@@ -331,5 +332,5 @@ function AppInner() {
 }
 
 export default function App() {
-  return <ThemeProvider><AppInner /></ThemeProvider>
+  return <ThemeProvider><ConfirmProvider><AppInner /></ConfirmProvider></ThemeProvider>
 }
