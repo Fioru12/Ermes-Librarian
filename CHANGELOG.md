@@ -1,6 +1,6 @@
 # Changelog
 
-Registro leggibile del lavoro su questo progetto. Per il dettaglio fase-per-fase con motivazioni, vedi [docs/ROADMAP_V2.md](docs/ROADMAP_V2.md); per i finding tecnici completi, [docs/AUDIT_2026-08-19.md](docs/AUDIT_2026-08-19.md) e [docs/CODE_REVIEW.md](docs/CODE_REVIEW.md); per il registro operativo delle sessioni, [docs/WORK_PROGRESS.md](docs/WORK_PROGRESS.md).
+Registro leggibile del lavoro su questo progetto. Per i finding tecnici completi, [docs/AUDIT_2026-08-19.md](docs/AUDIT_2026-08-19.md) e [docs/CODE_REVIEW.md](docs/CODE_REVIEW.md). La roadmap per fasi e il registro delle sessioni (`ROADMAP_V2.md`, `WORK_PROGRESS.md`) sono stati tolti dall'albero pubblico il 18 settembre 2026: la cronologia Git li conserva.
 
 ## 2026-09-18 — v2.2.5: Clone pulito Linux verificato in CI e profilo "verified" con Ollama dichiarato
 
@@ -52,6 +52,11 @@ Frontend:
 - **Logout** (`Esci` nella sidebar): l'endpoint esisteva, la UI no. Chiude la sessione server, azzera lo stato client, aborta una risposta in corso.
 
 - **Conferme nello stile dell'app** (`ui/ConfirmDialog.tsx`, `useConfirm()`): i sei `window.confirm` nativi (elimina documento/biblioteca/sorgente, revoca accesso, rimuovi sinonimo, attiva provider cloud) diventano un dialogo con titolo, spiegazione delle conseguenze, azione pericolosa evidenziata, Esc/click fuori per annullare, fuoco sul bottone di conferma. Senza provider (componente in isolamento) ripiega su `window.confirm`, così i test esistenti che lo stubbano restano validi. 4 test.
+
+**Potatura del repository pubblico** (ramo `chore/prune-public-repo`):
+
+- `docs/` da 22 a 11 file: fuori tesina, slide, catalogo asset e i suoi screenshot da 2 MB, `notebooklm/`, registro sessioni, roadmap per fasi, piano/strategia interni, script di generazione pptx/pdf, cartella `archive/`. La cronologia Git conserva tutto; copia locale in `../ProgettoRAG_archive`. Indice documentazione del README riscritto come ordine di lettura.
+- **Motore storico WinSarp rimosso** (`legacy_winsarp/`, 182 file, `requirements-legacy.txt`, extra `[legacy]`, flag `ERMES_ENABLE_LEGACY_WINSARP` e `ERMES_ENABLE_FORMULA_GENERATION`, rami in `api/__init__`, `health`, `models`, proprietà `WINSARP_*` del config, esclusioni mypy/ruff/pytest, tab `kb`/`providers`/`admin-import` mai renderizzate). Il ramo dietro la flag importava cinque router che non esistevano più in `api/`: accenderlo avrebbe fatto crashare l'avvio. `tests/test_legacy_packages_stay_out.py` continua a bloccare il rientro di LlamaIndex/ChromaDB/ollama nel prodotto (150 pacchetti contro 56). `/health` mantiene `modules_available` e `chroma_ok` per compatibilità dei client.
 
 Verificato e **non** corretto perché il claim non regge: lo streaming SSE non "sovrascrive i chunk" — il server manda un solo evento `answer` con la risposta completa (`api/libraries.py`), lo stream è di stati; `striprtf` assente da `requirements.txt` ha un fallback esplicito in `core/document_parser.py`. Rimandati (richiedono più di un giorno): adapter Postgres per le ~25 query via `_connection()` con `?` (oggi rotte su PG, confermato), migrazione ad Argon2, backup cifrati.
 

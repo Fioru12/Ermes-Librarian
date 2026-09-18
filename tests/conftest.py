@@ -80,7 +80,6 @@ def sample_env(temp_dir: Path) -> Generator[dict, None, None]:
         "OLLAMA_HOST": "http://127.0.0.1:11434",
         "ERMES_MODEL": "test-model",
         "ERMES_EMBED_MODEL": "test-embed",
-        "ERMES_ENABLE_FORMULA_GENERATION": "1",
         "ERMES_API_KEY": "",
         "ERMES_ADMIN_USERNAME": "admin",
         "ERMES_ADMIN_PASSWORD": "test-pass",

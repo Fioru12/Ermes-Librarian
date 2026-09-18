@@ -163,22 +163,6 @@ class RAGConfig:
     )
 
     # ---------------------------------------------------------
-    # FEATURE FLAG LEGACY
-    # ---------------------------------------------------------
-    # La generazione formule richiede consenso esplicito via env.
-    ENABLE_FORMULA_GENERATION: bool = field(
-        default_factory=lambda: (
-            os.environ.get("ERMES_ENABLE_FORMULA_GENERATION", "0").strip().lower() in {"1", "true", "yes", "on"}
-        )
-    )
-    # Il modulo WinSarp è legacy rispetto al prodotto Ermes Knowledge.
-    ENABLE_LEGACY_WINSARP: bool = field(
-        default_factory=lambda: (
-            os.environ.get("ERMES_ENABLE_LEGACY_WINSARP", "0").strip().lower() in {"1", "true", "yes", "on"}
-        )
-    )
-
-    # ---------------------------------------------------------
     # SEMANTIC SEARCH CACHE
     # ---------------------------------------------------------
     # Cache L1 in-memory per risultati di search_with_profile. Evita di

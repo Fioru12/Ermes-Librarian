@@ -52,7 +52,7 @@ echo [3/3] Dipendenze principali
 set "PY=.venv-ermes\Scripts\python.exe"
 
 REM chromadb e llama_index erano in questa lista: appartengono al motore
-REM storico (requirements-legacy.txt), quindi su un'installazione corretta del
+REM storico, rimosso dal repository, quindi su un'installazione corretta del
 REM prodotto non ci sono e lo script segnalava due problemi inesistenti.
 for %%M in (fastapi pydantic httpx pypdf docx dotenv filelock jwt prometheus_client) do (
     "%PY%" -c "import %%M" >nul 2>&1

@@ -76,7 +76,9 @@ class StorageConfig:
     # Tentativi totali per un job fallito per causa transitoria (modello di
     # embedding irraggiungibile, I/O). Un documento illeggibile non viene
     # riprovato: darebbe lo stesso errore.
-    INGESTION_MAX_ATTEMPTS: int = field(default_factory=lambda: int(os.environ.get("ERMES_INGESTION_MAX_ATTEMPTS", "3")))
+    INGESTION_MAX_ATTEMPTS: int = field(
+        default_factory=lambda: int(os.environ.get("ERMES_INGESTION_MAX_ATTEMPTS", "3"))
+    )
     INGESTION_RETRY_SECONDS: float = field(
         default_factory=lambda: float(os.environ.get("ERMES_INGESTION_RETRY_SECONDS", "5"))
     )
