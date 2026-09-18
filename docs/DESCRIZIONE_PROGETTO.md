@@ -225,8 +225,6 @@ L'applicazione risponderà all'indirizzo `http://localhost:8000` (o porta config
 Per consultare approfondimenti specifici, fare riferimento ai file dedicati nella cartella `docs/`:
 
 - 📖 **Guida Operativa Aziendale**: [`docs/GUIDA_OPERATIVA_AZIENDA.md`](GUIDA_OPERATIVA_AZIENDA.md) — Istruzioni per sistemisti IT, deploy Docker, configurazione Active Directory / OIDC e backup.
-- 📊 **Catalogo Asset per Presentazioni**: [`docs/POWERPOINT_ASSETS.md`](POWERPOINT_ASSETS.md) — Mappatura degli screenshot e loghi per slide deck commerciali o executive.
 - 🛡️ **Modello delle Minacce**: [`docs/THREAT_MODEL.md`](THREAT_MODEL.md) — Analisi dei vettori di attacco (STRIDE) e misure di mitigazione implementate.
 - 🔧 **Manuale Operativo e Troubleshooting**: [`docs/RUNBOOK.md`](RUNBOOK.md) — Procedure di disaster recovery, diagnostica e monitoraggio dello stato di salute.
 - 📈 **Valutazione del Retrieval**: [`docs/RETRIEVAL_EVALUATION.md`](RETRIEVAL_EVALUATION.md) — Metriche di accuratezza su golden dataset, benchmarking e percentuali di astensione.
-- 📑 **Tesina e Specifiche Dettagliate**: [`docs/TESINA_FINALE_ITS_ERMES.md`](TESINA_FINALE_ITS_ERMES.md) — Documentazione accademica e tecnica approfondita su tutti i moduli dell'architettura.
