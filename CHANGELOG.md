@@ -48,6 +48,9 @@ Frontend:
 
 - **Motivo del feedback negativo → Knowledge Gaps.** Il pollice giù in chat apre quattro motivi (informazione mancante, fonte non pertinente, risposta poco chiara, altro); il motivo viaggia come `comment` del feedback, `get_knowledge_gaps` lo aggrega per domanda (deduplicato, vuoti ignorati) e il cruscotto lo mostra come chip accanto alla domanda. Test: backend (aggregazione e caso senza motivo), `ChatArea` (menu → POST con `comment`), e l'asserzione sul modal citazione aggiornata al nuovo testo "Copia estratto".
 
+- **SSO nel browser, davvero** (`frontend/src/lib/oidc.ts`). Il bottone "Accedi con SSO" mostrava una notifica e si fermava: il backend verificava già firma, `iss` e `aud` dell'`id_token`, ma nessuno glielo consegnava. Ora: Authorization Code + PKCE (client pubblico, niente secret nel browser), discovery da `issuer`, `state` e `nonce` verificati prima di passare il token a `/api/auth/oidc/session`, codice rimosso dall'URL. 8 test unitari senza provider + 2 su `App` (avvio del flusso, ritorno dal provider senza mostrare il form).
+- **Logout** (`Esci` nella sidebar): l'endpoint esisteva, la UI no. Chiude la sessione server, azzera lo stato client, aborta una risposta in corso.
+
 Verificato e **non** corretto perché il claim non regge: lo streaming SSE non "sovrascrive i chunk" — il server manda un solo evento `answer` con la risposta completa (`api/libraries.py`), lo stream è di stati; `striprtf` assente da `requirements.txt` ha un fallback esplicito in `core/document_parser.py`. Rimandati (richiedono più di un giorno): adapter Postgres per le ~25 query via `_connection()` con `?` (oggi rotte su PG, confermato), migrazione ad Argon2, backup cifrati.
 
 ## 2026-09-12 — v2.2.4: Gestione UI Glossario Dinamico e UX Citazioni Avanzate

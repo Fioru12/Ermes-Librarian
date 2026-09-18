@@ -15,6 +15,8 @@ const ConnectorsTab = lazy(() => import('./components/connectors/ConnectorsTab')
 const OnboardingWizard = lazy(() => import('./components/OnboardingWizard/OnboardingWizard'))
 import { ThemeProvider, useTheme } from './hooks/useTheme'
 import type { HealthStatus, Message, TabId } from './types'
+import { beginLogin, completeLogin, isCallback, type OidcConfig } from './lib/oidc'
+import { errorMessage } from './lib/errors'
 
 type LibrarySummary = { id: string; name: string; document_count?: number }
 
@@ -30,7 +32,7 @@ function AppInner() {
     const [authState, setAuthState] = useState<'checking' | 'anonymous' | 'authenticated'>('checking')
   const [showOnboarding, setShowOnboarding] = useState(false)
   const [currentUser, setCurrentUser] = useState<{ username: string; role: string } | null>(null)
-  const [oidcConfig, setOidcConfig] = useState<{ enabled: boolean; client_id?: string; issuer?: string } | null>(null)
+  const [oidcConfig, setOidcConfig] = useState<OidcConfig | null>(null)
   const [loginUsername, setLoginUsername] = useState('')
   const [loginPassword, setLoginPassword] = useState('')
   const [loginError, setLoginError] = useState('')
@@ -72,6 +74,27 @@ function AppInner() {
   }
 
   useEffect(() => {
+    const configRequest = fetch('/api/auth/oidc/config')
+      .then(res => res.json())
+      .then((data: OidcConfig) => { setOidcConfig(data); return data })
+      .catch(() => null)
+
+    // Back from the identity provider: finish the SSO before asking who we
+    // are, otherwise /api/auth/me answers 401 and the login form flashes.
+    if (isCallback()) {
+      configRequest.then(async config => {
+        try {
+          if (!config) throw new Error('Configurazione SSO non disponibile')
+          setCurrentUser(await completeLogin(config))
+          setAuthState('authenticated')
+        } catch (error) {
+          setLoginError(errorMessage(error))
+          setAuthState('anonymous')
+        }
+      })
+      return
+    }
+
     fetch('/api/auth/me', { credentials: 'include' })
       .then(async response => {
         if (!response.ok) return setAuthState('anonymous')
@@ -79,11 +102,6 @@ function AppInner() {
         setAuthState('authenticated')
       })
       .catch(() => setAuthState('anonymous'))
-
-    fetch('/api/auth/oidc/config')
-      .then(res => res.json())
-      .then(data => setOidcConfig(data))
-      .catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -204,6 +222,31 @@ function AppInner() {
     }
   }
 
+  const handleSsoLogin = async () => {
+    setLoginError('')
+    try {
+      if (!oidcConfig) throw new Error('Configurazione SSO non disponibile')
+      await beginLogin(oidcConfig)
+    } catch (error) {
+      setLoginError(errorMessage(error))
+    }
+  }
+
+  const handleLogout = async () => {
+    abortRef.current?.abort()
+    try {
+      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' })
+    } catch {
+      // The server session may already be gone; the client state goes anyway.
+    }
+    setCurrentUser(null)
+    setMessages([])
+    setLibraries([])
+    setSelectedLibraryId('')
+    setActiveTab('chat')
+    setAuthState('anonymous')
+  }
+
   const handleLogin = async (event: React.FormEvent) => {
     event.preventDefault()
     setLoginError('')
@@ -243,7 +286,7 @@ function AppInner() {
               <div className="mb-6">
                 <button
                   type="button"
-                  onClick={() => showNotif('Reindirizzamento verso provider SSO...', 'success')}
+                  onClick={handleSsoLogin}
                   className="flex w-full items-center justify-center gap-2 rounded-xl border border-blue-500/30 bg-blue-500/10 px-4 py-3 font-semibold text-blue-300 transition hover:bg-blue-500/20"
                 >
                   <KeyRound className="h-4 w-4 text-blue-400" /> Accedi con SSO Aziendale
@@ -267,7 +310,7 @@ function AppInner() {
       />
       </Suspense>
     )}
-    <Sidebar activeTab={activeTab} onTabChange={setActiveTab} healthStatus={health ? { status: health.status } : undefined} onRefresh={fetchData} isAdmin={currentUser?.role === 'admin'} username={currentUser?.username} />
+    <Sidebar activeTab={activeTab} onTabChange={setActiveTab} healthStatus={health ? { status: health.status } : undefined} onRefresh={fetchData} isAdmin={currentUser?.role === 'admin'} username={currentUser?.username} onLogout={handleLogout} />
     <main className="relative flex flex-1 flex-col overflow-hidden">
       {notif && <div className={`absolute right-4 top-4 z-50 flex items-center gap-2.5 rounded-xl border px-4 py-3 shadow-lg ${notif.type === 'error' ? 'border-rose-800 bg-rose-950/90 text-rose-200' : 'border-emerald-800 bg-emerald-950/90 text-emerald-200'}`}>{notif.type === 'error' ? <AlertTriangle className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}<span className="text-sm font-medium">{notif.message}</span></div>}
       <header className={`z-10 flex h-[4.5rem] items-center justify-between border-b px-7 ${t.header}`}><div className="flex items-center gap-3"><div><p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">Spazio di lavoro</p><h2 className={`mt-0.5 text-sm font-semibold ${t.cardTitle}`}>{tabHeaders[activeTab]}</h2></div><span className="hidden rounded-full border border-blue-500/20 bg-blue-500/10 px-2.5 py-1 text-[10px] font-semibold text-blue-400 sm:inline">Biblioteca locale</span></div><p className={`text-xs ${t.cardDesc}`}>Policy AI per singola biblioteca</p></header>

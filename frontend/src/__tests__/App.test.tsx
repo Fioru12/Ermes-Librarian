@@ -171,3 +171,54 @@ describe('App — SSE answer stream', () => {
     await screen.findByText(/non riesco a completare la richiesta/i)
   })
 })
+
+describe('App — logout and SSO', () => {
+  it('Esci ends the server session and returns to the login form', async () => {
+    routes['/api/auth/logout'] = () => json({ ok: true })
+    await renderAuthenticated()
+
+    fireEvent.click(screen.getByRole('button', { name: /esci/i }))
+
+    await screen.findByPlaceholderText(/nome utente/i)
+    const logout = calls.find(c => c.url === '/api/auth/logout')!
+    expect(logout.init?.method).toBe('POST')
+    expect(logout.init?.credentials).toBe('include')
+  })
+
+  it('the SSO button starts the provider flow instead of showing a notification', async () => {
+    routes['/api/auth/me'] = () => json({}, 401)
+    routes['/api/auth/oidc/config'] = () => json({ enabled: true, issuer: 'https://idp.example', client_id: 'ermes-spa' })
+    routes['https://idp.example/.well-known/openid-configuration'] = () =>
+      json({ authorization_endpoint: 'https://idp.example/auth', token_endpoint: 'https://idp.example/token' })
+    const assign = vi.fn()
+    const original = window.location
+    Object.defineProperty(window, 'location', { configurable: true, value: { ...original, assign, origin: original.origin, search: '', pathname: '/' } })
+    try {
+      render(<App />)
+      fireEvent.click(await screen.findByRole('button', { name: /accedi con sso/i }))
+      await waitFor(() => expect(assign).toHaveBeenCalledTimes(1))
+      expect(String(assign.mock.calls[0][0])).toMatch(/^https:\/\/idp\.example\/auth\?.*code_challenge_method=S256/)
+    } finally {
+      Object.defineProperty(window, 'location', { configurable: true, value: original })
+    }
+  })
+
+  it('coming back from the provider completes the login without showing the form', async () => {
+    routes['/api/auth/oidc/config'] = () => json({ enabled: true, issuer: 'https://idp.example', client_id: 'ermes-spa' })
+    const idToken = btoa('{}') + '.' + btoa(JSON.stringify({ nonce: 'no-1' })).replace(/=+$/, '') + '.sig'
+    routes['https://idp.example/token'] = () => json({ id_token: idToken })
+    routes['/api/auth/oidc/session'] = () => json({ username: 'anna', role: 'editor' })
+    sessionStorage.setItem('ermes_oidc_login', JSON.stringify({ state: 'st-1', nonce: 'no-1', verifier: 'v', token_endpoint: 'https://idp.example/token' }))
+    window.history.replaceState(null, '', '/?code=abc&state=st-1')
+    try {
+      render(<App />)
+      await screen.findByPlaceholderText(/fai una domanda/i)
+      expect(calls.some(c => c.url === '/api/auth/me')).toBe(false)
+      expect(window.location.search).toBe('')
+    } finally {
+      window.history.replaceState(null, '', '/')
+      sessionStorage.clear()
+    }
+  })
+})
+

@@ -1,4 +1,4 @@
-import { Sun, Moon, MessageSquare, FileText, Activity, Settings, Users, Shield, RefreshCw, Sparkles, BarChart2, HardDrive } from 'lucide-react'
+import { Sun, Moon, MessageSquare, FileText, Activity, Settings, Users, Shield, RefreshCw, Sparkles, BarChart2, HardDrive, LogOut } from 'lucide-react'
 import { useTheme } from '../../hooks/useTheme'
 import type { TabId } from '../../types'
 
@@ -9,6 +9,7 @@ interface SidebarProps {
   onRefresh: () => void
   isAdmin?: boolean
   username?: string
+  onLogout?: () => void
 }
 
 const navItems: { tab: TabId; icon: typeof MessageSquare; label: string; admin?: boolean }[] = [
@@ -22,7 +23,7 @@ const navItems: { tab: TabId; icon: typeof MessageSquare; label: string; admin?:
   { tab: 'admin-audit', icon: Shield, label: 'Audit Log', admin: true },
 ]
 
-export default function Sidebar({ activeTab, onTabChange, healthStatus, onRefresh, isAdmin = false, username }: SidebarProps) {
+export default function Sidebar({ activeTab, onTabChange, healthStatus, onRefresh, isAdmin = false, username, onLogout }: SidebarProps) {
   const { isDark, toggle, t } = useTheme()
   const visibleNavItems = navItems.filter(item => !item.admin || isAdmin)
 
@@ -79,6 +80,11 @@ export default function Sidebar({ activeTab, onTabChange, healthStatus, onRefres
         <button onClick={onRefresh} title="Aggiorna stato" className="hover:text-blue-500 transition">
           <RefreshCw className="w-3.5 h-3.5" />
         </button>
+        {onLogout && (
+          <button onClick={onLogout} title="Esci" aria-label="Esci" className="hover:text-rose-400 transition">
+            <LogOut className="w-3.5 h-3.5" />
+          </button>
+        )}
         </div>
       </div>
     </aside>
