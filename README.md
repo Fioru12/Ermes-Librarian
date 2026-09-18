@@ -246,7 +246,7 @@ Browser
        -> Evidence answer / explicit local or approved-cloud LLM
 ```
 
-The target architecture, security principles and planned evolution are documented in [docs/ARCHITECTURE_TARGET.md](docs/ARCHITECTURE_TARGET.md) and [docs/PROJECT_PLAN.md](docs/PROJECT_PLAN.md).
+The security principles are in [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md); what changed and why, release by release, is in [CHANGELOG.md](CHANGELOG.md).
 
 ### Why abstention is the hard part
 
@@ -317,18 +317,20 @@ This workspace intentionally contains development history and local artifacts. B
 
 ## Documentation
 
-### 🇮🇹 Documentazione Aziendale & Presentazioni
-- [**Descrizione Completa del Progetto**](docs/DESCRIZIONE_PROGETTO.md) — Panoramica master di architettura, flussi RAG, sicurezza e moduli enterprise
-- [**Guida Operativa Aziendale**](docs/GUIDA_OPERATIVA_AZIENDA.md) — Manuale sistemistico IT per deploy (Docker, Windows, Active Directory/OIDC, backup e NAS)
-- [**Catalogo Asset & Guida Slide PowerPoint**](docs/POWERPOINT_ASSETS.md) — Mappatura degli screenshot e grafiche slide-by-slide per presentazioni executive
-- [**Tesina Finale ITS Ermes**](docs/TESINA_FINALE_ITS_ERMES.md) — Trattato accademico e tecnico esteso sui fondamenti del sistema
+Eleven documents, each written for a reader with a job to do. Start with the first three.
 
-### 🌍 Technical & Engineering Guides
-- [Runbook](docs/RUNBOOK.md) — Install, back up, upgrade and diagnose, written for whoever operates it
-- [Changelog](CHANGELOG.md) — A readable log of this work, not a raw commit list
-- [One-pager](docs/ONE_PAGER.md) — The short version, written for someone evaluating this project in two minutes
-- [Product Strategy](docs/PRODUCT_STRATEGY.md) & [Target Architecture](docs/ARCHITECTURE_TARGET.md)
-- [Threat Model](docs/THREAT_MODEL.md) — Assets, trust boundaries, what is defended and what is not, with automated CI verification
-- [RAG Retrieval Evaluation](docs/RETRIEVAL_EVALUATION.md) — Golden set benchmarks, abstention analysis, and reranking metrics
+- [One-pager](docs/ONE_PAGER.md) — the short version, for someone evaluating this project in two minutes
+- [Runbook](docs/RUNBOOK.md) — install, back up, upgrade and diagnose, written for whoever operates it
+- [Threat Model](docs/THREAT_MODEL.md) — assets, trust boundaries, what is defended and what is not, with automated CI verification
+- [Retrieval Evaluation](docs/RETRIEVAL_EVALUATION.md) — golden set, abstention analysis, the three fixes that were measured and rejected
+- [Demo Guide](docs/DEMO_GUIDE.md) — the walkthrough behind the GIF above, step by step
+- [Changelog](CHANGELOG.md) — a readable log of this work, not a raw commit list
+- [Descrizione del progetto](docs/DESCRIZIONE_PROGETTO.md) (IT) — architecture, RAG flow, security and enterprise modules
+- [Guida operativa aziendale](docs/GUIDA_OPERATIVA_AZIENDA.md) (IT) — for the IT team: Docker, Windows, OIDC, backup, NAS
+- [Code Review](docs/CODE_REVIEW.md) and [Audit 2026-08-19](docs/AUDIT_2026-08-19.md) — the findings that shaped the current code, kept because several comments in the code point at them
+- [Postgres Migration Plan](docs/POSTGRES_MIGRATION_PLAN.md) — status of the dual SQLite/PostgreSQL backend
+- [Release Plan](docs/GITHUB_RELEASE_PLAN.md) — the publishing checklist this repository follows
+
+Course material (thesis, slides, presentation assets) and superseded internal plans were removed from the public tree on 18 September 2026; Git history keeps them.
 - [Team Audit](docs/AUDIT_2026-08-19.md) & [Code Review](docs/CODE_REVIEW.md)
 - [Demo Guide](docs/DEMO_GUIDE.md) & [GitHub Release Plan](docs/GITHUB_RELEASE_PLAN.md)
