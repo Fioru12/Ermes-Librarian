@@ -77,31 +77,12 @@ async def list_models(_auth: None = Depends(__import__("api.auth", fromlist=["_v
 
     # Fallback su Ollama
     if not models:
-        ollama_models: list[str] = []
-        if getattr(_cfg, "ENABLE_LEGACY_WINSARP", False):
-            try:
-                from legacy_winsarp.core.rag_engine import AVAILABLE_MODELS, fetch_ollama_models
-
-                ollama_models = fetch_ollama_models() or list(AVAILABLE_MODELS.values())
-            except Exception as error:
-                _logger.info("Catalogo legacy Ollama non disponibile: %s", error)
-
-        # The library mode deliberately avoids importing chromadb and LlamaIndex
+        # The library mode deliberately avoids importing an Ollama client
         # merely to populate a model selector in the frontend.
-        if not ollama_models:
-            ollama_models = [getattr(_cfg, "DEFAULT_MODEL_ID", "qwen3.5:4b")]
+        ollama_models = [getattr(_cfg, "DEFAULT_MODEL_ID", "qwen3.5:4b")]
 
         for m in ollama_models:
             models.append(m)
-            display = m
-            if getattr(_cfg, "ENABLE_LEGACY_WINSARP", False):
-                try:
-                    for key, val in AVAILABLE_MODELS.items():
-                        if val == m:
-                            display = f"{key}"
-                            break
-                except NameError:
-                    pass
-            model_groups.setdefault("ollama", []).append({"id": m, "display": display})
+            model_groups.setdefault("ollama", []).append({"id": m, "display": m})
 
     return {"models": models, "model_groups": model_groups}

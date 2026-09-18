@@ -16,7 +16,6 @@ os.environ["ERMES_AUDIT_SECRET"] = "e2e-audit-secret-for-testing"
 os.environ["ERMES_BASE_DIR"] = BASE_TEMP
 os.environ["ERMES_ADMIN_PASSWORD"] = "test-admin-pass-123!"
 os.environ["ERMES_ADMIN_USERNAME"] = "admin"
-os.environ["ERMES_ENABLE_FORMULA_GENERATION"] = "1"
 os.environ["ERMES_BACKUP_ENABLED"] = "0"
 os.environ["OLLAMA_HOST"] = "http://127.0.0.1:11434"
 
@@ -55,7 +54,6 @@ _overrides = {
     "API_KEY": "e2e-super-admin-key-12345",
     "ADMIN_PASSWORD": "test-admin-pass-123!",
     "ADMIN_USERNAME": "admin",
-    "ENABLE_FORMULA_GENERATION": True,
     "BACKUP_ENABLED": False,
     "OLLAMA_HOST": "http://127.0.0.1:11434",
 }
