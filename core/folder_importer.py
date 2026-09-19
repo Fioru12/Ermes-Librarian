@@ -81,15 +81,16 @@ def scan_import_source(
                 continue
             extension = file_path.suffix.lower()
             stored_filename = f"{digest[:12]}_{file_path.name}"
-            destination = Path(storage_dir) / library_id / stored_filename
-            destination.parent.mkdir(parents=True, exist_ok=True)
-            destination.write_bytes(content)
+            rel_storage_path = storage_relative_path(library_id, stored_filename)
+            from core.storage_backend import get_storage_backend
+
+            get_storage_backend(storage_dir).save(rel_storage_path, content)
             document = store.add_document(
                 library_id=library_id,
                 filename=file_path.name,
                 media_type=MEDIA_TYPES[extension],
                 content=content,
-                storage_path=storage_relative_path(library_id, stored_filename),
+                storage_path=rel_storage_path,
                 status="queued",
                 chunks=[],
             )

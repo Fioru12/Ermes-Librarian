@@ -35,6 +35,12 @@ Interventi di irrobustimento enterprise progettati secondo la revisione dei 5 ru
   - Gestione automatica della paginazione `@odata.nextLink` per cartelle con oltre 200 elementi.
   - Fallback automatico su endpoint di download diretto `/content` in assenza di URL di pre-autenticazione temporanei.
 
+- **Two-Stage Retrieval & Reranker Candidate Pool Expansion (`core/library_store.py`)**:
+  - Risolto il collo di bottiglia architetturale della ricerca a due stadi: in precedenza il pool dei candidati veniva tagliato a `limit` prima del passaggio al reranker neurale/lessicale, impedendo la rivalutazione di passaggi pertinenti posizionati oltre la soglia. Ora la ricerca Stage 1 seleziona un pool allargato (`max(limit * 3, 20)`) su cui il reranker applica lo scoring avanzato (cross-encoder o blend lessicale/prossimità) prima di estrarre la top-K finale.
+  - HyDE: Risolta la mappatura modello in modalità `approved_openrouter` in `core/hyde.py`, instradando correttamente `ERMES_OPENROUTER_MODEL` o la mappatura di `DEFAULT_MODEL_ID` verso le API di OpenRouter.
+  - Folder Importer: Unificata l'archiviazione in `core/folder_importer.py` tramite l'astrazione `StorageBackend.save` per garantire supporto uniforme tra storage locale e bucket S3/MinIO.
+
+
 
 ## 2026-09-18 — v2.2.5: Clone pulito Linux verificato in CI e profilo "verified" con Ollama dichiarato
 
