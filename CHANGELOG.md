@@ -40,6 +40,12 @@ Interventi di irrobustimento enterprise progettati secondo la revisione dei 5 ru
   - HyDE: Risolta la mappatura modello in modalità `approved_openrouter` in `core/hyde.py`, instradando correttamente `ERMES_OPENROUTER_MODEL` o la mappatura di `DEFAULT_MODEL_ID` verso le API di OpenRouter.
   - Folder Importer: Unificata l'archiviazione in `core/folder_importer.py` tramite l'astrazione `StorageBackend.save` per garantire supporto uniforme tra storage locale e bucket S3/MinIO.
 
+- **Connettori & Graceful Shutdown Hardening (`core/connectors/`, `api/__init__.py`)**:
+  - Web Scraper Table-Aware: Introdotta la conversione automatica delle tabelle HTML (`<table>...</table>`) in tabelle Markdown strutturate con intestazioni, evitando la perdita di allineamento e relazioni tra celle nelle wiki aziendali.
+  - Local Folder Connector: Allineata la mappa canonica dei MIME type per file `.md`, `.docx`, `.xlsx`, `.pptx`, `.csv`, `.rtf`, eliminando dipendenze da registri di sistema operativi eterogenei.
+  - SIEM Graceful Flush: Integrata la chiamata `flush_remote_audit(timeout=3.0)` nel ciclo di vita `lifespan` all'arresto dell'applicazione, garantendo zero perdite di audit log verso server SIEM / Syslog durante shutdown e rolling update Kubernetes.
+
+
 
 
 ## 2026-09-18 — v2.2.5: Clone pulito Linux verificato in CI e profilo "verified" con Ollama dichiarato

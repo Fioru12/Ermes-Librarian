@@ -22,6 +22,30 @@ def _html_to_markdown(html_text: str) -> str:
     """Converte frammenti HTML comuni in Markdown pulito senza dipendenze pesanti."""
     # Rimuove script e style
     clean = re.sub(r"<(script|style|noscript)[^>]*>.*?</\1>", "", html_text, flags=re.DOTALL | re.IGNORECASE)
+
+    # Converte tabelle HTML in tabelle Markdown preservando colonne e allineamento
+    def _table_to_markdown(match: re.Match) -> str:
+        table_html = match.group(0)
+        rows = re.findall(r"<tr[^>]*>(.*?)</tr>", table_html, flags=re.DOTALL | re.IGNORECASE)
+        if not rows:
+            return ""
+        md_rows: list[str] = []
+        for i, row in enumerate(rows):
+            cells = re.findall(r"<t[hd][^>]*>(.*?)</t[hd]>", row, flags=re.DOTALL | re.IGNORECASE)
+            if not cells:
+                continue
+            clean_cells = [re.sub(r"<[^>]+>", " ", c).strip().replace("|", "\\|") for c in cells]
+            if not clean_cells:
+                continue
+            md_rows.append("| " + " | ".join(clean_cells) + " |")
+            if i == 0:
+                md_rows.append("| " + " | ".join(["---"] * len(clean_cells)) + " |")
+        if md_rows:
+            return "\n\n" + "\n".join(md_rows) + "\n\n"
+        return ""
+
+    clean = re.sub(r"<table[^>]*>.*?</table>", _table_to_markdown, clean, flags=re.DOTALL | re.IGNORECASE)
+
     # Convert headings
     clean = re.sub(r"<h1[^>]*>(.*?)</h1>", r"\n# \1\n", clean, flags=re.IGNORECASE)
     clean = re.sub(r"<h2[^>]*>(.*?)</h2>", r"\n## \1\n", clean, flags=re.IGNORECASE)
