@@ -100,3 +100,20 @@ class SecurityConfig:
         default_factory=lambda: os.environ.get("ERMES_AUDIT_SYSLOG_FACILITY", "local0").strip().lower()
     )
 
+    # ---------------------------------------------------------
+    # ENTERPRISE ANTIVIRUS / MALWARE SCANNING (ClamAV)
+    # ---------------------------------------------------------
+    CLAMAV_ENABLED: bool = field(
+        default_factory=lambda: (
+            os.environ.get("ERMES_CLAMAV_ENABLED", "0").strip().lower() in {"1", "true", "yes", "on"}
+        )
+    )
+    CLAMAV_HOST: str = field(default_factory=lambda: os.environ.get("ERMES_CLAMAV_HOST", "localhost").strip())
+    CLAMAV_PORT: int = field(default_factory=lambda: int(os.environ.get("ERMES_CLAMAV_PORT", "3310")))
+    CLAMAV_TIMEOUT: float = field(default_factory=lambda: float(os.environ.get("ERMES_CLAMAV_TIMEOUT", "10.0")))
+    CLAMAV_FAIL_CLOSED: bool = field(
+        default_factory=lambda: (
+            os.environ.get("ERMES_CLAMAV_FAIL_CLOSED", "0").strip().lower() in {"1", "true", "yes", "on"}
+        )
+    )
+

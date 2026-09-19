@@ -288,6 +288,18 @@ async def upload_document(
     if not content or not matches_expected_file_signature(BytesIO(content), safe_name):
         raise HTTPException(status_code=400, detail="Il contenuto non corrisponde al tipo di file dichiarato")
 
+    from core.antivirus import AntivirusScanError, scan_document
+
+    try:
+        scan_res = scan_document(content, filename=safe_name, actor=str(_auth.get("username", "")))
+        if not scan_res.is_clean:
+            raise HTTPException(
+                status_code=400,
+                detail=f"File malevolo bloccato dall'antivirus: {scan_res.virus_name or 'minaccia rilevata'}",
+            )
+    except AntivirusScanError as scan_err:
+        raise HTTPException(status_code=503, detail=f"Servizio antivirus non disponibile: {scan_err}") from scan_err
+
     try:
         store.get_library(library_id, _auth, write=True)
     except (LibraryNotFoundError, LibraryAccessError) as error:
