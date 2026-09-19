@@ -9,7 +9,9 @@ import hmac
 import json
 import logging
 import os
+import queue
 import secrets
+import socket
 import tempfile
 import threading
 from datetime import datetime
@@ -707,6 +709,126 @@ def audit_entries_for(audit_file: str, actor: str) -> list[dict]:
     return voci
 
 
+_remote_audit_queue: queue.Queue[dict[str, Any] | None] = queue.Queue(maxsize=10000)
+_remote_audit_worker_started = False
+_remote_audit_worker_lock = threading.Lock()
+
+
+def _send_syslog_audit(entry: dict[str, Any], host: str, port: int, facility_name: str) -> None:
+    facility_map = {
+        "kern": 0,
+        "user": 1,
+        "mail": 2,
+        "daemon": 3,
+        "auth": 4,
+        "syslog": 5,
+        "lpr": 6,
+        "news": 7,
+        "uucp": 8,
+        "cron": 9,
+        "authpriv": 10,
+        "ftp": 11,
+        "local0": 16,
+        "local1": 17,
+        "local2": 18,
+        "local3": 19,
+        "local4": 20,
+        "local5": 21,
+        "local6": 22,
+        "local7": 23,
+    }
+    fac = facility_map.get(facility_name.lower(), 16)
+    pri = (fac * 8) + 6  # 6 = Informational
+    timestamp = entry.get("ts", datetime.now().isoformat())
+    hostname = socket.gethostname()
+    msg_payload = json.dumps(entry, ensure_ascii=False)
+    rfc5424_msg = f"<{pri}>1 {timestamp} {hostname} ermes-knowledge - - - {msg_payload}\n"
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+        s.settimeout(2.0)
+        s.sendto(rfc5424_msg.encode("utf-8"), (host, port))
+
+
+def _send_http_audit(entry: dict[str, Any], url: str, token: str) -> None:
+    import httpx
+
+    headers = {"Content-Type": "application/json"}
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+    with httpx.Client(timeout=5.0) as client:
+        resp = client.post(url, json=entry, headers=headers)
+        resp.raise_for_status()
+
+
+def _remote_audit_worker_loop() -> None:
+    from config import cfg
+
+    while True:
+        try:
+            entry = _remote_audit_queue.get()
+            if entry is None:
+                _remote_audit_queue.task_done()
+                break
+
+            if cfg.AUDIT_REMOTE_URL:
+                try:
+                    _send_http_audit(entry, cfg.AUDIT_REMOTE_URL, cfg.AUDIT_REMOTE_TOKEN)
+                except Exception as ex:
+                    _logger.warning("Errore invio audit log a SIEM Webhook (%s): %s", cfg.AUDIT_REMOTE_URL, ex)
+
+            if cfg.AUDIT_SYSLOG_HOST:
+                try:
+                    _send_syslog_audit(
+                        entry,
+                        cfg.AUDIT_SYSLOG_HOST,
+                        cfg.AUDIT_SYSLOG_PORT,
+                        cfg.AUDIT_SYSLOG_FACILITY,
+                    )
+                except Exception as ex:
+                    _logger.warning(
+                        "Errore invio audit log a Syslog (%s:%s): %s",
+                        cfg.AUDIT_SYSLOG_HOST,
+                        cfg.AUDIT_SYSLOG_PORT,
+                        ex,
+                    )
+
+            _remote_audit_queue.task_done()
+        except Exception as exc:
+            _logger.error("Errore imprevisto nel worker di audit remoto: %s", exc)
+
+
+def _ensure_remote_audit_worker() -> None:
+    global _remote_audit_worker_started
+    if not _remote_audit_worker_started:
+        with _remote_audit_worker_lock:
+            if not _remote_audit_worker_started:
+                worker = threading.Thread(
+                    target=_remote_audit_worker_loop,
+                    name="ermes-remote-audit-worker",
+                    daemon=True,
+                )
+                worker.start()
+                _remote_audit_worker_started = True
+
+
+def _dispatch_remote_audit(entry: dict[str, Any]) -> None:
+    from config import cfg
+
+    if not cfg.AUDIT_REMOTE_URL and not cfg.AUDIT_SYSLOG_HOST:
+        return
+    _ensure_remote_audit_worker()
+    try:
+        _remote_audit_queue.put_nowait(entry)
+    except queue.Full:
+        _logger.warning("Coda audit remoto piena: voce scartata per proteggere la latenza di sistema")
+
+
+def flush_remote_audit(timeout: float = 5.0) -> None:
+    """Attende lo svuotamento della coda di audit remoto (utile per test o graceful shutdown)."""
+    with contextlib.suppress(Exception):
+        _remote_audit_queue.join()
+
+
+
 def append_audit(audit_file: str, action: str, actor: str, detail: dict | None = None) -> None:
     """
     Aggiunge un entry di audit con firma HMAC per integrità.
@@ -731,6 +853,10 @@ def append_audit(audit_file: str, action: str, actor: str, detail: dict | None =
     # producevano righe intrecciate, cioe' voci che non verificano.
     with _get_file_lock(canonical + ".lock"), open(canonical, "a", encoding="utf-8") as f:
         f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+
+    # SIEM / Remote audit log streaming out-of-band
+    _dispatch_remote_audit(entry)
+
 
 
 def verify_audit_log_integrity(audit_file: str) -> tuple[int, int]:

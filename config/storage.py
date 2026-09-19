@@ -39,6 +39,27 @@ class StorageConfig:
         """Archivio locale isolato dal percorso documentale legacy."""
         return os.path.join(self.BASE_DIR, "storage", "libraries")
 
+    # Backend storage documenti: "local" (default, zero-config su filesystem)
+    # oppure "s3" (Object Storage compatibile S3/MinIO per cluster multi-nodo).
+    STORAGE_BACKEND: str = field(
+        default_factory=lambda: os.environ.get("ERMES_STORAGE_BACKEND", "local").strip().lower()
+    )
+    S3_ENDPOINT_URL: str = field(
+        default_factory=lambda: os.environ.get("ERMES_S3_ENDPOINT_URL", "").strip()
+    )
+    S3_BUCKET_NAME: str = field(
+        default_factory=lambda: os.environ.get("ERMES_S3_BUCKET_NAME", "ermes-documents").strip()
+    )
+    S3_ACCESS_KEY_ID: str = field(
+        default_factory=lambda: os.environ.get("ERMES_S3_ACCESS_KEY_ID", "").strip()
+    )
+    S3_SECRET_ACCESS_KEY: str = field(
+        default_factory=lambda: os.environ.get("ERMES_S3_SECRET_ACCESS_KEY", "").strip()
+    )
+    S3_REGION_NAME: str = field(
+        default_factory=lambda: os.environ.get("ERMES_S3_REGION_NAME", "us-east-1").strip()
+    )
+
     @property
     def SECURITY_DIR(self) -> str:
         return os.path.join(self.BASE_DIR, "security")

@@ -145,7 +145,16 @@ def automation_ingest(
             text_decoded = raw_bytes.decode("utf-8", errors="ignore")
             chunks = [(text_decoded, "Testo")]
 
-        stored_rel_path = f"{request.library_id}/{safe_name}"
+        import hashlib
+
+        from core.library_store import storage_relative_path
+        from core.storage_backend import get_storage_backend
+
+        digest = hashlib.sha256(raw_bytes).hexdigest()
+        stored_filename = f"{digest[:12]}_{safe_name}"
+        stored_rel_path = storage_relative_path(request.library_id, stored_filename)
+        get_storage_backend().save(stored_rel_path, raw_bytes)
+
         doc_record = store.add_document(
             library_id=request.library_id,
             filename=safe_name,

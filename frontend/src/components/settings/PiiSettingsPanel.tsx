@@ -36,7 +36,7 @@ export default function PiiSettingsPanel({ showNotif, isAdmin = false }: PiiSett
   const [newRuleReplacement, setNewRuleReplacement] = useState('[DATO_RISERVATO]')
 
   // State per tester in tempo reale
-  const [testText, setTestText] = useState('Gentile cliente, il mio codice fiscale è RSSMRA80A01H501U e l\'IBAN è IT60X0542811101000000123456. Contattatemi a mario.rossi@email.it o al 3391234567.')
+  const [testText, setTestText] = useState('Gentile cliente, sono il Dott. Mario Rossi residente in Via Roma 12. Il mio codice fiscale è RSSMRA80A01H501U, nato il 15/05/1980, e l\'IBAN è IT60X0542811101000000123456. Il compenso pattuito è di EUR 2.500. Contattatemi a mario.rossi@email.it o al 3391234567.')
   const [testResult, setTestResult] = useState<{ masked: string; detected: Array<{ type: string; label: string; value: string }> } | null>(null)
   const [testing, setTesting] = useState(false)
 

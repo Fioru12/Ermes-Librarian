@@ -231,3 +231,50 @@ def test_the_wired_defaults_match_what_was_previously_in_force(monkeypatch):
 
     assert config.cfg.CHUNK_SIZE == 900
     assert config.cfg.CHUNK_OVERLAP == 140
+
+
+def test_extracts_docx_with_tables_and_headings():
+    """Verifica che un DOCX estragga sia i paragrafi sia le tabelle come tabelle Markdown con locatore dedicato."""
+    import docx
+
+    doc = docx.Document()
+    doc.add_heading("Politiche Aziendali", level=1)
+    doc.add_paragraph("Di seguito la tabella dei rimborsi chilometrici autorizzati.")
+    table = doc.add_table(rows=3, cols=2)
+    table.cell(0, 0).text = "Ruolo"
+    table.cell(0, 1).text = "Tariffa EUR/km"
+    table.cell(1, 0).text = "Consulente"
+    table.cell(1, 1).text = "0.45"
+    table.cell(2, 0).text = "Dirigente"
+    table.cell(2, 1).text = "0.65"
+
+    buffer = BytesIO()
+    doc.save(buffer)
+    docx_bytes = buffer.getvalue()
+
+    units = extract_source_units("politiche.docx", docx_bytes)
+    assert len(units) == 2
+    assert units[0].locator == "Politiche Aziendali, paragrafo 1"
+    assert "rimborsi chilometrici" in units[0].text
+
+    assert units[1].locator == "Politiche Aziendali, Tabella 1"
+    assert "| Ruolo | Tariffa EUR/km |" in units[1].text
+    assert "| Consulente | 0.45 |" in units[1].text
+    assert "| Dirigente | 0.65 |" in units[1].text
+
+
+def test_split_into_chunks_preserves_table_header_on_overflow():
+    """Una tabella Markdown che supera max_chars deve essere divisa su righe preservando l'intestazione su ogni chunk."""
+    header = "| ID | Dipendente | Reparto | Livello |"
+    separator = "|---|---|---|---|"
+    rows = [f"| {i:03d} | Dipendente {i} | Ingegneria | L{i % 5 + 1} |" for i in range(1, 30)]
+    table_md = "\n".join([header, separator] + rows)
+
+    chunks = split_into_chunks(table_md, max_chars=350)
+    assert len(chunks) > 1
+
+    # Ogni chunk derivato deve contenere l'intestazione e il separatore
+    for chunk in chunks:
+        assert "| ID | Dipendente | Reparto | Livello |" in chunk
+        assert "|---|---|---|---|" in chunk
+

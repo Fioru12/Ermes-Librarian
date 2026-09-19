@@ -286,12 +286,17 @@ With the local application running and an administrator password or API key conf
 ## Roadmap & Milestones
 
 - ✅ **Core Isolation & Gold Set Evaluation**: Safe two-library demo corpus with live-verified boundary check, measured and published retrieval metrics ([docs/RETRIEVAL_EVALUATION.md](docs/RETRIEVAL_EVALUATION.md)).
+- ✅ **Pluggable Storage Layer (Local & S3)**: Native support for S3/MinIO/Ceph alongside zero-config local storage with path traversal protection.
+- ✅ **Kubernetes Production Helm Chart**: High-availability Helm deployment with HPA autoscaling (2-5 replicas), Ingress TLS, and config rolling updates.
+- ✅ **Table-Aware Document Extraction**: True DOCX body reading order and Markdown table header preservation across long chunk boundaries.
+- ✅ **Context-Aware PII & DLP**: Expanded detection for personal titles, physical street addresses, financial amounts, and birth dates.
+- ✅ **SIEM & Remote Audit Streaming**: Asynchronous, non-blocking audit forwarding via Syslog RFC 5424 UDP and HTTPS Webhooks.
+- ✅ **Enterprise Connectors**: Microsoft Graph / SharePoint connector with recursive crawling, subfolder resolution, and nextLink pagination.
 - ✅ **OIDC / Enterprise SSO**: Group-to-library ACL propagation (Microsoft Entra ID, Keycloak, Google Workspace).
-- ✅ **Connectors & Folder Watcher**: Automated sync daemon for local network folders (SMB/NAS), Web Scraper, and Microsoft Graph / SharePoint.
 - ✅ **Dual Database Architecture**: SQLite default for zero-config deployments, PostgreSQL + pgvector for high-scale multi-user nodes.
 - ✅ **Enterprise Glossary & Acronyms**: Real-time synonym expansion (`/api/synonyms`) with atomic concurrency locks.
 - ✅ **Real-time SSE Streaming**: Direct token-by-token streaming on `/api/libraries/{id}/ask/stream` with live UI feedback.
-- ✅ **UI & Governance Polish**: Tamper-evident SHA-256 audit log, Markdown chat export, instant chat reset, and citation modal.
+- ✅ **UI & Governance Polish**: Tamper-evident HMAC audit log, Markdown chat export, instant chat reset, and citation modal.
 
 The legacy WinSarp formula work is personal historical material, physically isolated under `legacy_winsarp/` and gated behind a dev-only flag (`ERMES_ENABLE_LEGACY_WINSARP`). It is not part of the Ermes Knowledge product path and must not be used as a public demo corpus or as a claim about the current product.
 

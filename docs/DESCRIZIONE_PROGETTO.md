@@ -1,6 +1,6 @@
 # 📘 Ermes Knowledge (Ermes-Librarian) — Documento Descrittivo Completo di Progetto
 
-> **Versione:** 2.2.5  
+> **Versione:** 2.3.0  
 > **Stato:** Produzione / On-Premise & Cloud Privato  
 > **Repository:** `c:\Progetti\ProgettoRAG_DEV`  
 > **Licenza:** Open Source / MIT con conformità Enterprise  

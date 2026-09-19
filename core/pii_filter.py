@@ -76,6 +76,30 @@ STANDARD_PATTERNS: dict[str, dict[str, Any]] = {
         "replacement": "[IP]",
         "default_enabled": True,
     },
+    "persona_con_titolo": {
+        "label": "Nominativi con Titolo (Dott., Ing., Sig., Mr., Dr.)",
+        "pattern": r"\b(?:Dott(?:ssa)?\.|Ing\.|Avv\.|Sig(?:ra)?\.|Prof(?:ssa)?\.|Mr\.|Ms\.|Mrs\.|Dr\.)\s+[A-ZÀ-Ú][a-zà-ú]+(?:\s+[A-ZÀ-Ú][a-zà-ú]+)+\b",
+        "replacement": "[PERSONA]",
+        "default_enabled": True,
+    },
+    "indirizzo_fisico": {
+        "label": "Indirizzi Stradali (IT / EN)",
+        "pattern": r"\b(?:Via|Viale|Piazza|Corso|Largo|Vicolo|Strada|Boulevard|Street|Avenue|Road)\s+[A-ZÀ-Ú][a-zà-ú]+(?:\s+[A-ZÀ-Ú][a-zà-ú]+)*(?:,?\s*\d{1,4}[a-zA-Z]?)?\b",
+        "replacement": "[INDIRIZZO]",
+        "default_enabled": True,
+    },
+    "importo_finanziario": {
+        "label": "Importi Monetari & Compensi",
+        "pattern": r"\b(?:EUR|€|\$|USD)\s*\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{2})?\b|\b\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{2})?\s*(?:EUR|€|\$|USD|euro|dollari)\b",
+        "replacement": "[IMPORTO]",
+        "default_enabled": True,
+    },
+    "data_nascita": {
+        "label": "Date di Nascita Contestualizzate",
+        "pattern": r"\b(?:nat[oa]\s+il|data\s+di\s+nascita\s*:?|born\s+on\s*:?)\s*\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b",
+        "replacement": "[DATA_NASCITA]",
+        "default_enabled": True,
+    },
 }
 
 
@@ -256,6 +280,11 @@ def filter_pii(text: str, enabled: bool = True) -> str:
                     return full.replace(key_val, replacement)
 
                 result = re.sub(pattern, _replace_api_key, result, flags=re.IGNORECASE)
+            elif pid in {"persona_con_titolo", "indirizzo_fisico"}:
+                new_result, count = re.subn(pattern, replacement, result)
+                if count > 0:
+                    detected += count
+                result = new_result
             else:
                 new_result, count = re.subn(pattern, replacement, result, flags=re.IGNORECASE)
                 if count > 0:
@@ -306,7 +335,8 @@ def detect_pii(text: str) -> list[dict[str, Any]]:
         if not enabled_map.get(pid, meta["default_enabled"]):
             continue
         pattern = meta["pattern"]
-        for match in re.finditer(pattern, text, re.IGNORECASE):
+        flags = 0 if pid in {"persona_con_titolo", "indirizzo_fisico"} else re.IGNORECASE
+        for match in re.finditer(pattern, text, flags):
             val = match.group(0)
             if pid == "carta_credito" and not _validate_luhn(val):
                 continue

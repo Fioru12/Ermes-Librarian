@@ -96,13 +96,27 @@ def export_library_pack(
         for doc in documents:
             storage_path = doc.get("storage_path")
             if storage_path:
+                content_bytes: bytes | None = None
                 try:
                     local_file = resolve_storage_path(storage_path, storage_root)
                     if local_file.is_file():
-                        arcname = f"files/{doc['id']}_{doc['filename']}"
-                        tar.add(str(local_file), arcname=arcname)
+                        content_bytes = local_file.read_bytes()
                 except Exception:
                     pass
+
+                if content_bytes is None:
+                    try:
+                        from core.storage_backend import get_storage_backend
+
+                        content_bytes = get_storage_backend().read_bytes(storage_path)
+                    except Exception:
+                        pass
+
+                if content_bytes is not None:
+                    arcname = f"files/{doc['id']}_{doc['filename']}"
+                    info = tarfile.TarInfo(name=arcname)
+                    info.size = len(content_bytes)
+                    tar.addfile(info, io.BytesIO(content_bytes))
 
     return str(out_file)
 
@@ -217,6 +231,16 @@ def import_library_pack(
             dest_file = target_storage / stored_filename
             dest_file.write_bytes(file_content)
 
+            stored_rel = storage_relative_path(library_id, stored_filename)
+            try:
+                from config import cfg
+                from core.storage_backend import get_storage_backend
+
+                if getattr(cfg, "STORAGE_BACKEND", "local") == "s3":
+                    get_storage_backend().save(stored_rel, file_content)
+            except Exception:
+                pass
+
             chunk_tuples = [(c.get("text", ""), c.get("source_locator", "")) for c in chunks]
 
             _doc = store.add_document(
@@ -224,7 +248,7 @@ def import_library_pack(
                 filename=filename,
                 media_type=media_type,
                 content=file_content,
-                storage_path=storage_relative_path(library_id, stored_filename),
+                storage_path=stored_rel,
                 status=doc_meta.get("status", "ready"),
                 chunks=chunk_tuples,
             )

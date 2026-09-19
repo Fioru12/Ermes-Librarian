@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "ermes-knowledge.fullname" . }}-config
+  labels:
+    {{- include "ermes-knowledge.labels" . | nindent 4 }}
+data:
+  ERMES_HOST: "0.0.0.0"
+  ERMES_PORT: "{{ .Values.service.port }}"
+  ERMES_LOG_LEVEL: {{ .Values.config.logLevel | quote }}
+  ERMES_LOG_FORMAT: {{ .Values.config.logFormat | quote }}
+  ERMES_LIBRARY_ASSISTANT_MODE: {{ .Values.config.assistantMode | quote }}
+  ERMES_LIBRARY_CLOUD_CONSENT: {{ .Values.config.cloudConsent | quote }}
+  ERMES_LIBRARY_SEMANTIC_SEARCH: {{ .Values.config.semanticSearch | quote }}
+  ERMES_RERANKER_ENABLED: {{ .Values.config.rerankerEnabled | quote }}
+  ERMES_EVIDENCE_VERIFIER: {{ .Values.config.evidenceVerifier | quote }}
+  ERMES_ADMIN_MAX_UPLOAD_MB: {{ .Values.config.maxUploadMb | quote }}
+  ERMES_STORAGE_BACKEND: {{ .Values.config.storageBackend | quote }}
+  ERMES_S3_BUCKET_NAME: {{ .Values.config.s3BucketName | quote }}
+  ERMES_S3_ENDPOINT_URL: {{ .Values.config.s3EndpointUrl | quote }}
+  ERMES_S3_REGION_NAME: {{ .Values.config.s3RegionName | quote }}
+  ERMES_DATABASE_URL: {{ .Values.config.databaseUrl | quote }}
+  OLLAMA_HOST: {{ .Values.config.ollamaHost | quote }}

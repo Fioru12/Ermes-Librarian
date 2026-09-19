@@ -114,7 +114,7 @@ def sync_connector(
         import hashlib
 
         from core.document_parser import extract_source_units
-        from core.library_store import resolve_storage_path, storage_relative_path
+        from core.library_store import storage_relative_path
 
         known_hashes = store.existing_content_hashes(request.target_library_id)
 
@@ -127,19 +127,18 @@ def sync_connector(
                 if not chunks or not chunks[0][0]:
                     chunks = [(rdoc.name, "Titolo")]
 
-                # L'originale DEVE essere scritto su disco: add_document
+                # L'originale DEVE essere memorizzato tramite StorageBackend: add_document
                 # registra solo metadati, senza il file il download e la
-                # re-ingestione falliscono con "Originale non disponibile"
-                # (stessa classe di bug gia' trovata nel folder_importer).
+                # re-ingestione falliscono con "Originale non disponibile".
                 digest = hashlib.sha256(rdoc.content).hexdigest()
                 if digest in known_hashes:
                     skipped_duplicates += 1
                     continue
                 stored_name = f"{digest[:12]}_{rdoc.name}"
                 stored_rel = storage_relative_path(request.target_library_id, stored_name)
-                destination = resolve_storage_path(stored_rel, cfg.LIBRARY_STORAGE_DIR)
-                destination.parent.mkdir(parents=True, exist_ok=True)
-                destination.write_bytes(rdoc.content)
+                from core.storage_backend import get_storage_backend
+
+                get_storage_backend().save(stored_rel, rdoc.content)
 
                 # Inserisce documento nel library store
                 store.add_document(

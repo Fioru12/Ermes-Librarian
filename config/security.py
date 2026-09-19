@@ -88,3 +88,15 @@ class SecurityConfig:
             os.environ.get("ERMES_PII_FILTER_ENABLED", "1").strip().lower() in {"1", "true", "yes", "on"}
         )
     )
+
+    # ---------------------------------------------------------
+    # SIEM & REMOTE AUDIT STREAMING
+    # ---------------------------------------------------------
+    AUDIT_REMOTE_URL: str = field(default_factory=lambda: os.environ.get("ERMES_AUDIT_REMOTE_URL", "").strip())
+    AUDIT_REMOTE_TOKEN: str = field(default_factory=lambda: os.environ.get("ERMES_AUDIT_REMOTE_TOKEN", "").strip())
+    AUDIT_SYSLOG_HOST: str = field(default_factory=lambda: os.environ.get("ERMES_AUDIT_SYSLOG_HOST", "").strip())
+    AUDIT_SYSLOG_PORT: int = field(default_factory=lambda: int(os.environ.get("ERMES_AUDIT_SYSLOG_PORT", "514")))
+    AUDIT_SYSLOG_FACILITY: str = field(
+        default_factory=lambda: os.environ.get("ERMES_AUDIT_SYSLOG_FACILITY", "local0").strip().lower()
+    )
+

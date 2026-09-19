@@ -232,7 +232,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="Ermes - Enterprise Knowledge Hub API",
     description="API REST per query RAG su documentazione aziendale",
-    version="2.2.5",
+    version="2.3.0",
     lifespan=lifespan,
 )
 

@@ -1,0 +1,120 @@
+# Default values for ermes-knowledge Helm chart.
+# Declare variables to be passed into templates.
+
+replicaCount: 2
+
+image:
+  repository: ghcr.io/fioru12/ermes-knowledge
+  pullPolicy: IfNotPresent
+  tag: "2.3.0"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 10001
+  runAsGroup: 10001
+  fsGroup: 10001
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false
+  capabilities:
+    drop:
+      - ALL
+
+service:
+  type: ClusterIP
+  port: 8502
+
+ingress:
+  enabled: false
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+  hosts:
+    - host: ermes.company.internal
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: ermes-knowledge-tls
+      hosts:
+        - ermes.company.internal
+
+resources:
+  limits:
+    cpu: 2000m
+    memory: 2048Mi
+  requests:
+    cpu: 500m
+    memory: 512Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 75
+  targetMemoryUtilizationPercentage: 80
+
+# Enterprise Configuration
+config:
+  logLevel: "INFO"
+  logFormat: "json"
+  assistantMode: "evidence_only"
+  cloudConsent: "0"
+  semanticSearch: "0"
+  rerankerEnabled: "0"
+  evidenceVerifier: "0"
+  maxUploadMb: 50
+  # Storage Backend: "local" or "s3"
+  storageBackend: "s3"
+  s3BucketName: "ermes-documents"
+  s3EndpointUrl: ""
+  s3RegionName: "us-east-1"
+  # Database Backend: PostgreSQL connection string
+  databaseUrl: "postgresql://ermes:secret@ermes-postgres:5432/ermes"
+  # Ollama service endpoint if internal in cluster
+  ollamaHost: "http://ermes-ollama:11434"
+
+secrets:
+  adminUsername: "admin"
+  adminPassword: ""
+  auditSecret: ""
+  s3AccessKeyId: ""
+  s3SecretAccessKey: ""
+  openrouterApiKey: ""
+
+probes:
+  liveness:
+    httpGet:
+      path: /health
+      port: 8502
+    initialDelaySeconds: 15
+    periodSeconds: 20
+    timeoutSeconds: 5
+    failureThreshold: 3
+  readiness:
+    httpGet:
+      path: /health
+      port: 8502
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 3
+    failureThreshold: 2
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

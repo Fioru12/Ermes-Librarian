@@ -97,3 +97,24 @@ def test_pii_api_endpoints(pii_client: TestClient):
     assert "[ID_ORDINE]" in res_data["masked"]
     assert "[EMAIL]" in res_data["masked"]
     assert res_data["detected_count"] >= 2
+
+
+def test_pii_enterprise_patterns_contextual(tmp_path: Path, monkeypatch):
+    """Verifica il funzionamento delle regole enterprise: persona con titolo, indirizzo (con case sensitivity), importo e data di nascita."""
+    test_cfg = cfg.replace(BASE_DIR=str(tmp_path))
+    monkeypatch.setattr("config.cfg", test_cfg)
+    monkeypatch.setattr("core.pii_filter._cached_config", None)
+
+    sample = (
+        "Il Dott. Mario Rossi, nato il 15/04/1985, risiede in Via Manzoni 24 "
+        "e percepisce un compenso di EUR 75.000. Non deve andare via prima delle 18."
+    )
+    masked = filter_pii(sample, enabled=True)
+
+    assert "[PERSONA]" in masked
+    assert "[DATA_NASCITA]" in masked
+    assert "[INDIRIZZO]" in masked
+    assert "[IMPORTO]" in masked
+    # Verifica che la parola comune 'via' in minuscolo non sia stata mascherata
+    assert "andare via prima" in masked
+

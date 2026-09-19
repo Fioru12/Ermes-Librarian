@@ -36,11 +36,26 @@ def process_ingestion_job(store: LibraryStore, job_id: str, storage_root: str | 
         if not document_id:
             raise DocumentParseError("Job senza documento associato")
         document = store.get_document(job["library_id"], document_id)
-        path = resolve_storage_path(document["storage_path"], storage_root)
-        path.resolve().relative_to(Path(storage_root).resolve())
-        if not path.is_file():
-            raise DocumentParseError("Originale non disponibile")
-        units = extract_source_units(document["filename"], path.read_bytes())
+        storage_path = document["storage_path"]
+        raw_bytes: bytes
+        try:
+            from core.storage_backend import get_storage_backend
+
+            storage_backend = get_storage_backend()
+            if storage_backend.exists(storage_path):
+                raw_bytes = storage_backend.read_bytes(storage_path)
+            else:
+                path = resolve_storage_path(storage_path, storage_root)
+                path.resolve().relative_to(Path(storage_root).resolve())
+                if not path.is_file():
+                    raise DocumentParseError("Originale non disponibile")
+                raw_bytes = path.read_bytes()
+        except DocumentParseError:
+            raise
+        except Exception as err:
+            raise DocumentParseError(f"Originale non accessibile o percorso non valido: {err}") from err
+
+        units = extract_source_units(document["filename"], raw_bytes)
         if not units:
             raise DocumentParseError("Il documento non contiene testo estraibile")
         chunks = chunk_source_units(units)

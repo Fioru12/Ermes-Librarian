@@ -207,14 +207,25 @@ def download_document(
         document = store.get_document(library_id, document_id, _auth)
     except (LibraryNotFoundError, LibraryAccessError) as error:
         raise HTTPException(status_code=404, detail="Documento non trovato") from error
-    storage_root = Path(cfg.LIBRARY_STORAGE_DIR).resolve()
-    source_path = resolve_storage_path(document["storage_path"], cfg.LIBRARY_STORAGE_DIR)
-    try:
-        source_path.resolve().relative_to(storage_root)
-    except ValueError as error:
-        raise HTTPException(status_code=409, detail="Percorso originale non valido") from error
-    if not source_path.is_file():
+    from core.storage_backend import get_storage_backend
+
+    storage_backend = get_storage_backend()
+    storage_path = document["storage_path"]
+    local_path = storage_backend.get_local_path(storage_path)
+
+    if local_path is None or not local_path.is_file():
+        storage_root = Path(cfg.LIBRARY_STORAGE_DIR).resolve()
+        source_path = resolve_storage_path(storage_path, cfg.LIBRARY_STORAGE_DIR)
+        try:
+            source_path.resolve().relative_to(storage_root)
+            if source_path.is_file():
+                local_path = source_path
+        except (ValueError, OSError):
+            pass
+
+    if local_path is None and not storage_backend.exists(storage_path):
         raise HTTPException(status_code=404, detail="Originale non disponibile")
+
     append_audit(
         cfg.AUDIT_FILE,
         "document_downloaded",
@@ -226,7 +237,15 @@ def download_document(
             "version": document["version"],
         },
     )
-    return FileResponse(source_path, media_type=document["media_type"], filename=document["filename"])
+    if local_path and local_path.is_file():
+        return FileResponse(local_path, media_type=document["media_type"], filename=document["filename"])
+
+    stream = storage_backend.get_stream(storage_path)
+    return StreamingResponse(
+        stream,
+        media_type=document.get("media_type") or "application/octet-stream",
+        headers={"Content-Disposition": f'attachment; filename="{document["filename"]}"'},
+    )
 
 
 @router.get("/{library_id}/ingestion-jobs")
@@ -274,13 +293,14 @@ async def upload_document(
     except (LibraryNotFoundError, LibraryAccessError) as error:
         raise HTTPException(status_code=404, detail="Biblioteca non trovata") from error
 
+    from core.storage_backend import get_storage_backend
+
+    storage_backend = get_storage_backend()
     document_id = uuid.uuid4().hex
-    library_dir = Path(cfg.LIBRARY_STORAGE_DIR) / library_id
-    library_dir.mkdir(parents=True, exist_ok=True)
-    destination = library_dir / f"{document_id}_{safe_name}"
+    rel_path = storage_relative_path(library_id, f"{document_id}_{safe_name}")
     try:
-        destination.write_bytes(content)
-    except OSError as error:
+        storage_backend.save(rel_path, content)
+    except Exception as error:
         raise HTTPException(status_code=500, detail="Impossibile salvare il file originale") from error
     try:
         document = store.add_document(
@@ -288,12 +308,12 @@ async def upload_document(
             filename=safe_name,
             media_type=file.content_type or "",
             content=content,
-            storage_path=storage_relative_path(library_id, destination.name),
+            storage_path=rel_path,
             status="queued",
             chunks=[],
         )
     except Exception as error:
-        destination.unlink(missing_ok=True)
+        storage_backend.delete(rel_path)
         raise HTTPException(status_code=500, detail="Impossibile registrare il documento") from error
     job = store.start_ingestion_job(library_id, safe_name, document_id=document["id"])
     if background_tasks is None:  # chiamata diretta senza injection FastAPI
@@ -872,6 +892,10 @@ def _unlink_storage_paths(paths: list[str], root: str | Path | None = None) -> N
     path safety mirrors resolve_storage_path + relative_to there. `root`
     defaults to the configured storage dir; tests may pass a narrower root.
     """
+    from core.storage_backend import get_storage_backend
+
+    with contextlib.suppress(Exception):
+        get_storage_backend().delete_many(paths)
     root = Path(root or cfg.LIBRARY_STORAGE_DIR).resolve()
     for rel in paths:
         try:
@@ -1262,16 +1286,26 @@ def reindex_library_document(
     except (LibraryNotFoundError, LibraryAccessError) as error:
         raise HTTPException(status_code=404, detail="Documento non trovato") from error
 
-    source_path = resolve_storage_path(document["storage_path"], cfg.LIBRARY_STORAGE_DIR)
-    storage_root = Path(cfg.LIBRARY_STORAGE_DIR).resolve()
-    try:
-        source_path.resolve().relative_to(storage_root)
-    except ValueError as error:
-        raise HTTPException(status_code=409, detail="Percorso originale non valido") from error
-    if not source_path.is_file():
+    from core.storage_backend import get_storage_backend
+
+    storage_backend = get_storage_backend()
+    storage_path = document["storage_path"]
+    content: bytes | None = None
+    if storage_backend.exists(storage_path):
+        content = storage_backend.read_bytes(storage_path)
+    else:
+        source_path = resolve_storage_path(storage_path, cfg.LIBRARY_STORAGE_DIR)
+        storage_root = Path(cfg.LIBRARY_STORAGE_DIR).resolve()
+        try:
+            source_path.resolve().relative_to(storage_root)
+            if source_path.is_file():
+                content = source_path.read_bytes()
+        except (ValueError, OSError):
+            pass
+    if content is None:
         raise HTTPException(status_code=409, detail="Originale non disponibile: impossibile reindicizzare")
     try:
-        source_units = extract_source_units(document["filename"], source_path.read_bytes())
+        source_units = extract_source_units(document["filename"], content)
     except DocumentParseError as error:
         raise HTTPException(status_code=422, detail=str(error)) from error
     if not source_units:
@@ -1318,16 +1352,24 @@ def restore_document_version(
     if source is None:
         raise HTTPException(status_code=404, detail="Versione non trovata")
 
-    storage_root = Path(cfg.LIBRARY_STORAGE_DIR).resolve()
-    source_path = resolve_storage_path(source["storage_path"], cfg.LIBRARY_STORAGE_DIR)
-    try:
-        source_path.resolve().relative_to(storage_root)
-    except ValueError as error:
-        raise HTTPException(status_code=409, detail="Percorso originale non valido") from error
-    if not source_path.is_file():
-        raise HTTPException(status_code=409, detail="Originale della versione non disponibile")
+    from core.storage_backend import get_storage_backend
 
-    content = source_path.read_bytes()
+    storage_backend = get_storage_backend()
+    storage_path = source["storage_path"]
+    content: bytes | None = None
+    if storage_backend.exists(storage_path):
+        content = storage_backend.read_bytes(storage_path)
+    else:
+        storage_root = Path(cfg.LIBRARY_STORAGE_DIR).resolve()
+        source_path = resolve_storage_path(storage_path, cfg.LIBRARY_STORAGE_DIR)
+        try:
+            source_path.resolve().relative_to(storage_root)
+            if source_path.is_file():
+                content = source_path.read_bytes()
+        except (ValueError, OSError):
+            pass
+    if content is None:
+        raise HTTPException(status_code=409, detail="Originale della versione non disponibile")
     try:
         source_units = extract_source_units(source["filename"], content)
     except DocumentParseError as error:
@@ -1339,10 +1381,7 @@ def restore_document_version(
         filename=source["filename"],
         media_type=source["media_type"],
         content=content,
-        # Relativo allo storage, come per ogni upload: fino al 18 settembre
-        # 2026 qui finiva il percorso assoluto della macchina, e un restore su
-        # un'altra cartella (backup, container) perdeva l'originale.
-        storage_path=storage_relative_path(library_id, source_path.name),
+        storage_path=storage_relative_path(library_id, Path(storage_path).name),
         extracted_text="\n\n".join(unit.text for unit in source_units),
         source_units=len(source_units),
         chunks=chunk_source_units(source_units),

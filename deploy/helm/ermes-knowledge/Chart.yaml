@@ -1,0 +1,16 @@
+apiVersion: v2
+name: ermes-knowledge
+description: Enterprise Sovereign Document Intelligence and Evidence-First RAG Platform
+type: application
+version: 2.3.0
+appVersion: "2.3.0"
+keywords:
+  - rag
+  - document-intelligence
+  - search
+  - evidence-first
+  - local-first
+  - enterprise
+home: https://github.com/Fioru12/Ermes-Librarian
+maintainers:
+  - name: Ermes Core Team

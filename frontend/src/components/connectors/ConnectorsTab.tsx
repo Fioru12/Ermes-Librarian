@@ -45,6 +45,7 @@ export default function ConnectorsTab({ showNotif }: ConnectorsTabProps) {
   const [msClientSecret, setMsClientSecret] = useState<string>('')
   const [msDriveId, setMsDriveId] = useState<string>('')
   const [msFolderPath, setMsFolderPath] = useState<string>('/')
+  const [msRecursive, setMsRecursive] = useState<boolean>(true)
   const [isMsTesting, setIsMsTesting] = useState<boolean>(false)
   const [isMsSyncing, setIsMsSyncing] = useState<boolean>(false)
   const [msStatus, setMsStatus] = useState<{ ok?: boolean; message?: string } | null>(null)
@@ -225,6 +226,7 @@ export default function ConnectorsTab({ showNotif }: ConnectorsTabProps) {
     client_secret: msClientSecret,
     drive_id: msDriveId,
     folder_path: msFolderPath || '/',
+    recursive: msRecursive,
   })
 
   const handleTestMs = async () => {
@@ -551,6 +553,18 @@ export default function ConnectorsTab({ showNotif }: ConnectorsTabProps) {
                 onChange={(e) => setMsFolderPath(e.target.value)}
                 className="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500"
               />
+              <div className="flex items-center gap-2 pt-1">
+                <input
+                  type="checkbox"
+                  id="msRecursiveCheckbox"
+                  checked={msRecursive}
+                  onChange={(e) => setMsRecursive(e.target.checked)}
+                  className="w-4 h-4 rounded bg-slate-800 border-slate-700 text-sky-500 focus:ring-sky-500"
+                />
+                <label htmlFor="msRecursiveCheckbox" className="text-xs text-slate-300 select-none cursor-pointer">
+                  Sincronizza ricorsivamente le sottocartelle
+                </label>
+              </div>
             </div>
             {msStatus && (
               <div

@@ -103,3 +103,9 @@ def test_automation_webhook_flow(api_client: TestClient):
     ask_data = res_ask.json()
     assert ask_data["ok"] is True
     assert "vpn.azienda.local" in ask_data["answer"] or ask_data["evidence_found"] is True
+
+    # 4. Verifica che il documento originale sia disponibile nello storage e scaricabile
+    doc_id = res_ingest.json()["document_id"]
+    res_download = api_client.get(f"/api/libraries/{lib_id}/documents/{doc_id}/download")
+    assert res_download.status_code == 200
+    assert "vpn.azienda.local" in res_download.text

@@ -2,6 +2,40 @@
 
 Registro leggibile del lavoro su questo progetto. Per il dettaglio fase-per-fase con motivazioni, vedi [docs/ROADMAP_V2.md](docs/ROADMAP_V2.md); per i finding tecnici completi, [docs/AUDIT_2026-08-19.md](docs/AUDIT_2026-08-19.md) e [docs/CODE_REVIEW.md](docs/CODE_REVIEW.md); per il registro operativo delle sessioni, [docs/WORK_PROGRESS.md](docs/WORK_PROGRESS.md).
 
+## 2026-09-19 — v2.3.0: Enterprise Core: S3 Object Storage, Helm Chart K8s, Table-Aware Chunking, Contextual PII, SIEM Streaming & Microsoft Graph
+
+Interventi di irrobustimento enterprise progettati secondo la revisione dei 5 ruoli (Enterprise Architect, Head of AI & MLOps, CISO/Security Lead, SRE/DevOps Lead, Staff Frontend Lead):
+
+- **Storage Layer Abstraction (`core/storage_backend.py`)**:
+  - Architettura a backend pluggabile: `LocalStorageBackend` (con guard anti path-traversal strict per percorsi relativi normalizzati e risolti) e `S3StorageBackend` (compatibile con AWS S3, MinIO, Ceph, Cloudflare R2, Google Cloud Storage via interoperabilità S3).
+  - Configurazione via `ERMES_STORAGE_BACKEND=local|s3`, `ERMES_S3_ENDPOINT_URL`, `ERMES_S3_BUCKET_NAME`, `ERMES_S3_ACCESS_KEY_ID`, `ERMES_S3_SECRET_ACCESS_KEY`, `ERMES_S3_REGION_NAME`.
+  - Integrazione completa in `api/libraries.py` e `core/ingestion_service.py` per upload, streaming download via `StreamingResponse`, cancellazione atomica singola e batch (`delete_objects`), reindicizzazione e ripristino versioni storiche.
+  - Zero-breaking changes: SQLite e filesystem locale restano i default operativi per installazioni desktop/edge.
+
+- **Parsing Documentale Table-Aware (`core/document_parser.py`)**:
+  - Risolto il limite critico di estrazione tabelle DOCX: `_extract_docx_units` adesso attraversa `document.element.body` nell'ordine reale di lettura (`w:p` e `w:tbl`), convertendo le griglie in tabelle Markdown strutturate associate all'intestazione di sezione (`"Intestazione, Tabella N"`).
+  - Chunking table-aware: `_split_table_into_chunks` preserva l'intestazione e la riga separatrice Markdown in cima a ciascun chunk in caso di tabelle lunghe che superano la dimensione massima, garantendo che le colonne mantengano semantica e chiavi per l'embedding e il recupero lessicale.
+
+- **DLP & Protezione PII Contestuale (`core/pii_filter.py`)**:
+  - Estesa la mascheratura regex/euristica per 4 pattern enterprise: `persona_con_titolo` (`[PERSONA]` per Dott., Ing., Sig., Dr.), `indirizzo_fisico` (`[INDIRIZZO]` per Via, Viale, Piazza, Corso), `importo_finanziario` (`[IMPORTO]` per EUR, €, $, compensi e parcelle), `data_nascita` (`[DATA_NASCITA]` per "nato il", "data di nascita").
+  - Regole case-sensitive per evitare falsi positivi su parole comuni (es. "via email").
+
+- **Enterprise Kubernetes Helm Chart (`deploy/helm/ermes-knowledge/`)**:
+  - Helm Chart v2.3.0 di livello enterprise con supporto High-Availability (repliche multiple, HPA 2-5 pod basato su target CPU/memoria 80%).
+  - ConfigMap e Secret con rolling deployment automatico via annotazione checksum SHA-256.
+  - Health & readiness probes su `/health`, Ingress TLS con cert-manager, supporto nativo a PVC e S3 object store esterno.
+
+- **SIEM & Remote Audit Streaming (`core/governance.py`)**:
+  - Gli audit log amministrativi e le violazioni DLP con firma crittografica HMAC-SHA256 adesso possono essere inoltrati out-of-band a piattaforme SIEM (Splunk, Elastic, Datadog) e Syslog centralizzato.
+  - Coda interna thread-safe non bloccante con worker asincrono: nessun rallentamento sulle richieste HTTP in caso di SIEM irraggiungibile.
+  - Supporto Syslog RFC 5424 UDP (`ERMES_AUDIT_SYSLOG_HOST`, `ERMES_AUDIT_SYSLOG_PORT`, `ERMES_AUDIT_SYSLOG_FACILITY`) e Webhook HTTPS (`ERMES_AUDIT_REMOTE_URL`, `ERMES_AUDIT_REMOTE_TOKEN`).
+
+- **Connettore Microsoft Graph / SharePoint Potenziato (`core/connectors/microsoft_graph.py`)**:
+  - Supporto per percorsi cartella arbitrari (`folder_path`) e sincronizzazione ricorsiva (`recursive: True`) attraverso l'albero delle directory remote.
+  - Gestione automatica della paginazione `@odata.nextLink` per cartelle con oltre 200 elementi.
+  - Fallback automatico su endpoint di download diretto `/content` in assenza di URL di pre-autenticazione temporanei.
+
+
 ## 2026-09-18 — v2.2.5: Clone pulito Linux verificato in CI e profilo "verified" con Ollama dichiarato
 
 - **Smoke test Compose in CI** (`compose-smoke` in `.github/workflows/ci.yml`): su `ubuntu-latest` costruisce l'immagine, avvia `app` con `docker compose up --no-deps` (nessun Ollama: il default non usa modelli), attende `/health` = `healthy` ed esegue `scripts/run_demo_validation.py` contro il container (5 documenti, 4 risposte citate, 1 astensione, isolamento tra biblioteche). Fino a oggi il Dockerfile veniva costruito e pubblicato ma l'immagine non veniva mai avviata da nessun job, e il percorso README era stato verificato solo su Windows. Bloccante per `pre-deploy-backup` e `docker`.

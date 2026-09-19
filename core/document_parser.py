@@ -34,6 +34,46 @@ class SourceUnit:
     locator: str
 
 
+def _is_markdown_table(text: str) -> bool:
+    """Riconosce se un blocco di testo e' una tabella Markdown valida."""
+    lines = [line.strip() for line in text.split("\n") if line.strip()]
+    if len(lines) < 2:
+        return False
+    if not (lines[0].startswith("|") and lines[0].endswith("|") and "|" in lines[0][1:-1]):
+        return False
+    parts = [c.strip() for c in lines[1].strip("|").split("|")]
+    return all(re.match(r"^:?-+:?$", p) for p in parts) if parts else False
+
+
+def _split_table_into_chunks(table_text: str, max_chars: int) -> list[str]:
+    """Spezza una tabella Markdown preservando l'intestazione su ogni chunk."""
+    lines = [line.strip() for line in table_text.split("\n") if line.strip()]
+    if len(lines) <= 2 or len(table_text) <= max_chars:
+        return [table_text]
+
+    header_block = f"{lines[0]}\n{lines[1]}\n"
+    data_rows = lines[2:]
+
+    chunks: list[str] = []
+    current_rows: list[str] = []
+    current_len = len(header_block)
+
+    for row in data_rows:
+        row_len = len(row) + 1
+        if current_len + row_len > max_chars and current_rows:
+            chunks.append(header_block + "\n".join(current_rows))
+            current_rows = [row]
+            current_len = len(header_block) + row_len
+        else:
+            current_rows.append(row)
+            current_len += row_len
+
+    if current_rows:
+        chunks.append(header_block + "\n".join(current_rows))
+
+    return chunks or [table_text]
+
+
 def split_into_chunks(text: str, max_chars: int | None = None, overlap_chars: int | None = None) -> list[str]:
     """Split text on paragraph boundaries, preserving small readable citations.
 
@@ -53,6 +93,12 @@ def split_into_chunks(text: str, max_chars: int | None = None, overlap_chars: in
     for paragraph in normalized.split("\n\n"):
         paragraph = paragraph.strip()
         if not paragraph:
+            continue
+        if _is_markdown_table(paragraph):
+            if current:
+                chunks.append(current)
+                current = ""
+            chunks.extend(_split_table_into_chunks(paragraph, max_chars))
             continue
         candidate = f"{current}\n\n{paragraph}".strip() if current else paragraph
         if len(candidate) <= max_chars:
@@ -118,20 +164,7 @@ def extract_source_units(filename: str, content: bytes) -> list[SourceUnit]:
             return units
         if suffix == ".docx":
             _validate_office_archive(content, "docx")
-            from docx import Document
-
-            document = Document(BytesIO(content))
-            heading = "Documento"
-            docx_units: list[SourceUnit] = []
-            for number, paragraph in enumerate(document.paragraphs, start=1):
-                text = paragraph.text.strip()
-                if not text:
-                    continue
-                if paragraph.style and paragraph.style.name.lower().startswith("heading"):
-                    heading = text
-                    continue
-                docx_units.append(SourceUnit(text, f"{heading}, paragrafo {number}"))
-            return docx_units
+            return _extract_docx_units(content)
         if suffix == ".xlsx":
             _validate_office_archive(content, "xlsx")
             return _extract_xlsx_units(content)
@@ -278,6 +311,55 @@ def _extract_text_units(text: str, suffix: str) -> list[SourceUnit]:
         else:
             units.append(SourceUnit(part, f"Sezione: {heading}"))
     return units or [SourceUnit(normalized, "Documento")]
+
+
+def _extract_docx_units(content: bytes) -> list[SourceUnit]:
+    """Estrae paragrafi e tabelle in ordine di flusso documento da un file .docx."""
+    from docx import Document
+    from docx.table import Table
+    from docx.text.paragraph import Paragraph
+
+    document = Document(BytesIO(content))
+    heading = "Documento"
+    docx_units: list[SourceUnit] = []
+    para_num = 0
+    table_num = 0
+
+    for element in document.element.body:
+        tag = element.tag.split("}")[-1] if "}" in element.tag else element.tag
+        if tag == "p":
+            p = Paragraph(element, document)
+            text = p.text.strip()
+            if not text:
+                continue
+            if p.style and p.style.name and p.style.name.lower().startswith("heading"):
+                heading = text
+                continue
+            para_num += 1
+            docx_units.append(SourceUnit(text, f"{heading}, paragrafo {para_num}"))
+        elif tag == "tbl":
+            table = Table(element, document)
+            table_num += 1
+            rows_text: list[str] = []
+            for row in table.rows:
+                cells = [cell.text.strip().replace("\n", " ") for cell in row.cells]
+                if any(cells):
+                    dedup: list[str] = []
+                    for c in cells:
+                        if not dedup or c != dedup[-1]:
+                            dedup.append(c)
+                    rows_text.append(" | ".join(dedup if dedup else cells))
+            if rows_text:
+                if len(rows_text) > 1:
+                    header = rows_text[0]
+                    num_cols = max(1, len(header.split(" | ")))
+                    sep = " | ".join(["---"] * num_cols)
+                    table_md = f"| {header} |\n| {sep} |\n" + "\n".join(f"| {r} |" for r in rows_text[1:])
+                else:
+                    table_md = f"| {rows_text[0]} |"
+                docx_units.append(SourceUnit(table_md, f"{heading}, Tabella {table_num}"))
+
+    return docx_units
 
 
 def _parse_office_xml(data: bytes):

@@ -108,6 +108,19 @@ services:
       - ERMES_SLACK_SIGNING_SECRET=${ERMES_SLACK_SIGNING_SECRET:-}
       - ERMES_SLACK_BOT_TOKEN=${ERMES_SLACK_BOT_TOKEN:-}
       - ERMES_TELEGRAM_BOT_TOKEN=${ERMES_TELEGRAM_BOT_TOKEN:-}
+      # Storage backend: local (default) o s3 (AWS S3, MinIO, Ceph).
+      - ERMES_STORAGE_BACKEND=${ERMES_STORAGE_BACKEND:-local}
+      - ERMES_S3_ENDPOINT_URL=${ERMES_S3_ENDPOINT_URL:-}
+      - ERMES_S3_BUCKET_NAME=${ERMES_S3_BUCKET_NAME:-ermes-knowledge}
+      - ERMES_S3_ACCESS_KEY_ID=${ERMES_S3_ACCESS_KEY_ID:-}
+      - ERMES_S3_SECRET_ACCESS_KEY=${ERMES_S3_SECRET_ACCESS_KEY:-}
+      - ERMES_S3_REGION_NAME=${ERMES_S3_REGION_NAME:-us-east-1}
+      # SIEM / Remote audit log streaming out-of-band (Syslog RFC 5424 o HTTPS Webhook).
+      - ERMES_AUDIT_REMOTE_URL=${ERMES_AUDIT_REMOTE_URL:-}
+      - ERMES_AUDIT_REMOTE_TOKEN=${ERMES_AUDIT_REMOTE_TOKEN:-}
+      - ERMES_AUDIT_SYSLOG_HOST=${ERMES_AUDIT_SYSLOG_HOST:-}
+      - ERMES_AUDIT_SYSLOG_PORT=${ERMES_AUDIT_SYSLOG_PORT:-514}
+      - ERMES_AUDIT_SYSLOG_FACILITY=${ERMES_AUDIT_SYSLOG_FACILITY:-local0}
     depends_on:
       ollama:
         condition: service_healthy
@@ -150,6 +163,31 @@ services:
     # ports:
     #   - "127.0.0.1:5432:5432"
 
+  # Object storage S3-compatibile opzionale per test e sviluppo locale (MinIO).
+  # Attivazione: docker compose --profile minio up -d
+  # e impostare nel .env:
+  #   ERMES_STORAGE_BACKEND=s3
+  #   ERMES_S3_ENDPOINT_URL=http://minio:9000
+  #   ERMES_S3_BUCKET_NAME=ermes-knowledge
+  #   ERMES_S3_ACCESS_KEY_ID=ermes_minio
+  #   ERMES_S3_SECRET_ACCESS_KEY=ermes_minio_secret_key
+  minio:
+    profiles: ["minio"]
+    image: minio/minio:latest
+    container_name: ermes-minio
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER:-ermes_minio}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD:-ermes_minio_secret_key}
+    volumes:
+      - minio_data:/data
+    restart: unless-stopped
+    networks:
+      - ermes-network
+
   # Reverse proxy per esposizione pubblica (SSL automatico con Let's Encrypt)
   # Sostituisci il dominio in scripts/Caddyfile prima di avviare
   caddy:
@@ -178,3 +216,5 @@ volumes:
   caddy_data:
   caddy_config:
   postgres_data:
+  minio_data:
+
