@@ -52,6 +52,11 @@ Interventi di irrobustimento enterprise progettati secondo la revisione dei 5 ru
   - Ispezione del flusso di byte in-memory prima della persistenza su storage locale o S3/MinIO in tutti i flussi di ingestione: upload web (`/api/libraries/{id}/documents`), webhook gateway (`/api/webhooks/{source_id}/ingest`), sincronizzazione connettori cloud/intranet (`api/connectors.py`) e importazione cartelle di rete (`core/folder_importer.py`).
   - Politica configurabile `fail-open` o `fail-closed` (`ERMES_CLAMAV_FAIL_CLOSED=1`) per ambienti mission-critical/aerospaziali/governativi; blocco immediato con HTTP 400 (`MALWARE_DETECTED`) e audit trail crittografico HMAC registrato in caso di minaccia rilevata.
 
+- **Monitoraggio Prometheus & Dashboard Grafana Turn-Key (`deploy/monitoring/grafana-dashboard.json`)**:
+  - Dashboard Grafana completa per l'osservabilità in tempo reale esportata dall'endpoint `/metrics` (Prometheus).
+  - Include 8 pannelli operativi: HTTP Request Rate & Status Codes, RAG Question Throughput, Abstention & False Abstention Rates, Prompt Injections Blocked (DLP/WAF), HTTP Request Latency p50/p95/p99, Vector & Keyword Retrieval Duration, Document Ingestion Status (Success/Failure/Skipped/Malware) e Evidence Verifier Outcomes.
+
+
 
 
 
