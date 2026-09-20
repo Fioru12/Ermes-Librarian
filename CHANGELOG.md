@@ -46,9 +46,9 @@ Interventi di irrobustimento enterprise progettati secondo la revisione dei 5 ru
   - Local Folder Connector: Allineata la mappa canonica dei MIME type per file `.md`, `.docx`, `.xlsx`, `.pptx`, `.csv`, `.rtf`, eliminando dipendenze da registri di sistema operativi eterogenei.
   - SIEM Graceful Flush: Integrata la chiamata `flush_remote_audit(timeout=3.0)` nel ciclo di vita `lifespan` all'arresto dell'applicazione, garantendo zero perdite di audit log verso server SIEM / Syslog durante shutdown e rolling update Kubernetes.
 
-- **Antivirus In-Memory Scanner (`core/antivirus.py`, `api/libraries.py`, `api/webhook_gateway.py`)**:
+- **Antivirus In-Memory Scanner (`core/antivirus.py`, `api/libraries.py`, `api/webhook_gateway.py`, `api/connectors.py`, `core/folder_importer.py`)**:
   - Scanner antivirus zero-dependency ad alte prestazioni per daemon ClamAV (`clamd`) via protocollo socket TCP `zINSTREAM`.
-  - Ispezione del flusso di byte in-memory prima della persistenza su storage locale o S3/MinIO in tutti gli endpoint di ingestione (`/api/libraries/{id}/documents` e `/api/webhooks/{source_id}/ingest`).
+  - Ispezione del flusso di byte in-memory prima della persistenza su storage locale o S3/MinIO in tutti i flussi di ingestione: upload web (`/api/libraries/{id}/documents`), webhook gateway (`/api/webhooks/{source_id}/ingest`), sincronizzazione connettori cloud/intranet (`api/connectors.py`) e importazione cartelle di rete (`core/folder_importer.py`).
   - Politica configurabile `fail-open` o `fail-closed` (`ERMES_CLAMAV_FAIL_CLOSED=1`) per ambienti mission-critical/aerospaziali/governativi; blocco immediato con HTTP 400 (`MALWARE_DETECTED`) e audit trail crittografico HMAC registrato in caso di minaccia rilevata.
 
 
