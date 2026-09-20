@@ -25,7 +25,8 @@ function Stop-Port {
 }
 
 Stop-Port -Port 8502 -Nome "Backend"
-Stop-Port -Port 3000 -Nome "Frontend"
+Stop-Port -Port 5173 -Nome "Frontend"
+Stop-Port -Port 3000 -Nome "Frontend (legacy)"
 
 # Ollama non viene arrestato: e' un servizio di sistema che puo' servire altre
 # applicazioni. Per fermarlo esplicitamente: Stop-Process -Name ollama -Force

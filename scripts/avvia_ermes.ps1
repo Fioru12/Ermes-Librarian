@@ -8,6 +8,8 @@ $ollamaExe = "$env:LOCALAPPDATA\Programs\Ollama\ollama.exe"
 # Il launcher usa quello riparabile e isolato di Ermes.
 $venvPython = "$scriptDir\.venv-ermes\Scripts\python.exe"
 $frontendDir = "$scriptDir\frontend"
+$logDir = "$scriptDir\logs"
+if (-not (Test-Path $logDir)) { New-Item -ItemType Directory -Path $logDir | Out-Null }
 
 Write-Host "=== Ermes - Avvio Servizi ===" -ForegroundColor Cyan
 
@@ -61,8 +63,6 @@ if (-not $backendOk) {
     # L'output di uvicorn viene registrato invece di sparire: lanciato con
     # finestra nascosta, un errore di import (una dipendenza mancante nel venv,
     # per esempio) restava invisibile e lo script incolpava la porta.
-    $logDir = "$scriptDir\logs"
-    if (-not (Test-Path $logDir)) { New-Item -ItemType Directory -Path $logDir | Out-Null }
     $backendLog = "$logDir\backend-avvio.log"
     Start-Process -WindowStyle Hidden -FilePath $venvPython -ArgumentList "-m uvicorn api:app --host 127.0.0.1 --port $backendPort" -WorkingDirectory $scriptDir -RedirectStandardError $backendLog -RedirectStandardOutput "$logDir\backend-avvio.out.log"
     # uvicorn plus model/vector-store init can take longer than a single
@@ -95,7 +95,7 @@ else {
 
 # ── 3. FRONTEND ──
 Write-Host "[3/4] Frontend..." -NoNewline
-$frontendPort = 3000
+$frontendPort = 5173
 $frontendOk = Test-HttpUp "http://127.0.0.1:$frontendPort/"
 if (-not $frontendOk) {
     Write-Host " avvio..." -NoNewline
@@ -105,13 +105,18 @@ if (-not $frontendOk) {
     # no node process, and every subsequent curl check fails honestly
     # because nothing is actually listening. Going through cmd.exe avoids
     # the .ps1 file-association entirely and resolves npx.cmd directly.
-    Start-Process -WindowStyle Hidden -FilePath "cmd.exe" -ArgumentList '/c npx vite --host --config vite.config.ts' -WorkingDirectory $frontendDir
-    for ($i = 0; $i -lt 6 -and -not $frontendOk; $i++) {
+    $viteCmd = Join-Path $frontendDir "node_modules\.bin\vite.cmd"
+    if (Test-Path $viteCmd) {
+        Start-Process -WindowStyle Hidden -FilePath "cmd.exe" -ArgumentList "/c `"$viteCmd`" --host --port $frontendPort" -WorkingDirectory $frontendDir
+    } else {
+        Start-Process -WindowStyle Hidden -FilePath "cmd.exe" -ArgumentList "/c npx.cmd vite --host --port $frontendPort" -WorkingDirectory $frontendDir
+    }
+    for ($i = 0; $i -lt 10 -and -not $frontendOk; $i++) {
         Start-Sleep 2
         $frontendOk = Test-HttpUp "http://127.0.0.1:$frontendPort/"
     }
 }
-if ($frontendOk) { Write-Host " OK" -ForegroundColor Green }
+if ($frontendOk) { Write-Host " OK (porta $frontendPort)" -ForegroundColor Green }
 else { Write-Host " FALLITO" -ForegroundColor Red }
 
 # ── 4. HEALTH CHECK FINALE ──
