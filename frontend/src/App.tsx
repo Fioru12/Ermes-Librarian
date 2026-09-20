@@ -126,6 +126,12 @@ function AppInner() {
     }
   }, [])
 
+  useEffect(() => {
+    return () => {
+      abortRef.current?.abort()
+    }
+  }, [selectedLibraryId])
+
   const sendQuestion = async (question: string) => {
     if (isGenerating || !question.trim()) return
     if (!selectedLibraryId) return showNotif('Seleziona una biblioteca prima di fare una domanda', 'error')
@@ -148,6 +154,7 @@ function AppInner() {
     setIsGenerating(true)
     const controller = new AbortController()
     abortRef.current = controller
+    let reader: ReadableStreamDefaultReader<Uint8Array> | null = null
     try {
       const response = await fetch(`/api/libraries/${selectedLibraryId}/ask/stream`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -157,7 +164,7 @@ function AppInner() {
       if (!response.ok) throw new Error('Impossibile interrogare la biblioteca')
       if (!response.body) throw new Error('Streaming non supportato')
 
-      const reader = response.body.getReader()
+      reader = response.body.getReader()
       const decoder = new TextDecoder()
       let buffer = ''
 
@@ -196,7 +203,7 @@ function AppInner() {
                 : message))
             } else if (eventType === 'answer') {
               setMessages(previous => previous.map(message => message.id === answerId
-                ? { ...message, content: parsed.chunk ?? '' }
+                ? { ...message, content: (message.content || '') + (parsed.chunk ?? '') }
                 : message))
             } else if (eventType === 'done') {
               const returnedId = parsed.answer_id || answerId
@@ -223,6 +230,13 @@ function AppInner() {
         : 'Non riesco a completare la richiesta. Riprova tra poco.'
       setMessages(previous => previous.map(message => message.id === answerId ? { ...message, content } : message))
     } finally {
+      if (reader) {
+        try {
+          await reader.cancel()
+        } catch {
+          // Stream already closed or locked
+        }
+      }
       setIsGenerating(false)
       abortRef.current = null
     }

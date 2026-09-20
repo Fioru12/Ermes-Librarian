@@ -129,6 +129,20 @@ describe('App — SSE answer stream', () => {
     expect(JSON.parse(String(req.init?.body))).toEqual({ question: 'Con quanto anticipo chiedo le ferie?', history: [] })
   })
 
+  it('accumulates multiple answer chunks progressively during stream', async () => {
+    routes['/api/libraries/hr/ask/stream'] = () => sse([
+      ['status', { step: 'retrieving' }],
+      ['answer', { chunk: 'Prima parte ' }],
+      ['answer', { chunk: 'seconda parte.' }],
+      ['done', { answer_id: 'srv-2', answer: 'Prima parte seconda parte.', citations: [], evidence: { status: 'supported' }, meta: {} }],
+    ], 'split')
+    await renderAuthenticated()
+
+    await ask('Domanda sui chunk?')
+
+    await screen.findByText('Prima parte seconda parte.')
+  })
+
   it('sends only the last three user questions as history, never the answers', async () => {
     const bodies: Array<{ history: unknown }> = []
     routes['/api/libraries/hr/ask/stream'] = init => {
