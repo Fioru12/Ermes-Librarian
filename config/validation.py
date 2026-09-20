@@ -227,6 +227,28 @@ def check_configuration(cfg) -> list[ConfigProblem]:
             )
         )
 
+    # Crittografia a riposo dei documenti (core/storage_backend.py)
+    if cfg.STORAGE_ENCRYPTION_REQUIRED and not cfg.STORAGE_ENCRYPTION_KEY:
+        problems.append(
+            ConfigProblem(
+                "fatal",
+                "ERMES_STORAGE_ENCRYPTION_REQUIRED",
+                "la crittografia a riposo obbligatoria e' attiva ma ERMES_STORAGE_ENCRYPTION_KEY e' vuota",
+                "imposta ERMES_STORAGE_ENCRYPTION_KEY con una chiave a 256 bit o una passphrase, "
+                "oppure disattiva ERMES_STORAGE_ENCRYPTION_REQUIRED",
+            )
+        )
+    if cfg.STORAGE_ENCRYPTION_KEY and _is_placeholder(cfg.STORAGE_ENCRYPTION_KEY):
+        problems.append(
+            ConfigProblem(
+                "fatal",
+                "ERMES_STORAGE_ENCRYPTION_KEY",
+                f"e' il segnaposto pubblico {cfg.STORAGE_ENCRYPTION_KEY.strip()!r}: i documenti cifrati sarebbero decifrabili da chiunque",
+                "genera una chiave casuale con "
+                'python -c "import secrets; print(secrets.token_hex(32))"',
+            )
+        )
+
     problems.extend(_legacy_variable_problems())
     problems.sort(key=lambda p: 0 if p.severity == "fatal" else 1)
     return problems

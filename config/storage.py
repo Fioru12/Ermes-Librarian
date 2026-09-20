@@ -60,6 +60,18 @@ class StorageConfig:
         default_factory=lambda: os.environ.get("ERMES_S3_REGION_NAME", "us-east-1").strip()
     )
 
+    # Crittografia a riposo dei documenti (AES-256-GCM authenticated encryption).
+    # Se vuota, i documenti sono salvati in chiaro (default).
+    STORAGE_ENCRYPTION_KEY: str = field(
+        default_factory=lambda: os.environ.get("ERMES_STORAGE_ENCRYPTION_KEY", "").strip()
+    )
+    STORAGE_ENCRYPTION_REQUIRED: bool = field(
+        default_factory=lambda: (
+            os.environ.get("ERMES_STORAGE_ENCRYPTION_REQUIRED", "0").strip().lower()
+            in {"1", "true", "yes", "on"}
+        )
+    )
+
     @property
     def SECURITY_DIR(self) -> str:
         return os.path.join(self.BASE_DIR, "security")

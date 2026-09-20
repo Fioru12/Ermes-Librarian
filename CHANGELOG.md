@@ -56,6 +56,15 @@ Interventi di irrobustimento enterprise progettati secondo la revisione dei 5 ru
   - Dashboard Grafana completa per l'osservabilità in tempo reale esportata dall'endpoint `/metrics` (Prometheus).
   - Include 8 pannelli operativi: HTTP Request Rate & Status Codes, RAG Question Throughput, Abstention & False Abstention Rates, Prompt Injections Blocked (DLP/WAF), HTTP Request Latency p50/p95/p99, Vector & Keyword Retrieval Duration, Document Ingestion Status (Success/Failure/Skipped/Malware) e Evidence Verifier Outcomes.
 
+- **Crittografia dei Documenti a Riposo AES-256-GCM (`core/storage_backend.py`, `config/storage.py`, `config/validation.py`)**:
+  - Modulo crittografico authenticated encryption `StorageCipher` conforme agli standard NIST SP 800-38D per lo storage documentale enterprise (Zero-Trust Storage).
+  - Envelope crittografica proprietaria `ERM256\x01` con nonce casuale a 96 bit (12 byte) e tag di autenticazione a 128 bit (16 byte) per file: rileva manomissioni a livello di bit prima di servire i dati.
+  - Supporto trasparente per storage locale su filesystem (`LocalStorageBackend`) e object storage S3/MinIO (`S3StorageBackend`) sia in lettura/scrittura atomica sia in streaming chunked.
+  - Derivazione flessibile delle chiavi: accetta chiavi a 256 bit raw esadecimali (64 caratteri), base64 (44 caratteri) o passphrase aziendali derivate crittograficamente con SHA-256.
+  - Retrocompatibilità per file legacy in chiaro e modalità strict enforcing (`ERMES_STORAGE_ENCRYPTION_REQUIRED=1`) per ambienti regolamentati (sanità, difesa, banche, ISO 27001 / SOC 2 / HIPAA).
+  - Guard di validazione automatica all'avvio con blocco bloccante (`fatal`) in caso di configurazione incoerente o uso di segnaposto pubblici.
+
+
 
 
 
