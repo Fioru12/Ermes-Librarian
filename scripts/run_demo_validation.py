@@ -127,7 +127,7 @@ def ensure_library_with_documents(client: httpx.Client, name: str, description: 
                 f"Upload fallito per {item.name}",
             )
     wait_for_ingestion(client, library_id, {item.name for item in files})
-    return str(library_id)
+    return library_id
 
 
 def ask(client: httpx.Client, library_id: str, question: str) -> dict[str, Any]:
