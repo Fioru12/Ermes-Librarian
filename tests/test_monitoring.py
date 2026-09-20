@@ -9,12 +9,20 @@ coprire mai analyze_audit stessa.
 """
 
 import json
+from datetime import datetime, timedelta
 
 from core import monitoring
 
 
+# Data relativa, non fissa: con "2026-08-21" scritto in chiaro il test e'
+# passato per un mese e poi, il 21 settembre 2026, e' uscito dalla finestra
+# di 30 giorni di analyze_audit e ha reso rosso main senza che nessuno
+# avesse toccato niente.
+_RECENTE = (datetime.now() - timedelta(days=1)).isoformat(timespec="seconds")
+
+
 def _write_entry(audit_file, **fields):
-    entry = {"ts": "2026-08-21T10:00:00", "action": "unknown", "actor": "unknown"}
+    entry = {"ts": _RECENTE, "action": "unknown", "actor": "unknown"}
     entry.update(fields)
     with open(audit_file, "a", encoding="utf-8") as f:
         f.write(json.dumps(entry) + "\n")

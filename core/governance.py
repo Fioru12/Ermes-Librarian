@@ -385,6 +385,19 @@ def _verify_password(password: str, stored_hash: str, salt: str) -> tuple[bool, 
     return valid, valid
 
 
+def user_record_exists(users_file: str, username: str) -> bool:
+    """Sola lettura: c'e' una voce per questo utente? Serve al login per
+    decidere se il bootstrap dell'amministratore e' ancora da fare, senza
+    scrivere niente a ogni tentativo fallito."""
+    if not os.path.exists(users_file):
+        return False
+    try:
+        data = _load_users(users_file)
+    except Exception:
+        return False
+    return any(u.get("username") == username for u in data.get("users", []))
+
+
 def ensure_default_admin(users_file: str, username: str, password: str) -> None:
     """Se ADMIN_PASSWORD è impostata, garantisce che esista l'utente admin con password aggiornata."""
     if not password:

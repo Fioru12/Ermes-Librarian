@@ -4,7 +4,6 @@ Autenticazione JWT + RBAC + rate limiter.
 """
 
 import logging
-import os
 import secrets
 import time
 
@@ -194,7 +193,7 @@ def oidc_session_login(request: OidcSessionRequest, response: Response, http_req
 def login(request: LoginRequest, response: Response, http_request: Request) -> dict:
     if not cfg.ADMIN_PASSWORD:
         raise HTTPException(status_code=503, detail="Login locale non configurato")
-    from core.governance import authenticate_user, ensure_default_admin
+    from core.governance import authenticate_user, ensure_default_admin, user_record_exists
 
     client_ip = http_request.client.host if http_request.client else "unknown"
     username = request.username.strip()
@@ -206,14 +205,17 @@ def login(request: LoginRequest, response: Response, http_request: Request) -> d
         raise HTTPException(status_code=429, detail=reason)
 
     user = authenticate_user(cfg.USERS_FILE, username, request.password)
-    if user is None and not os.path.exists(cfg.USERS_FILE):
-        # Primo avvio senza lifespan (test, app servita a mano): il file degli
-        # utenti non esiste ancora, lo si crea una volta sola. Fino al 21
-        # settembre 2026 ensure_default_admin veniva richiamata a OGNI
-        # tentativo fallito, file esistente o no: una scrittura sotto lock
-        # per ogni password sbagliata, un'amplificazione gratuita per chi
-        # tenta credenziali. L'allineamento con ERMES_ADMIN_PASSWORD avviene
-        # all'avvio (api/__init__.py).
+    if (
+        user is None
+        and username == cfg.ADMIN_USERNAME
+        and not user_record_exists(cfg.USERS_FILE, cfg.ADMIN_USERNAME)
+    ):
+        # Bootstrap dell'amministratore quando la sua voce non esiste ancora
+        # (avvio senza lifespan: test, app servita a mano). Una lettura per
+        # tentativo, una scrittura in tutto. Fino al 21 settembre 2026
+        # ensure_default_admin veniva richiamata a OGNI tentativo fallito di
+        # QUALUNQUE utente: una scrittura sotto lock per password sbagliata,
+        # un'amplificazione gratuita per chi tenta credenziali.
         ensure_default_admin(cfg.USERS_FILE, cfg.ADMIN_USERNAME, cfg.ADMIN_PASSWORD)
         user = authenticate_user(cfg.USERS_FILE, username, request.password)
     if user is None:
