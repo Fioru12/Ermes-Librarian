@@ -10,6 +10,7 @@ Interventi di irrobustimento enterprise progettati secondo la revisione dei 5 ru
   - Architettura a backend pluggabile: `LocalStorageBackend` (con guard anti path-traversal strict per percorsi relativi normalizzati e risolti) e `S3StorageBackend` (compatibile con AWS S3, MinIO, Ceph, Cloudflare R2, Google Cloud Storage via interoperabilità S3).
   - Configurazione via `ERMES_STORAGE_BACKEND=local|s3`, `ERMES_S3_ENDPOINT_URL`, `ERMES_S3_BUCKET_NAME`, `ERMES_S3_ACCESS_KEY_ID`, `ERMES_S3_SECRET_ACCESS_KEY`, `ERMES_S3_REGION_NAME`.
   - Integrazione completa in `api/libraries.py` e `core/ingestion_service.py` per upload, streaming download via `StreamingResponse`, cancellazione atomica singola e batch (`delete_objects`), reindicizzazione e ripristino versioni storiche.
+  - Health Check Cloud-Native (`core/storage_backend.py`, `api/health.py`): metodo `check_health()` uniforme su `StorageBackend` per verificare disponibilità e permessi di scrittura locale o raggiungibilità del bucket S3; verifica database unificata su `DatabaseBackend` reale (`SELECT 1`) invece del solo SQLite statico su file.
   - Zero-breaking changes: SQLite e filesystem locale restano i default operativi per installazioni desktop/edge.
 
 - **Parsing Documentale Table-Aware & Office Hardening (`core/document_parser.py`)**:

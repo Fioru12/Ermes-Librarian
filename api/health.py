@@ -4,8 +4,6 @@ Health check endpoint.
 """
 
 import logging
-import os
-import sqlite3
 
 import httpx
 from fastapi import APIRouter
@@ -157,22 +155,23 @@ async def health_check():
 
     library_db_ok = False
     try:
-        base_dir = getattr(cfg, "BASE_DIR", ".")
-        database_path = getattr(cfg, "LIBRARY_DB_PATH", os.path.join(base_dir, "data", "ermes_knowledge.sqlite3"))
-        os.makedirs(os.path.dirname(database_path), exist_ok=True)
-        with sqlite3.connect(database_path) as connection:
-            connection.execute("SELECT 1")
+        from api.libraries import get_library_store
+
+        store = get_library_store()
+        store._backend.execute("SELECT 1")
         library_db_ok = True
-    except (OSError, sqlite3.Error) as error:
+    except Exception as error:
         _logger.warning("Health check: database biblioteca non disponibile: %s", error)
 
+    library_storage_ok = False
     try:
-        library_storage_dir = getattr(
-            cfg, "LIBRARY_STORAGE_DIR", os.path.join(getattr(cfg, "BASE_DIR", "."), "storage", "libraries")
-        )
-        os.makedirs(library_storage_dir, exist_ok=True)
-        library_storage_ok = os.path.isdir(library_storage_dir) and os.access(library_storage_dir, os.W_OK)
-    except OSError as error:
+        from core.storage_backend import get_storage_backend
+
+        storage_ok, storage_msg = get_storage_backend().check_health()
+        library_storage_ok = storage_ok
+        if not storage_ok:
+            _logger.warning("Health check: storage biblioteca non disponibile: %s", storage_msg)
+    except Exception as error:
         _logger.warning("Health check: storage biblioteca non disponibile: %s", error)
         library_storage_ok = False
 

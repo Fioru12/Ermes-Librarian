@@ -202,3 +202,28 @@ def test_api_upload_and_download_with_storage_backend(tmp_path: Path, monkeypatc
     del_res = client.delete(f"/api/libraries/{library_id}/documents/{doc_id}")
     assert del_res.status_code == 204
     assert not backend.exists(storage_path)
+
+
+def test_storage_backend_check_health(tmp_path: Path):
+    # Local Storage Health
+    local_backend = LocalStorageBackend(tmp_path / "valid_store")
+    ok, msg = local_backend.check_health()
+    assert ok is True
+    assert "pronto" in msg.lower()
+
+    # S3 Storage Health Mocked
+    mock_s3 = MagicMock()
+    mock_s3.head_bucket.return_value = {}
+    s3_backend = S3StorageBackend(bucket_name="my-bucket", s3_client=mock_s3)
+    ok_s3, msg_s3 = s3_backend.check_health()
+    assert ok_s3 is True
+    assert "raggiungibile" in msg_s3.lower()
+
+    # S3 Storage Health Failure Mocked
+    mock_s3_fail = MagicMock()
+    mock_s3_fail.head_bucket.side_effect = Exception("Bucket not found or permission denied")
+    s3_backend_fail = S3StorageBackend(bucket_name="bad-bucket", s3_client=mock_s3_fail)
+    ok_fail, msg_fail = s3_backend_fail.check_health()
+    assert ok_fail is False
+    assert "non raggiungibile" in msg_fail.lower()
+

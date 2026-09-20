@@ -85,6 +85,10 @@ class StorageBackend(ABC):
     def get_stream(self, relative_path: str, chunk_size: int = 64 * 1024) -> Iterator[bytes]:
         """Yields chunks of binary content for streaming downloads."""
 
+    @abstractmethod
+    def check_health(self) -> tuple[bool, str]:
+        """Checks storage availability and write/read readiness."""
+
     def get_local_path(self, relative_path: str) -> Path | None:
         """Returns a local Path if stored locally on disk, otherwise None."""
         return None
@@ -96,6 +100,19 @@ class LocalStorageBackend(StorageBackend):
     def __init__(self, root_dir: str | Path) -> None:
         self.root_dir = Path(root_dir).resolve()
         self.root_dir.mkdir(parents=True, exist_ok=True)
+
+    def check_health(self) -> tuple[bool, str]:
+        import os
+
+        try:
+            self.root_dir.mkdir(parents=True, exist_ok=True)
+            if not self.root_dir.is_dir():
+                return False, f"La cartella di storage non esiste: {self.root_dir}"
+            if not os.access(self.root_dir, os.W_OK):
+                return False, f"La cartella di storage non è scrivibile: {self.root_dir}"
+            return True, f"Storage locale pronto: {self.root_dir}"
+        except Exception as e:
+            return False, f"Errore storage locale: {e}"
 
     def _resolve(self, relative_path: str) -> Path:
         norm = normalize_relative_path(relative_path)
@@ -295,6 +312,15 @@ class S3StorageBackend(StorageBackend):
             if "nosuchkey" in msg or "404" in msg or "not found" in msg:
                 raise StorageFileNotFoundError(f"Object {norm} not found in bucket {self.bucket_name}") from err
             raise StorageError(f"Failed to stream object {norm} from S3: {err}") from err
+
+    def check_health(self) -> tuple[bool, str]:
+        try:
+            client = self._get_client()
+            client.head_bucket(Bucket=self.bucket_name)
+            return True, f"Bucket S3 raggiungibile: {self.bucket_name}"
+        except Exception as e:
+            return False, f"Bucket S3 non raggiungibile ({self.bucket_name}): {e}"
+
 
 
 _storage_backend_singleton: StorageBackend | None = None
