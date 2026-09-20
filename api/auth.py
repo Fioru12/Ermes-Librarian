@@ -4,6 +4,7 @@ Autenticazione JWT + RBAC + rate limiter.
 """
 
 import logging
+import os
 import secrets
 import time
 
@@ -205,12 +206,19 @@ def login(request: LoginRequest, response: Response, http_request: Request) -> d
         raise HTTPException(status_code=429, detail=reason)
 
     user = authenticate_user(cfg.USERS_FILE, username, request.password)
-    if user is None:
+    if user is None and not os.path.exists(cfg.USERS_FILE):
+        # Primo avvio senza lifespan (test, app servita a mano): il file degli
+        # utenti non esiste ancora, lo si crea una volta sola. Fino al 21
+        # settembre 2026 ensure_default_admin veniva richiamata a OGNI
+        # tentativo fallito, file esistente o no: una scrittura sotto lock
+        # per ogni password sbagliata, un'amplificazione gratuita per chi
+        # tenta credenziali. L'allineamento con ERMES_ADMIN_PASSWORD avviene
+        # all'avvio (api/__init__.py).
         ensure_default_admin(cfg.USERS_FILE, cfg.ADMIN_USERNAME, cfg.ADMIN_PASSWORD)
         user = authenticate_user(cfg.USERS_FILE, username, request.password)
-        if user is None:
-            login_guard.register_failure(client_ip, username)
-            raise HTTPException(status_code=401, detail="Credenziali non valide")
+    if user is None:
+        login_guard.register_failure(client_ip, username)
+        raise HTTPException(status_code=401, detail="Credenziali non valide")
     login_guard.register_success(client_ip, username)
     token = secrets.token_urlsafe(32)
     expires_at = time.time() + max(1, cfg.SESSION_TTL_HOURS) * 3600

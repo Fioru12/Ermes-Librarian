@@ -10,7 +10,7 @@ import httpx
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
-from api.auth import _require_role
+from api.auth import _require_role, rate_limited
 from config import cfg
 
 _logger = logging.getLogger(__name__)
@@ -115,7 +115,7 @@ async def add_provider(request: ProviderConfigRequest, _auth: dict = Depends(_re
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.post("/api/providers/test")
+@router.post("/api/providers/test", dependencies=[Depends(rate_limited)])
 async def test_provider(request: ProviderTestRequest, _auth: dict = Depends(_require_role("admin"))):
     from core.ai.providers.base import ProviderConfig
     from core.ai.providers.registry import get_registry
@@ -184,7 +184,11 @@ async def set_active_provider(request: SetActiveProviderRequest, _auth: dict = D
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.post("/api/providers/detect", summary="Rileva automaticamente tipo e configurazione da una API key")
+@router.post(
+    "/api/providers/detect",
+    summary="Rileva automaticamente tipo e configurazione da una API key",
+    dependencies=[Depends(rate_limited)],
+)
 async def detect_provider(request: DetectProviderRequest, _auth: dict = Depends(_require_role("admin"))):
     key = request.api_key.strip()
     detected: dict[str, object] = {
@@ -235,7 +239,11 @@ async def detect_provider(request: DetectProviderRequest, _auth: dict = Depends(
     return detected
 
 
-@router.post("/api/providers/fetch-models", summary="Recupera la lista modelli da un provider")
+@router.post(
+    "/api/providers/fetch-models",
+    summary="Recupera la lista modelli da un provider",
+    dependencies=[Depends(rate_limited)],
+)
 async def fetch_models(request: FetchModelsRequest, _auth: dict = Depends(_require_role("admin"))):
     models: list[str] = []
     defaults = {

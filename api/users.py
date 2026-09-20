@@ -8,7 +8,7 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
-from api.auth import _invalidate_sessions_for_user, _require_role
+from api.auth import _invalidate_sessions_for_user, _require_role, rate_limited
 from config import cfg
 
 _logger = logging.getLogger(__name__)
@@ -59,7 +59,7 @@ async def list_local_accounts(user: dict = Depends(_require_role("admin"))):
     return {"users": list_users(cfg.USERS_FILE)}
 
 
-@router.post("/api/accounts", summary="Crea un account web locale")
+@router.post("/api/accounts", summary="Crea un account web locale", dependencies=[Depends(rate_limited)])
 async def create_local_account(req: CreateLocalAccountRequest, user: dict = Depends(_require_role("admin"))):
     """Create a local browser-login account; password is never returned or logged."""
     from core.governance import append_audit, create_or_update_user, list_users, validate_password_strength
@@ -143,7 +143,7 @@ async def list_api_users(user: dict = Depends(_require_role("admin"))):
     return {"users": list_api_keys()}
 
 
-@router.post("/api/users", summary="Crea un nuovo utente con API key")
+@router.post("/api/users", summary="Crea un nuovo utente con API key", dependencies=[Depends(rate_limited)])
 async def create_api_user(req: CreateUserRequest, user: dict = Depends(_require_role("admin"))):
     from core.governance import set_user_api_key
 
@@ -165,7 +165,9 @@ async def create_api_user(req: CreateUserRequest, user: dict = Depends(_require_
     )
 
 
-@router.post("/api/users/{username}/rotate-key", summary="Rigenera la API key di un utente")
+@router.post(
+    "/api/users/{username}/rotate-key", summary="Rigenera la API key di un utente", dependencies=[Depends(rate_limited)]
+)
 async def rotate_api_key(username: str, user: dict = Depends(_require_role("admin"))):
     from core.governance import list_api_keys, revoke_user_api_key, set_user_api_key
 

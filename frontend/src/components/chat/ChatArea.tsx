@@ -116,17 +116,26 @@ export default function ChatArea({
   }, [messages, isGenerating])
 
   const handleFeedback = async (messageId: string, rating: 1 | -1, comment: string = '') => {
+    const previous = feedbackState[messageId]
+    setFeedbackState(prev => ({ ...prev, [messageId]: rating }))
+    setNegativeFeedbackOpen(null)
     try {
-      setFeedbackState(prev => ({ ...prev, [messageId]: rating }))
-      setNegativeFeedbackOpen(null)
-      await fetch('/api/analytics/feedback', {
+      const response = await fetch('/api/analytics/feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ event_id: messageId, rating, comment }),
         credentials: 'include',
       })
+      if (!response.ok) throw new Error(String(response.status))
     } catch {
-      // silent fallback
+      // Optimistic update rolled back: a thumb that stays lit after a failed
+      // save tells the user something that did not happen.
+      setFeedbackState(prev => {
+        const next = { ...prev }
+        if (previous === undefined) delete next[messageId]
+        else next[messageId] = previous
+        return next
+      })
     }
   }
 

@@ -140,7 +140,10 @@ def update_pii_config(new_config: dict[str, Any]) -> dict[str, Any]:
         sanitized_rules: list[dict[str, Any]] = []
         for r in custom_rules:
             if isinstance(r, dict) and r.get("name") and r.get("pattern") and r.get("replacement"):
-                # Testa se la regex e' valida
+                # Testa se la regex e' valida E non e' una bomba di backtracking
+                motivo = regex_rejection_reason(str(r["pattern"]))
+                if motivo:
+                    raise ValueError(f"regola '{r.get('name')}': {motivo}")
                 try:
                     re.compile(r["pattern"])
                     sanitized_rules.append(
@@ -169,6 +172,46 @@ def update_pii_config(new_config: dict[str, Any]) -> dict[str, Any]:
             _logger.error("Errore salvataggio pii_config.json: %s", e)
 
         return updated
+
+
+# Forme che fanno esplodere il backtracking di `re` (che non ha timeout):
+# un gruppo quantificato il cui contenuto e' a sua volta quantificato o
+# alternato — (a+)+, (a*)*, (a|aa)+, (\w+\s?)*, ((x)*)+ — moltiplica i
+# percorsi a ogni carattere. Non e' una prova di sicurezza, e' un filtro
+# sulle classi note: sufficiente perche' le regole le scrive un
+# amministratore, non un anonimo, e insufficiente a giustificare un timeout
+# che `re` non offre. I gruppi vengono ridotti dall'interno verso l'esterno,
+# cosi' l'annidamento non conta.
+_GROUP_QUANTIFIER = frozenset("+*{")
+
+
+def _has_catastrophic_shape(pattern: str) -> bool:
+    ridotto = re.sub(r"\.", "E", pattern)  # escape -> carattere neutro
+    ridotto = re.sub(r"\[[^\]]*\]", "C", ridotto)  # classe -> carattere neutro
+    while True:
+        gruppo = re.search(r"\([^()]*\)", ridotto)
+        if not gruppo:
+            return False
+        interno = gruppo.group(0)[1:-1]
+        seguito = ridotto[gruppo.end() : gruppo.end() + 1]
+        pericoloso = bool(re.search(r"[+*{|]", interno)) or "Q" in interno
+        if seguito in _GROUP_QUANTIFIER and pericoloso:
+            return True
+        segnaposto = "Q" if pericoloso else "X"
+        ridotto = ridotto[: gruppo.start()] + segnaposto + ridotto[gruppo.end() :]
+
+
+def regex_rejection_reason(pattern: str) -> str | None:
+    """None se la regex e' accettabile, altrimenti il motivo leggibile."""
+    if len(pattern) > 500:
+        return "pattern troppo lungo (massimo 500 caratteri)"
+    try:
+        re.compile(pattern)
+    except re.error as error:
+        return f"regex non valida: {error}"
+    if _has_catastrophic_shape(pattern):
+        return "quantificatore annidato o alternativa quantificata: rischio di backtracking catastrofico"
+    return None
 
 
 def _validate_luhn(card_number_str: str) -> bool:

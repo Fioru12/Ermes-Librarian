@@ -53,6 +53,17 @@ Frontend:
 
 - **Conferme nello stile dell'app** (`ui/ConfirmDialog.tsx`, `useConfirm()`): i sei `window.confirm` nativi (elimina documento/biblioteca/sorgente, revoca accesso, rimuovi sinonimo, attiva provider cloud) diventano un dialogo con titolo, spiegazione delle conseguenze, azione pericolosa evidenziata, Esc/click fuori per annullare, fuoco sul bottone di conferma. Senza provider (componente in isolamento) ripiega su `window.confirm`, così i test esistenti che lo stubbano restano validi. 4 test.
 
+Terza tornata della stessa revisione (21 settembre), `tests/test_review_round_3.py` + 1 test frontend:
+
+- **Regole PII custom con controllo anti-ReDoS**: `re` non ha timeout, quindi un pattern come `(a+)+` salvato da un amministratore diventava un DoS di CPU su ogni documento e risposta. Ora al salvataggio si rifiutano gruppi quantificati con contenuto quantificato o alternato (riduzione dei gruppi dall'interno verso l'esterno, così l'annidamento non conta); i pattern reali (IBAN, telefono, CF) passano. `POST /api/pii/test` è solo admin e con limite di frequenza — era per qualunque autenticato, senza limite.
+- **XML**: il controllo su `<!DOCTYPE`/`<!ENTITY` guardava solo i primi 4096 byte del part OOXML; 4097 byte di commento lo aggiravano. Ora scansiona l'intero buffer.
+- **Login fallito senza scrittura su disco**: `ensure_default_admin` veniva richiamata a ogni password sbagliata (una scrittura di `users.json` sotto lock per tentativo). Ora solo se il file non esiste ancora.
+- **Rate limit** su backup create/restore, creazione account/utenti/rotazione chiave, sinonimi, test/detect/fetch-models dei provider, export ed erase GDPR.
+- **Translator Postgres**: `?` dentro un letterale SQL non è più un segnaposto e `??` diventa l'operatore JSONB `?`. Nessuna query lo usava ancora: corretto prima che una lo faccia.
+- `striprtf` dichiarata e pinnata (il fallback silenzioso mascherava l'assenza); `lark` rimosso (nessun import nel prodotto). SBOM e notices rigenerati.
+- Frontend: un solo timer per le notifiche (due notifiche ravvicinate: la prima chiudeva la seconda); il feedback ottimistico viene annullato se il server rifiuta.
+- `DESCRIZIONE_PROGETTO.md` non dichiara più "88+ Pytest": rimanda a `pytest --collect-only`.
+
 Verificato e **non** corretto perché il claim non regge: lo streaming SSE non "sovrascrive i chunk" — il server manda un solo evento `answer` con la risposta completa (`api/libraries.py`), lo stream è di stati; `striprtf` assente da `requirements.txt` ha un fallback esplicito in `core/document_parser.py`. Rimandati (richiedono più di un giorno): adapter Postgres per le ~25 query via `_connection()` con `?` (oggi rotte su PG, confermato), migrazione ad Argon2, backup cifrati.
 
 ## 2026-09-12 — v2.2.4: Gestione UI Glossario Dinamico e UX Citazioni Avanzate

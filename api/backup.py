@@ -8,7 +8,7 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
-from api.auth import _require_role
+from api.auth import _require_role, rate_limited
 
 _logger = logging.getLogger(__name__)
 
@@ -21,7 +21,12 @@ class BackupResponse(BaseModel):
     data: dict | None = None
 
 
-@router.post("/backup/create", response_model=BackupResponse, summary="Crea un backup del sistema")
+@router.post(
+    "/backup/create",
+    response_model=BackupResponse,
+    summary="Crea un backup del sistema",
+    dependencies=[Depends(rate_limited)],
+)
 async def create_backup(_auth: dict = Depends(_require_role("admin"))):
     from core.backup_manager import create_backup
 
@@ -40,7 +45,12 @@ async def list_backups(_auth: dict = Depends(_require_role("admin"))):
     return {"backups": list_backups()}
 
 
-@router.post("/backup/restore/{backup_name}", response_model=BackupResponse, summary="Ripristina un backup")
+@router.post(
+    "/backup/restore/{backup_name}",
+    response_model=BackupResponse,
+    summary="Ripristina un backup",
+    dependencies=[Depends(rate_limited)],
+)
 async def restore_backup(backup_name: str, dry_run: bool = False, _auth: dict = Depends(_require_role("admin"))):
     from core.backup_manager import restore_backup
 

@@ -111,4 +111,19 @@ describe('ChatArea', () => {
       vi.unstubAllGlobals()
     }
   })
+
+  it('rolls the optimistic feedback back when the server refuses it', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response('{}', { status: 500 }))
+    vi.stubGlobal('fetch', fetchMock)
+    try {
+      renderChat({ messages: [{ id: 'ev-2', role: 'assistant', content: 'Risposta.', timestamp: '10:00', sources: [] }] })
+      const utile = screen.getByTitle('Utile')
+      fireEvent.click(utile)
+      await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1))
+      // Rolled back: the thumb is no longer rendered as selected.
+      await waitFor(() => expect(utile.className).not.toMatch(/emerald-500\/20/))
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
 })

@@ -27,7 +27,7 @@ from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from api.auth import _require_role, _verify_api_key, session_store
+from api.auth import _require_role, _verify_api_key, rate_limited, session_store
 from api.libraries import get_library_store
 from config import cfg
 from core.analytics import erase_user_events, export_user_events
@@ -56,7 +56,11 @@ def _chiavi_api(username: str) -> list[dict]:
     ]
 
 
-@router.get("/users/{username}/export", summary="Esporta tutti i dati riferibili a un account (art. 15)")
+@router.get(
+    "/users/{username}/export",
+    summary="Esporta tutti i dati riferibili a un account (art. 15)",
+    dependencies=[Depends(rate_limited)],
+)
 def export_user_data(
     username: str,
     _auth: dict = Depends(_verify_api_key),
@@ -93,7 +97,9 @@ def export_user_data(
     }
 
 
-@router.delete("/users/{username}", summary="Cancella i dati di un account (art. 17)")
+@router.delete(
+    "/users/{username}", summary="Cancella i dati di un account (art. 17)", dependencies=[Depends(rate_limited)]
+)
 def erase_user_data(
     username: str,
     _auth: dict = Depends(_require_role("admin")),

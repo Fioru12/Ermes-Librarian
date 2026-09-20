@@ -44,7 +44,6 @@ Declared in `requirements.txt`.
 | `filelock` | 3.29.0 | MIT |
 | `httpx` | 0.28.1 | BSD-3-Clause |
 | `langfuse` | 4.14.4 | MIT |
-| `lark` | 1.3.1 | MIT |
 | `prometheus-client` | 0.26.0 | Apache-2.0 AND BSD-2-Clause |
 | `psycopg` | 3.2.10 | GNU Lesser General Public License v3 (LGPLv3) |
 | `pydantic` | 2.13.4 | MIT |
@@ -59,6 +58,7 @@ Declared in `requirements.txt`.
 | `python-docx` | 1.2.0 | MIT |
 | `python-dotenv` | 1.2.2 | BSD-3-Clause |
 | `python-multipart` | 0.0.31 | Apache-2.0 |
+| `striprtf` | 0.0.33 | BSD-3-Clause |
 | `uvicorn` | 0.47.0 | BSD-3-Clause |
 
 ## JavaScript — application and build dependencies

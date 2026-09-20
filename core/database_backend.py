@@ -59,7 +59,35 @@ def _translate_params(sql: str, params: tuple | dict | None, style: str) -> tupl
         return _NAMED_PARAM.sub(lambda m: "%(" + m.group(1) + ")s", sql), params
     if "?" not in sql:
         return sql, params
-    return "%s".join(sql.split("?")), params
+    return _qmark_to_format(sql), params
+
+
+def _qmark_to_format(sql: str) -> str:
+    """`?` -> `%s` solo fuori dalle stringhe SQL; `??` resta `?` (operatore).
+
+    `"%s".join(sql.split("?"))` — la versione fino al 21 settembre 2026 —
+    avrebbe riscritto un `?` dentro un letterale ('cosa?') e reso
+    inutilizzabile l'operatore JSONB `?` di Postgres. Nessuna query lo usa
+    oggi; il momento di correggerlo e' prima che una lo faccia.
+    """
+    out: list[str] = []
+    in_string = False
+    i = 0
+    while i < len(sql):
+        ch = sql[i]
+        if ch == "'":
+            in_string = not in_string
+            out.append(ch)
+        elif ch == "?" and not in_string:
+            if sql.startswith("??", i):
+                out.append("?")
+                i += 1
+            else:
+                out.append("%s")
+        else:
+            out.append(ch)
+        i += 1
+    return "".join(out)
 
 
 class SqliteBackend:

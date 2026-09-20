@@ -39,6 +39,7 @@ function AppInner() {
   const [loginError, setLoginError] = useState('')
   const [notif, setNotif] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
   const abortRef = useRef<AbortController | null>(null)
+  const notifTimer = useRef<number | null>(null)
 
   const suggestions = [
     { title: 'Trova una procedura', desc: 'Cerca la procedura per richiedere ferie', prompt: 'Qual è la procedura per richiedere ferie?' },
@@ -48,9 +49,13 @@ function AppInner() {
   ]
 
   const showNotif = (message: string, type: 'success' | 'error' = 'success') => {
+    // One timer at a time: two quick notifications used to leave the first
+    // timer alive, and it dismissed the second one early.
+    if (notifTimer.current !== null) window.clearTimeout(notifTimer.current)
     setNotif({ message, type })
-    window.setTimeout(() => setNotif(null), 4000)
+    notifTimer.current = window.setTimeout(() => { setNotif(null); notifTimer.current = null }, 4000)
   }
+  useEffect(() => () => { if (notifTimer.current !== null) window.clearTimeout(notifTimer.current) }, [])
 
   const fetchData = async () => {
     try {

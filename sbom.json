@@ -1,8 +1,8 @@
 {
   "components": [
     {
-      "bom-ref": "requirements-L42",
-      "description": "requirements line 42: PyJWT[crypto]==2.13.0",
+      "bom-ref": "requirements-L46",
+      "description": "requirements line 46: PyJWT[crypto]==2.13.0",
       "externalReferences": [
         {
           "comment": "implicit dist url",
@@ -22,8 +22,8 @@
       "version": "2.13.0"
     },
     {
-      "bom-ref": "requirements-L54",
-      "description": "requirements line 54: argon2-cffi==25.1.0",
+      "bom-ref": "requirements-L58",
+      "description": "requirements line 58: argon2-cffi==25.1.0",
       "externalReferences": [
         {
           "comment": "implicit dist url",
@@ -52,8 +52,8 @@
       "version": "0.136.1"
     },
     {
-      "bom-ref": "requirements-L51",
-      "description": "requirements line 51: filelock==3.29.0",
+      "bom-ref": "requirements-L55",
+      "description": "requirements line 55: filelock==3.29.0",
       "externalReferences": [
         {
           "comment": "implicit dist url",
@@ -67,8 +67,8 @@
       "version": "3.29.0"
     },
     {
-      "bom-ref": "requirements-L37",
-      "description": "requirements line 37: httpx==0.28.1",
+      "bom-ref": "requirements-L41",
+      "description": "requirements line 41: httpx==0.28.1",
       "externalReferences": [
         {
           "comment": "implicit dist url",
@@ -82,8 +82,8 @@
       "version": "0.28.1"
     },
     {
-      "bom-ref": "requirements-L61",
-      "description": "requirements line 61: langfuse==4.14.4",
+      "bom-ref": "requirements-L64",
+      "description": "requirements line 64: langfuse==4.14.4",
       "externalReferences": [
         {
           "comment": "implicit dist url",
@@ -97,23 +97,8 @@
       "version": "4.14.4"
     },
     {
-      "bom-ref": "requirements-L55",
-      "description": "requirements line 55: lark==1.3.1",
-      "externalReferences": [
-        {
-          "comment": "implicit dist url",
-          "type": "distribution",
-          "url": "https://pypi.org/simple/lark/"
-        }
-      ],
-      "name": "lark",
-      "purl": "pkg:pypi/lark@1.3.1",
-      "type": "library",
-      "version": "1.3.1"
-    },
-    {
-      "bom-ref": "requirements-L73",
-      "description": "requirements line 73: prometheus-client==0.26.0",
+      "bom-ref": "requirements-L76",
+      "description": "requirements line 76: prometheus-client==0.26.0",
       "externalReferences": [
         {
           "comment": "implicit dist url",
@@ -127,8 +112,8 @@
       "version": "0.26.0"
     },
     {
-      "bom-ref": "requirements-L48",
-      "description": "requirements line 48: psycopg[binary]==3.2.10",
+      "bom-ref": "requirements-L52",
+      "description": "requirements line 52: psycopg[binary]==3.2.10",
       "externalReferences": [
         {
           "comment": "implicit dist url",
@@ -208,8 +193,8 @@
       "version": "0.3.13"
     },
     {
-      "bom-ref": "requirements-L64",
-      "description": "requirements line 64: pytest==9.0.3",
+      "bom-ref": "requirements-L67",
+      "description": "requirements line 67: pytest==9.0.3",
       "externalReferences": [
         {
           "comment": "implicit dist url",
@@ -223,8 +208,8 @@
       "version": "9.0.3"
     },
     {
-      "bom-ref": "requirements-L66",
-      "description": "requirements line 66: pytest-asyncio==1.3.0",
+      "bom-ref": "requirements-L69",
+      "description": "requirements line 69: pytest-asyncio==1.3.0",
       "externalReferences": [
         {
           "comment": "implicit dist url",
@@ -238,8 +223,8 @@
       "version": "1.3.0"
     },
     {
-      "bom-ref": "requirements-L72",
-      "description": "requirements line 72: pytest-benchmark==5.3.0",
+      "bom-ref": "requirements-L75",
+      "description": "requirements line 75: pytest-benchmark==5.3.0",
       "externalReferences": [
         {
           "comment": "implicit dist url",
@@ -253,8 +238,8 @@
       "version": "5.3.0"
     },
     {
-      "bom-ref": "requirements-L65",
-      "description": "requirements line 65: pytest-timeout==2.4.0",
+      "bom-ref": "requirements-L68",
+      "description": "requirements line 68: pytest-timeout==2.4.0",
       "externalReferences": [
         {
           "comment": "implicit dist url",
@@ -283,8 +268,8 @@
       "version": "1.2.0"
     },
     {
-      "bom-ref": "requirements-L34",
-      "description": "requirements line 34: python-dotenv==1.2.2",
+      "bom-ref": "requirements-L38",
+      "description": "requirements line 38: python-dotenv==1.2.2",
       "externalReferences": [
         {
           "comment": "implicit dist url",
@@ -311,6 +296,21 @@
       "purl": "pkg:pypi/python-multipart@0.0.31",
       "type": "library",
       "version": "0.0.31"
+    },
+    {
+      "bom-ref": "requirements-L35",
+      "description": "requirements line 35: striprtf==0.0.33",
+      "externalReferences": [
+        {
+          "comment": "implicit dist url",
+          "type": "distribution",
+          "url": "https://pypi.org/simple/striprtf/"
+        }
+      ],
+      "name": "striprtf",
+      "purl": "pkg:pypi/striprtf@0.0.33",
+      "type": "library",
+      "version": "0.0.33"
     },
     {
       "bom-ref": "requirements-L6",
@@ -351,56 +351,56 @@
       "ref": "requirements-L31"
     },
     {
-      "ref": "requirements-L34"
+      "ref": "requirements-L35"
     },
     {
-      "ref": "requirements-L37"
+      "ref": "requirements-L38"
     },
     {
-      "ref": "requirements-L42"
+      "ref": "requirements-L41"
     },
     {
-      "ref": "requirements-L48"
+      "ref": "requirements-L46"
     },
     {
       "ref": "requirements-L5"
     },
     {
-      "ref": "requirements-L51"
-    },
-    {
-      "ref": "requirements-L54"
+      "ref": "requirements-L52"
     },
     {
       "ref": "requirements-L55"
     },
     {
-      "ref": "requirements-L6"
+      "ref": "requirements-L58"
     },
     {
-      "ref": "requirements-L61"
+      "ref": "requirements-L6"
     },
     {
       "ref": "requirements-L64"
     },
     {
-      "ref": "requirements-L65"
+      "ref": "requirements-L67"
     },
     {
-      "ref": "requirements-L66"
+      "ref": "requirements-L68"
+    },
+    {
+      "ref": "requirements-L69"
     },
     {
       "ref": "requirements-L7"
     },
     {
-      "ref": "requirements-L72"
+      "ref": "requirements-L75"
     },
     {
-      "ref": "requirements-L73"
+      "ref": "requirements-L76"
     }
   ],
   "metadata": {
-    "timestamp": "2026-09-18T00:20:55.343438+00:00",
+    "timestamp": "2026-09-20T23:05:40.483458+00:00",
     "tools": {
       "components": [
         {
@@ -504,7 +504,7 @@
       ]
     }
   },
-  "serialNumber": "urn:uuid:4c048386-09fc-4dc9-bb10-82a9d9996942",
+  "serialNumber": "urn:uuid:e9042f0a-e425-491e-b80a-917769ed4b0c",
   "version": 1,
   "$schema": "http://cyclonedx.org/schema/bom-1.6.schema.json",
   "bomFormat": "CycloneDX",

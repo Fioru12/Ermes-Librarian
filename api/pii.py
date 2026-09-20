@@ -11,7 +11,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
-from api.auth import _require_role, _verify_api_key
+from api.auth import _require_role, _verify_api_key, rate_limited
 from config import cfg
 from core.governance import append_audit
 from core.pii_filter import (
@@ -88,11 +88,19 @@ def update_pii_configuration(
         raise HTTPException(status_code=400, detail=f"Impossibile salvare le regole PII: {e}") from e
 
 
-@router.post("/test", summary="Testa il mascheramento PII in tempo reale su un testo di prova")
+@router.post(
+    "/test",
+    summary="Testa il mascheramento PII in tempo reale su un testo di prova",
+    dependencies=[Depends(rate_limited)],
+)
 def test_pii_masking(
     request: TestPiiRequest,
-    _auth: dict = Depends(_verify_api_key),
+    _auth: dict = Depends(_require_role("admin")),
 ) -> dict[str, Any]:
+    # Amministratori e con limite di frequenza: applica ogni regola custom a
+    # 5000 caratteri per richiesta. Fino al 21 settembre 2026 bastava un
+    # utente autenticato qualsiasi, senza limite — con una regola
+    # patologica era un DoS di CPU a costo zero.
     masked = filter_pii(request.text, enabled=True)
     detected = detect_pii(request.text)
     return {

@@ -297,8 +297,13 @@ def _parse_office_xml(data: bytes):
     """
     from xml.etree import ElementTree
 
-    # The declaration, if present at all, precedes the root element.
-    if b"<!DOCTYPE" in data[:4096] or b"<!ENTITY" in data[:4096]:
+    # The declaration precedes the root element, but nothing bounds how much
+    # whitespace, comments or processing instructions may precede it: until
+    # 21 September 2026 only the first 4096 bytes were inspected, and 4097
+    # bytes of padding walked straight past the check. A bytes scan of the
+    # whole part costs microseconds; the parts are capped at 100 MB by
+    # _validate_office_archive anyway.
+    if b"<!DOCTYPE" in data or b"<!ENTITY" in data:
         raise DocumentParseError("Il file contiene una dichiarazione XML non ammessa")
     # nosec B314 — bandit segnala ElementTree su input non fidato. Qui la classe
     # di attacco (espansione di entita') e' gia' esclusa dal controllo sopra,

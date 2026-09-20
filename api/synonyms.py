@@ -10,7 +10,7 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
-from api.auth import _require_role, _verify_api_key
+from api.auth import _require_role, _verify_api_key, rate_limited
 from config import cfg
 from core.governance import append_audit
 from core.query_expander import (
@@ -46,7 +46,7 @@ async def get_synonyms(_auth: dict = Depends(_verify_api_key)):
     }
 
 
-@router.post("", summary="Aggiunge o aggiorna un termine con i relativi sinonimi")
+@router.post("", summary="Aggiunge o aggiorna un termine con i relativi sinonimi", dependencies=[Depends(rate_limited)])
 async def set_synonym(
     payload: SynonymPayload,
     user: dict = Depends(_require_role("editor")),
@@ -59,7 +59,9 @@ async def set_synonym(
     if not clean_term:
         raise HTTPException(status_code=400, detail="Il termine non puo' essere vuoto")
 
-    clean_synonyms = [s.strip().lower() for s in payload.synonyms if s.strip().lower() and s.strip().lower() != clean_term]
+    clean_synonyms = [
+        s.strip().lower() for s in payload.synonyms if s.strip().lower() and s.strip().lower() != clean_term
+    ]
     if not clean_synonyms:
         raise HTTPException(
             status_code=400,

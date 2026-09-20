@@ -163,9 +163,7 @@ async def lifespan(app: FastAPI):
 
         ingestion_store = get_library_store()
         for job_id in recover_on_startup(ingestion_store, cfg.LIBRARY_STORAGE_DIR):
-            asyncio.create_task(
-                asyncio.to_thread(run_ingestion_job, ingestion_store, job_id, cfg.LIBRARY_STORAGE_DIR)
-            )
+            asyncio.create_task(asyncio.to_thread(run_ingestion_job, ingestion_store, job_id, cfg.LIBRARY_STORAGE_DIR))
     except Exception as error:
         _logger.warning("Recupero job ingestion fallito: %s", error)
 
