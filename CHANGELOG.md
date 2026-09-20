@@ -12,9 +12,10 @@ Interventi di irrobustimento enterprise progettati secondo la revisione dei 5 ru
   - Integrazione completa in `api/libraries.py` e `core/ingestion_service.py` per upload, streaming download via `StreamingResponse`, cancellazione atomica singola e batch (`delete_objects`), reindicizzazione e ripristino versioni storiche.
   - Zero-breaking changes: SQLite e filesystem locale restano i default operativi per installazioni desktop/edge.
 
-- **Parsing Documentale Table-Aware (`core/document_parser.py`)**:
+- **Parsing Documentale Table-Aware & Office Hardening (`core/document_parser.py`)**:
   - Risolto il limite critico di estrazione tabelle DOCX: `_extract_docx_units` adesso attraversa `document.element.body` nell'ordine reale di lettura (`w:p` e `w:tbl`), convertendo le griglie in tabelle Markdown strutturate associate all'intestazione di sezione (`"Intestazione, Tabella N"`).
   - Chunking table-aware: `_split_table_into_chunks` preserva l'intestazione e la riga separatrice Markdown in cima a ciascun chunk in caso di tabelle lunghe che superano la dimensione massima, garantendo che le colonne mantengano semantica e chiavi per l'embedding e il recupero lessicale.
+  - Risoluzione OpenXML XLSX conforme allo standard ECMA-376: mappatura deterministica tra fogli (`<sheet r:id="...">`) e target XML tramite `xl/_rels/workbook.xml.rels`, ordinamento naturale dei fogli di calcolo ed estrazione nativa di celle booleane (`VERO`/`FALSO`), evitando disallineamenti tra nomi di fogli e contenuti in fogli rinominati o riordinati.
 
 - **DLP & Protezione PII Contestuale (`core/pii_filter.py`)**:
   - Estesa la mascheratura regex/euristica per 4 pattern enterprise: `persona_con_titolo` (`[PERSONA]` per Dott., Ing., Sig., Dr.), `indirizzo_fisico` (`[INDIRIZZO]` per Via, Viale, Piazza, Corso), `importo_finanziario` (`[IMPORTO]` per EUR, €, $, compensi e parcelle), `data_nascita` (`[DATA_NASCITA]` per "nato il", "data di nascita").
