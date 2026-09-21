@@ -848,6 +848,29 @@ class LibraryStore:
             row = connection.execute("SELECT * FROM ingestion_jobs WHERE id = ?", (job_id,)).fetchone()
         return self._row(row) if row else None
 
+    def claim_next_ingestion_job(self, worker_id: str = "") -> dict | None:
+        """Claim the oldest queued ingestion job atomically.
+
+        Designed for standalone decoupled workers to safely pull jobs
+        without collisions in multi-worker environments.
+        """
+        with self._lock, self._connection() as connection:
+            row = connection.execute(
+                "SELECT id FROM ingestion_jobs WHERE status = 'queued' ORDER BY created_at ASC LIMIT 1"
+            ).fetchone()
+            if not row:
+                return None
+            job_id = row[0] if isinstance(row, (tuple, list)) else row["id"]
+            result = connection.execute(
+                "UPDATE ingestion_jobs SET status = 'processing' WHERE id = ? AND status = 'queued'",
+                (job_id,),
+            )
+            if result.rowcount != 1:
+                return None
+            claimed_row = connection.execute("SELECT * FROM ingestion_jobs WHERE id = ?", (job_id,)).fetchone()
+        return self._row(claimed_row) if claimed_row else None
+
+
     def pending_ingestion_jobs(self) -> list[dict]:
         with self._connection() as connection:
             rows = connection.execute(

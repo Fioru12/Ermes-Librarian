@@ -202,3 +202,130 @@ def ensure_schema(connection) -> None:
         if statement:
             connection.execute(statement)
     connection.commit()
+
+
+# ---------------------------------------------------------------------------
+# Supporto Nativo pgvector (Fase 2 del piano PG)
+# ---------------------------------------------------------------------------
+
+PGVECTOR_EXTENSION_SQL = "CREATE EXTENSION IF NOT EXISTS vector;"
+
+def format_vector_for_sql(vector: list[float]) -> str:
+    """Formatta una lista di float nel formato stringa atteso da pgvector: '[v1,v2,...]'."""
+    return f"[{','.join(f'{x:.8f}' for x in vector)}]"
+
+
+def enable_pgvector(connection, vector_dim: int | None = None) -> bool:
+    """Abilita l'estensione pgvector, la colonna embedding_vector e l'indice HNSW.
+
+    Restituisce True se l'estensione e l'indice sono stati creati con successo,
+    False se l'estensione pgvector non è presente sul server PostgreSQL.
+    """
+    try:
+        connection.execute(PGVECTOR_EXTENSION_SQL)
+        col_type = f"vector({vector_dim})" if vector_dim else "vector"
+        connection.execute(f"ALTER TABLE document_chunks ADD COLUMN IF NOT EXISTS embedding_vector {col_type};")
+        connection.execute(
+            "CREATE INDEX IF NOT EXISTS chunks_hnsw ON document_chunks "
+            "USING hnsw (embedding_vector vector_cosine_ops);"
+        )
+        connection.commit()
+        logger.info("pgvector e indice HNSW abilitati con successo (dim=%s)", vector_dim or "variabile")
+        return True
+    except Exception as exc:
+        logger.warning("pgvector non disponibile su questo PostgreSQL: %s", exc)
+        connection.rollback()
+        return False
+
+
+def search_chunks_vector(
+    connection,
+    library_id: str,
+    query_vector: list[float],
+    top_k: int = 20,
+    document_ids: list[str] | None = None,
+) -> list[dict]:
+    """Esegue nearest-neighbor search su PostgreSQL tramite indice HNSW e similarità coseno (<=>).
+
+    Restituisce i chunk ordinati per punteggio decrescente con score normalizzato.
+    """
+    vec_literal = format_vector_for_sql(query_vector)
+    where_parts = [
+        "d.library_id = %(library_id)s",
+        "c.embedding_vector IS NOT NULL",
+    ]
+    params: dict[str, object] = {
+        "library_id": library_id,
+        "query_vec": vec_literal,
+        "limit": top_k,
+    }
+    if document_ids:
+        where_parts.append("c.document_id = ANY(%(doc_ids)s)")
+        params["doc_ids"] = document_ids
+
+    where_clause = " AND ".join(where_parts)
+    query = f"""
+        SELECT
+            c.id,
+            c.document_id,
+            c.ordinal,
+            c.text,
+            c.source_locator,
+            1.0 - (c.embedding_vector <=> %(query_vec)s::vector) AS score
+        FROM document_chunks c
+        JOIN documents d ON c.document_id = d.id
+        WHERE {where_clause}
+        ORDER BY c.embedding_vector <=> %(query_vec)s::vector ASC
+        LIMIT %(limit)s
+    """
+    cursor = connection.execute(query, params)
+    return [dict(row) for row in cursor.fetchall()]
+
+
+def sync_vector_embeddings(connection, batch_size: int = 500) -> int:
+    """Sincronizza i vettori da embedding_json a embedding_vector per i chunk non ancora migrati.
+
+    Restituisce il numero totale di chunk migrati.
+    """
+    import json
+
+    cursor = connection.execute(
+        """
+        SELECT id, embedding_json
+        FROM document_chunks
+        WHERE embedding_vector IS NULL
+          AND embedding_json IS NOT NULL
+        LIMIT %(batch_size)s
+        """,
+        {"batch_size": batch_size},
+    )
+    rows = cursor.fetchall()
+    if not rows:
+        return 0
+
+    updates = []
+    for row in rows:
+        raw_emb = row["embedding_json"]
+        if isinstance(raw_emb, str):
+            try:
+                emb = json.loads(raw_emb)
+            except Exception:
+                continue
+        elif isinstance(raw_emb, list):
+            emb = raw_emb
+        else:
+            continue
+
+        if emb and isinstance(emb, list) and isinstance(emb[0], (int, float)):
+            updates.append((format_vector_for_sql(emb), row["id"]))
+
+    if updates:
+        for vec_str, chunk_id in updates:
+            connection.execute(
+                "UPDATE document_chunks SET embedding_vector = %s::vector WHERE id = %s",
+                (vec_str, chunk_id),
+            )
+        connection.commit()
+
+    return len(updates)
+

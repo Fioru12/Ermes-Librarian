@@ -26,11 +26,9 @@ class IngestionOutcome:
     error: str = ""
 
 
-def process_ingestion_job(store: LibraryStore, job_id: str, storage_root: str | Path) -> IngestionOutcome:
-    """Parse one claimed job. It never exposes a partially built index."""
-    job = store.claim_ingestion_job(job_id)
-    if job is None:
-        return IngestionOutcome("skipped")
+def process_claimed_job(store: LibraryStore, job: dict, storage_root: str | Path) -> IngestionOutcome:
+    """Parse one already-claimed job. It never exposes a partially built index."""
+    job_id = job["id"]
     document_id = job.get("document_id")
     try:
         if not document_id:
@@ -65,6 +63,15 @@ def process_ingestion_job(store: LibraryStore, job_id: str, storage_root: str | 
         store.finish_ingestion_job(job_id, "failed", document_id=document_id, error_message=message)
         _record_job_metric("failed")
         return IngestionOutcome("failed", transient=transient, error=message)
+
+
+def process_ingestion_job(store: LibraryStore, job_id: str, storage_root: str | Path) -> IngestionOutcome:
+    """Parse one job, claiming it first. It never exposes a partially built index."""
+    job = store.claim_ingestion_job(job_id)
+    if job is None:
+        return IngestionOutcome("skipped")
+    return process_claimed_job(store, job, storage_root)
+
 
 
 def _record_job_metric(status: str) -> None:
