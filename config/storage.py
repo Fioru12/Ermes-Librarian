@@ -51,6 +51,22 @@ class StorageConfig:
     def LOGS_DIR(self) -> str:
         return os.path.join(self.BASE_DIR, "logs")
 
+    # Backend storage: "local" (default) o "s3" (MinIO, AWS S3, Cloudflare R2, Ceph)
+    STORAGE_BACKEND: str = field(default_factory=lambda: os.environ.get("ERMES_STORAGE_BACKEND", "local").lower())
+    STORAGE_ENCRYPTION_ENABLED: bool = field(
+        default_factory=lambda: (
+            os.environ.get("ERMES_STORAGE_ENCRYPTION_ENABLED", "0").strip().lower() in {"1", "true", "yes", "on"}
+        )
+    )
+    STORAGE_ENCRYPTION_KEY: str = field(default_factory=lambda: os.environ.get("ERMES_STORAGE_ENCRYPTION_KEY", ""))
+
+    # Configurazione S3 / MinIO
+    S3_BUCKET_NAME: str = field(default_factory=lambda: os.environ.get("S3_BUCKET_NAME", "ermes-documents"))
+    S3_ENDPOINT_URL: str = field(default_factory=lambda: os.environ.get("S3_ENDPOINT_URL", ""))
+    S3_ACCESS_KEY_ID: str = field(default_factory=lambda: os.environ.get("S3_ACCESS_KEY_ID", ""))
+    S3_SECRET_ACCESS_KEY: str = field(default_factory=lambda: os.environ.get("S3_SECRET_ACCESS_KEY", ""))
+    S3_REGION: str = field(default_factory=lambda: os.environ.get("S3_REGION", "us-east-1"))
+
     @property
     def SYNONYMS_FILE(self) -> str:
         custom = os.environ.get("ERMES_SYNONYMS_FILE", "").strip()

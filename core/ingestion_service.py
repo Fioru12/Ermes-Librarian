@@ -34,11 +34,19 @@ def process_claimed_job(store: LibraryStore, job: dict, storage_root: str | Path
         if not document_id:
             raise DocumentParseError("Job senza documento associato")
         document = store.get_document(job["library_id"], document_id)
-        path = resolve_storage_path(document["storage_path"], storage_root)
-        path.resolve().relative_to(Path(storage_root).resolve())
-        if not path.is_file():
-            raise DocumentParseError("Originale non disponibile")
-        units = extract_source_units(document["filename"], path.read_bytes())
+        from core.storage_provider import get_storage_provider
+
+        storage = get_storage_provider()
+        try:
+            raw_bytes = storage.get(document["storage_path"])
+        except Exception:
+            path = resolve_storage_path(document["storage_path"], storage_root)
+            path.resolve().relative_to(Path(storage_root).resolve())
+            if not path.is_file():
+                raise DocumentParseError("Originale non disponibile")
+            raw_bytes = path.read_bytes()
+
+        units = extract_source_units(document["filename"], raw_bytes)
         if not units:
             raise DocumentParseError("Il documento non contiene testo estraibile")
         chunks = chunk_source_units(units)

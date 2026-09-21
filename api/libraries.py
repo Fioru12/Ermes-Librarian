@@ -9,9 +9,10 @@ import uuid
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Literal
+from urllib.parse import quote
 
-from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, UploadFile
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, Query, Response, UploadFile
+from fastapi.responses import FileResponse, RedirectResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
 from api.auth import _require_role, _verify_api_key, rate_limited
@@ -31,8 +32,8 @@ from core.library_store import (
     LibraryNotFoundError,
     LibraryStore,
     resolve_storage_path,
-    storage_relative_path,
 )
+from core.storage_provider import get_storage_provider
 
 _logger = logging.getLogger(__name__)
 
@@ -200,10 +201,43 @@ def list_document_versions(
         raise HTTPException(status_code=404, detail="Documento non trovato") from error
 
 
+@router.get("/{library_id}/documents/{document_id}/download-url")
+def get_document_download_url(
+    library_id: str,
+    document_id: str,
+    expires_seconds: int = Query(default=3600, ge=60, le=86400),
+    _auth: dict = Depends(_verify_api_key),
+    store: LibraryStore = Depends(get_library_store),
+):
+    """Restituisce un URL pre-firmato S3/MinIO per scaricare il documento direttamente dallo storage."""
+    try:
+        store.get_library(library_id, _auth)
+        document = store.get_document(library_id, document_id, _auth)
+    except (LibraryNotFoundError, LibraryAccessError) as error:
+        raise HTTPException(status_code=404, detail="Documento non trovato") from error
+
+    storage_provider = get_storage_provider()
+    presigned_url = storage_provider.get_url(document["storage_path"], expires_seconds=expires_seconds)
+    if not presigned_url:
+        return {
+            "mode": "proxied",
+            "download_url": f"/api/libraries/{library_id}/documents/{document_id}/download",
+            "expires_in": expires_seconds,
+            "filename": document["filename"],
+        }
+    return {
+        "mode": "presigned",
+        "download_url": presigned_url,
+        "expires_in": expires_seconds,
+        "filename": document["filename"],
+    }
+
+
 @router.get("/{library_id}/documents/{document_id}/download")
 def download_document(
     library_id: str,
     document_id: str,
+    redirect: bool = Query(default=False),
     _auth: dict = Depends(_verify_api_key),
     store: LibraryStore = Depends(get_library_store),
 ):
@@ -213,14 +247,28 @@ def download_document(
         document = store.get_document(library_id, document_id, _auth)
     except (LibraryNotFoundError, LibraryAccessError) as error:
         raise HTTPException(status_code=404, detail="Documento non trovato") from error
-    storage_root = Path(cfg.LIBRARY_STORAGE_DIR).resolve()
-    source_path = resolve_storage_path(document["storage_path"], cfg.LIBRARY_STORAGE_DIR)
+
+    storage_provider = get_storage_provider()
+
+    # Se richiesto il redirect e disponibile un presigned URL diretto
+    if redirect:
+        presigned_url = storage_provider.get_url(document["storage_path"], expires_seconds=3600)
+        if presigned_url:
+            return RedirectResponse(url=presigned_url, status_code=307)
+
+    # Altrimenti leggiamo via storage provider (supporta S3, filesystem e decifratura trasparente)
     try:
-        source_path.resolve().relative_to(storage_root)
-    except ValueError as error:
-        raise HTTPException(status_code=409, detail="Percorso originale non valido") from error
-    if not source_path.is_file():
-        raise HTTPException(status_code=404, detail="Originale non disponibile")
+        data = storage_provider.get(document["storage_path"])
+    except FileNotFoundError as error:
+        # Fallback locale per retrocompatibilità
+        source_path = resolve_storage_path(document["storage_path"], cfg.LIBRARY_STORAGE_DIR)
+        if source_path.is_file():
+            data = source_path.read_bytes()
+        else:
+            raise HTTPException(status_code=404, detail="Originale non disponibile nello storage") from error
+    except Exception as error:
+        raise HTTPException(status_code=500, detail=f"Errore lettura storage: {error}") from error
+
     append_audit(
         cfg.AUDIT_FILE,
         "document_downloaded",
@@ -232,7 +280,13 @@ def download_document(
             "version": document["version"],
         },
     )
-    return FileResponse(source_path, media_type=document["media_type"], filename=document["filename"])
+    media_type = document.get("media_type") or "application/octet-stream"
+    encoded_filename = quote(document["filename"])
+    return Response(
+        content=data,
+        media_type=media_type,
+        headers={"Content-Disposition": f"attachment; filename*=UTF-8''{encoded_filename}"},
+    )
 
 
 @router.get("/{library_id}/ingestion-jobs")
@@ -282,12 +336,11 @@ async def upload_document(
         raise HTTPException(status_code=404, detail="Biblioteca non trovata") from error
 
     document_id = uuid.uuid4().hex
-    library_dir = Path(cfg.LIBRARY_STORAGE_DIR) / library_id
-    library_dir.mkdir(parents=True, exist_ok=True)
-    destination = library_dir / f"{document_id}_{safe_name}"
+    rel_path = f"{library_id}/{document_id}_{safe_name}"
+    storage_provider = get_storage_provider()
     try:
-        destination.write_bytes(content)
-    except OSError as error:
+        storage_provider.save(rel_path, content)
+    except Exception as error:
         raise HTTPException(status_code=500, detail="Impossibile salvare il file originale") from error
     try:
         document = store.add_document(
@@ -295,12 +348,12 @@ async def upload_document(
             filename=safe_name,
             media_type=file.content_type or "",
             content=content,
-            storage_path=storage_relative_path(library_id, destination.name),
+            storage_path=rel_path,
             status="queued",
             chunks=[],
         )
     except Exception as error:
-        destination.unlink(missing_ok=True)
+        storage_provider.delete(rel_path)
         raise HTTPException(status_code=500, detail="Impossibile registrare il documento") from error
     job = store.start_ingestion_job(library_id, safe_name, document_id=document["id"])
     if background_tasks is None:  # chiamata diretta senza injection FastAPI
@@ -1435,8 +1488,6 @@ def export_library_endpoint(
 ):
     """Export the entire library with documents and chunks as a downloadable .ermes pack."""
     import tempfile
-
-    from fastapi.responses import FileResponse
 
     from core.library_pack import export_library_pack
 
