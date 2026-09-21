@@ -604,7 +604,7 @@ def _answer_question(
         if sospette:
             record_injection_flagged(sospette)
         s_rerank.set_metadata("clean_citations", len(citations))
-        s_rerank.set_metadata("suspicious_count", len(sospette))
+        s_rerank.set_metadata("suspicious_count", sospette)
 
     with tracer.span("llm_generation", mode=library["assistant_mode"]) as s_llm:
         answer, coverage, reason = answer_from_evidence(

@@ -869,7 +869,7 @@ class LibraryStore:
                    WHERE id = ? AND status = 'dead_letter'""",
                 (job_id,),
             )
-            return result.rowcount == 1
+            return bool(result.rowcount == 1)
 
     def list_dead_letter_jobs(self, library_id: str) -> list[dict]:
         """Elenca tutti i job finiti nella Dead-Letter Queue per una specifica biblioteca."""

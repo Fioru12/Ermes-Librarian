@@ -88,3 +88,13 @@ class SecurityConfig:
             os.environ.get("ERMES_PII_FILTER_ENABLED", "1").strip().lower() in {"1", "true", "yes", "on"}
         )
     )
+
+    # ---------------------------------------------------------
+    # DIRECTORY SYNC (SCIM 2.0 - RFC 7643 / RFC 7644)
+    # ---------------------------------------------------------
+    SCIM_ENABLED: bool = field(
+        default_factory=lambda: (
+            os.environ.get("ERMES_SCIM_ENABLED", "1").strip().lower() in {"1", "true", "yes", "on"}
+        )
+    )
+    SCIM_TOKEN: str = field(default_factory=lambda: os.environ.get("ERMES_SCIM_TOKEN", ""))

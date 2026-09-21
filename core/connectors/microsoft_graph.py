@@ -11,7 +11,7 @@ from typing import Any
 
 import httpx
 
-from core.connectors.base import BaseConnector, RemoteDocument
+from core.connectors.base import BaseConnector, DeltaSyncResult, RemoteDocument
 
 _logger = logging.getLogger(__name__)
 
@@ -102,3 +102,83 @@ class MicrosoftGraphConnector(BaseConnector):
                                 )
                             )
         return documents
+
+    def fetch_delta(self, delta_token: str | None = None) -> DeltaSyncResult:
+        """Sincronizzazione incrementale basata sulle API delta di Microsoft Graph.
+
+        Estrae solo file creati/modificati o eliminati dall'ultima sincronizzazione.
+        """
+        token = self._get_access_token()
+        headers = {"Authorization": f"Bearer {token}"}
+        updated_docs: list[RemoteDocument] = []
+        deleted_ids: list[str] = []
+        errors: list[str] = []
+
+        if delta_token and delta_token.startswith("http"):
+            url = delta_token
+        elif delta_token:
+            base = (
+                f"https://graph.microsoft.com/v1.0/drives/{self.drive_id}/root/delta"
+                if self.drive_id
+                else "https://graph.microsoft.com/v1.0/me/drive/root/delta"
+            )
+            url = f"{base}?token={delta_token}"
+        else:
+            url = (
+                f"https://graph.microsoft.com/v1.0/drives/{self.drive_id}/root/delta"
+                if self.drive_id
+                else "https://graph.microsoft.com/v1.0/me/drive/root/delta"
+            )
+
+        next_delta_link: str | None = None
+
+        with httpx.Client(timeout=30.0) as client:
+            while url:
+                res = client.get(url, headers=headers)
+                if res.status_code != 200:
+                    errors.append(f"Errore Graph Delta API ({res.status_code}): {res.text[:200]}")
+                    break
+
+                body = res.json()
+                items = body.get("value", [])
+
+                for item in items:
+                    item_id = str(item.get("id", ""))
+                    if "@removed" in item or item.get("deleted"):
+                        deleted_ids.append(item_id)
+                    elif "file" in item:
+                        download_url = item.get("@microsoft.graph.downloadUrl")
+                        if download_url:
+                            try:
+                                file_res = client.get(download_url)
+                                if file_res.status_code == 200:
+                                    updated_docs.append(
+                                        RemoteDocument(
+                                            id=item_id,
+                                            name=str(item.get("name", "")),
+                                            content=file_res.content,
+                                            media_type=str(
+                                                item.get("file", {}).get("mimeType", "application/octet-stream")
+                                            ),
+                                            source_url=str(item.get("webUrl", "")),
+                                            last_modified=str(item.get("lastModifiedDateTime", "")),
+                                            metadata={"size": item.get("size", 0), "etag": item.get("eTag", "")},
+                                        )
+                                    )
+                            except Exception as dl_err:
+                                errors.append(f"Errore download {item.get('name')}: {dl_err}")
+
+                # Gestione paginazione delta (@odata.nextLink vs @odata.deltaLink)
+                if "@odata.nextLink" in body:
+                    url = body["@odata.nextLink"]
+                else:
+                    next_delta_link = body.get("@odata.deltaLink")
+                    url = ""
+
+        return DeltaSyncResult(
+            connector_type="microsoft_graph",
+            updated_documents=updated_docs,
+            deleted_document_ids=deleted_ids,
+            next_delta_token=next_delta_link or delta_token,
+            errors=errors,
+        )

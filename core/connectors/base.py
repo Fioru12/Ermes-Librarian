@@ -31,6 +31,16 @@ class SyncResult:
     synced_at: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
 
 
+@dataclass(frozen=True)
+class DeltaSyncResult:
+    connector_type: str
+    updated_documents: list[RemoteDocument]
+    deleted_document_ids: list[str] = field(default_factory=list)
+    next_delta_token: str | None = None
+    errors: list[str] = field(default_factory=list)
+    synced_at: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
+
+
 class BaseConnector(ABC):
     """Abstract base class for all enterprise content connectors."""
 
@@ -46,3 +56,25 @@ class BaseConnector(ABC):
     def fetch_documents(self) -> list[RemoteDocument]:
         """Fetch updated documents from the remote source."""
         pass
+
+    def fetch_delta(self, delta_token: str | None = None) -> DeltaSyncResult:
+        """Fetch incremental changes (new/updated documents and deleted document ids) since delta_token.
+
+        Connectors without native cursor/delta token APIs fall back to full scan.
+        """
+        try:
+            docs = self.fetch_documents()
+            return DeltaSyncResult(
+                connector_type=self.__class__.__name__,
+                updated_documents=docs,
+                deleted_document_ids=[],
+                next_delta_token=None,
+            )
+        except Exception as e:
+            return DeltaSyncResult(
+                connector_type=self.__class__.__name__,
+                updated_documents=[],
+                deleted_document_ids=[],
+                next_delta_token=delta_token,
+                errors=[str(e)],
+            )

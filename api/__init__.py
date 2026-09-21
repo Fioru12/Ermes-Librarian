@@ -364,6 +364,7 @@ from api.models import router as models_router
 from api.pii import router as pii_router
 from api.privacy import router as privacy_router
 from api.providers import router as providers_router
+from api.scim import router as scim_router
 from api.shutdown import router as shutdown_router
 from api.synonyms import router as synonyms_router
 from api.users import router as users_router
@@ -395,6 +396,7 @@ app.include_router(health_router)
 app.include_router(pii_router)
 app.include_router(backup_router)
 app.include_router(users_router)
+app.include_router(scim_router)
 app.include_router(audit_router)
 app.include_router(analytics_router)
 app.include_router(connectors_router)
