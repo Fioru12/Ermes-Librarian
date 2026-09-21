@@ -68,6 +68,7 @@ export default function ChatArea({
   const chatEndRef = useRef<HTMLDivElement>(null)
   const [activeCitation, setActiveCitation] = useState<{ source: Source; marker: number } | null>(null)
   const [showHistoryMenu, setShowHistoryMenu] = useState(false)
+  const [historyFilter, setHistoryFilter] = useState('')
   const [feedbackState, setFeedbackState] = useState<Record<string, number>>({})
   const [negativeFeedbackOpen, setNegativeFeedbackOpen] = useState<string | null>(null)
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null)
@@ -127,6 +128,15 @@ export default function ChatArea({
     setFeedbackState(prev => ({ ...prev, [messageId]: rating }))
     setNegativeFeedbackOpen(null)
     try {
+      const ratingStr = rating === 1 ? 'positive' : 'negative'
+      if (activeConversationId) {
+        fetch(`/api/conversations/${activeConversationId}/messages/${messageId}/feedback`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ rating: ratingStr, reason: comment, comment }),
+          credentials: 'include',
+        }).catch(() => {})
+      }
       const response = await fetch('/api/analytics/feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -405,43 +415,69 @@ export default function ChatArea({
                   <span>Storico ({conversations.length})</span>
                 </button>
                 {showHistoryMenu && (
-                  <div className="absolute left-0 bottom-full mb-2 z-30 flex flex-col gap-1 p-2 rounded-xl border border-white/10 bg-[#121722]/95 shadow-2xl min-w-[260px] max-h-[300px] overflow-y-auto text-xs backdrop-blur-md">
-                    <p className="text-[11px] font-semibold text-slate-400 px-2 py-1 border-b border-white/5">Conversazioni salvate:</p>
-                    {conversations.map(c => (
-                      <div
-                        key={c.id}
-                        className={`flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg transition ${
-                          activeConversationId === c.id
-                            ? 'bg-blue-600/25 border border-blue-500/40 text-blue-200'
-                            : 'hover:bg-white/5 text-slate-300'
-                        }`}
-                      >
+                  <div className="absolute left-0 bottom-full mb-2 z-30 flex flex-col gap-1.5 p-2.5 rounded-xl border border-white/10 bg-[#121722]/95 shadow-2xl min-w-[280px] max-h-[320px] overflow-y-auto text-xs backdrop-blur-md">
+                    <div className="flex items-center justify-between gap-1 pb-1 border-b border-white/5 px-1">
+                      <p className="text-[11px] font-semibold text-slate-400">Conversazioni ({conversations.length}):</p>
+                      {historyFilter && (
                         <button
                           type="button"
-                          onClick={() => {
-                            onSelectConversation?.(c.id)
-                            setShowHistoryMenu(false)
-                          }}
-                          className="flex-1 text-left truncate font-medium hover:text-white"
-                          title={c.title}
+                          onClick={() => setHistoryFilter('')}
+                          className="text-[10px] text-slate-500 hover:text-slate-300"
                         >
-                          {c.title}
+                          Cancella
                         </button>
-                        {onDeleteConversation && (
-                          <button
-                            type="button"
-                            onClick={e => {
-                              e.stopPropagation()
-                              onDeleteConversation(c.id)
-                            }}
-                            className="text-slate-500 hover:text-rose-400 p-1 rounded transition"
-                            title="Elimina conversazione"
+                      )}
+                    </div>
+                    <input
+                      type="text"
+                      value={historyFilter}
+                      onChange={e => setHistoryFilter(e.target.value)}
+                      placeholder="Cerca conversazioni..."
+                      className="w-full rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-slate-200 placeholder-slate-500 outline-none focus:border-blue-500/50"
+                      onClick={e => e.stopPropagation()}
+                    />
+                    <div className="flex flex-col gap-1 max-h-[220px] overflow-y-auto mt-1">
+                      {conversations
+                        .filter(c => !historyFilter.trim() || c.title.toLowerCase().includes(historyFilter.toLowerCase().trim()))
+                        .map(c => (
+                          <div
+                            key={c.id}
+                            className={`flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg transition ${
+                              activeConversationId === c.id
+                                ? 'bg-blue-600/25 border border-blue-500/40 text-blue-200'
+                                : 'hover:bg-white/5 text-slate-300'
+                            }`}
                           >
-                            <Trash2 className="w-3 h-3" />
-                          </button>
-                        )}
-                      </div>
-                    ))}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                onSelectConversation?.(c.id)
+                                setShowHistoryMenu(false)
+                              }}
+                              className="flex-1 text-left truncate font-medium hover:text-white"
+                              title={c.title}
+                            >
+                              {c.title}
+                            </button>
+                            {onDeleteConversation && (
+                              <button
+                                type="button"
+                                onClick={e => {
+                                  e.stopPropagation()
+                                  onDeleteConversation(c.id)
+                                }}
+                                className="text-slate-500 hover:text-rose-400 p-1 rounded transition"
+                                title="Elimina conversazione"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      {conversations.filter(c => !historyFilter.trim() || c.title.toLowerCase().includes(historyFilter.toLowerCase().trim())).length === 0 && (
+                        <p className="py-3 text-center text-[11px] text-slate-500">Nessuna conversazione trovata</p>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>

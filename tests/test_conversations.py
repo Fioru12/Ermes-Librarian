@@ -145,3 +145,34 @@ def test_ask_endpoint_persists_conversation(istanza):
     assert data["messages"][0]["content"] == "Qual e' la procedura di onboarding?"
     assert data["messages"][1]["role"] == "assistant"
 
+
+def test_message_feedback(istanza):
+    client = TestClient(app)
+    res = client.post("/api/auth/login", json={"username": "capo", "password": PASSWORD})
+    assert res.status_code == 200
+
+    # Crea conversazione
+    res = client.post("/api/conversations", json={"library_id": "lib_hr", "title": "Test Feedback"})
+    cid = res.json()["id"]
+
+    # Aggiungi messaggio assistant
+    msg = client.post(
+        f"/api/conversations/{cid}/messages",
+        json={"role": "assistant", "content": "Risposta generata", "citations": []},
+    ).json()
+    mid = msg["id"]
+
+    # Invia feedback positivo
+    fb_res = client.post(
+        f"/api/conversations/{cid}/messages/{mid}/feedback",
+        json={"rating": "positive", "comment": "Molto chiaro!"},
+    )
+    assert fb_res.status_code == 200
+    assert fb_res.json()["ok"] is True
+
+    # Verifica persistenza feedback nel messaggio
+    conv = client.get(f"/api/conversations/{cid}").json()
+    assert conv["messages"][0]["feedback"]["rating"] == "positive"
+    assert conv["messages"][0]["feedback"]["comment"] == "Molto chiaro!"
+
+

@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS chat_messages (
     role TEXT NOT NULL,
     content TEXT NOT NULL,
     citations_json TEXT NOT NULL,
+    feedback_json TEXT DEFAULT '',
     created_at DOUBLE PRECISION NOT NULL
 );
 """
@@ -178,7 +179,8 @@ class ConversationStore(SharedTableStore):
             return None
 
         msg_rows = backend.execute(
-            "SELECT id, conversation_id, role, content, citations_json, created_at "
+            "SELECT id, conversation_id, role, content, citations_json, "
+            "COALESCE(feedback_json, '') AS feedback_json, created_at "
             "FROM chat_messages WHERE conversation_id = ? ORDER BY created_at ASC",
             (str(conversation_id),),
         )
@@ -191,6 +193,12 @@ class ConversationStore(SharedTableStore):
                     citations = json.loads(m["citations_json"])
                 except Exception:
                     citations = []
+            feedback = None
+            if m.get("feedback_json"):
+                try:
+                    feedback = json.loads(m["feedback_json"])
+                except Exception:
+                    feedback = None
             messages.append(
                 {
                     "id": str(m["id"]),
@@ -198,6 +206,7 @@ class ConversationStore(SharedTableStore):
                     "role": str(m["role"]),
                     "content": str(m["content"]),
                     "citations": citations if isinstance(citations, list) else [],
+                    "feedback": feedback,
                     "created_at": float(m["created_at"]),
                 }
             )
@@ -224,9 +233,9 @@ class ConversationStore(SharedTableStore):
         citations_json = json.dumps(citations or [])
         backend = self._connection()
         backend.execute_write(
-            "INSERT INTO chat_messages (id, conversation_id, role, content, citations_json, created_at) "
-            "VALUES (?, ?, ?, ?, ?, ?)",
-            (msg_id, str(conversation_id), str(role), str(content), citations_json, now),
+            "INSERT INTO chat_messages (id, conversation_id, role, content, citations_json, feedback_json, created_at) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (msg_id, str(conversation_id), str(role), str(content), citations_json, "", now),
         )
         backend.execute_write(
             "UPDATE chat_conversations SET updated_at = ? WHERE id = ?",
@@ -239,8 +248,32 @@ class ConversationStore(SharedTableStore):
             "role": role,
             "content": content,
             "citations": citations or [],
+            "feedback": None,
             "created_at": now,
         }
+
+    def submit_feedback(
+        self,
+        conversation_id: str,
+        message_id: str,
+        rating: str,
+        reason: str | None = None,
+        comment: str | None = None,
+    ) -> bool:
+        """Registra la valutazione utente (positive / negative) su un messaggio."""
+        backend = self._connection()
+        feedback_payload = {
+            "rating": rating,
+            "reason": str(reason or ""),
+            "comment": str(comment or ""),
+            "submitted_at": time.time(),
+        }
+        updated = backend.execute_write(
+            "UPDATE chat_messages SET feedback_json = ? WHERE id = ? AND conversation_id = ?",
+            (json.dumps(feedback_payload), str(message_id), str(conversation_id)),
+        )
+        backend.commit()
+        return updated > 0
 
     def update_title(
         self,

@@ -36,6 +36,12 @@ class AddMessageRequest(BaseModel):
     citations: list[dict[str, Any]] = Field(default_factory=list)
 
 
+class SubmitFeedbackRequest(BaseModel):
+    rating: str = Field(pattern="^(positive|negative)$")
+    reason: str | None = Field(default=None, max_length=100)
+    comment: str | None = Field(default=None, max_length=1000)
+
+
 @router.get("", summary="Elenco delle conversazioni dell'utente con ricerca")
 def list_conversations(
     library_id: str | None = Query(default=None),
@@ -151,3 +157,47 @@ def add_message(
         citations=req.citations,
     )
     return msg
+
+
+@router.post(
+    "/{conversation_id}/messages/{message_id}/feedback",
+    summary="Registra il feedback utente (pollice su/giù) sul messaggio",
+    dependencies=[Depends(rate_limited)],
+)
+def submit_message_feedback(
+    conversation_id: str,
+    message_id: str,
+    req: SubmitFeedbackRequest,
+    auth: dict = Depends(_verify_api_key),
+):
+    username = auth.get("username", "")
+    is_admin = auth.get("role") == "admin"
+    conv = conversation_store.get_conversation(
+        conversation_id=conversation_id,
+        username=None if is_admin else username,
+    )
+    if not conv:
+        raise HTTPException(status_code=404, detail="Conversazione non trovata o non autorizzato")
+
+    success = conversation_store.submit_feedback(
+        conversation_id=conversation_id,
+        message_id=message_id,
+        rating=req.rating,
+        reason=req.reason,
+        comment=req.comment,
+    )
+    if not success:
+        raise HTTPException(status_code=404, detail="Messaggio non trovato nella conversazione")
+
+    append_audit(
+        cfg.AUDIT_FILE,
+        "message_feedback",
+        username,
+        {
+            "conversation_id": conversation_id,
+            "message_id": message_id,
+            "rating": req.rating,
+            "reason": req.reason,
+        },
+    )
+    return {"ok": True, "message_id": message_id, "rating": req.rating}
