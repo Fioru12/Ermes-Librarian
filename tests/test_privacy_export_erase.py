@@ -40,6 +40,11 @@ def istanza(tmp_path, monkeypatch):
     for percorso in ("config.cfg", "api.auth.cfg", "api.libraries.cfg", "api.privacy.cfg", "core.analytics.cfg"):
         monkeypatch.setattr(percorso, test_cfg)
     monkeypatch.setattr(api.libraries, "_store", None)
+    monkeypatch.setattr(
+        api.libraries,
+        "answer_from_evidence",
+        lambda *args, **kwargs: ("La pausa pranzo dura 60 minuti.", "full", ""),
+    )
     api.auth.session_store.clear()
     api.auth.login_guard.clear()
     return test_cfg
