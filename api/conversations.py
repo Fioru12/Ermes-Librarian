@@ -36,14 +36,20 @@ class AddMessageRequest(BaseModel):
     citations: list[dict[str, Any]] = Field(default_factory=list)
 
 
-@router.get("", summary="Elenco delle conversazioni dell'utente")
+@router.get("", summary="Elenco delle conversazioni dell'utente con ricerca")
 def list_conversations(
     library_id: str | None = Query(default=None),
+    q: str | None = Query(default=None, description="Filtra per testo nel titolo o nei messaggi"),
     limit: int = Query(default=50, ge=1, le=100),
     auth: dict = Depends(_verify_api_key),
 ):
     username = auth.get("username", "")
-    items = conversation_store.list_conversations(username=username, library_id=library_id, limit=limit)
+    if q and q.strip():
+        items = conversation_store.search_conversations(
+            username=username, query=q.strip(), library_id=library_id, limit=limit
+        )
+    else:
+        items = conversation_store.list_conversations(username=username, library_id=library_id, limit=limit)
     return {"items": items, "count": len(items)}
 
 

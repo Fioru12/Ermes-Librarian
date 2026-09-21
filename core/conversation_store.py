@@ -109,6 +109,53 @@ class ConversationStore(SharedTableStore):
             for r in rows
         ]
 
+    def search_conversations(
+        self,
+        username: str,
+        query: str,
+        library_id: str | None = None,
+        limit: int = 50,
+    ) -> list[dict[str, Any]]:
+        """Cerca sessioni di conversazione per titolo o contenuto dei messaggi."""
+        clean_q = f"%{query.strip()}%"
+        backend = self._connection()
+        if library_id:
+            sql = (
+                "SELECT DISTINCT c.id, c.username, c.library_id, c.title, c.created_at, c.updated_at "
+                "FROM chat_conversations c "
+                "LEFT JOIN chat_messages m ON m.conversation_id = c.id "
+                "WHERE c.username = ? AND c.library_id = ? AND (c.title LIKE ? OR m.content LIKE ?) "
+                "ORDER BY c.updated_at DESC LIMIT ?"
+            )
+            rows = backend.execute(
+                sql,
+                (str(username), str(library_id), clean_q, clean_q, max(1, int(limit))),
+            )
+        else:
+            sql = (
+                "SELECT DISTINCT c.id, c.username, c.library_id, c.title, c.created_at, c.updated_at "
+                "FROM chat_conversations c "
+                "LEFT JOIN chat_messages m ON m.conversation_id = c.id "
+                "WHERE c.username = ? AND (c.title LIKE ? OR m.content LIKE ?) "
+                "ORDER BY c.updated_at DESC LIMIT ?"
+            )
+            rows = backend.execute(
+                sql,
+                (str(username), clean_q, clean_q, max(1, int(limit))),
+            )
+
+        return [
+            {
+                "id": str(r["id"]),
+                "username": str(r["username"]),
+                "library_id": str(r["library_id"]),
+                "title": str(r["title"]),
+                "created_at": float(r["created_at"]),
+                "updated_at": float(r["updated_at"]),
+            }
+            for r in rows
+        ]
+
     def get_conversation(
         self,
         conversation_id: str,
