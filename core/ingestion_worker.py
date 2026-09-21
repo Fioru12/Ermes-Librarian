@@ -54,25 +54,30 @@ def run_ingestion_job(store: LibraryStore, job_id: str, storage_root: str | Path
     """
     with _slots():
         outcome = process_ingestion_job(store, job_id, storage_root)
-    if outcome.status == "failed" and outcome.transient:
+    if outcome.status == "failed":
         max_attempts = int(getattr(cfg, "INGESTION_MAX_ATTEMPTS", 3))
-        if store.requeue_ingestion_job(job_id, max_attempts):
-            delay = float(getattr(cfg, "INGESTION_RETRY_SECONDS", 5))
-            job = store.get_ingestion_job(job_id) or {}
-            _logger.warning(
-                "Job %s fallito per causa transitoria (%s): nuovo tentativo %s/%s fra %.0fs",
-                job_id,
-                outcome.error,
-                job.get("attempts", "?"),
-                max_attempts,
-                delay,
-            )
-            _record_retry_metric()
-            timer = threading.Timer(delay, run_ingestion_job, args=(store, job_id, storage_root))
-            timer.daemon = True
-            timer.start()
+        if outcome.transient:
+            if store.requeue_ingestion_job(job_id, max_attempts):
+                delay = float(getattr(cfg, "INGESTION_RETRY_SECONDS", 5))
+                job = store.get_ingestion_job(job_id) or {}
+                _logger.warning(
+                    "Job %s fallito per causa transitoria (%s): nuovo tentativo %s/%s fra %.0fs",
+                    job_id,
+                    outcome.error,
+                    job.get("attempts", "?"),
+                    max_attempts,
+                    delay,
+                )
+                _record_retry_metric()
+                timer = threading.Timer(delay, run_ingestion_job, args=(store, job_id, storage_root))
+                timer.daemon = True
+                timer.start()
+            else:
+                _logger.error("Job %s fallito e tentativi esauriti: spostato in DLQ (%s)", job_id, outcome.error)
+                store.move_to_dead_letter(job_id, f"Tentativi esauriti ({max_attempts}): {outcome.error}")
         else:
-            _logger.error("Job %s fallito e tentativi esauriti: %s", job_id, outcome.error)
+            _logger.error("Job %s fallito per errore permanente: spostato in DLQ (%s)", job_id, outcome.error)
+            store.move_to_dead_letter(job_id, f"Errore permanente: {outcome.error}")
     return outcome
 
 

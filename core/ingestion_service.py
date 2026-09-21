@@ -50,6 +50,9 @@ def process_claimed_job(store: LibraryStore, job: dict, storage_root: str | Path
         if not units:
             raise DocumentParseError("Il documento non contiene testo estraibile")
         chunks = chunk_source_units(units)
+        total_chunks = len(chunks)
+        store.update_job_progress(job_id, processed_chunks=0, total_chunks=total_chunks)
+
         store.replace_document_index(
             job["library_id"],
             document_id,
@@ -57,10 +60,22 @@ def process_claimed_job(store: LibraryStore, job: dict, storage_root: str | Path
             len(units),
             chunks,
         )
-        embeddings = embed_texts([text for text, _ in chunks])
-        if embeddings:
-            store.store_chunk_embeddings(job["library_id"], document_id, embeddings, cfg.EMBED_MODEL_ID)
+
+        batch_size = 16
+        all_embeddings = []
+        for i in range(0, total_chunks, batch_size):
+            batch = [text for text, _ in chunks[i : i + batch_size]]
+            batch_embs = embed_texts(batch)
+            all_embeddings.extend(batch_embs)
+            store.update_job_progress(
+                job_id, processed_chunks=min(total_chunks, i + len(batch)), total_chunks=total_chunks
+            )
+
+        if all_embeddings:
+            store.store_chunk_embeddings(job["library_id"], document_id, all_embeddings, cfg.EMBED_MODEL_ID)
+
         store.finish_ingestion_job(job_id, "ready", document_id=document_id)
+        store.update_job_progress(job_id, processed_chunks=total_chunks, total_chunks=total_chunks)
         _record_job_metric("ready")
         return IngestionOutcome("ready")
     except Exception as error:

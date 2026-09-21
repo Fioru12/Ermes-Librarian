@@ -340,7 +340,10 @@ class LibraryStore:
                     error_message TEXT NOT NULL DEFAULT '',
                     created_at TEXT NOT NULL,
                     completed_at TEXT,
-                    attempts INTEGER NOT NULL DEFAULT 0
+                    attempts INTEGER NOT NULL DEFAULT 0,
+                    total_chunks INTEGER NOT NULL DEFAULT 0,
+                    processed_chunks INTEGER NOT NULL DEFAULT 0,
+                    dead_letter_reason TEXT NOT NULL DEFAULT ''
                 );
                 CREATE INDEX IF NOT EXISTS jobs_by_library
                     ON ingestion_jobs(library_id, created_at DESC);
@@ -415,6 +418,12 @@ class LibraryStore:
             job_columns = {row[1] for row in connection.execute("PRAGMA table_info(ingestion_jobs)")}
             if "attempts" not in job_columns:
                 connection.execute("ALTER TABLE ingestion_jobs ADD COLUMN attempts INTEGER NOT NULL DEFAULT 0")
+            if "total_chunks" not in job_columns:
+                connection.execute("ALTER TABLE ingestion_jobs ADD COLUMN total_chunks INTEGER NOT NULL DEFAULT 0")
+            if "processed_chunks" not in job_columns:
+                connection.execute("ALTER TABLE ingestion_jobs ADD COLUMN processed_chunks INTEGER NOT NULL DEFAULT 0")
+            if "dead_letter_reason" not in job_columns:
+                connection.execute("ALTER TABLE ingestion_jobs ADD COLUMN dead_letter_reason TEXT NOT NULL DEFAULT ''")
             library_columns = {row[1] for row in connection.execute("PRAGMA table_info(libraries)")}
             if "owner_id" not in library_columns:
                 connection.execute("ALTER TABLE libraries ADD COLUMN owner_id TEXT NOT NULL DEFAULT 'system'")
@@ -831,10 +840,78 @@ class LibraryStore:
             requeued: bool = result.rowcount == 1
             return requeued
 
+    def update_job_progress(self, job_id: str, processed_chunks: int, total_chunks: int) -> None:
+        """Aggiorna lo stato di avanzamento per-chunk del job di indicizzazione."""
+        with self._lock, self._connection() as connection:
+            connection.execute(
+                """UPDATE ingestion_jobs
+                   SET processed_chunks = ?, total_chunks = ?
+                   WHERE id = ?""",
+                (processed_chunks, total_chunks, job_id),
+            )
+
+    def move_to_dead_letter(self, job_id: str, reason: str) -> None:
+        """Sposta un job irrecuperabile o con tentativi esauriti nella Dead-Letter Queue (DLQ)."""
+        with self._lock, self._connection() as connection:
+            connection.execute(
+                """UPDATE ingestion_jobs
+                   SET status = 'dead_letter', dead_letter_reason = ?, error_message = ?, completed_at = ?
+                   WHERE id = ?""",
+                (reason[:500], reason[:500], self._timestamp(), job_id),
+            )
+
+    def reprocess_dead_letter_job(self, job_id: str) -> bool:
+        """Rilancia un job precedentemente finito nella Dead-Letter Queue azzerando i tentativi."""
+        with self._lock, self._connection() as connection:
+            result = connection.execute(
+                """UPDATE ingestion_jobs
+                   SET status = 'queued', attempts = 0, error_message = '', dead_letter_reason = '', completed_at = NULL
+                   WHERE id = ? AND status = 'dead_letter'""",
+                (job_id,),
+            )
+            return result.rowcount == 1
+
+    def list_dead_letter_jobs(self, library_id: str) -> list[dict]:
+        """Elenca tutti i job finiti nella Dead-Letter Queue per una specifica biblioteca."""
+        with self._connection() as connection:
+            rows = connection.execute(
+                """SELECT * FROM ingestion_jobs WHERE library_id = ? AND status = 'dead_letter' ORDER BY created_at DESC""",
+                (library_id,),
+            ).fetchall()
+        return [self._row(r) for r in rows]
+
+    def get_job_progress(self, job_id: str) -> dict | None:
+        """Restituisce le metriche di avanzamento del job (chunk elaborati, totale, percentuale)."""
+        job = self.get_ingestion_job(job_id)
+        if not job:
+            return None
+        total = int(job.get("total_chunks") or 0)
+        processed = int(job.get("processed_chunks") or 0)
+        percent = (
+            round((processed / total * 100.0), 1)
+            if total > 0
+            else (100.0 if job.get("status") == "ready" else 0.0)
+        )
+        return {
+            "id": job["id"],
+            "library_id": job["library_id"],
+            "document_id": job.get("document_id"),
+            "filename": job["filename"],
+            "status": job["status"],
+            "attempts": int(job.get("attempts") or 0),
+            "processed_chunks": processed,
+            "total_chunks": total,
+            "progress_percent": percent,
+            "error_message": job.get("error_message") or "",
+            "dead_letter_reason": job.get("dead_letter_reason") or "",
+            "created_at": job["created_at"],
+            "completed_at": job.get("completed_at"),
+        }
+
     def ingestion_queue_stats(self) -> dict[str, int]:
         with self._connection() as connection:
             rows = connection.execute("SELECT status, COUNT(*) AS n FROM ingestion_jobs GROUP BY status").fetchall()
-        stats = {"queued": 0, "processing": 0, "ready": 0, "failed": 0}
+        stats = {"queued": 0, "processing": 0, "ready": 0, "failed": 0, "dead_letter": 0}
         for row in rows:
             record = self._row(row)
             stats[str(record["status"])] = int(record["n"])

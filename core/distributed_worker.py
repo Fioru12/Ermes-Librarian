@@ -152,19 +152,26 @@ class DistributedIngestionWorker:
             else:
                 self._error_count += 1
 
-        if outcome.status == "failed" and outcome.transient:
-            if self.store.requeue_ingestion_job(job_id, self.max_attempts):
-                updated_job = self.store.get_ingestion_job(job_id) or {}
-                attempts = updated_job.get("attempts", "?")
-                logger.warning(
-                    "Job %s fallito per causa transitoria (%s). Re-accodato: tentativo %s/%d fra %.1fs",
-                    job_id,
-                    outcome.error,
-                    attempts,
-                    self.max_attempts,
-                    self.retry_delay,
-                )
+        if outcome.status == "failed":
+            if outcome.transient:
+                if self.store.requeue_ingestion_job(job_id, self.max_attempts):
+                    updated_job = self.store.get_ingestion_job(job_id) or {}
+                    attempts = updated_job.get("attempts", "?")
+                    logger.warning(
+                        "Job %s fallito per causa transitoria (%s). Re-accodato: tentativo %s/%d fra %.1fs",
+                        job_id,
+                        outcome.error,
+                        attempts,
+                        self.max_attempts,
+                        self.retry_delay,
+                    )
+                else:
+                    logger.error("Job %s fallito e tentativi esauriti: inviato in DLQ (%s)", job_id, outcome.error)
+                    self.store.move_to_dead_letter(
+                        job_id, f"Tentativi esauriti ({self.max_attempts}): {outcome.error}"
+                    )
             else:
-                logger.error("Job %s fallito definitivamente dopo tentativi esauriti: %s", job_id, outcome.error)
+                logger.error("Job %s fallito per errore permanente: inviato in DLQ (%s)", job_id, outcome.error)
+                self.store.move_to_dead_letter(job_id, f"Errore permanente: {outcome.error}")
 
         return outcome

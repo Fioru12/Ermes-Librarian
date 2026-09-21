@@ -111,9 +111,15 @@ CREATE TABLE IF NOT EXISTS ingestion_jobs (
     error_message TEXT NOT NULL DEFAULT '',
     created_at TEXT NOT NULL,
     completed_at TEXT,
-    attempts INTEGER NOT NULL DEFAULT 0
+    attempts INTEGER NOT NULL DEFAULT 0,
+    total_chunks INTEGER NOT NULL DEFAULT 0,
+    processed_chunks INTEGER NOT NULL DEFAULT 0,
+    dead_letter_reason TEXT NOT NULL DEFAULT ''
 );
 ALTER TABLE ingestion_jobs ADD COLUMN IF NOT EXISTS attempts INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE ingestion_jobs ADD COLUMN IF NOT EXISTS total_chunks INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE ingestion_jobs ADD COLUMN IF NOT EXISTS processed_chunks INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE ingestion_jobs ADD COLUMN IF NOT EXISTS dead_letter_reason TEXT NOT NULL DEFAULT '';
 CREATE INDEX IF NOT EXISTS jobs_by_library
     ON ingestion_jobs(library_id, created_at DESC);
 

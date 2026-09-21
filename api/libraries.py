@@ -302,6 +302,57 @@ def list_ingestion_jobs(
         raise HTTPException(status_code=404, detail="Biblioteca non trovata") from error
 
 
+@router.get("/{library_id}/ingestion-jobs/{job_id}/progress")
+def get_ingestion_job_progress(
+    library_id: str,
+    job_id: str,
+    _auth: dict = Depends(_verify_api_key),
+    store: LibraryStore = Depends(get_library_store),
+):
+    try:
+        store.get_library(library_id, _auth)
+        progress = store.get_job_progress(job_id)
+        if not progress or progress["library_id"] != library_id:
+            raise HTTPException(status_code=404, detail="Job di indicizzazione non trovato")
+        return progress
+    except (LibraryNotFoundError, LibraryAccessError) as error:
+        raise HTTPException(status_code=404, detail="Biblioteca non trovata") from error
+
+
+@router.get("/{library_id}/dead-letter-jobs")
+def list_dead_letter_jobs(
+    library_id: str,
+    _auth: dict = Depends(_verify_api_key),
+    store: LibraryStore = Depends(get_library_store),
+):
+    try:
+        store.get_library(library_id, _auth)
+        return {"items": store.list_dead_letter_jobs(library_id)}
+    except (LibraryNotFoundError, LibraryAccessError) as error:
+        raise HTTPException(status_code=404, detail="Biblioteca non trovata") from error
+
+
+@router.post("/{library_id}/dead-letter-jobs/{job_id}/reprocess")
+def reprocess_dead_letter_job(
+    library_id: str,
+    job_id: str,
+    background_tasks: BackgroundTasks,
+    _auth: dict = Depends(_require_role("editor")),
+    store: LibraryStore = Depends(get_library_store),
+):
+    try:
+        store.get_library(library_id, _auth, write=True)
+        reprocessed = store.reprocess_dead_letter_job(job_id)
+        if not reprocessed:
+            raise HTTPException(status_code=404, detail="Job non trovato nella Dead-Letter Queue")
+        if background_tasks is None:
+            background_tasks = BackgroundTasks()
+        background_tasks.add_task(run_ingestion_job, store, job_id, cfg.LIBRARY_STORAGE_DIR)
+        return {"status": "requeued", "job_id": job_id}
+    except (LibraryNotFoundError, LibraryAccessError) as error:
+        raise HTTPException(status_code=404, detail="Biblioteca non trovata") from error
+
+
 # Rotte costose: parsing, embedding e generazione. Sono le uniche dove
 # un abuso costa risorse reali, quindi le uniche a cui il limitatore
 # e' applicato — non globalmente, per non trasformare uno scrape di
