@@ -486,58 +486,68 @@ def _answer_question(
     import time
 
     from core.question_rewriter import rewrite_with_history
+    from core.rag_tracer import trace_rag_query
 
     t0 = time.perf_counter()
     domanda_originale = question
-    riscrittura = rewrite_with_history(question, history)
-    question = riscrittura.question
-    from core.metrics import record_rewrite_outcome
 
-    record_rewrite_outcome(riscrittura.reason)
-    conversazione = {
-        "question_original": domanda_originale,
-        "question_rewritten_to": riscrittura.question if riscrittura.rewritten else None,
-        "rewrite": riscrittura.reason,
-    }
-    try:
-        library = store.get_library(library_id, actor)
-        # L'istogramma ermes_rag_retrieval_duration_seconds era dichiarato in
-        # core/metrics.py e pubblicato su /metrics senza che nessuno lo
-        # alimentasse: un cruscotto costruito su di esso avrebbe mostrato zero
-        # dati, che per chi guarda e' indistinguibile da "il recupero e'
-        # istantaneo".
-        from core.metrics import rag_retrieval_timer
+    with trace_rag_query(
+        query=question,
+        library_id=library_id,
+        username=actor.get("username", ""),
+        conversation_id=conversation_id,
+    ) as tracer:
+        with tracer.span("query_expansion", original_query=question) as s_exp:
+            riscrittura = rewrite_with_history(question, history)
+            question = riscrittura.question
+            s_exp.set_metadata("rewritten", riscrittura.rewritten)
+            s_exp.set_metadata("reason", riscrittura.reason)
 
-        with rag_retrieval_timer():
-            citations, retrieval_profile = store.search_with_profile(library_id, question, limit=top_k, actor=actor)
-        if not citations:
-            from core.query_expander import expand_query
+        from core.metrics import record_rewrite_outcome
 
-            expanded_queries = expand_query(question)
-            for eq in expanded_queries[1:]:
-                citations, retrieval_profile = store.search_with_profile(library_id, eq, limit=top_k, actor=actor)
-                if citations:
-                    break
-        # `cfg.HYDE_ENABLED` esisteva in config/rag.py e non era letta da
-        # nessuno: HyDE partiva sempre, e chi la metteva a 0 pagava comunque
-        # una chiamata al modello per ogni domanda rimasta senza evidenza.
-        if not citations and cfg.HYDE_ENABLED:
-            from core.hyde import generate_hypothetical_document
+        record_rewrite_outcome(riscrittura.reason)
+        conversazione = {
+            "question_original": domanda_originale,
+            "question_rewritten_to": riscrittura.question if riscrittura.rewritten else None,
+            "rewrite": riscrittura.reason,
+        }
+        try:
+            library = store.get_library(library_id, actor)
+            from core.metrics import rag_retrieval_timer
 
-            hyde_passage = generate_hypothetical_document(question, mode=library.get("assistant_mode"))
-            if hyde_passage and hyde_passage != question:
-                citations, retrieval_profile = store.search_with_profile(
-                    library_id, hyde_passage, limit=top_k, actor=actor
-                )
-    except (LibraryNotFoundError, LibraryAccessError) as error:
-        raise HTTPException(status_code=404, detail="Biblioteca non trovata") from error
+            with tracer.span("retrieval", limit=top_k) as s_ret:
+                with rag_retrieval_timer():
+                    citations, retrieval_profile = store.search_with_profile(
+                        library_id, question, limit=top_k, actor=actor
+                    )
+                if not citations:
+                    from core.query_expander import expand_query
 
-    # La verifica sta qui, fra recupero e risposta, e non dentro il recupero:
-    # se scarta tutto, il percorso di astensione gia' esistente si occupa del
-    # resto senza un secondo ramo che dica la stessa cosa in un altro modo.
-    from core.evidence_verifier import verify_citations
+                    expanded_queries = expand_query(question)
+                    for eq in expanded_queries[1:]:
+                        citations, retrieval_profile = store.search_with_profile(
+                            library_id, eq, limit=top_k, actor=actor
+                        )
+                        if citations:
+                            break
+                if not citations and cfg.HYDE_ENABLED:
+                    from core.hyde import generate_hypothetical_document
 
-    citations, evidence_verified = verify_citations(question, citations)
+                    hyde_passage = generate_hypothetical_document(question, mode=library.get("assistant_mode"))
+                    if hyde_passage and hyde_passage != question:
+                        citations, retrieval_profile = store.search_with_profile(
+                            library_id, hyde_passage, limit=top_k, actor=actor
+                        )
+                s_ret.set_metadata("citations_count", len(citations))
+        except (LibraryNotFoundError, LibraryAccessError) as error:
+            raise HTTPException(status_code=404, detail="Biblioteca non trovata") from error
+
+        from core.evidence_verifier import verify_citations
+
+        with tracer.span("evidence_verification", citations_in=len(citations)) as s_ver:
+            citations, evidence_verified = verify_citations(question, citations)
+            s_ver.set_metadata("citations_out", len(citations))
+            s_ver.set_metadata("evidence_verified", evidence_verified)
 
     if not citations:
         latency_ms = (time.perf_counter() - t0) * 1000.0
@@ -580,23 +590,30 @@ def _answer_question(
                 "conversation": conversazione,
                 "created_at": datetime.now(UTC).isoformat(),
             },
+            "trace": tracer.export_summary(),
         }
     # Le citazioni tornano all'utente marcate se contengono istruzioni rivolte
     # al modello: la fonte esiste e va mostrata, ma il suo testo non e' stato
-    # usato per rispondere. Il conteggio finisce nelle metriche e nell'audit.
+    # passato all'LLM. L'utente deve poter verificare che la quarantena ha
+    # funzionato invece di vedere la citazione sparire nel nulla.
     from core.injection_guard import quarantine_citations
     from core.metrics import record_injection_flagged
 
-    citations, sospette = quarantine_citations(citations)
-    if sospette:
-        record_injection_flagged(sospette)
+    with tracer.span("reranking", candidate_citations=len(citations)) as s_rerank:
+        citations, sospette = quarantine_citations(citations)
+        if sospette:
+            record_injection_flagged(sospette)
+        s_rerank.set_metadata("clean_citations", len(citations))
+        s_rerank.set_metadata("suspicious_count", len(sospette))
 
-    answer, coverage, reason = answer_from_evidence(
-        question,
-        citations,
-        mode=library["assistant_mode"],
-        provider_name=library.get("assistant_provider", ""),
-    )
+    with tracer.span("llm_generation", mode=library["assistant_mode"]) as s_llm:
+        answer, coverage, reason = answer_from_evidence(
+            question,
+            citations,
+            mode=library["assistant_mode"],
+            provider_name=library.get("assistant_provider", ""),
+        )
+        s_llm.set_metadata("coverage", coverage)
     latency_ms = (time.perf_counter() - t0) * 1000.0
     from core.analytics import record_query_event
     from core.metrics import rag_question_recorded, record_rerank_mode
@@ -666,6 +683,7 @@ def _answer_question(
             "conversation": conversazione,
             "created_at": datetime.now(UTC).isoformat(),
         },
+        "trace": tracer.export_summary(),
     }
 
     _record_conversation_messages(
