@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 import contextlib
+import logging
 import os
 import uuid
 from datetime import UTC, datetime
 from io import BytesIO
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse, StreamingResponse
@@ -31,6 +32,8 @@ from core.library_store import (
     resolve_storage_path,
     storage_relative_path,
 )
+
+_logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/libraries", tags=["Libraries"])
 _store: LibraryStore | None = None
@@ -66,6 +69,7 @@ class ConversationTurn(BaseModel):
 class AskLibraryRequest(BaseModel):
     question: str = Field(min_length=2, max_length=2000)
     top_k: int = Field(default=3, ge=1, le=10)
+    conversation_id: str | None = Field(default=None, max_length=100)
     # Gli ultimi scambi, per riscrivere una domanda di raffinamento in forma
     # autonoma prima del recupero. Al massimo tre: oltre, la conversazione
     # pesa piu' della domanda e la riscrittura peggiora.
@@ -319,6 +323,38 @@ def search_library(
         raise HTTPException(status_code=404, detail="Biblioteca non trovata") from error
 
 
+def _record_conversation_messages(
+    conversation_id: str | None,
+    library_id: str,
+    username: str,
+    question: str,
+    answer: Any,
+    citations: Any = None,
+) -> None:
+    if not conversation_id:
+        return
+    try:
+        from core.conversation_store import conversation_store
+
+        conv = conversation_store.get_conversation(conversation_id, username=username)
+        if not conv:
+            conversation_store.create_conversation(
+                username=username,
+                library_id=library_id,
+                title=question[:40].strip() or "Conversazione",
+                conversation_id=conversation_id,
+            )
+        conversation_store.add_message(conversation_id, role="user", content=question)
+        conversation_store.add_message(
+            conversation_id,
+            role="assistant",
+            content=answer,
+            citations=citations or [],
+        )
+    except Exception as err:
+        _logger.warning("Errore nel salvataggio della conversazione %s: %s", conversation_id, err)
+
+
 def _answer_question(
     store: LibraryStore,
     library_id: str,
@@ -326,6 +362,7 @@ def _answer_question(
     top_k: int,
     actor: dict,
     history: list[dict] | None = None,
+    conversation_id: str | None = None,
 ) -> dict:
     """Evidence-first assistant baseline, intentionally abstaining without sources.
 
@@ -411,11 +448,20 @@ def _answer_question(
             assistant_mode=library["assistant_mode"],
             fallback_reason="Nessun passaggio corrispondente recuperato.",
         )
+        ans_text = "Non ho trovato evidenza sufficiente nella biblioteca selezionata. Prova con parole più specifiche oppure carica il documento pertinente."
+        _record_conversation_messages(
+            conversation_id=conversation_id,
+            library_id=library_id,
+            username=actor.get("username", ""),
+            question=domanda_originale,
+            answer=ans_text,
+            citations=[],
+        )
         return {
             "answer_id": ans_id,
             "library": {"id": library["id"], "name": library["name"]},
             "question": question,
-            "answer": "Non ho trovato evidenza sufficiente nella biblioteca selezionata. Prova con parole più specifiche oppure carica il documento pertinente.",
+            "answer": ans_text,
             "status": "abstained",
             "evidence": {"coverage": "insufficient_evidence", "reason": "Nessun passaggio corrispondente recuperato."},
             "citations": [],
@@ -482,7 +528,7 @@ def _answer_question(
             "coverage": coverage,
         },
     )
-    return {
+    result_payload = {
         "answer_id": ans_id,
         "library": {"id": library["id"], "name": library["name"]},
         "question": question,
@@ -515,6 +561,17 @@ def _answer_question(
         },
     }
 
+    _record_conversation_messages(
+        conversation_id=conversation_id,
+        library_id=library_id,
+        username=actor.get("username", ""),
+        question=domanda_originale,
+        answer=answer,
+        citations=result_payload["citations"],
+    )
+
+    return result_payload
+
 
 @router.post("/{library_id}/ask", dependencies=[Depends(rate_limited)])
 def ask_library(
@@ -530,6 +587,7 @@ def ask_library(
         request.top_k,
         _auth,
         history=[turno.model_dump() for turno in request.history],
+        conversation_id=request.conversation_id,
     )
 
 
@@ -540,6 +598,7 @@ def _answer_question_stream(
     top_k: int,
     actor: dict,
     history: list[dict] | None = None,
+    conversation_id: str | None = None,
 ):
     import json
     import time
@@ -625,6 +684,14 @@ def _answer_question_stream(
                 "created_at": datetime.now(UTC).isoformat(),
             },
         }
+        _record_conversation_messages(
+            conversation_id=conversation_id,
+            library_id=library_id,
+            username=actor.get("username", ""),
+            question=domanda_originale,
+            answer=abstained_payload["answer"],
+            citations=[],
+        )
         yield f"event: done\ndata: {json.dumps(abstained_payload)}\n\n"
         return
 
@@ -710,6 +777,16 @@ def _answer_question_stream(
             "created_at": datetime.now(UTC).isoformat(),
         },
     }
+
+    _record_conversation_messages(
+        conversation_id=conversation_id,
+        library_id=library_id,
+        username=actor.get("username", ""),
+        question=domanda_originale,
+        answer=answer,
+        citations=formatted_citations,
+    )
+
     yield f"event: done\ndata: {json.dumps(final_payload)}\n\n"
 
 
@@ -733,6 +810,7 @@ def ask_library_stream(
             request.top_k,
             _auth,
             history=[turno.model_dump() for turno in request.history],
+            conversation_id=request.conversation_id,
         ),
         media_type="text/event-stream",
         headers={

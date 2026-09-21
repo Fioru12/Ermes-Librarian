@@ -28,6 +28,8 @@ function AppInner() {
   const [libraries, setLibraries] = useState<LibrarySummary[]>([])
   const [selectedLibraryId, setSelectedLibraryId] = useState('')
   const [messages, setMessages] = useState<Message[]>([])
+  const [conversations, setConversations] = useState<Array<{ id: string; title: string; updated_at: number }>>([])
+  const [activeConversationId, setActiveConversationId] = useState<string | null>(null)
   const [inputMessage, setInputMessage] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
     const [authState, setAuthState] = useState<'checking' | 'anonymous' | 'authenticated'>('checking')
@@ -126,17 +128,82 @@ function AppInner() {
     }
   }, [])
 
+  const loadConversations = async (libraryId: string) => {
+    if (!libraryId) {
+      setConversations([])
+      return
+    }
+    try {
+      const res = await fetch(`/api/conversations?library_id=${encodeURIComponent(libraryId)}`, { credentials: 'include' })
+      if (res.ok) {
+        const data = await res.json()
+        setConversations(data.items ?? [])
+      }
+    } catch {
+      // Ignora errori di caricamento conversazioni
+    }
+  }
+
   useEffect(() => {
+    setActiveConversationId(null)
+    setMessages([])
+    if (selectedLibraryId && authState === 'authenticated') {
+      loadConversations(selectedLibraryId)
+    }
     return () => {
       abortRef.current?.abort()
     }
-  }, [selectedLibraryId])
+  }, [selectedLibraryId, authState])
+
+  const selectConversation = async (convId: string) => {
+    try {
+      const res = await fetch(`/api/conversations/${convId}`, { credentials: 'include' })
+      if (!res.ok) throw new Error('Conversazione non trovata')
+      const data = await res.json()
+      setActiveConversationId(convId)
+      const mapped: Message[] = (data.messages || []).map((m: { id: string; role: string; content: string; created_at: number; citations?: Message['sources'] }) => ({
+        id: m.id,
+        role: m.role as 'user' | 'assistant',
+        content: m.content,
+        timestamp: new Date(m.created_at * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        sources: m.citations,
+      }))
+      setMessages(mapped)
+    } catch {
+      showNotif('Impossibile caricare la conversazione', 'error')
+    }
+  }
+
+  const deleteConversation = async (convId: string) => {
+    try {
+      const res = await fetch(`/api/conversations/${convId}`, { method: 'DELETE', credentials: 'include' })
+      if (res.ok) {
+        setConversations(prev => prev.filter(c => c.id !== convId))
+        if (activeConversationId === convId) {
+          setActiveConversationId(null)
+          setMessages([])
+        }
+        showNotif('Conversazione eliminata', 'success')
+      }
+    } catch {
+      showNotif('Errore durante la cancellazione della conversazione', 'error')
+    }
+  }
+
+  const newConversation = () => {
+    setActiveConversationId(null)
+    setMessages([])
+  }
 
   const sendQuestion = async (question: string) => {
     if (isGenerating || !question.trim()) return
     if (!selectedLibraryId) return showNotif('Seleziona una biblioteca prima di fare una domanda', 'error')
     const now = new Date().toLocaleTimeString()
     const answerId = crypto.randomUUID?.() ?? Math.random().toString(36).slice(2)
+    const convId = activeConversationId || (crypto.randomUUID?.() ?? Math.random().toString(36).slice(2))
+    if (!activeConversationId) {
+      setActiveConversationId(convId)
+    }
     // Le ultime domande dell'utente, al massimo tre: il server le usa solo per
     // riscrivere una domanda di raffinamento in forma autonoma prima del
     // recupero, e non le conserva. Le risposte non partono: contengono testo
@@ -158,7 +225,7 @@ function AppInner() {
     try {
       const response = await fetch(`/api/libraries/${selectedLibraryId}/ask/stream`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question, history }), signal: controller.signal,
+        body: JSON.stringify({ question, history, conversation_id: convId }), signal: controller.signal,
         credentials: 'include',
       })
       if (!response.ok) throw new Error('Impossibile interrogare la biblioteca')
@@ -206,6 +273,7 @@ function AppInner() {
                 ? { ...message, content: (message.content || '') + (parsed.chunk ?? '') }
                 : message))
             } else if (eventType === 'done') {
+              loadConversations(selectedLibraryId)
               const returnedId = parsed.answer_id || answerId
               setMessages(previous => previous.map(message => message.id === answerId
                 ? {
@@ -336,7 +404,28 @@ function AppInner() {
       <header className={`z-10 flex h-[4.5rem] items-center justify-between border-b px-7 ${t.header}`}><div className="flex items-center gap-3"><div><p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">Spazio di lavoro</p><h2 className={`mt-0.5 text-sm font-semibold ${t.cardTitle}`}>{tabHeaders[activeTab]}</h2></div><span className="hidden rounded-full border border-blue-500/20 bg-blue-500/10 px-2.5 py-1 text-[10px] font-semibold text-blue-400 sm:inline">Biblioteca locale</span></div><p className={`text-xs ${t.cardDesc}`}>Policy AI per singola biblioteca</p></header>
       <div className="flex-1 overflow-hidden">
         <Suspense fallback={<div className={`p-8 text-sm ${t.cardDesc}`}>Caricamento…</div>}>
-        {activeTab === 'chat' && <ChatArea messages={messages} inputMessage={inputMessage} onInputChange={setInputMessage} onSend={sendQuestion} onStop={() => abortRef.current?.abort()} onClearChat={() => setMessages([])} isGenerating={isGenerating} suggestions={suggestions} libraries={libraries} selectedLibraryId={selectedLibraryId} onLibraryChange={setSelectedLibraryId} selectedLibraryDocumentCount={libraries.find(library => library.id === selectedLibraryId)?.document_count ?? 0} onOpenLibraries={() => setActiveTab('docs')} />}
+        {activeTab === 'chat' && (
+          <ChatArea
+            messages={messages}
+            inputMessage={inputMessage}
+            onInputChange={setInputMessage}
+            onSend={sendQuestion}
+            onStop={() => abortRef.current?.abort()}
+            onClearChat={newConversation}
+            isGenerating={isGenerating}
+            suggestions={suggestions}
+            libraries={libraries}
+            selectedLibraryId={selectedLibraryId}
+            onLibraryChange={setSelectedLibraryId}
+            selectedLibraryDocumentCount={libraries.find(library => library.id === selectedLibraryId)?.document_count ?? 0}
+            onOpenLibraries={() => setActiveTab('docs')}
+            conversations={conversations}
+            activeConversationId={activeConversationId}
+            onSelectConversation={selectConversation}
+            onNewConversation={newConversation}
+            onDeleteConversation={deleteConversation}
+          />
+        )}
         {activeTab === 'docs' && <DocumentsTab showNotif={showNotif} />}
         {activeTab === 'connectors' && <div className="h-full overflow-y-auto p-4"><ConnectorsTab showNotif={showNotif} /></div>}
         {activeTab === 'health' && <HealthTab />}

@@ -70,8 +70,10 @@ async function renderAuthenticated() {
 
 async function ask(question: string) {
   const input = screen.getByPlaceholderText(/fai una domanda/i)
-  fireEvent.change(input, { target: { value: question } })
-  fireEvent.submit(input.closest('form')!)
+  await act(async () => {
+    fireEvent.change(input, { target: { value: question } })
+    fireEvent.submit(input.closest('form')!)
+  })
 }
 
 const CITATION = { document_id: 'd1', filename: 'policy-ferie.md', locator: 'Sezione: Ferie', excerpt: '15 giorni' }
@@ -125,8 +127,10 @@ describe('App — SSE answer stream', () => {
     await waitFor(() => expect(screen.getByPlaceholderText(/fai una domanda/i)).not.toBeDisabled())
 
     const req = calls.find(c => c.url === '/api/libraries/hr/ask/stream')!
-    expect(req.init?.method).toBe('POST')
-    expect(JSON.parse(String(req.init?.body))).toEqual({ question: 'Con quanto anticipo chiedo le ferie?', history: [] })
+    const parsedBody = JSON.parse(String(req.init?.body))
+    expect(parsedBody.question).toBe('Con quanto anticipo chiedo le ferie?')
+    expect(parsedBody.history).toEqual([])
+    expect(parsedBody.conversation_id).toBeDefined()
   })
 
   it('accumulates multiple answer chunks progressively during stream', async () => {
@@ -183,6 +187,7 @@ describe('App — SSE answer stream', () => {
     await renderAuthenticated()
     await ask('qualsiasi')
     await screen.findByText(/non riesco a completare la richiesta/i)
+    await waitFor(() => expect(screen.getByPlaceholderText(/fai una domanda/i)).not.toBeDisabled())
   })
 })
 

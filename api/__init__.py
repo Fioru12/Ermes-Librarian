@@ -356,6 +356,7 @@ from api.auth import router as auth_router
 from api.backup import router as backup_router
 from api.chat_webhooks import router as chat_webhooks_router
 from api.connectors import router as connectors_router
+from api.conversations import router as conversations_router
 from api.health import router as health_router
 from api.libraries import router as libraries_router
 from api.mcp_server import router as mcp_server_router
@@ -397,6 +398,7 @@ app.include_router(users_router)
 app.include_router(audit_router)
 app.include_router(analytics_router)
 app.include_router(connectors_router)
+app.include_router(conversations_router)
 app.include_router(models_router)
 app.include_router(providers_router)
 app.include_router(libraries_router)
