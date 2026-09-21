@@ -56,11 +56,12 @@ CREATE INDEX IF NOT EXISTS documents_by_library
 CREATE TABLE IF NOT EXISTS library_members (
     library_id TEXT NOT NULL REFERENCES libraries(id) ON DELETE CASCADE,
     username TEXT NOT NULL,
-    role TEXT NOT NULL CHECK(role IN ('viewer', 'editor')),
+    role TEXT NOT NULL CHECK(role IN ('viewer', 'reviewer', 'editor', 'manager')),
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
     PRIMARY KEY (library_id, username)
 );
+
 CREATE INDEX IF NOT EXISTS members_by_username
     ON library_members(username, library_id);
 

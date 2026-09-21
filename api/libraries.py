@@ -92,7 +92,7 @@ class AssistantPolicyRequest(BaseModel):
 
 class LibraryMemberRequest(BaseModel):
     username: str = Field(min_length=1, max_length=120)
-    role: str = Field(pattern="^(viewer|editor)$")
+    role: str = Field(pattern="^(viewer|reviewer|editor|manager)$")
 
 
 class DocumentAclRequest(BaseModel):
@@ -108,10 +108,11 @@ def _require_library_member_manager(store: LibraryStore, library_id: str, actor:
     try:
         if not store.can_manage_library_members(library_id, actor):
             raise HTTPException(
-                status_code=403, detail="Solo il proprietario o un amministratore possono gestire i collaboratori"
+                status_code=403, detail="Solo il proprietario, un manager o un amministratore possono gestire i collaboratori"
             )
     except (LibraryNotFoundError, LibraryAccessError) as error:
         raise HTTPException(status_code=404, detail="Biblioteca non trovata") from error
+
 
 
 @router.get("")

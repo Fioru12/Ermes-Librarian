@@ -193,20 +193,59 @@ class S3StorageProvider(StorageProvider):
             return None
 
 
-def get_storage_provider() -> StorageProvider:
+class EncryptedStorageProvider(StorageProvider):
+    """Wrapper decorator che cifra i documenti a riposo con AES-256-GCM e decifra in lettura."""
+
+    def __init__(self, underlying: StorageProvider, encryption_key: str | bytes | None = None) -> None:
+        self.underlying = underlying
+        self.encryption_key = encryption_key
+
+    def save(self, storage_path: str, content: bytes) -> str:
+        from core.encryption import encrypt_document
+
+        encrypted = encrypt_document(content, key=self.encryption_key)
+        return self.underlying.save(storage_path, encrypted)
+
+    def get(self, storage_path: str) -> bytes:
+        from core.encryption import decrypt_document
+
+        raw = self.underlying.get(storage_path)
+        return decrypt_document(raw, key=self.encryption_key)
+
+    def delete(self, storage_path: str) -> bool:
+        return self.underlying.delete(storage_path)
+
+    def exists(self, storage_path: str) -> bool:
+        return self.underlying.exists(storage_path)
+
+    def get_url(self, storage_path: str, expires_seconds: int = 3600) -> str | None:
+        # Se cifrato, il presigned URL diretto verso S3 restituirebbe ciphertext illeggibile;
+        # ritorniamo None affinché il download passi sempre dal gateway applicativo che decifra.
+        return None
+
+
+def get_storage_provider(encrypted: bool | None = None) -> StorageProvider:
     """Restituisce il provider configurato per l'ambiente."""
     backend_type = getattr(cfg, "STORAGE_BACKEND", "local").lower()
+    base_provider: StorageProvider
     if backend_type == "s3":
         bucket = getattr(cfg, "S3_BUCKET_NAME", "ermes-documents")
         endpoint = getattr(cfg, "S3_ENDPOINT_URL", None)
         access_key = getattr(cfg, "S3_ACCESS_KEY_ID", None)
         secret_key = getattr(cfg, "S3_SECRET_ACCESS_KEY", None)
         region = getattr(cfg, "S3_REGION", "us-east-1")
-        return S3StorageProvider(
+        base_provider = S3StorageProvider(
             bucket_name=bucket,
             endpoint_url=endpoint,
             access_key=access_key,
             secret_key=secret_key,
             region_name=region,
         )
-    return LocalStorageProvider(getattr(cfg, "LIBRARY_STORAGE_DIR", None))
+    else:
+        base_provider = LocalStorageProvider(getattr(cfg, "LIBRARY_STORAGE_DIR", None))
+
+    is_encrypted = encrypted if encrypted is not None else bool(getattr(cfg, "STORAGE_ENCRYPTION_ENABLED", False))
+    if is_encrypted:
+        return EncryptedStorageProvider(base_provider)
+    return base_provider
+

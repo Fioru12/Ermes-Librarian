@@ -285,11 +285,12 @@ class LibraryStore:
                 CREATE TABLE IF NOT EXISTS library_members (
                     library_id TEXT NOT NULL REFERENCES libraries(id) ON DELETE CASCADE,
                     username TEXT NOT NULL,
-                    role TEXT NOT NULL CHECK(role IN ('viewer', 'editor')),
+                    role TEXT NOT NULL CHECK(role IN ('viewer', 'reviewer', 'editor', 'manager')),
                     created_at TEXT NOT NULL,
                     updated_at TEXT NOT NULL,
                     PRIMARY KEY (library_id, username)
                 );
+
                 CREATE INDEX IF NOT EXISTS members_by_username
                     ON library_members(username, library_id);
 
@@ -484,11 +485,12 @@ class LibraryStore:
             return True
         if library.get("owner_id") == actor.get("username"):
             return True
-        if member_role == "editor":
+        if member_role in {"editor", "manager"}:
             return True
-        if member_role == "viewer" and not write:
+        if member_role in {"viewer", "reviewer"} and not write:
             return True
         return library.get("visibility") == "shared" and not write
+
 
     def _membership_roles(self, username: str) -> dict[str, str]:
         with self._connection() as connection:
@@ -520,15 +522,19 @@ class LibraryStore:
         group_role = resolve_oidc_group_role(actor.get("groups"), library_id)
         if group_role is None:
             return direct_role
-        if direct_role == "editor" or group_role == "editor":
-            return "editor"
-        if direct_role == "viewer" or group_role == "viewer":
-            return "viewer"
-        return direct_role
+        hierarchy = {"manager": 4, "editor": 3, "reviewer": 2, "viewer": 1}
+        d_rank = hierarchy.get(direct_role or "", 0)
+        g_rank = hierarchy.get(group_role or "", 0)
+        return direct_role if d_rank >= g_rank else group_role
 
     @staticmethod
-    def _can_manage_members(library: dict, actor: dict | None) -> bool:
-        return bool(actor and (actor.get("role") == "admin" or library.get("owner_id") == actor.get("username")))
+    def _can_manage_members(library: dict, actor: dict | None, member_role: str | None = None) -> bool:
+        if not actor:
+            return False
+        if actor.get("role") == "admin" or library.get("owner_id") == actor.get("username"):
+            return True
+        effective = member_role or library.get("access_role")
+        return effective == "manager"
 
     @classmethod
     def _access_role(cls, library: dict, actor: dict | None, member_role: str | None = None) -> str:
@@ -539,9 +545,10 @@ class LibraryStore:
             return "admin"
         if library.get("owner_id") == actor.get("username"):
             return "owner"
-        if member_role in {"viewer", "editor"}:
+        if member_role in {"viewer", "reviewer", "editor", "manager"}:
             return member_role
         return "viewer" if library.get("visibility") == "shared" else "none"
+
 
     def list_libraries(self, actor: dict | None = None) -> list[dict]:
         with self._connection() as connection:
@@ -681,7 +688,7 @@ class LibraryStore:
         normalized_username = username.strip()
         if not normalized_username:
             raise ValueError("Utente collaboratore obbligatorio")
-        if role not in {"viewer", "editor"}:
+        if role not in {"viewer", "reviewer", "editor", "manager"}:
             raise ValueError("Ruolo collaboratore non valido")
         library = self.get_library(library_id)
         if normalized_username == library["owner_id"]:
@@ -707,7 +714,8 @@ class LibraryStore:
 
     def can_manage_library_members(self, library_id: str, actor: dict | None) -> bool:
         library = self.get_library(library_id, actor)
-        return self._can_manage_members(library, actor)
+        return self._can_manage_members(library, actor, library.get("access_role"))
+
 
     # ============================================================
     # Document-level ACL
