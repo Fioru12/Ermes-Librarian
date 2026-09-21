@@ -7,7 +7,6 @@ import logging
 import os
 import uuid
 from datetime import UTC, datetime
-from io import BytesIO
 from pathlib import Path
 from typing import Any, Literal
 
@@ -23,7 +22,9 @@ from core.evidence_assistant import answer_from_evidence
 from core.folder_importer import scan_import_source
 from core.governance import append_audit
 from core.ingestion_worker import run_ingestion_job
-from core.input_validator import matches_expected_file_signature, sanitize_upload_name
+from core.input_validator import (
+    validate_and_scan_document,
+)
 from core.library_embeddings import embed_texts
 from core.library_store import (
     LibraryAccessError,
@@ -264,15 +265,16 @@ async def upload_document(
     _auth: dict = Depends(_require_role("editor")),
     store: LibraryStore = Depends(get_library_store),
 ):
-    safe_name = sanitize_upload_name(file.filename or "")
-    if safe_name is None:
-        raise HTTPException(status_code=400, detail="Nome file o estensione non supportati")
-
     content = await file.read((cfg.ADMIN_MAX_UPLOAD_MB * 1024 * 1024) + 1)
     if len(content) > cfg.ADMIN_MAX_UPLOAD_MB * 1024 * 1024:
         raise HTTPException(status_code=413, detail="File troppo grande")
-    if not content or not matches_expected_file_signature(BytesIO(content), safe_name):
-        raise HTTPException(status_code=400, detail="Il contenuto non corrisponde al tipo di file dichiarato")
+    if not content:
+        raise HTTPException(status_code=400, detail="File vuoto non supportato")
+
+    is_valid, reason_or_name = validate_and_scan_document(file.filename or "", content)
+    if not is_valid:
+        raise HTTPException(status_code=400, detail=reason_or_name)
+    safe_name = reason_or_name
 
     try:
         store.get_library(library_id, _auth, write=True)

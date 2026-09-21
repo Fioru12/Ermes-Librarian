@@ -121,14 +121,14 @@ services:
         reservations:
           memory: 2G
 
-  # Backend PostgreSQL opzionale (deploy multi-utente).
+  # Backend PostgreSQL opzionale con estensione pgvector per ricerca vettoriale nativa.
   # Attivazione: docker compose --profile postgres up -d
   # e impostare nel .env:
   #   ERMES_DATABASE_URL=postgresql://ermes:${POSTGRES_PASSWORD:-ermes_change_me}@postgres:5432/ermes
   # Senza questo profilo l'app usa SQLite (nessuna altra configurazione).
   postgres:
-    profiles: ["postgres"]
-    image: postgres:16-alpine
+    profiles: ["postgres", "enterprise"]
+    image: pgvector/pgvector:pg16
     container_name: ermes-postgres
     environment:
       - POSTGRES_USER=${POSTGRES_USER:-ermes}
@@ -149,6 +149,65 @@ services:
     # Per accesso dal host (debug): scommentare
     # ports:
     #   - "127.0.0.1:5432:5432"
+
+  # Worker asincrono distribuito per ingestione documentale e chunking/embedding in background
+  # Attivazione: docker compose --profile worker up -d (oppure --profile enterprise)
+  worker:
+    profiles: ["worker", "enterprise"]
+    image: ${ERMES_IMAGE:-ermes-knowledge:local}
+    container_name: ermes-worker
+    command: ["python", "scripts/run_worker.py", "--concurrency", "${ERMES_WORKER_CONCURRENCY:-4}"]
+    volumes:
+      - ./documenti:/app/documenti
+      - ./chroma_db:/app/chroma_db
+      - ./data:/app/data
+      - ./storage:/app/storage
+      - ./logs:/app/logs
+      - ./security:/app/security
+      - ./backups:/app/backups
+    environment:
+      - ERMES_DATABASE_URL=${ERMES_DATABASE_URL:-}
+      - OLLAMA_HOST=http://ollama:11434
+      - ERMES_DEFAULT_MODEL_ID=${ERMES_DEFAULT_MODEL_ID:-llama3.2:latest}
+      - ERMES_EMBED_MODEL_ID=${ERMES_EMBED_MODEL_ID:-nomic-embed-text:latest}
+      - ERMES_STORAGE_BACKEND=${ERMES_STORAGE_BACKEND:-local}
+      - ERMES_STORAGE_ENCRYPTION_ENABLED=${ERMES_STORAGE_ENCRYPTION_ENABLED:-0}
+      - ERMES_STORAGE_ENCRYPTION_KEY=${ERMES_STORAGE_ENCRYPTION_KEY:-}
+      - S3_BUCKET_NAME=${S3_BUCKET_NAME:-ermes-documents}
+      - S3_ENDPOINT_URL=${S3_ENDPOINT_URL:-http://minio:9000}
+      - S3_ACCESS_KEY_ID=${S3_ACCESS_KEY_ID:-minioadmin}
+      - S3_SECRET_ACCESS_KEY=${S3_SECRET_ACCESS_KEY:-minioadmin}
+      - S3_REGION=${S3_REGION:-us-east-1}
+      - ERMES_LOG_FORMAT=${ERMES_LOG_FORMAT:-json}
+      - ERMES_LOG_LEVEL=${ERMES_LOG_LEVEL:-INFO}
+    restart: unless-stopped
+    networks:
+      - ermes-network
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+        reservations:
+          memory: 1G
+
+  # Object storage compatibile S3 (MinIO) per conservazione documentale distribuita
+  # Attivazione: docker compose --profile s3 up -d (oppure --profile enterprise)
+  minio:
+    profiles: ["s3", "enterprise"]
+    image: minio/minio:latest
+    container_name: ermes-minio
+    command: ["server", "/data", "--console-address", ":9001"]
+    ports:
+      - "${MINIO_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    environment:
+      - MINIO_ROOT_USER=${S3_ACCESS_KEY_ID:-minioadmin}
+      - MINIO_ROOT_PASSWORD=${S3_SECRET_ACCESS_KEY:-minioadmin}
+    volumes:
+      - minio_data:/data
+    restart: unless-stopped
+    networks:
+      - ermes-network
 
   # Reverse proxy per esposizione pubblica (SSL automatico con Let's Encrypt)
   # Sostituisci il dominio in scripts/Caddyfile prima di avviare
@@ -178,3 +237,4 @@ volumes:
   caddy_data:
   caddy_config:
   postgres_data:
+  minio_data:

@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import base64
 import logging
-from io import BytesIO
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -18,7 +17,9 @@ from pydantic import BaseModel, Field
 from api.auth import _require_role, _verify_api_key, webhook_rate_limited
 from api.libraries import _answer_question, get_library_store
 from config import cfg
-from core.input_validator import matches_expected_file_signature, sanitize_upload_name
+from core.input_validator import (
+    validate_and_scan_document,
+)
 from core.library_store import LibraryAccessError, LibraryNotFoundError, LibraryStore
 
 _logger = logging.getLogger(__name__)
@@ -113,10 +114,6 @@ def automation_ingest(
     user: dict = Depends(_require_role("editor")),
     store: LibraryStore = Depends(get_library_store),
 ) -> dict[str, Any]:
-    safe_name = sanitize_upload_name(request.filename or "")
-    if safe_name is None:
-        raise HTTPException(status_code=400, detail="Nome file o estensione non supportati")
-
     try:
         if request.is_base64:
             raw_bytes = base64.b64decode(request.content)
@@ -128,8 +125,11 @@ def automation_ingest(
     massimo = cfg.ADMIN_MAX_UPLOAD_MB * 1024 * 1024
     if len(raw_bytes) > massimo:
         raise HTTPException(status_code=413, detail="File troppo grande")
-    if not raw_bytes or not matches_expected_file_signature(BytesIO(raw_bytes), safe_name):
-        raise HTTPException(status_code=400, detail="Il contenuto non corrisponde al tipo di file dichiarato")
+
+    is_valid, reason_or_name = validate_and_scan_document(request.filename or "", raw_bytes)
+    if not is_valid:
+        raise HTTPException(status_code=400, detail=reason_or_name)
+    safe_name = reason_or_name
 
     try:
         store.get_library(request.library_id, user, write=True)
