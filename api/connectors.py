@@ -354,3 +354,133 @@ def sync_watcher_now(
         result,
     )
     return {"ok": True, "result": result}
+
+
+# ============================================================
+# Scheduled Connectors Management
+# ============================================================
+
+
+class CreateConnectorScheduleRequest(BaseModel):
+    name: str = Field(min_length=1, max_length=120)
+    connector_type: str = Field(pattern=SUPPORTED_CONNECTORS_PATTERN)
+    config: dict[str, Any] = Field(default_factory=dict)
+    target_library_id: str = Field(min_length=1)
+    interval_minutes: int = Field(default=60, ge=5, le=10080)
+    enabled: bool = True
+
+
+@router.get("/schedules", summary="Elenca tutti i connettori cloud schedulati")
+def list_connector_schedules(
+    library_id: str | None = Query(default=None),
+    _auth: dict = Depends(_require_role("editor")),
+) -> dict[str, Any]:
+    from core.connector_scheduler import get_schedule_store
+
+    store = get_schedule_store()
+    schedules = store.list_schedules(target_library_id=library_id)
+    return {
+        "items": [
+            {
+                "id": s.id,
+                "name": s.name,
+                "connector_type": s.connector_type,
+                "target_library_id": s.target_library_id,
+                "interval_minutes": s.interval_minutes,
+                "enabled": s.enabled,
+                "last_sync_at": s.last_sync_at,
+                "next_sync_at": s.next_sync_at,
+                "last_status": s.last_status,
+                "last_error": s.last_error,
+                "items_synced": s.items_synced,
+                "created_at": s.created_at,
+            }
+            for s in schedules
+        ]
+    }
+
+
+@router.post("/schedules", summary="Crea una nuova pianificazione di sincronizzazione automatica per connettore")
+def create_connector_schedule(
+    req: CreateConnectorScheduleRequest,
+    _auth: dict = Depends(_require_role("admin")),
+    store: LibraryStore = Depends(get_library_store),
+) -> dict[str, Any]:
+    # Verifica che la biblioteca target esista
+    lib = store.get_library(req.target_library_id, _auth)
+    if not lib:
+        raise HTTPException(status_code=404, detail="Biblioteca target non trovata")
+
+    from core.connector_scheduler import get_schedule_store
+
+    sched_store = get_schedule_store()
+    schedule = sched_store.create_schedule(
+        name=req.name,
+        connector_type=req.connector_type,
+        config=req.config,
+        target_library_id=req.target_library_id,
+        interval_minutes=req.interval_minutes,
+        enabled=req.enabled,
+    )
+
+    append_audit(
+        cfg.AUDIT_FILE,
+        "connector_schedule_created",
+        _auth["username"],
+        {"schedule_id": schedule.id, "name": schedule.name, "type": schedule.connector_type},
+    )
+
+    return {
+        "ok": True,
+        "schedule": {
+            "id": schedule.id,
+            "name": schedule.name,
+            "connector_type": schedule.connector_type,
+            "target_library_id": schedule.target_library_id,
+            "interval_minutes": schedule.interval_minutes,
+            "enabled": schedule.enabled,
+            "next_sync_at": schedule.next_sync_at,
+        },
+    }
+
+
+@router.delete("/schedules/{schedule_id}", summary="Elimina una pianificazione di connettore")
+def delete_connector_schedule(
+    schedule_id: str,
+    _auth: dict = Depends(_require_role("admin")),
+) -> dict[str, Any]:
+    from core.connector_scheduler import get_schedule_store
+
+    sched_store = get_schedule_store()
+    deleted = sched_store.delete_schedule(schedule_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Pianificazione non trovata")
+
+    append_audit(
+        cfg.AUDIT_FILE,
+        "connector_schedule_deleted",
+        _auth["username"],
+        {"schedule_id": schedule_id},
+    )
+    return {"ok": True, "deleted_id": schedule_id}
+
+
+@router.post("/schedules/{schedule_id}/trigger", summary="Avvia immediatamente la sincronizzazione di una pianificazione")
+def trigger_connector_schedule_now(
+    schedule_id: str,
+    _auth: dict = Depends(_require_role("editor")),
+    store: LibraryStore = Depends(get_library_store),
+) -> dict[str, Any]:
+    from core.connector_scheduler import run_schedule_sync
+
+    try:
+        result = run_schedule_sync(schedule_id, store=store)
+        append_audit(
+            cfg.AUDIT_FILE,
+            "connector_schedule_triggered",
+            _auth["username"],
+            {"schedule_id": schedule_id, "result": result},
+        )
+        return {"ok": True, "result": result}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Errore durante l'esecuzione del connettore: {e}") from e

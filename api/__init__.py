@@ -214,8 +214,26 @@ async def lifespan(app: FastAPI):
     except Exception as watcher_err:
         _logger.warning("Impossibile avviare Folder Watcher thread: %s", watcher_err)
 
+    # ── Avvia Connector Scheduler daemon thread ──
+    _scheduler_stop_event = threading.Event()
+    _scheduler_thread = None
+    try:
+        from api.libraries import get_library_store
+        from core.connector_scheduler import start_connector_scheduler_thread
+
+        _scheduler_thread = start_connector_scheduler_thread(
+            store=get_library_store(),
+            interval_sec=getattr(cfg, "CONNECTOR_SCHEDULER_INTERVAL_SEC", 30),
+            stop_event=_scheduler_stop_event,
+        )
+        _logger.info("Connector Scheduler daemon thread avviato con successo.")
+    except Exception as sched_err:
+        _logger.warning("Impossibile avviare Connector Scheduler thread: %s", sched_err)
+
     yield
 
+    if _scheduler_stop_event is not None:
+        _scheduler_stop_event.set()
     if _watcher_stop_event is not None:
         _watcher_stop_event.set()
     if _backup_task is not None:
