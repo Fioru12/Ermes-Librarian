@@ -14,9 +14,12 @@ from pydantic import BaseModel, Field
 from api.auth import _require_role
 from api.libraries import get_library_store
 from config import cfg
+from core.connectors.base import BaseConnector
 from core.connectors.local_folder import LocalFolderConnector
 from core.connectors.microsoft_graph import MicrosoftGraphConnector
+from core.connectors.s3_bucket import S3BucketConnector
 from core.connectors.web_scraper import WebScraperConnector
+from core.connectors.webdav import WebDAVConnector
 from core.governance import append_audit
 from core.library_store import LibraryStore
 
@@ -26,12 +29,12 @@ router = APIRouter(prefix="/api/connectors", tags=["Enterprise Connectors"])
 
 
 class TestConnectorRequest(BaseModel):
-    type: str = Field(pattern="^(microsoft_graph|web_scraper|local_folder)$")
+    type: str = Field(pattern="^(microsoft_graph|web_scraper|local_folder|s3_bucket|webdav)$")
     config: dict[str, Any] = Field(default_factory=dict)
 
 
 class SyncConnectorRequest(BaseModel):
-    type: str = Field(pattern="^(microsoft_graph|web_scraper|local_folder)$")
+    type: str = Field(pattern="^(microsoft_graph|web_scraper|local_folder|s3_bucket|webdav)$")
     config: dict[str, Any] = Field(default_factory=dict)
     target_library_id: str = Field(min_length=1)
 
@@ -41,19 +44,23 @@ def test_connector(
     request: TestConnectorRequest,
     _auth: dict = Depends(_require_role("admin")),
 ) -> dict:
+    connector: BaseConnector
     if request.type == "microsoft_graph":
-        connector: MicrosoftGraphConnector | WebScraperConnector | LocalFolderConnector = MicrosoftGraphConnector(
-            request.config
-        )
+        connector = MicrosoftGraphConnector(request.config)
     elif request.type == "web_scraper":
         connector = WebScraperConnector(request.config)
     elif request.type == "local_folder":
         connector = LocalFolderConnector(request.config)
+    elif request.type == "s3_bucket":
+        connector = S3BucketConnector(request.config)
+    elif request.type == "webdav":
+        connector = WebDAVConnector(request.config)
     else:
         raise HTTPException(status_code=400, detail="Tipo connettore non supportato")
 
     ok, message = connector.test_connection()
     return {"ok": ok, "message": message, "type": request.type}
+
 
 
 @router.post("/sync", summary="Sincronizza documenti remoti nella biblioteca specificata")
@@ -94,16 +101,20 @@ def sync_connector(
     if request.type == "local_folder":
         _reject_source_path_inside_app(str(request.config.get("folder_path", "")))
 
+    connector: BaseConnector
     if request.type == "microsoft_graph":
-        connector: MicrosoftGraphConnector | WebScraperConnector | LocalFolderConnector = MicrosoftGraphConnector(
-            request.config
-        )
+        connector = MicrosoftGraphConnector(request.config)
     elif request.type == "web_scraper":
         connector = WebScraperConnector(request.config)
     elif request.type == "local_folder":
         connector = LocalFolderConnector(request.config)
+    elif request.type == "s3_bucket":
+        connector = S3BucketConnector(request.config)
+    elif request.type == "webdav":
+        connector = WebDAVConnector(request.config)
     else:
         raise HTTPException(status_code=400, detail="Tipo connettore non supportato")
+
 
     try:
         remote_docs = connector.fetch_documents()
