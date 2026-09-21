@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
-import { AlertTriangle, CheckCircle2, Clock3, Download, FileText, FolderCog, FolderPlus, Library, PackageOpen, RefreshCw, Search, ShieldCheck, Trash2, Upload, UserPlus, Users, XCircle } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Clock3, Download, FileText, FolderCog, FolderPlus, Library, PackageOpen, RefreshCw, Search, ShieldCheck, Table, Trash2, Upload, UserPlus, Users, XCircle } from 'lucide-react'
 import { useTheme } from '../../hooks/useTheme'
 import { CardTitle } from '../../components/ui'
 import { errorMessage } from '../../lib/errors'
 import { useConfirm } from '../ui/ConfirmDialog'
+import { TabularExplorerModal } from './TabularExplorerModal'
 
 interface LibraryItem {
   id: string
@@ -138,6 +139,12 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
   const [scanningSourceId, setScanningSourceId] = useState<string | null>(null)
   const [fileTypeFilter, setFileTypeFilter] = useState<string>('all')
   const [docNameFilter, setDocNameFilter] = useState<string>('')
+  const [tabularDoc, setTabularDoc] = useState<LibraryDocument | null>(null)
+
+  const isTabularDoc = (filename: string) => {
+    const ext = filename.split('.').pop()?.toLowerCase() || ''
+    return ['csv', 'tsv', 'xlsx'].includes(ext)
+  }
 
   const filteredDocuments = documents.filter(document => {
     if (docNameFilter.trim()) {
@@ -928,7 +935,7 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
                                 const status = documentStatus(document.status)
                                 return <span className={`mt-3 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${status.className}`}><status.Icon className={`h-3 w-3 ${document.status === 'processing' ? 'animate-spin' : ''}`} />{status.label}</span>
                               })()}
-                              <div className="mt-3 flex flex-wrap gap-3"><button onClick={() => { setSearchScopeDoc(current => current?.id === document.id ? null : document); setSearchQuery(''); setSearchResults(null); setRetrievalProfile(null) }} className={`flex items-center gap-1 text-xs transition hover:text-blue-400 ${searchScopeDoc?.id === document.id ? 'text-blue-300' : 'text-slate-400'}`}><Search className="h-3 w-3" />{searchScopeDoc?.id === document.id ? 'Scope attivo' : 'Cerca qui'}</button><button onClick={() => showSummary(document)} disabled={summarizing} className="flex items-center gap-1 text-xs text-slate-400 transition hover:text-blue-400 disabled:cursor-not-allowed disabled:opacity-40"><FileText className="h-3 w-3" />{summarizing ? 'Riassumo…' : 'Riassumi'}</button><button onClick={() => downloadDocument(document)} className="flex items-center gap-1 text-xs text-slate-400 transition hover:text-blue-400"><Download className="h-3 w-3" />Apri</button>{canManageMembers && <button onClick={() => openAclPanel(document)} className="flex items-center gap-1 text-xs text-slate-400 transition hover:text-blue-400"><ShieldCheck className="h-3 w-3" />Accessi</button>}{canEditLibrary && <button disabled={document.status === 'queued' || document.status === 'processing'} onClick={() => reindexDocument(document)} className="flex items-center gap-1 text-xs text-slate-400 transition hover:text-blue-400 disabled:cursor-not-allowed disabled:opacity-40"><RefreshCw className="h-3 w-3" />Reindicizza</button>}<button onClick={() => showVersions(document)} className="text-xs text-slate-400 transition hover:text-blue-400">Versioni</button>{canEditLibrary && <button onClick={() => deleteDocument(document)} disabled={deletingDocumentId === document.id} aria-label={`Elimina ${document.filename}`} className="flex items-center gap-1 text-xs text-rose-400/80 transition hover:text-rose-300 disabled:cursor-not-allowed disabled:opacity-40"><Trash2 className="h-3 w-3" />{deletingDocumentId === document.id ? 'Elimino…' : 'Elimina'}</button>}</div>
+                              <div className="mt-3 flex flex-wrap gap-3">{isTabularDoc(document.filename) && <button onClick={() => setTabularDoc(document)} className="flex items-center gap-1 text-xs text-blue-400 font-semibold transition hover:text-blue-300" title="Esplora dati e query SQL"><Table className="h-3 w-3" />Dati SQL</button>}<button onClick={() => { setSearchScopeDoc(current => current?.id === document.id ? null : document); setSearchQuery(''); setSearchResults(null); setRetrievalProfile(null) }} className={`flex items-center gap-1 text-xs transition hover:text-blue-400 ${searchScopeDoc?.id === document.id ? 'text-blue-300' : 'text-slate-400'}`}><Search className="h-3 w-3" />{searchScopeDoc?.id === document.id ? 'Scope attivo' : 'Cerca qui'}</button><button onClick={() => showSummary(document)} disabled={summarizing} className="flex items-center gap-1 text-xs text-slate-400 transition hover:text-blue-400 disabled:cursor-not-allowed disabled:opacity-40"><FileText className="h-3 w-3" />{summarizing ? 'Riassumo…' : 'Riassumi'}</button><button onClick={() => downloadDocument(document)} className="flex items-center gap-1 text-xs text-slate-400 transition hover:text-blue-400"><Download className="h-3 w-3" />Apri</button>{canManageMembers && <button onClick={() => openAclPanel(document)} className="flex items-center gap-1 text-xs text-slate-400 transition hover:text-blue-400"><ShieldCheck className="h-3 w-3" />Accessi</button>}{canEditLibrary && <button disabled={document.status === 'queued' || document.status === 'processing'} onClick={() => reindexDocument(document)} className="flex items-center gap-1 text-xs text-slate-400 transition hover:text-blue-400 disabled:cursor-not-allowed disabled:opacity-40"><RefreshCw className="h-3 w-3" />Reindicizza</button>}<button onClick={() => showVersions(document)} className="text-xs text-slate-400 transition hover:text-blue-400">Versioni</button>{canEditLibrary && <button onClick={() => deleteDocument(document)} disabled={deletingDocumentId === document.id} aria-label={`Elimina ${document.filename}`} className="flex items-center gap-1 text-xs text-rose-400/80 transition hover:text-rose-300 disabled:cursor-not-allowed disabled:opacity-40"><Trash2 className="h-3 w-3" />{deletingDocumentId === document.id ? 'Elimino…' : 'Elimina'}</button>}</div>
                             </div>
                           </div>
                         </article>
@@ -1055,6 +1062,14 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
             </div>
           </section>
         </div>
+      )}
+      {tabularDoc && selectedLibraryId && (
+        <TabularExplorerModal
+          libraryId={selectedLibraryId}
+          documentId={tabularDoc.id}
+          filename={tabularDoc.filename}
+          onClose={() => setTabularDoc(null)}
+        />
       )}
     </div>
   )

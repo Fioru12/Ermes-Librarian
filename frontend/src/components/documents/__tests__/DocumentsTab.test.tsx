@@ -60,11 +60,25 @@ describe('DocumentsTab', () => {
   })
 
   it('shows whether a document search used local hybrid retrieval', async () => {
-    vi.mocked(fetch)
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ items: [{ id: 'library-1', name: 'Procedure HR', description: '', visibility: 'private', document_count: 1 }] }) } as Response)
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ items: [{ id: 'document-1', filename: 'ferie.md', size_bytes: 1200, version: 1, status: 'ready' }] }) } as Response)
-      .mockResolvedValueOnce({ ok: false, json: async () => ({}) } as Response)
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ items: [{ document_id: 'document-1', filename: 'ferie.md', excerpt: 'Cinque giorni.', citation: { version: 1, locator: 'Sezione: Ferie' } }], retrieval_profile: { mode: 'hybrid_local', semantic_used: true, semantic_indexed_chunks: 4 } }) } as Response)
+    vi.mocked(fetch).mockImplementation(async (input) => {
+      const url = String(input)
+      if (url === '/api/libraries') {
+        return { ok: true, json: async () => ({ items: [{ id: 'library-1', name: 'Procedure HR', description: '', visibility: 'private', document_count: 1 }] }) } as Response
+      }
+      if (url === '/api/libraries/library-1/documents') {
+        return { ok: true, json: async () => ({ items: [{ id: 'document-1', filename: 'ferie.md', size_bytes: 1200, version: 1, status: 'ready' }] }) } as Response
+      }
+      if (url.includes('/search')) {
+        return {
+          ok: true,
+          json: async () => ({
+            items: [{ document_id: 'document-1', filename: 'ferie.md', excerpt: 'Cinque giorni.', citation: { version: 1, locator: 'Sezione: Ferie' } }],
+            retrieval_profile: { mode: 'hybrid_local', semantic_used: true, semantic_indexed_chunks: 4 },
+          }),
+        } as Response
+      }
+      return { ok: true, json: async () => ({ items: [] }) } as Response
+    })
 
     renderWithTheme(<DocumentsTab showNotif={showNotif} />)
 
@@ -76,10 +90,16 @@ describe('DocumentsTab', () => {
   })
 
   it('keeps write controls hidden for a viewer library role', async () => {
-    vi.mocked(fetch)
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ items: [{ id: 'library-1', name: 'Procedure HR', description: '', visibility: 'private', document_count: 1, access_role: 'viewer' }] }) } as Response)
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ items: [{ id: 'document-1', filename: 'ferie.md', size_bytes: 1200, version: 1, status: 'ready' }] }) } as Response)
-      .mockResolvedValueOnce({ ok: false, json: async () => ({}) } as Response)
+    vi.mocked(fetch).mockImplementation(async (input) => {
+      const url = String(input)
+      if (url === '/api/libraries') {
+        return { ok: true, json: async () => ({ items: [{ id: 'library-1', name: 'Procedure HR', description: '', visibility: 'private', document_count: 1, access_role: 'viewer' }] }) } as Response
+      }
+      if (url === '/api/libraries/library-1/documents') {
+        return { ok: true, json: async () => ({ items: [{ id: 'document-1', filename: 'ferie.md', size_bytes: 1200, version: 1, status: 'ready' }] }) } as Response
+      }
+      return { ok: true, json: async () => ({ items: [] }) } as Response
+    })
 
     renderWithTheme(<DocumentsTab showNotif={showNotif} />)
 

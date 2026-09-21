@@ -1,7 +1,8 @@
 import { useRef, useEffect, useState } from 'react'
-import { Send, Square, HelpCircle, ArrowRight, BookOpen, Files, ShieldCheck, Download, X, ThumbsUp, ThumbsDown, Copy, Check, RotateCcw, FileDown, History, Plus, Trash2 } from 'lucide-react'
+import { Send, Square, HelpCircle, ArrowRight, BookOpen, Files, ShieldCheck, Download, X, ThumbsUp, ThumbsDown, Copy, Check, RotateCcw, FileDown, History, Plus, Table, Trash2 } from 'lucide-react'
 import { useTheme } from '../../hooks/useTheme'
 import { InlineMarkdown } from './InlineMarkdown'
+import { TabularExplorerModal } from '../documents/TabularExplorerModal'
 import type { Message } from '../../types'
 
 type Source = NonNullable<Message['sources']>[number]
@@ -67,6 +68,7 @@ export default function ChatArea({
   const { t } = useTheme()
   const chatEndRef = useRef<HTMLDivElement>(null)
   const [activeCitation, setActiveCitation] = useState<{ source: Source; marker: number } | null>(null)
+  const [tabularSource, setTabularSource] = useState<{ documentId: string; filename: string } | null>(null)
   const [showHistoryMenu, setShowHistoryMenu] = useState(false)
   const [historyFilter, setHistoryFilter] = useState('')
   const [feedbackState, setFeedbackState] = useState<Record<string, number>>({})
@@ -278,15 +280,45 @@ export default function ChatArea({
                 <div className="whitespace-pre-wrap">{m.role === 'assistant' && m.sources && m.sources.length > 0
                   ? <CitationText text={m.content} sources={m.sources} onCitation={(source, marker) => setActiveCitation({ source, marker })} />
                   : <InlineMarkdown text={m.content} />}</div>
-                {m.role === 'assistant' && m.sources && m.sources.length > 0 && <div className="mt-4 border-t border-white/10 pt-3"><p className="text-xs font-semibold text-slate-400">Fonti</p><div className="mt-2 space-y-2">{m.sources.map((source, index) => <div key={`${source.document_id}-${source.locator}-${index}`} className="rounded-md bg-white/5 p-2 text-xs">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="font-medium text-blue-300">{source.filename}<span className="font-normal text-slate-400"> · v{source.version} · {source.locator}</span>{source.injection_suspected && <span className="ml-2 rounded border border-amber-400/40 bg-amber-400/10 px-1.5 py-0.5 text-[10px] font-semibold text-amber-300" title="Il passaggio contiene istruzioni rivolte al modello: la fonte e' mostrata, il suo testo non e' stato usato per rispondere">non usata</span>}</span>
-                      <button type="button" onClick={() => window.open(`/api/libraries/${selectedLibraryId}/documents/${source.document_id}/download`, '_blank', 'noopener,noreferrer')} className="flex shrink-0 items-center gap-1 rounded-md border border-blue-500/20 bg-blue-500/10 px-2 py-1 text-[10px] font-semibold text-blue-300 transition hover:border-blue-400/40 hover:bg-blue-500/20" title="Apri il documento originale">
-                        <Download className="h-3 w-3" /> Apri originale
-                      </button>
-                    </div>
-                    <p className="mt-1 text-slate-400"><InlineMarkdown text={source.excerpt} /></p>
-                  </div>)}</div></div>}
+                {m.role === 'assistant' && m.sources && m.sources.length > 0 && <div className="mt-4 border-t border-white/10 pt-3"><p className="text-xs font-semibold text-slate-400">Fonti</p><div className="mt-2 space-y-2">{m.sources.map((source, index) => {
+                    const isTabular = ['csv', 'tsv', 'xlsx'].includes(source.filename.split('.').pop()?.toLowerCase() || '')
+                    return (
+                      <div key={`${source.document_id}-${source.locator}-${index}`} className="rounded-md bg-white/5 p-2 text-xs">
+                        <div className="flex items-center justify-between gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setActiveCitation({ source, marker: source.marker ?? (index + 1) })}
+                            className="font-medium text-blue-300 hover:underline text-left"
+                            title="Visualizza estratto completo"
+                          >
+                            {source.filename}<span className="font-normal text-slate-400"> · v{source.version} · {source.locator}</span>
+                            {source.injection_suspected && <span className="ml-2 rounded border border-amber-400/40 bg-amber-400/10 px-1.5 py-0.5 text-[10px] font-semibold text-amber-300" title="Il passaggio contiene istruzioni rivolte al modello: la fonte e' mostrata, il suo testo non e' stato usato per rispondere">non usata</span>}
+                          </button>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {isTabular && (
+                              <button
+                                type="button"
+                                onClick={() => setTabularSource({ documentId: source.document_id, filename: source.filename })}
+                                className="flex items-center gap-1 rounded-md border border-purple-500/30 bg-purple-500/10 px-2 py-1 text-[10px] font-semibold text-purple-300 transition hover:border-purple-400/50 hover:bg-purple-500/20"
+                                title="Esplora dati e query SQL"
+                              >
+                                <Table className="h-3 w-3" /> Dati SQL
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => window.open(`/api/libraries/${selectedLibraryId}/documents/${source.document_id}/download`, '_blank', 'noopener,noreferrer')}
+                              className="flex items-center gap-1 rounded-md border border-blue-500/20 bg-blue-500/10 px-2 py-1 text-[10px] font-semibold text-blue-300 transition hover:border-blue-400/40 hover:bg-blue-500/20"
+                              title="Apri il documento originale"
+                            >
+                              <Download className="h-3 w-3" /> Apri
+                            </button>
+                          </div>
+                        </div>
+                        <p className="mt-1 text-slate-400"><InlineMarkdown text={source.excerpt} /></p>
+                      </div>
+                    )
+                  })}</div></div>}
                 {m.role === 'assistant' && m.content !== '' && (
                   <div className="mt-3 flex items-center justify-end gap-2 border-t border-white/5 pt-2 text-xs text-slate-400">
                     <button
@@ -596,22 +628,46 @@ export default function ChatArea({
                   </>
                 )}
               </button>
-              <button
-                type="button"
-                onClick={() =>
-                  window.open(
-                    `/api/libraries/${selectedLibraryId}/documents/${activeCitation.source.document_id}/download`,
-                    '_blank',
-                    'noopener,noreferrer'
-                  )
-                }
-                className="flex items-center gap-1.5 rounded-lg border border-blue-500/30 bg-blue-500/15 hover:bg-blue-500/25 px-4 py-2 text-xs font-semibold text-blue-200 transition shadow-sm cursor-pointer"
-              >
-                <Download className="h-3.5 w-3.5 text-blue-400" /> Scarica documento originale
-              </button>
+              <div className="flex items-center gap-2">
+                {['csv', 'tsv', 'xlsx'].includes(activeCitation.source.filename.split('.').pop()?.toLowerCase() || '') && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTabularSource({
+                        documentId: activeCitation.source.document_id,
+                        filename: activeCitation.source.filename,
+                      })
+                    }}
+                    className="flex items-center gap-1.5 rounded-lg border border-purple-500/30 bg-purple-500/15 hover:bg-purple-500/25 px-3.5 py-2 text-xs font-semibold text-purple-200 transition shadow-sm cursor-pointer"
+                  >
+                    <Table className="h-3.5 w-3.5 text-purple-400" /> Esplora Dati SQL
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() =>
+                    window.open(
+                      `/api/libraries/${selectedLibraryId}/documents/${activeCitation.source.document_id}/download`,
+                      '_blank',
+                      'noopener,noreferrer'
+                    )
+                  }
+                  className="flex items-center gap-1.5 rounded-lg border border-blue-500/30 bg-blue-500/15 hover:bg-blue-500/25 px-4 py-2 text-xs font-semibold text-blue-200 transition shadow-sm cursor-pointer"
+                >
+                  <Download className="h-3.5 w-3.5 text-blue-400" /> Scarica originale
+                </button>
+              </div>
             </div>
           </section>
         </div>
+      )}
+      {tabularSource && selectedLibraryId && (
+        <TabularExplorerModal
+          libraryId={selectedLibraryId}
+          documentId={tabularSource.documentId}
+          filename={tabularSource.filename}
+          onClose={() => setTabularSource(null)}
+        />
       )}
     </div>
   )
