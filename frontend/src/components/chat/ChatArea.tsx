@@ -292,6 +292,7 @@ export default function ChatArea({
                             title="Visualizza estratto completo"
                           >
                             {source.filename}<span className="font-normal text-slate-400"> · v{source.version} · {source.locator}</span>
+                            {source.library_name && <span className="ml-2 rounded border border-indigo-500/30 bg-indigo-500/15 px-1.5 py-0.5 text-[10px] font-medium text-indigo-300" title={`Biblioteca: ${source.library_name}`}>{source.library_name}</span>}
                             {source.injection_suspected && <span className="ml-2 rounded border border-amber-400/40 bg-amber-400/10 px-1.5 py-0.5 text-[10px] font-semibold text-amber-300" title="Il passaggio contiene istruzioni rivolte al modello: la fonte e' mostrata, il suo testo non e' stato usato per rispondere">non usata</span>}
                           </button>
                           <div className="flex items-center gap-1.5 shrink-0">
@@ -593,6 +594,14 @@ export default function ChatArea({
                   <span className="rounded bg-blue-500/10 border border-blue-500/20 px-1.5 py-0.5 text-blue-300 font-mono text-[11px]">
                     {activeCitation.source.locator}
                   </span>
+                  {activeCitation.source.library_name && (
+                    <>
+                      <span>·</span>
+                      <span className="rounded bg-indigo-500/10 border border-indigo-500/20 px-1.5 py-0.5 text-indigo-300 text-[11px] font-medium">
+                        {activeCitation.source.library_name}
+                      </span>
+                    </>
+                  )}
                 </div>
               </div>
               <button

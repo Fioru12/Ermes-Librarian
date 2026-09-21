@@ -78,6 +78,20 @@ class AskLibraryRequest(BaseModel):
     history: list[ConversationTurn] = Field(default_factory=list, max_length=3)
 
 
+class AskFederatedRequest(BaseModel):
+    question: str = Field(min_length=2, max_length=2000)
+    library_ids: list[str] = Field(default_factory=list, max_length=20)
+    top_k: int = Field(default=5, ge=1, le=20)
+    conversation_id: str | None = Field(default=None, max_length=100)
+    history: list[ConversationTurn] = Field(default_factory=list, max_length=3)
+
+
+class FederatedSearchRequest(BaseModel):
+    query: str = Field(min_length=1, max_length=1000)
+    library_ids: list[str] = Field(default_factory=list, max_length=20)
+    limit: int = Field(default=10, ge=1, le=50)
+
+
 class ImportSourceRequest(BaseModel):
     path: str = Field(min_length=1, max_length=500)
 
@@ -925,6 +939,248 @@ def _answer_question_stream(
     )
 
     yield f"event: done\ndata: {json.dumps(final_payload)}\n\n"
+
+
+def _answer_federated_question_stream(
+    store: LibraryStore,
+    library_ids: list[str],
+    question: str,
+    top_k: int,
+    actor: dict,
+    history: list[dict] | None = None,
+    conversation_id: str | None = None,
+):
+    import json
+    import time
+
+    from core.question_rewriter import rewrite_with_history
+
+    t0 = time.perf_counter()
+    domanda_originale = question
+    riscrittura = rewrite_with_history(question, history)
+    question = riscrittura.question
+    from core.metrics import record_rewrite_outcome
+
+    record_rewrite_outcome(riscrittura.reason)
+    conversazione = {
+        "question_original": domanda_originale,
+        "question_rewritten_to": riscrittura.question if riscrittura.rewritten else None,
+        "rewrite": riscrittura.reason,
+    }
+
+    yield f"event: status\ndata: {json.dumps({'step': 'retrieving', 'question': question})}\n\n"
+
+    from core.metrics import rag_retrieval_timer
+
+    with rag_retrieval_timer():
+        citations, retrieval_profile = store.search_federated(
+            query=question,
+            library_ids=library_ids,
+            limit=top_k,
+            actor=actor,
+        )
+
+    if not citations:
+        from core.query_expander import expand_query
+
+        expanded_queries = expand_query(question)
+        for eq in expanded_queries[1:]:
+            citations, retrieval_profile = store.search_federated(
+                query=eq,
+                library_ids=library_ids,
+                limit=top_k,
+                actor=actor,
+            )
+            if citations:
+                break
+
+    yield f"event: status\ndata: {json.dumps({'step': 'verifying'})}\n\n"
+
+    from core.evidence_verifier import verify_citations
+
+    citations, evidence_verified = verify_citations(question, citations)
+
+    if not citations:
+        latency_ms = (time.perf_counter() - t0) * 1000.0
+        from core.analytics import record_query_event
+        from core.metrics import rag_question_recorded
+
+        rag_question_recorded("federated", "abstained", result_count=0)
+        ans_id = record_query_event(
+            query=question,
+            library_id="federated",
+            actor=actor.get("username", "anonymous"),
+            result_count=0,
+            latency_ms=latency_ms,
+            coverage="insufficient_evidence",
+            assistant_mode="evidence_only",
+            fallback_reason="Nessun passaggio corrispondente recuperato nelle biblioteche interrogate.",
+        )
+        abstained_payload = {
+            "answer_id": ans_id,
+            "library": {"id": "federated", "name": "Ricerca Federata Multi-Biblioteca"},
+            "question": question,
+            "answer": "Non ho trovato evidenza sufficiente nelle biblioteche selezionate. Prova con termini più specifici.",
+            "status": "abstained",
+            "evidence": {"coverage": "insufficient_evidence", "reason": "Nessun passaggio corrispondente recuperato."},
+            "citations": [],
+            "meta": {
+                "assistant_mode": "evidence_only",
+                "retrieval_profile": retrieval_profile,
+                "evidence_verified": evidence_verified,
+                "conversation": conversazione,
+                "created_at": datetime.now(UTC).isoformat(),
+            },
+        }
+        _record_conversation_messages(
+            conversation_id=conversation_id,
+            library_id="federated",
+            username=actor.get("username", ""),
+            question=domanda_originale,
+            answer=abstained_payload["answer"],
+            citations=[],
+        )
+        yield f"event: done\ndata: {json.dumps(abstained_payload)}\n\n"
+        return
+
+    from core.injection_guard import quarantine_citations
+    from core.metrics import record_injection_flagged
+
+    citations, sospette = quarantine_citations(citations)
+    if sospette:
+        record_injection_flagged(sospette)
+
+    formatted_citations = [
+        item["citation"]
+        | {
+            "excerpt": item["excerpt"],
+            "marker": index,
+            "relevance_score": item["relevance_score"],
+            "library_id": item.get("library_id", ""),
+            "library_name": item.get("library_name", ""),
+            "injection_suspected": bool(item.get("injection_suspected", False)),
+        }
+        for index, item in enumerate(citations, start=1)
+    ]
+    yield f"event: citations\ndata: {json.dumps({'citations': formatted_citations})}\n\n"
+    yield f"event: status\ndata: {json.dumps({'step': 'composing'})}\n\n"
+
+    answer, coverage, reason = answer_from_evidence(
+        question,
+        citations,
+        mode="evidence_only",
+        provider_name="",
+    )
+
+    yield f"event: answer\ndata: {json.dumps({'chunk': answer})}\n\n"
+
+    latency_ms = (time.perf_counter() - t0) * 1000.0
+    from core.analytics import record_query_event
+    from core.metrics import rag_question_recorded, record_rerank_mode
+
+    rag_question_recorded(
+        "federated",
+        "answered" if coverage == "supported" else "abstained",
+        result_count=len(citations),
+    )
+    record_rerank_mode(citations[0].get("rerank_mode", "federated_rrf"))
+    ans_id = record_query_event(
+        query=question,
+        library_id="federated",
+        actor=actor.get("username", "anonymous"),
+        result_count=len(citations),
+        latency_ms=latency_ms,
+        coverage=coverage,
+        assistant_mode="evidence_only",
+        fallback_reason=reason,
+    )
+    append_audit(
+        cfg.AUDIT_FILE,
+        "federated_library_answer",
+        actor["username"],
+        {
+            "target_libraries": library_ids or "all_accessible",
+            "question_rewritten": riscrittura.rewritten,
+            "injection_suspected_citations": sospette,
+            "retrieval_profile": retrieval_profile["mode"],
+            "citation_count": len(citations),
+            "coverage": coverage,
+        },
+    )
+
+    final_payload = {
+        "answer_id": ans_id,
+        "library": {"id": "federated", "name": "Ricerca Federata Multi-Biblioteca"},
+        "question": question,
+        "answer": answer,
+        "status": "answered" if coverage == "supported" else "abstained",
+        "evidence": {"coverage": coverage, "reason": reason},
+        "citations": formatted_citations,
+        "meta": {
+            "assistant_mode": "evidence_only",
+            "retrieval_profile": retrieval_profile,
+            "evidence_verified": evidence_verified,
+            "conversation": conversazione,
+            "created_at": datetime.now(UTC).isoformat(),
+        },
+    }
+
+    _record_conversation_messages(
+        conversation_id=conversation_id,
+        library_id="federated",
+        username=actor.get("username", ""),
+        question=domanda_originale,
+        answer=answer,
+        citations=formatted_citations,
+    )
+
+    yield f"event: done\ndata: {json.dumps(final_payload)}\n\n"
+
+
+@router.post("/federated/search", dependencies=[Depends(rate_limited)])
+def search_federated_endpoint(
+    request: FederatedSearchRequest,
+    _auth: dict = Depends(_verify_api_key),
+    store: LibraryStore = Depends(get_library_store),
+):
+    """Esegue una ricerca cross-library federata nelle biblioteche accessibili all'utente."""
+    results, profile = store.search_federated(
+        query=request.query,
+        library_ids=request.library_ids,
+        limit=request.limit,
+        actor=_auth,
+    )
+    return {
+        "query": request.query,
+        "results": results,
+        "profile": profile,
+    }
+
+
+@router.post("/federated/ask/stream", dependencies=[Depends(rate_limited)])
+def ask_federated_stream(
+    request: AskFederatedRequest,
+    _auth: dict = Depends(_verify_api_key),
+    store: LibraryStore = Depends(get_library_store),
+):
+    """Interroga più biblioteche in modalità RAG federata con risposte basate su evidenze cross-library."""
+    return StreamingResponse(
+        _answer_federated_question_stream(
+            store,
+            request.library_ids,
+            request.question,
+            request.top_k,
+            _auth,
+            history=[turno.model_dump() for turno in request.history],
+            conversation_id=request.conversation_id,
+        ),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
 
 
 @router.post("/{library_id}/ask/stream", dependencies=[Depends(rate_limited)])

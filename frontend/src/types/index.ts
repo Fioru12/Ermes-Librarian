@@ -13,6 +13,7 @@ export interface Message {
   sources?: Array<{
     document_id: string; filename: string; version: number; locator: string; excerpt: string
     marker?: number; content_hash?: string; chunk_id?: string; relevance_score?: number
+    library_id?: string; library_name?: string
     // Il passaggio contiene istruzioni rivolte al modello: la fonte si mostra,
     // il suo testo non e' stato usato per rispondere.
     injection_suspected?: boolean

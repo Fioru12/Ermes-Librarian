@@ -382,6 +382,7 @@ from api.models import router as models_router
 from api.pii import router as pii_router
 from api.privacy import router as privacy_router
 from api.providers import router as providers_router
+from api.retention import router as retention_router
 from api.scim import router as scim_router
 from api.shutdown import router as shutdown_router
 from api.synonyms import router as synonyms_router
@@ -423,6 +424,7 @@ app.include_router(conversations_router)
 app.include_router(models_router)
 app.include_router(providers_router)
 app.include_router(libraries_router)
+app.include_router(retention_router)
 app.include_router(tabular_router)
 app.include_router(chat_webhooks_router)
 app.include_router(mcp_server_router)

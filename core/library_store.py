@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import math
 import os
 import re
@@ -24,6 +25,8 @@ from core.database_backend import INTEGRITY_ERRORS, Backend, SqliteBackend, crea
 from core.library_embeddings import cosine_similarity, embed_texts, min_semantic_score
 from core.query_expander import expand_query
 from core.search_cache import get_search_cache
+
+_logger = logging.getLogger(__name__)
 
 
 def _resolve_backend(database_path: str | Path | None, database_url: str | None = None) -> Backend:
@@ -1862,3 +1865,91 @@ class LibraryStore:
         # Invalidate search cache (document count changed)
         get_search_cache().invalidate(library_id)
         return document
+
+    def search_federated(
+        self,
+        query: str,
+        library_ids: list[str] | None = None,
+        limit: int = 20,
+        actor: dict | None = None,
+    ) -> tuple[list[dict], dict]:
+        """Performs cross-library federated semantic and keyword search.
+
+        Discovers accessible libraries, executes multi-library retrieval,
+        normalizes relevance scores, tags library provenance, and deduplicates
+        overlapping chunks.
+        """
+        normalized = query.strip()
+        if not normalized:
+            return [], {
+                "mode": "federated",
+                "libraries_searched": 0,
+                "libraries_matched": 0,
+                "total_candidates": 0,
+            }
+
+        target_libraries: list[dict] = []
+        if library_ids:
+            for lid in library_ids:
+                try:
+                    lib = self.get_library(lid, actor=actor)
+                    target_libraries.append(lib)
+                except (LibraryNotFoundError, LibraryAccessError):
+                    continue
+        else:
+            target_libraries = self.list_libraries(actor=actor)
+
+        if not target_libraries:
+            return [], {
+                "mode": "federated",
+                "libraries_searched": 0,
+                "libraries_matched": 0,
+                "total_candidates": 0,
+            }
+
+        all_citations: list[dict] = []
+        libraries_with_matches: set[str] = set()
+
+        for lib in target_libraries:
+            lib_id = lib["id"]
+            lib_name = lib["name"]
+            try:
+                citations, _ = self.search_with_profile(lib_id, normalized, limit=limit, actor=actor)
+                for item in citations:
+                    citation_copy = dict(item)
+                    citation_dict = dict(citation_copy.get("citation", {}))
+                    citation_dict["library_id"] = lib_id
+                    citation_dict["library_name"] = lib_name
+                    citation_copy["citation"] = citation_dict
+                    citation_copy["library_id"] = lib_id
+                    citation_copy["library_name"] = lib_name
+                    all_citations.append(citation_copy)
+                    libraries_with_matches.add(lib_id)
+            except Exception as e:
+                _logger.warning("Errore ricerca federata per libreria %s (%s): %s", lib_id, lib_name, e)
+
+        # Deduplication based on content hash & ordinal or normalized excerpt
+        seen_keys: set[str] = set()
+        deduped_citations: list[dict] = []
+
+        for item in sorted(all_citations, key=lambda x: x.get("relevance_score", 0.0), reverse=True):
+            cit = item.get("citation", {})
+            dedup_key = f"{cit.get('content_hash', '')}_{cit.get('document_id', '')}_{cit.get('chunk_id', '')}"
+            if not cit.get("content_hash"):
+                excerpt_snip = (item.get("excerpt", "") or "")[:100].strip().lower()
+                dedup_key = f"{cit.get('filename', '')}_{excerpt_snip}"
+
+            if dedup_key in seen_keys:
+                continue
+            seen_keys.add(dedup_key)
+            deduped_citations.append(item)
+
+        final_citations = deduped_citations[:limit]
+        profile = {
+            "mode": "federated",
+            "libraries_searched": len(target_libraries),
+            "libraries_matched": len(libraries_with_matches),
+            "total_candidates": len(all_citations),
+        }
+        return final_citations, profile
+
