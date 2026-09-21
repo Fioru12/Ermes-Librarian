@@ -7,11 +7,14 @@ external model or network connection.
 
 from __future__ import annotations
 
+import json
 import logging
 import re
 from dataclasses import dataclass
+from html.parser import HTMLParser
 from io import BytesIO
 from pathlib import Path
+from typing import Any
 from zipfile import ZipFile
 
 _logger = logging.getLogger("ermes.parser")
@@ -100,6 +103,10 @@ def extract_source_units(filename: str, content: bytes) -> list[SourceUnit]:
     try:
         if suffix in {".txt", ".md"}:
             return _extract_text_units(content.decode("utf-8-sig", errors="replace"), suffix)
+        if suffix in {".html", ".htm"}:
+            return _extract_html_units(content)
+        if suffix in {".json", ".jsonl"}:
+            return _extract_json_units(content, suffix)
         if suffix == ".pdf":
             from pypdf import PdfReader
 
@@ -131,6 +138,28 @@ def extract_source_units(filename: str, content: bytes) -> list[SourceUnit]:
                     heading = text
                     continue
                 docx_units.append(SourceUnit(text, f"{heading}, paragrafo {number}"))
+
+            # Estrazione tabelle strutturate DOCX
+            for t_idx, table in enumerate(document.tables, start=1):
+                table_rows: list[list[str]] = []
+                for row in table.rows:
+                    row_cells = [cell.text.strip().replace("\n", " ") for cell in row.cells]
+                    deduped: list[str] = []
+                    for c in row_cells:
+                        if not deduped or c != deduped[-1]:
+                            deduped.append(c)
+                    if any(c for c in deduped):
+                        table_rows.append(deduped)
+
+                if table_rows:
+                    header = table_rows[0]
+                    formatted_lines = [" | ".join(header), " | ".join(["---"] * len(header))]
+                    for r in table_rows[1:]:
+                        padded = r + [""] * max(0, len(header) - len(r))
+                        formatted_lines.append(" | ".join(padded[: len(header)]))
+                    table_md = "\n".join(formatted_lines)
+                    docx_units.append(SourceUnit(table_md, f"{heading}, Tabella {t_idx}"))
+
             return docx_units
         if suffix == ".xlsx":
             _validate_office_archive(content, "xlsx")
@@ -409,3 +438,164 @@ def _validate_office_archive(content: bytes, kind: str) -> None:
         raise
     except Exception as error:
         raise DocumentParseError("Archivio Office non leggibile") from error
+
+
+class _HTMLStructureExtractor(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__()
+        self.units: list[SourceUnit] = []
+        self._current_heading: str = "Documento"
+        self._current_text: list[str] = []
+        self._in_table = False
+        self._table_rows: list[list[str]] = []
+        self._current_row: list[str] = []
+        self._current_cell: list[str] = []
+        self._table_count = 0
+        self._ignore_stack = 0
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        tag_lower = tag.lower()
+        if tag_lower in {"script", "style", "head", "noscript"}:
+            self._ignore_stack += 1
+            return
+        if self._ignore_stack > 0:
+            return
+
+        if tag_lower in {"h1", "h2", "h3", "h4", "h5", "h6"}:
+            self._flush_text()
+        elif tag_lower == "table":
+            self._flush_text()
+            self._in_table = True
+            self._table_rows = []
+            self._table_count += 1
+        elif tag_lower == "tr":
+            self._current_row = []
+        elif tag_lower in {"td", "th"}:
+            self._current_cell = []
+
+    def handle_endtag(self, tag: str) -> None:
+        tag_lower = tag.lower()
+        if tag_lower in {"script", "style", "head", "noscript"}:
+            if self._ignore_stack > 0:
+                self._ignore_stack -= 1
+            return
+        if self._ignore_stack > 0:
+            return
+
+        if tag_lower in {"h1", "h2", "h3", "h4", "h5", "h6"}:
+            heading_text = "".join(self._current_text).strip()
+            self._current_text = []
+            if heading_text:
+                self._current_heading = heading_text
+        elif tag_lower in {"p", "div", "li", "blockquote"}:
+            self._flush_text()
+        elif tag_lower in {"td", "th"}:
+            cell_text = "".join(self._current_cell).strip().replace("\n", " ")
+            self._current_row.append(cell_text)
+            self._current_cell = []
+        elif tag_lower == "tr":
+            if any(self._current_row):
+                self._table_rows.append(self._current_row)
+            self._current_row = []
+        elif tag_lower == "table":
+            self._in_table = False
+            self._flush_table()
+
+    def handle_data(self, data: str) -> None:
+        if self._ignore_stack > 0:
+            return
+        if self._in_table:
+            self._current_cell.append(data)
+        else:
+            self._current_text.append(data)
+
+    def _flush_text(self) -> None:
+        raw = "".join(self._current_text).strip()
+        self._current_text = []
+        cleaned = re.sub(r"\s+", " ", raw).strip()
+        if cleaned:
+            self.units.append(SourceUnit(cleaned, f"Sezione: {self._current_heading}"))
+
+    def _flush_table(self) -> None:
+        if not self._table_rows:
+            return
+        header = self._table_rows[0]
+        formatted = [" | ".join(header), " | ".join(["---"] * len(header))]
+        for row in self._table_rows[1:]:
+            padded = row + [""] * max(0, len(header) - len(row))
+            formatted.append(" | ".join(padded[: len(header)]))
+        table_str = "\n".join(formatted)
+        self.units.append(SourceUnit(table_str, f"Sezione: {self._current_heading}, Tabella {self._table_count}"))
+        self._table_rows = []
+
+    def finish(self) -> list[SourceUnit]:
+        self._flush_text()
+        self._flush_table()
+        return self.units
+
+
+def _extract_html_units(content: bytes) -> list[SourceUnit]:
+    """Estrae unità strutturate con titoli, paragrafi e tabelle da documenti HTML."""
+    text = content.decode("utf-8", errors="replace")
+    parser = _HTMLStructureExtractor()
+    parser.feed(text)
+    units = parser.finish()
+    if not units:
+        # Fallback stripped
+        clean_text = re.sub(r"<[^>]+>", " ", text)
+        normalized = re.sub(r"\s+", " ", clean_text).strip()
+        return [SourceUnit(normalized, "Documento HTML")] if normalized else []
+    return units
+
+
+def _format_json_object(val: Any) -> str:
+    if isinstance(val, dict):
+        parts = []
+        for k, v in val.items():
+            parts.append(f"{k}: {_format_json_object(v)}")
+        return " | ".join(parts)
+    elif isinstance(val, list):
+        return ", ".join(_format_json_object(x) for x in val)
+    return str(val)
+
+
+def _extract_json_units(content: bytes, suffix: str = ".json") -> list[SourceUnit]:
+    """Estrae record e proprietà strutturate da file JSON e JSONL."""
+    text = content.decode("utf-8-sig", errors="replace").strip()
+    if not text:
+        return []
+
+    units: list[SourceUnit] = []
+
+    # Rileva formato JSON Lines (.jsonl o multiriga di oggetti JSON)
+    if suffix == ".jsonl" or ("\n" in text and not text.startswith("[")):
+        lines = [line.strip() for line in text.splitlines() if line.strip()]
+        parsed_jsonl: list[SourceUnit] = []
+        is_all_json = True
+        for idx, line in enumerate(lines, start=1):
+            try:
+                obj = json.loads(line)
+                formatted = _format_json_object(obj)
+                if formatted:
+                    parsed_jsonl.append(SourceUnit(formatted, f"Record JSONL {idx}"))
+            except Exception:
+                is_all_json = False
+                break
+        if is_all_json and parsed_jsonl:
+            return parsed_jsonl
+
+    try:
+        data = json.loads(text)
+    except Exception as e:
+        raise DocumentParseError(f"JSON non valido: {e}") from e
+
+    if isinstance(data, list):
+        for idx, item in enumerate(data, start=1):
+            formatted = _format_json_object(item)
+            if formatted:
+                units.append(SourceUnit(formatted, f"Elemento {idx}"))
+    elif isinstance(data, dict):
+        for key, val in data.items():
+            formatted = f"{key}: {_format_json_object(val)}"
+            units.append(SourceUnit(formatted, f"Proprietà '{key}'"))
+    return units or [SourceUnit(text[:2000], "Documento JSON")]

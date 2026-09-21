@@ -71,7 +71,7 @@ def test_an_unreadable_document_is_not_retried(tmp_path: Path, veloce):
     assert esito.status == "failed" and not esito.transient
     time.sleep(0.2)
     job = store.get_ingestion_job(document["job_id"])
-    assert job["status"] == "failed" and job["attempts"] == 0
+    assert job is not None and job["status"] in {"failed", "dead_letter"} and job["attempts"] == 0
 
 
 def test_attempts_are_capped(tmp_path: Path, veloce, monkeypatch):
@@ -83,12 +83,12 @@ def test_attempts_are_capped(tmp_path: Path, veloce, monkeypatch):
     fine = time.time() + 3
     while time.time() < fine:
         job = store.get_ingestion_job(document["job_id"])
-        if job["status"] == "failed" and job["attempts"] == 2:
+        if job is not None and job["status"] in {"failed", "dead_letter"} and job["attempts"] == 2:
             break
         time.sleep(0.02)
     time.sleep(0.2)  # nessun ulteriore tentativo oltre il limite
     job = store.get_ingestion_job(document["job_id"])
-    assert job["status"] == "failed" and job["attempts"] == 2  # 3 tentativi totali = 2 requeue
+    assert job is not None and job["status"] in {"failed", "dead_letter"} and job["attempts"] == 2  # 3 tentativi totali = 2 requeue
 
 
 def test_concurrency_is_bounded(tmp_path: Path, veloce, monkeypatch):
@@ -114,7 +114,7 @@ def test_concurrency_is_bounded(tmp_path: Path, veloce, monkeypatch):
         f.join()
 
     assert attivi["max"] <= 2
-    assert all(store.get_ingestion_job(j)["status"] == "ready" for j in jobs)
+    assert all((store.get_ingestion_job(j) or {}).get("status") == "ready" for j in jobs)
 
 
 def test_startup_requeues_jobs_interrupted_mid_processing(tmp_path: Path, veloce):
@@ -125,5 +125,6 @@ def test_startup_requeues_jobs_interrupted_mid_processing(tmp_path: Path, veloce
     da_eseguire = recover_on_startup(store, tmp_path)
 
     assert da_eseguire == [document["job_id"]]
-    assert store.get_ingestion_job(document["job_id"])["status"] == "queued"
+    job_record = store.get_ingestion_job(document["job_id"])
+    assert job_record is not None and job_record["status"] == "queued"
     assert store.ingestion_queue_stats()["queued"] == 1

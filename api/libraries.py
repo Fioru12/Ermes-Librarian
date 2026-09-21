@@ -1465,16 +1465,17 @@ def reindex_library_document(
     except (LibraryNotFoundError, LibraryAccessError) as error:
         raise HTTPException(status_code=404, detail="Documento non trovato") from error
 
-    source_path = resolve_storage_path(document["storage_path"], cfg.LIBRARY_STORAGE_DIR)
-    storage_root = Path(cfg.LIBRARY_STORAGE_DIR).resolve()
+    storage_provider = get_storage_provider()
     try:
-        source_path.resolve().relative_to(storage_root)
-    except ValueError as error:
-        raise HTTPException(status_code=409, detail="Percorso originale non valido") from error
-    if not source_path.is_file():
-        raise HTTPException(status_code=409, detail="Originale non disponibile: impossibile reindicizzare")
+        content = storage_provider.get(document["storage_path"])
+    except Exception:
+        source_path = resolve_storage_path(document["storage_path"], cfg.LIBRARY_STORAGE_DIR)
+        if not source_path.is_file():
+            raise HTTPException(status_code=409, detail="Originale non disponibile: impossibile reindicizzare")
+        content = source_path.read_bytes()
+
     try:
-        source_units = extract_source_units(document["filename"], source_path.read_bytes())
+        source_units = extract_source_units(document["filename"], content)
     except DocumentParseError as error:
         raise HTTPException(status_code=422, detail=str(error)) from error
     if not source_units:
@@ -1521,16 +1522,14 @@ def restore_document_version(
     if source is None:
         raise HTTPException(status_code=404, detail="Versione non trovata")
 
-    storage_root = Path(cfg.LIBRARY_STORAGE_DIR).resolve()
-    source_path = resolve_storage_path(source["storage_path"], cfg.LIBRARY_STORAGE_DIR)
+    storage_provider = get_storage_provider()
     try:
-        source_path.resolve().relative_to(storage_root)
-    except ValueError as error:
-        raise HTTPException(status_code=409, detail="Percorso originale non valido") from error
-    if not source_path.is_file():
-        raise HTTPException(status_code=409, detail="Originale della versione non disponibile")
-
-    content = source_path.read_bytes()
+        content = storage_provider.get(source["storage_path"])
+    except Exception:
+        source_path = resolve_storage_path(source["storage_path"], cfg.LIBRARY_STORAGE_DIR)
+        if not source_path.is_file():
+            raise HTTPException(status_code=409, detail="Originale della versione non disponibile")
+        content = source_path.read_bytes()
     try:
         source_units = extract_source_units(source["filename"], content)
     except DocumentParseError as error:

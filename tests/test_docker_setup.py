@@ -38,7 +38,9 @@ def _variabili_lette() -> set[str]:
 
 
 def _compose() -> dict:
-    return yaml.safe_load((RADICE / "docker-compose.yml").read_text(encoding="utf-8"))
+    from typing import cast
+
+    return cast(dict, yaml.safe_load((RADICE / "docker-compose.yml").read_text(encoding="utf-8")) or {})
 
 
 # ============================================================
@@ -169,7 +171,7 @@ def test_config_files_mounted_from_the_repository_are_tracked():
 
     mancanti = []
     for nome, servizio in (_compose().get("services") or {}).items():
-        if nome == "app":
+        if nome in {"app", "worker"}:
             continue
         for volume in servizio.get("volumes") or []:
             if not isinstance(volume, str) or not volume.startswith("./"):

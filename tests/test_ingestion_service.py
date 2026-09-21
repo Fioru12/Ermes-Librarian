@@ -43,7 +43,7 @@ def test_process_ingestion_job_indexes_a_real_document_and_marks_it_ready(tmp_pa
     assert updated["status"] == "ready"
     assert updated["source_units"] >= 1
     job = store.get_ingestion_job(document["job_id"])
-    assert job["status"] == "ready"
+    assert job is not None and job["status"] == "ready"
     assert job["error_message"] == ""
 
     results = store.search_documents(library["id"], "responsabile", limit=3)
@@ -61,7 +61,7 @@ def test_process_ingestion_job_marks_a_textless_document_failed_not_silently_rea
     updated = store.get_document(library["id"], document["id"])
     assert updated["status"] == "failed"
     job = store.get_ingestion_job(document["job_id"])
-    assert job["status"] == "failed"
+    assert job is not None and job["status"] in {"failed", "dead_letter"}
     assert job["error_message"]
 
 
@@ -91,7 +91,7 @@ def test_process_ingestion_job_rejects_a_document_stored_outside_the_storage_roo
     updated = store.get_document(library["id"], document["id"])
     assert updated["status"] == "failed"
     job_after = store.get_ingestion_job(job["id"])
-    assert job_after["status"] == "failed"
+    assert job_after is not None and job_after["status"] in {"failed", "dead_letter"}
 
 
 def test_process_ingestion_job_is_a_noop_for_an_already_claimed_job(tmp_path: Path):

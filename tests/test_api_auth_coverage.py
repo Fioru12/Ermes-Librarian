@@ -45,6 +45,13 @@ PUBLIC_PATHS = {
     ("POST", "/v1/api/integrations/teams"),
     ("POST", "/api/integrations/telegram"),
     ("POST", "/v1/api/integrations/telegram"),
+    # Cloud Connectors webhooks: chiamati da Microsoft Graph / Google Drive push notifications
+    ("GET", "/api/connectors/webhooks/microsoft-graph"),
+    ("GET", "/v1/api/connectors/webhooks/microsoft-graph"),
+    ("POST", "/api/connectors/webhooks/microsoft-graph"),
+    ("POST", "/v1/api/connectors/webhooks/microsoft-graph"),
+    ("POST", "/api/connectors/webhooks/google-drive"),
+    ("POST", "/v1/api/connectors/webhooks/google-drive"),
 }
 
 
@@ -62,6 +69,8 @@ def _dependency_tree_calls(dependant, seen=None):
 
 
 def test_every_product_route_requires_authentication():
+    from api.scim import _verify_scim_auth
+
     unguarded = []
     for route in app.routes:
         path = getattr(route, "path", None)
@@ -75,7 +84,7 @@ def test_every_product_route_requires_authentication():
             if (method, path) in PUBLIC_PATHS:
                 continue
             calls = _dependency_tree_calls(dependant)
-            if _verify_api_key not in calls:
+            if _verify_api_key not in calls and _verify_scim_auth not in calls:
                 unguarded.append(f"{method} {path}")
 
     assert not unguarded, (

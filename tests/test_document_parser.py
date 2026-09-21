@@ -231,3 +231,70 @@ def test_the_wired_defaults_match_what_was_previously_in_force(monkeypatch):
 
     assert config.cfg.CHUNK_SIZE == 900
     assert config.cfg.CHUNK_OVERLAP == 140
+
+
+def test_extracts_html_units_with_headings_and_tables():
+    html_content = b"""
+    <!DOCTYPE html>
+    <html>
+    <head><title>Test Page</title><style>.hidden { display: none; }</style></head>
+    <body>
+        <h1>Regolamento Aziendale</h1>
+        <p>Tutti i dipendenti devono seguire le linee guida di sicurezza.</p>
+        <h2>Tabella Orari</h2>
+        <table>
+            <tr><th>Turno</th><th>Orario</th></tr>
+            <tr><td>Mattina</td><td>08:00 - 16:30</td></tr>
+            <tr><td>Pomeriggio</td><td>14:00 - 22:30</td></tr>
+        </table>
+    </body>
+    </html>
+    """
+    units = extract_source_units("pagina.html", html_content)
+    assert len(units) >= 2
+    assert any("linee guida di sicurezza" in u.text for u in units)
+    # Verifica che la tabella sia estratta strutturata
+    table_unit = next((u for u in units if "Turno | Orario" in u.text), None)
+    assert table_unit is not None
+    assert "Mattina | 08:00 - 16:30" in table_unit.text
+    assert "Tabella 1" in table_unit.locator
+
+
+def test_extracts_json_and_jsonl_units():
+    # 1. JSON strutturato
+    json_bytes = b'{"azienda": "Ermes Corp", "dipendenti": 250, "certificazioni": ["ISO27001", "SOC2"]}'
+    json_units = extract_source_units("info.json", json_bytes)
+    assert len(json_units) >= 3
+    assert any("azienda: Ermes Corp" in u.text for u in json_units)
+    assert any("certificazioni: ISO27001, SOC2" in u.text for u in json_units)
+
+    # 2. JSONL
+    jsonl_bytes = b'{"id": 1, "prodotto": "Server RAG"}\n{"id": 2, "prodotto": "Vector DB"}\n'
+    jsonl_units = extract_source_units("catalogo.jsonl", jsonl_bytes)
+    assert len(jsonl_units) == 2
+    assert "prodotto: Server RAG" in jsonl_units[0].text
+    assert jsonl_units[0].locator == "Record JSONL 1"
+    assert "prodotto: Vector DB" in jsonl_units[1].text
+
+
+def test_extracts_docx_paragraphs_and_tables():
+    from docx import Document
+
+    doc = Document()
+    doc.add_heading("Specifiche Prodotto", level=1)
+    doc.add_paragraph("Descrizione generale del componente hardware.")
+    table = doc.add_table(rows=2, cols=2)
+    table.cell(0, 0).text = "Parametro"
+    table.cell(0, 1).text = "Valore"
+    table.cell(1, 0).text = "Voltaggio"
+    table.cell(1, 1).text = "220V"
+    buffer = BytesIO()
+    doc.save(buffer)
+
+    units = extract_source_units("specifiche.docx", buffer.getvalue())
+    assert len(units) >= 2
+    assert any("Descrizione generale del componente hardware." in u.text for u in units)
+    table_unit = next((u for u in units if "Parametro | Valore" in u.text), None)
+    assert table_unit is not None
+    assert "Voltaggio | 220V" in table_unit.text
+    assert "Tabella 1" in table_unit.locator
