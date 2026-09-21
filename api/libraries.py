@@ -549,6 +549,12 @@ def _answer_question(
             s_ver.set_metadata("citations_out", len(citations))
             s_ver.set_metadata("evidence_verified", evidence_verified)
 
+        from core.tabular_router import enrich_with_tabular_evidence
+
+        tabular_citations = enrich_with_tabular_evidence(library_id, question, store=store, limit=2)
+        if tabular_citations:
+            citations = tabular_citations + list(citations)
+
     if not citations:
         latency_ms = (time.perf_counter() - t0) * 1000.0
         from core.analytics import record_query_event
@@ -775,6 +781,12 @@ def _answer_question_stream(
     from core.evidence_verifier import verify_citations
 
     citations, evidence_verified = verify_citations(question, citations)
+
+    from core.tabular_router import enrich_with_tabular_evidence
+
+    tabular_citations = enrich_with_tabular_evidence(library_id, question, store=store, limit=2)
+    if tabular_citations:
+        citations = tabular_citations + list(citations)
 
     if not citations:
         latency_ms = (time.perf_counter() - t0) * 1000.0
