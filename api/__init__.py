@@ -28,7 +28,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 import httpx
-from fastapi import APIRouter, FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
@@ -58,26 +58,6 @@ def _get_modules():
 
                 modules_cache = discover_modules()
     return modules_cache
-
-
-def _list_available_modules() -> list[str]:
-    if not os.path.exists(cfg.DOCS_DIR):
-        return []
-    return sorted(
-        d for d in os.listdir(cfg.DOCS_DIR) if os.path.isdir(os.path.join(cfg.DOCS_DIR, d)) and d.lower() != "libraries"
-    )
-
-
-def _resolve_module_name(module_name: str) -> str:
-    normalized = (module_name or "").strip()
-    if not normalized:
-        raise HTTPException(status_code=400, detail="Nome modulo mancante")
-    if any(sep in normalized for sep in ("/", "\\")) or ".." in normalized:
-        raise HTTPException(status_code=400, detail="Nome modulo non valido")
-    modules = _list_available_modules()
-    if normalized not in modules:
-        raise HTTPException(status_code=404, detail=f"Modulo '{normalized}' non trovato")
-    return normalized
 
 
 def _get_http_client() -> httpx.AsyncClient:  # noqa: F821
@@ -140,17 +120,6 @@ async def lifespan(app: FastAPI):
         python_version=platform.python_version(),
         environment=getattr(cfg, "ENVIRONMENT", "production"),
     )
-
-    if getattr(cfg, "ENABLE_LEGACY_WINSARP", False):
-        _logger.warning(
-            "ENABLE_LEGACY_WINSARP e' attivo: gli endpoint WinSarp legacy in legacy_winsarp/api/ "
-            "sono esposti (nessun controllo ACL per libreria su quel percorso). Flag pensata solo "
-            "per sviluppo/debug locale — non abilitarla in un deployment condiviso o in produzione. "
-            "Vedi legacy_winsarp/README.md e docs/AUDIT_2026-08-19.md."
-        )
-        from legacy_winsarp.core.rag_engine import init_llama_settings
-
-        init_llama_settings()
 
     # Recover uploads accepted before a local restart. Jobs are persisted in
     # SQLite and claimed atomically, so this also remains safe when a worker is
@@ -390,27 +359,6 @@ from api.tabular import router as tabular_router
 from api.users import router as users_router
 from api.webhook_gateway import router as webhook_gateway_router
 
-# Il vecchio motore WinSarp resta disponibile per sviluppo interno, ma non fa
-# parte del percorso pubblico del bibliotecario. Si abilita esplicitamente solo
-# quando serve lavorare sul modulo legacy.
-formule_router: APIRouter | None = None
-graph_router: APIRouter | None = None
-query_router: APIRouter | None = None
-documents_router: APIRouter | None = None
-integrations_router: APIRouter | None = None
-if getattr(cfg, "ENABLE_LEGACY_WINSARP", False):
-    from api.documents import router as _documents_router
-    from api.formule import router as _formule_router
-    from api.graph import router as _graph_router
-    from api.integrations import router as _integrations_router
-    from api.query import router as _query_router
-
-    documents_router = _documents_router
-    formule_router = _formule_router
-    graph_router = _graph_router
-    integrations_router = _integrations_router
-    query_router = _query_router
-
 app.include_router(auth_router)
 app.include_router(health_router)
 app.include_router(pii_router)
@@ -433,16 +381,6 @@ app.include_router(synonyms_router)
 app.include_router(webhook_gateway_router)
 app.include_router(shutdown_router)
 
-if formule_router is not None:
-    app.include_router(formule_router)
-if graph_router is not None:
-    app.include_router(graph_router)
-if query_router is not None:
-    app.include_router(query_router)
-if documents_router is not None:
-    app.include_router(documents_router)
-if integrations_router is not None:
-    app.include_router(integrations_router)
 
 # ── v1 routing retrocompatibilità ──
 try:

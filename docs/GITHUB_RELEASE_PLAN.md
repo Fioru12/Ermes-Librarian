@@ -2,6 +2,8 @@
 
 > **Stato (20 agosto 2026)**: la scansione dei segreti sulla history completa richiesta in fondo a questo documento è stata eseguita — nessuna credenziale reale trovata, un documento riservato di terzi trovato e rimosso interamente dalla history (non solo cancellato). La ristrutturazione monorepo proposta qui sotto (`apps/api`, `apps/web`, ecc.) resta un obiettivo aspirazionale per una release pubblica finale, non ancora eseguita — lo scope pragmatico attualmente in corso è quello di `docs/ROADMAP_V2.md` Fase F.
 
+> **Stato (18 settembre 2026)**: potatura eseguita. Tesina, slide e catalogo asset, `notebooklm/`, registro sessioni, roadmap per fasi, piano e strategia interni, script di generazione pptx/pdf e la cartella `archive/` sono usciti dall'albero pubblico (`docs/` da 22 a 11 file); la cronologia Git li conserva e una copia locale è in `../ProgettoRAG_archive`. Gate ora in CI: gitleaks (bloccante), Trivy (advisory), SBOM e notices verificati dai test, compose su clone pulito, E2E nel container.
+
 ## Obiettivo
 
 Pubblicare una reference platform local-first, installabile e verificabile. Non pubblicare un prototipo interno come se fosse un prodotto enterprise finito.

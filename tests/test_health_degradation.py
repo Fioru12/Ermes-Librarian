@@ -26,7 +26,7 @@ from api import app
 def istanza(tmp_path, monkeypatch):
     app_dir = tmp_path / "app"
     app_dir.mkdir()
-    base = config.cfg.replace(BASE_DIR=str(app_dir), DATABASE_URL="", ENABLE_LEGACY_WINSARP=False)
+    base = config.cfg.replace(BASE_DIR=str(app_dir), DATABASE_URL="")
     # L'OCR e' acceso di default e dipende da un binario: senza fissarlo qui
     # l'esito dipenderebbe da Tesseract installato o meno sulla macchina.
     from core import ocr

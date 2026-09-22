@@ -76,7 +76,12 @@ test('una risposta supportata cita file, versione e sezione', async ({ page }) =
   // A citation is only useful if it names a retrievable original.
   const citation = page.locator('text=/\\.md · v\\d+ · Sezione:/').first()
   await expect(citation).toBeVisible()
-  await expect(page.getByRole('button', { name: /apri originale/i }).first()).toBeVisible()
+  // Locator anchored on the title attribute, not the visible label: commit
+  // eb4d531 shortened the button's text from "Apri originale" to "Apri" to
+  // make room for the new tabular "Dati SQL" button beside it, which broke
+  // a name-based locator here even though the button (and its title) still
+  // do exactly what this test checks for.
+  await expect(page.getByTitle('Apri il documento originale').first()).toBeVisible()
 })
 
 test('il recupero non attraversa il confine fra biblioteche', async ({ page }) => {
@@ -90,6 +95,9 @@ test('il recupero non attraversa il confine fra biblioteche', async ({ page }) =
   // Leakage shows up as citations, not as the words of the question: the
   // question itself is echoed in the transcript, so searching the page for
   // its wording proves nothing (this assertion was wrong on first writing).
-  await expect(page.getByRole('button', { name: /apri originale/i })).toHaveCount(0)
+  // Anchored on the title attribute, not the visible label: commit eb4d531
+  // shortened the button's text from "Apri originale" to "Apri", which made
+  // this assertion trivially true regardless of whether leakage occurred.
+  await expect(page.getByTitle('Apri il documento originale')).toHaveCount(0)
   await expect(page.locator('text=/\\.md · v\\d+ · Sezione:/')).toHaveCount(0)
 })

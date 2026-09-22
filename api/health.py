@@ -140,20 +140,11 @@ async def health_check():
         except ImportError:
             openrouter_msg = "llm_bridge non disponibile"
 
+    # `modules_available` e `chroma_ok` restano nella risposta per
+    # compatibilita' con i client: appartenevano al motore WinSarp, rimosso
+    # dal repository il 18 settembre 2026.
     modules: list[str] = []
-    chroma_functional = False
-    if getattr(cfg, "ENABLE_LEGACY_WINSARP", False):
-        from api import _list_available_modules
-
-        modules = _list_available_modules()
-        try:
-            import chromadb
-
-            test_client = chromadb.PersistentClient(path=cfg.CHROMA_DIR)
-            test_client.list_collections()
-            chroma_functional = True
-        except Exception as e:
-            _logger.warning("Health check: ChromaDB esiste ma non funziona: %s", e)
+    chroma_functional = True
 
     library_db_ok = False
     try:
@@ -183,10 +174,7 @@ async def health_check():
     disk_free_gb = disk_usage.free / (1024**3)
 
     # Stato complessivo
-    if getattr(cfg, "ENABLE_LEGACY_WINSARP", False):
-        overall_status = "healthy" if library_db_ok and library_storage_ok and chroma_functional else "degraded"
-    else:
-        overall_status = "healthy" if library_db_ok and library_storage_ok else "degraded"
+    overall_status = "healthy" if library_db_ok and library_storage_ok else "degraded"
     # Una capacita' accesa che non puo' funzionare e' un degrado, anche se il
     # processo serve richieste: chi la ha accesa conta su di lei. Resta 200 —
     # una sonda di readiness non deve spegnere un'istanza che risponde — ma lo
