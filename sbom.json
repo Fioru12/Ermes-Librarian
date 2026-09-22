@@ -357,6 +357,9 @@
       "ref": "requirements-L11"
     },
     {
+      "ref": "requirements-L41-defusedxml"
+    },
+    {
       "ref": "requirements-L19"
     },
     {
