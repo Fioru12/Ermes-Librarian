@@ -207,6 +207,12 @@ async def lifespan(app: FastAPI):
         _watcher_stop_event.set()
     if _backup_task is not None:
         _backup_task.cancel()
+    try:
+        from core.governance import flush_remote_audit
+
+        flush_remote_audit(timeout=3.0)
+    except Exception as flush_err:
+        _logger.warning("Flush audit remoto allo shutdown fallito: %s", flush_err)
     global _http_client
     if _http_client is not None:
         await _http_client.aclose()

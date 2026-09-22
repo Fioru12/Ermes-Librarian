@@ -2,6 +2,15 @@
 
 Registro leggibile del lavoro su questo progetto. Per i finding tecnici completi, [docs/AUDIT_2026-08-19.md](docs/AUDIT_2026-08-19.md) e [docs/CODE_REVIEW.md](docs/CODE_REVIEW.md). La roadmap per fasi e il registro delle sessioni (`ROADMAP_V2.md`, `WORK_PROGRESS.md`) sono stati tolti dall'albero pubblico il 18 settembre 2026: la cronologia Git li conserva.
 
+## 2026-09-22 — Antivirus ClamAV, streaming SIEM e chart Helm, recuperati da un ramo divergente
+
+Un ramo parallelo (`feat/enterprise-v2.3.0`, 12 commit) aveva costruito indipendentemente, senza coordinamento, funzionalità in parte già presenti su `main` con un'implementazione diversa e incompatibile: una seconda astrazione di storage S3 (`core/storage_backend.py` contro `core/storage_provider.py`) e una seconda cifratura AES-256-GCM a riposo. Quelle parti sono state scartate — mergiarle avrebbe significato mantenere due percorsi di storage/cifratura paralleli, con dati scritti da uno potenzialmente illeggibili dall'altro. Recuperate solo le parti genuinamente nuove, adattate ai nomi di configurazione reali di `main` (il ramo usava `ERMES_S3_*`, `main` usa `S3_*` senza prefisso):
+
+- **Scanner antivirus ClamAV in-memory** (`core/antivirus.py`): protocollo `zINSTREAM` via socket, zero dipendenze esterne. Applicato su ogni punto di ingestione: upload web, webhook di automazione, sincronizzazione connettori e importazione da cartella di rete. Fail-open di default (`ERMES_CLAMAV_FAIL_CLOSED=0`); un file bloccato registra un audit `security_malware_blocked`.
+- **Streaming SIEM dell'audit log** (`core/governance.py`): inoltro asincrono non bloccante verso Syslog RFC 5424 (UDP) e/o un webhook HTTPS firmato Bearer, via una coda in un thread worker separato — la scrittura locale resta la fonte di verità, lo streaming è best-effort. `flush_remote_audit()` agganciato allo shutdown `lifespan` per non perdere voci in coda durante un rolling update.
+- **Chart Helm completo** (`deploy/helm/ermes-knowledge/`): HPA, ingress, checksum di configurazione per il rolling update, secrets separati. `values.yaml` di default ora usa storage `local` (il ramo originale default va a `s3`, che richiede credenziali non fornite di default).
+- **Dashboard Grafana pronta all'uso** (`deploy/monitoring/grafana-dashboard.json`): usa le 7 metriche Prometheus già esposte da `core/metrics.py`, nessuna modifica lato applicazione necessaria.
+
 ## 2026-09-18 — v2.2.5: Clone pulito Linux verificato in CI e profilo "verified" con Ollama dichiarato
 
 - **Smoke test Compose in CI** (`compose-smoke` in `.github/workflows/ci.yml`): su `ubuntu-latest` costruisce l'immagine, avvia `app` con `docker compose up --no-deps` (nessun Ollama: il default non usa modelli), attende `/health` = `healthy` ed esegue `scripts/run_demo_validation.py` contro il container (5 documenti, 4 risposte citate, 1 astensione, isolamento tra biblioteche). Fino a oggi il Dockerfile veniva costruito e pubblicato ma l'immagine non veniva mai avviata da nessun job, e il percorso README era stato verificato solo su Windows. Bloccante per `pre-deploy-backup` e `docker`.

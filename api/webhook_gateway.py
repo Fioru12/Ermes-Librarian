@@ -131,6 +131,18 @@ def automation_ingest(
         raise HTTPException(status_code=400, detail=reason_or_name)
     safe_name = reason_or_name
 
+    from core.antivirus import AntivirusScanError, scan_document
+
+    try:
+        scan_res = scan_document(raw_bytes, filename=safe_name, actor=str(user.get("username", "")))
+        if not scan_res.is_clean:
+            raise HTTPException(
+                status_code=400,
+                detail=f"File malevolo bloccato dall'antivirus: {scan_res.virus_name or 'minaccia rilevata'}",
+            )
+    except AntivirusScanError as scan_err:
+        raise HTTPException(status_code=503, detail=f"Servizio antivirus non disponibile: {scan_err}") from scan_err
+
     try:
         store.get_library(request.library_id, user, write=True)
     except (LibraryNotFoundError, LibraryAccessError) as errore:
