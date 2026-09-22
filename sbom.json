@@ -332,11 +332,29 @@
       "purl": "pkg:pypi/uvicorn@0.47.0",
       "type": "library",
       "version": "0.47.0"
+    },
+    {
+      "bom-ref": "requirements-L41-defusedxml",
+      "description": "requirements line 41: defusedxml==0.7.1",
+      "externalReferences": [
+        {
+          "comment": "implicit dist url",
+          "type": "distribution",
+          "url": "https://pypi.org/simple/defusedxml/"
+        }
+      ],
+      "name": "defusedxml",
+      "purl": "pkg:pypi/defusedxml@0.7.1",
+      "type": "library",
+      "version": "0.7.1"
     }
   ],
   "dependencies": [
     {
       "ref": "requirements-L11"
+    },
+    {
+      "ref": "requirements-L41-defusedxml"
     },
     {
       "ref": "requirements-L19"

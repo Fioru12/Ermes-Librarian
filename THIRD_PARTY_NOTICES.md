@@ -40,6 +40,7 @@ Declared in `requirements.txt`.
 | Package | Version | License |
 |---|---|---|
 | `argon2-cffi` | 25.1.0 | MIT |
+| `defusedxml` | 0.7.1 | PSFL |
 | `fastapi` | 0.136.1 | MIT |
 | `filelock` | 3.29.0 | MIT |
 | `httpx` | 0.28.1 | BSD-3-Clause |
