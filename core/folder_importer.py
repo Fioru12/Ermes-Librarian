@@ -75,6 +75,19 @@ def scan_import_source(
             if not content:
                 result["failed"].append({"file": file_path.name, "error": "File vuoto"})
                 continue
+
+            from core.antivirus import AntivirusScanError, scan_document
+
+            try:
+                scan_res = scan_document(content, filename=file_path.name, actor="folder_importer")
+                if not scan_res.is_clean:
+                    virus = scan_res.virus_name or "minaccia rilevata"
+                    result["failed"].append({"file": file_path.name, "error": f"File malevolo bloccato ({virus})"})
+                    continue
+            except AntivirusScanError as scan_err:
+                result["failed"].append({"file": file_path.name, "error": f"Servizio antivirus non disponibile: {scan_err}"})
+                continue
+
             digest = hashlib.sha256(content).hexdigest()
             if digest in known_hashes:
                 result["skipped_duplicates"].append(file_path.name)

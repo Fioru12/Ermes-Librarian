@@ -112,8 +112,22 @@ def sync_connector(
         storage_provider = get_storage_provider()
         known_hashes = store.existing_content_hashes(request.target_library_id)
 
+        from core.antivirus import AntivirusScanError, scan_document
+
         for rdoc in remote_docs:
             try:
+                try:
+                    scan_res = scan_document(rdoc.content, filename=rdoc.name, actor=str(_auth.get("username", "")))
+                    if not scan_res.is_clean:
+                        virus = scan_res.virus_name or "minaccia rilevata"
+                        _logger.warning("Antivirus ha bloccato il documento remoto %s: %s", rdoc.name, virus)
+                        errors.append(f"{rdoc.name}: File malevolo bloccato ({virus})")
+                        continue
+                except AntivirusScanError as scan_err:
+                    _logger.error("Servizio antivirus non disponibile durante la sincronizzazione connettore: %s", scan_err)
+                    errors.append(f"{rdoc.name}: Servizio antivirus non disponibile ({scan_err})")
+                    continue
+
                 units = extract_source_units(rdoc.name, rdoc.content)
                 chunks = [(u.text, u.locator) for u in units]
                 if not chunks or not chunks[0][0]:
