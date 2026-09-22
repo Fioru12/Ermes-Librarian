@@ -125,8 +125,18 @@ def infer_data_type(values: list[str]) -> str:
     return "TEXT"
 
 
+def _validate_table_name(table_name: str) -> None:
+    """L'identificatore va dentro l'SQL per interpolazione (SQLite non supporta il
+    parametro sui nomi di tabella): ogni chiamante futuro di questo motore "sandboxed"
+    che passasse un nome non hardcoded lo trasformerebbe in identifier injection.
+    """
+    if not re.fullmatch(r"[a-zA-Z_][a-zA-Z0-9_]*", table_name):
+        raise TabularQueryError(f"Nome tabella non valido: {table_name!r}")
+
+
 def load_csv_to_sqlite(conn: sqlite3.Connection, table_name: str, content: bytes) -> TableSchema:
     """Carica un file CSV in una tabella SQLite in-memory."""
+    _validate_table_name(table_name)
     text = content.decode("utf-8-sig", errors="replace")
     sample = text[:4096]
     delimiter = ","
@@ -162,11 +172,12 @@ def load_csv_to_sqlite(conn: sqlite3.Connection, table_name: str, content: bytes
 
     # Crea tabella
     col_defs = ", ".join(f'"{col.name}" {col.data_type}' for col in columns)
-    conn.execute(f'CREATE TABLE "{table_name}" ({col_defs})')
+    # table_name validato da _validate_table_name sopra; col_defs viene da sanitize_column_name.
+    conn.execute(f'CREATE TABLE "{table_name}" ({col_defs})')  # nosec B608
 
     # Inserisci dati
     placeholders = ", ".join(["?"] * len(columns))
-    insert_sql = f'INSERT INTO "{table_name}" VALUES ({placeholders})'
+    insert_sql = f'INSERT INTO "{table_name}" VALUES ({placeholders})'  # nosec B608: table_name validato sopra, i valori passano da conn.execute(insert_sql, params)
 
     sample_rows: list[dict[str, Any]] = []
     rows_to_insert: list[list[Any]] = []
@@ -209,6 +220,7 @@ def load_csv_to_sqlite(conn: sqlite3.Connection, table_name: str, content: bytes
 
 def load_xlsx_to_sqlite(conn: sqlite3.Connection, table_name: str, content: bytes) -> TableSchema:
     """Carica il primo foglio di un file Excel XLSX in una tabella SQLite in-memory."""
+    _validate_table_name(table_name)
     from xml.etree import ElementTree
 
     with ZipFile(io.BytesIO(content)) as archive:
@@ -263,10 +275,11 @@ def load_xlsx_to_sqlite(conn: sqlite3.Connection, table_name: str, content: byte
         columns.append(ColumnInfo(name=unique_name, data_type=col_type))
 
     col_defs = ", ".join(f'"{col.name}" {col.data_type}' for col in columns)
-    conn.execute(f'CREATE TABLE "{table_name}" ({col_defs})')
+    # table_name validato da _validate_table_name sopra; col_defs viene da sanitize_column_name.
+    conn.execute(f'CREATE TABLE "{table_name}" ({col_defs})')  # nosec B608
 
     placeholders = ", ".join(["?"] * len(columns))
-    insert_sql = f'INSERT INTO "{table_name}" VALUES ({placeholders})'
+    insert_sql = f'INSERT INTO "{table_name}" VALUES ({placeholders})'  # nosec B608: table_name validato sopra, i valori passano da conn.execute(insert_sql, params)
 
     sample_rows: list[dict[str, Any]] = []
     rows_to_insert: list[list[Any]] = []

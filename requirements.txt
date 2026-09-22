@@ -33,6 +33,12 @@ pytesseract==0.3.13
 # 21 settembre 2026 non era dichiarata, quindi su un'installazione pulita
 # il ramo RTF usava sempre il fallback senza dirlo.
 striprtf==0.0.33
+# core/connectors/webdav.py analizza le risposte XML del server WebDAV con
+# defusedxml invece di xml.etree diretto (giusto: e' input di rete non
+# fidato). Il commit che l'ha introdotto non l'ha aggiunta qui: funzionava
+# solo su chi gia' l'aveva installata per altro motivo, e in CI (install
+# pulito) 44 moduli di test fallivano la collezione con ModuleNotFoundError.
+defusedxml==0.7.1
 
 # Configuration
 python-dotenv==1.2.2
