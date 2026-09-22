@@ -6,7 +6,7 @@ Audit log endpoints.
 import json
 import logging
 import os
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends
 
@@ -18,12 +18,28 @@ _logger = logging.getLogger(__name__)
 router = APIRouter(tags=["Audit"])
 
 
+def _is_older_than(ts_str: str, cutoff_naive: datetime, cutoff_aware: datetime) -> bool:
+    """True se `ts_str` precede il cutoff, qualunque sia il formato del timestamp.
+
+    Voci scritte prima della migrazione alla catena crittografica (core/audit_chain.py)
+    hanno `ts` naive (`datetime.now().isoformat()`); quelle scritte dopo sono UTC-aware
+    (`datetime.now(UTC).isoformat()`). Confrontare un cutoff aware con un timestamp
+    naive solleva TypeError: bisogna scegliere il cutoff dello stesso tipo dell'entry.
+    """
+    if not ts_str:
+        return False
+    entry_ts = datetime.fromisoformat(ts_str)
+    cutoff = cutoff_aware if entry_ts.tzinfo is not None else cutoff_naive
+    return entry_ts < cutoff
+
+
 # ── Log Rotation ──
 def _rotate_audit_logs(audit_file: str, retention_days: int = 90) -> int:
     """Archivia gli entry più vecchi di retention_days in un file .archive."""
     if not os.path.exists(audit_file):
         return 0
-    cutoff = datetime.now() - timedelta(days=retention_days)
+    cutoff_naive = datetime.now() - timedelta(days=retention_days)
+    cutoff_aware = datetime.now(UTC) - timedelta(days=retention_days)
     kept = []
     archived = []
     with open(audit_file, encoding="utf-8") as f:
@@ -33,9 +49,7 @@ def _rotate_audit_logs(audit_file: str, retention_days: int = 90) -> int:
                 continue
             try:
                 entry = json.loads(line)
-                ts_str = entry.get("ts", "")
-                entry_ts = datetime.fromisoformat(ts_str) if ts_str else None
-                if entry_ts and entry_ts < cutoff:
+                if _is_older_than(entry.get("ts", ""), cutoff_naive, cutoff_aware):
                     archived.append(line)
                 else:
                     kept.append(line)
@@ -85,12 +99,40 @@ async def audit_logs(
     return {"entries": sliced, "total": total, "offset": offset, "limit": limit, "returned": len(sliced)}
 
 
-@router.get("/api/audit/verify", summary="Verifica l'integrità del log di audit")
+@router.get("/api/audit/verify", summary="Verifica l'integrità crittografica dell'intera catena di audit log")
 async def audit_verify(_auth: dict = Depends(_require_role("admin"))):
-    from core.governance import verify_audit_log_integrity
+    from core.audit_chain import AuditChainManager
 
-    total, valid = verify_audit_log_integrity(cfg.AUDIT_FILE)
-    return {"total": total, "valid": valid, "tampered": total - valid, "integrity_ok": total == valid}
+    report = AuditChainManager.verify_chain(cfg.AUDIT_FILE)
+    return report
+
+
+@router.get("/api/audit/compliance-report", summary="Genera un report di conformità SOC 2 / ISO 27001 / GDPR")
+async def audit_compliance_report(
+    organization: str = "Ermes Enterprise",
+    _auth: dict = Depends(_require_role("admin")),
+):
+    from core.audit_chain import AuditChainManager
+
+    report = AuditChainManager.generate_compliance_report(
+        audit_file=cfg.AUDIT_FILE,
+        organization=organization,
+        auditor_id=_auth.get("username", "security_admin"),
+    )
+    return report
+
+
+@router.get("/api/audit/chain-head", summary="Recupera l'ultimo hash e altezza del registro di audit")
+async def audit_chain_head(_auth: dict = Depends(_require_role("admin"))):
+    from core.audit_chain import AuditChainManager
+
+    verification = AuditChainManager.verify_chain(cfg.AUDIT_FILE)
+    return {
+        "head_hash": verification["head_hash"],
+        "total_entries": verification["total_entries"],
+        "latest_event_at": verification["latest_event_at"],
+        "valid": verification["valid"],
+    }
 
 
 @router.get("/api/audit/stats", summary="Statistiche del log di audit")
@@ -111,7 +153,8 @@ async def audit_export(
     if not os.path.exists(audit_file):
         return {"entries": [], "total": 0}
 
-    cutoff = datetime.now() - timedelta(days=days)
+    cutoff_naive = datetime.now() - timedelta(days=days)
+    cutoff_aware = datetime.now(UTC) - timedelta(days=days)
     entries = []
     with open(audit_file, encoding="utf-8") as f:
         for line in f:
@@ -120,12 +163,10 @@ async def audit_export(
                 continue
             try:
                 entry = json.loads(line)
-                ts_str = entry.get("ts", "")
                 try:
-                    entry_ts = datetime.fromisoformat(ts_str)
-                    if entry_ts < cutoff:
+                    if _is_older_than(entry.get("ts", ""), cutoff_naive, cutoff_aware):
                         continue
-                except (ValueError, TypeError):
+                except ValueError:
                     pass
                 if action and entry.get("action") != action:
                     continue

@@ -721,53 +721,19 @@ def audit_entries_for(audit_file: str, actor: str) -> list[dict]:
 
 
 def append_audit(audit_file: str, action: str, actor: str, detail: dict | None = None) -> None:
-    """
-    Aggiunge un entry di audit con firma HMAC per integrità.
+    """Aggiunge una voce di audit con hash chaining crittografico (SHA-256) e firma HMAC."""
+    from core.audit_chain import AuditChainManager
 
-    Il campo 'signature' garantisce che l'entry non sia stata manipolata.
-    Per verificare: _verify_audit_signature(entry)
-    """
-    canonical = os.path.abspath(audit_file)
-    os.makedirs(os.path.dirname(canonical), exist_ok=True)
-    entry = {
-        "ts": datetime.now().isoformat(),
-        "action": action,
-        "actor": actor,
-        "detail": detail or {},
-    }
-    # Calcola firma HMAC per integrità
-    entry_str = json.dumps(entry, ensure_ascii=False)
-    entry["signature"] = _sign_audit_entry(entry_str)
-    # Stesso lock per percorso usato per users.json e api keys: l'append di
-    # una riga e' atomico su POSIX sotto PIPE_BUF, non su Windows e non per
-    # voci lunghe. Due processi (app + worker) che scrivono insieme
-    # producevano righe intrecciate, cioe' voci che non verificano.
-    with _get_file_lock(canonical + ".lock"), open(canonical, "a", encoding="utf-8") as f:
-        f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+    AuditChainManager.append_record(audit_file=audit_file, action=action, actor=actor, detail=detail)
 
 
 def verify_audit_log_integrity(audit_file: str) -> tuple[int, int]:
-    """
-    Verifica l'integrità di tutti gli entry nel file di audit.
+    """Verifica l'integrità crittografica dell'intera catena di audit log.
 
     Returns:
         (total_entries, valid_entries)
     """
-    if not os.path.exists(audit_file):
-        return 0, 0
+    from core.audit_chain import AuditChainManager
 
-    total = 0
-    valid = 0
-    with open(audit_file, encoding="utf-8") as f:
-        for line in f:
-            line = line.strip()
-            if not line:
-                continue
-            total += 1
-            try:
-                entry = json.loads(line)
-                if _verify_audit_signature(entry.copy()):
-                    valid += 1
-            except Exception:
-                pass
-    return total, valid
+    res = AuditChainManager.verify_chain(audit_file)
+    return res["total_entries"], res["verified_entries"]
