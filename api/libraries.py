@@ -32,6 +32,7 @@ from core.library_store import (
     LibraryNotFoundError,
     LibraryStore,
     resolve_storage_path,
+    storage_relative_path,
 )
 from core.storage_provider import get_storage_provider
 
@@ -1809,7 +1810,17 @@ def restore_document_version(
         filename=source["filename"],
         media_type=source["media_type"],
         content=content,
-        storage_path=str(source_path),
+        # Relativo allo storage, come per ogni upload: fino al 18 settembre
+        # 2026 qui finiva il percorso assoluto della macchina, e un restore su
+        # un'altra cartella (backup, container) perdeva l'originale.
+        #
+        # Il nome file memorizzato (non `source["filename"]`, che e' quello
+        # umano e puo' collidere con un altro documento) viene dall'ultimo
+        # segmento di `source["storage_path"]`, disponibile in entrambi i
+        # rami sopra: `source_path` esiste solo in quello di fallback
+        # (storage_provider.get() fallito), e in quello normale non e' mai
+        # stato assegnato.
+        storage_path=storage_relative_path(library_id, Path(source["storage_path"]).name),
         extracted_text="\n\n".join(unit.text for unit in source_units),
         source_units=len(source_units),
         chunks=chunk_source_units(source_units),

@@ -188,6 +188,30 @@ def check_configuration(cfg) -> list[ConfigProblem]:
             )
         )
 
+    # I segreti dei webhook autenticano una rotta pubblica: con un segnaposto
+    # copiato da .env.example, chiunque legga il repository puo' firmare
+    # richieste valide. Un segnaposto e' "non configurato", e la rotta che ne
+    # dipende deve rifiutare tutto — non accettare tutto.
+    for nome in (
+        "TEAMS_WEBHOOK_SECRET",
+        "SLACK_SIGNING_SECRET",
+        "SLACK_BOT_TOKEN",
+        "TELEGRAM_BOT_TOKEN",
+        "TELEGRAM_WEBHOOK_SECRET",
+    ):
+        valore = getattr(cfg, nome, "")
+        if valore and _is_placeholder(valore):
+            problems.append(
+                ConfigProblem(
+                    "fatal",
+                    f"ERMES_{nome}",
+                    f"e' il segnaposto pubblico {valore.strip()!r}: chiunque conosca il progetto puo' firmare richieste",
+                    "genera un segreto con "
+                    'python -c "import secrets; print(secrets.token_hex(32))" '
+                    "e registralo anche presso il provider, oppure lascia la variabile vuota",
+                )
+            )
+
     # core/evidence_assistant.py degrada silenziosamente senza consenso o chiave.
     if cfg.LIBRARY_ASSISTANT_MODE.startswith("approved") and (
         not cfg.LIBRARY_CLOUD_CONSENT or not cfg.OPENROUTER_API_KEY
