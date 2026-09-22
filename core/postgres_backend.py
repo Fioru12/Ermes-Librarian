@@ -271,6 +271,8 @@ def search_chunks_vector(
         params["doc_ids"] = document_ids
 
     where_clause = " AND ".join(where_parts)
+    # where_parts sono frammenti letterali fissi, mai costruiti da input: i valori
+    # passano tutti da %(...)s. Vedi core/library_store.py per lo stesso pattern.
     query = f"""
         SELECT
             c.id,
@@ -284,7 +286,7 @@ def search_chunks_vector(
         WHERE {where_clause}
         ORDER BY c.embedding_vector <=> %(query_vec)s::vector ASC
         LIMIT %(limit)s
-    """
+    """  # nosec B608
     cursor = connection.execute(query, params)
     return [dict(row) for row in cursor.fetchall()]
 
