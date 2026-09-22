@@ -854,10 +854,10 @@ def append_audit(audit_file: str, action: str, actor: str, detail: dict | None =
     """Aggiunge una voce di audit con hash chaining crittografico (SHA-256) e firma HMAC."""
     from core.audit_chain import AuditChainManager
 
-    AuditChainManager.append_record(audit_file=audit_file, action=action, actor=actor, detail=detail)
+    record = AuditChainManager.append_record(audit_file=audit_file, action=action, actor=actor, detail=detail)
 
     # SIEM / streaming remoto del log di audit, fuori dal percorso critico.
-    _dispatch_remote_audit(entry)
+    _dispatch_remote_audit(record)
 
 
 def verify_audit_log_integrity(audit_file: str) -> tuple[int, int]:
