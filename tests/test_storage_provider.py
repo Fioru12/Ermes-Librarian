@@ -55,3 +55,26 @@ def test_s3_storage_provider_mock():
         Bucket="test-bucket",
         Key="lib1/doc.pdf",
     )
+
+
+def test_storage_provider_check_health(tmp_path):
+    # Local Storage Health
+    local_storage = LocalStorageProvider(tmp_path / "test_store")
+    ok, msg = local_storage.check_health()
+    assert ok is True
+    assert "pronto" in msg.lower()
+
+    # S3 Storage Health (success)
+    s3_storage = S3StorageProvider(bucket_name="test-bucket")
+    mock_client = MagicMock()
+    mock_client.head_bucket.return_value = {}
+    s3_storage._client = mock_client
+    ok_s3, msg_s3 = s3_storage.check_health()
+    assert ok_s3 is True
+    assert "raggiungibile" in msg_s3.lower()
+
+    # S3 Storage Health (failure)
+    mock_client.head_bucket.side_effect = Exception("Access Denied")
+    ok_s3_fail, msg_s3_fail = s3_storage.check_health()
+    assert ok_s3_fail is False
+    assert "non raggiungibile" in msg_s3_fail.lower()

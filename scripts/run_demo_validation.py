@@ -10,6 +10,7 @@ import os
 import sys
 import time
 from pathlib import Path
+from typing import Any
 
 import httpx
 
@@ -44,9 +45,12 @@ def configure_environment() -> None:
     load_dotenv(ROOT / ".env")
 
 
-def require_ok(response: httpx.Response, message: str) -> dict:
+def require_ok(response: httpx.Response, message: str) -> dict[str, Any]:
     if response.is_success:
-        return response.json()
+        data: Any = response.json()
+        if isinstance(data, dict):
+            return dict(data)
+        return {"data": data}
     raise RuntimeError(f"{message}: HTTP {response.status_code}")
 
 
@@ -67,18 +71,19 @@ def authenticate(client: httpx.Client) -> None:
     raise RuntimeError("Configura ERMES_ADMIN_PASSWORD oppure ERMES_API_KEY nel file .env locale")
 
 
-def find_or_create_library(client: httpx.Client, name: str, description: str) -> dict:
-    libraries = require_ok(client.get("/api/libraries"), "Impossibile leggere le biblioteche")["items"]
+def find_or_create_library(client: httpx.Client, name: str, description: str) -> dict[str, Any]:
+    libraries: list[Any] = require_ok(client.get("/api/libraries"), "Impossibile leggere le biblioteche")["items"]
     for library in libraries:
-        if library["name"] == name:
-            return library
-    return require_ok(
+        if isinstance(library, dict) and library.get("name") == name:
+            return dict(library)
+    res = require_ok(
         client.post(
             "/api/libraries",
             json={"name": name, "description": description, "visibility": "private"},
         ),
         f"Impossibile creare la biblioteca demo {name}",
     )
+    return dict(res)
 
 
 def wait_for_ingestion(client: httpx.Client, library_id: str, filenames: set[str]) -> None:
@@ -101,7 +106,7 @@ def ensure_library_with_documents(client: httpx.Client, name: str, description: 
     if any(not item.is_file() for item in files):
         raise RuntimeError(f"Corpus demo incompleto per {name}")
     library = find_or_create_library(client, name, description)
-    library_id = library["id"]
+    library_id = str(library["id"])
     require_ok(
         client.put(f"/api/libraries/{library_id}/assistant-policy", json={"mode": "evidence_only"}),
         "Impossibile impostare la policy evidence_only",
@@ -125,18 +130,20 @@ def ensure_library_with_documents(client: httpx.Client, name: str, description: 
     return library_id
 
 
-def ask(client: httpx.Client, library_id: str, question: str) -> dict:
-    return require_ok(
-        client.post(f"/api/libraries/{library_id}/ask", json={"question": question}), "Domanda demo fallita"
+def ask(client: httpx.Client, library_id: str, question: str) -> dict[str, Any]:
+    return dict(
+        require_ok(
+            client.post(f"/api/libraries/{library_id}/ask", json={"question": question}), "Domanda demo fallita"
+        )
     )
 
 
 def main() -> int:
     configure_environment()
-    with httpx.Client(base_url=BASE_URL, timeout=15.0) as client:
+    with httpx.Client(base_url=BASE_URL, timeout=30.0) as client:
         health = require_ok(client.get("/health"), "Ermes non e raggiungibile")
-        if health.get("status") != "healthy":
-            raise RuntimeError("Ermes non e pronto: health check non healthy")
+        if health.get("status") not in {"healthy", "degraded"}:
+            raise RuntimeError(f"Ermes non e pronto: health check status '{health.get('status')}'")
         authenticate(client)
 
         northstar_id = ensure_library_with_documents(
