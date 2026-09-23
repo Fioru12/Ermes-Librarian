@@ -51,7 +51,7 @@ jobs:
         # Scoped to product dirs and --explicit-package-bases: su `mypy .`
         # l'analisi si fermava subito su moduli duplicati (evaluation,
         # evaluation) e non controllava nulla.
-        run: mypy api/ core/ config/ --ignore-missing-imports --explicit-package-bases
+        run: mypy api/ core/ config/ scripts/ --ignore-missing-imports --explicit-package-bases
       # Bloccante: oggi non riporta nulla a media/alta severita', quindi
       # renderlo bloccante non nasconde debito, impedisce di crearne.
       - name: Bandit security scan
