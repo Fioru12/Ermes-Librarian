@@ -217,6 +217,98 @@ def test_cross_library_federated_search(temp_env):
         assert c["library_id"] in [lib_hr["id"], lib_tech["id"]]
 
 
+def test_federated_search_never_crosses_into_a_library_the_caller_cannot_see(temp_env):
+    """The only test above searches as admin, who can see everything — it never
+    exercises the isolation boundary the feature exists to respect. A viewer with
+    no membership in the private library must never see it in federated results,
+    whether the search is unscoped or explicitly names that library's id."""
+    store = temp_env["store"]
+    admin = temp_env["admin_auth"]
+    outsider = temp_env["viewer_auth"]
+
+    lib_secret = store.create_library("Secret HR Salaries", "desc", "private", owner_id="admin")
+    lib_shared = store.create_library("Public Handbook", "desc", "shared", owner_id="admin")
+
+    store.add_document(
+        library_id=lib_secret["id"],
+        filename="salaries.txt",
+        media_type="text/plain",
+        content=b"Il CEO guadagna 500000 euro all'anno.",
+        storage_path="salaries.txt",
+        extracted_text="Il CEO guadagna 500000 euro all'anno.",
+        chunks=[("Il CEO guadagna 500000 euro all'anno.", "Par 1")],
+    )
+    store.add_document(
+        library_id=lib_shared["id"],
+        filename="handbook.txt",
+        media_type="text/plain",
+        content=b"L'azienda offre 500000 opportunita' di crescita ai dipendenti.",
+        storage_path="handbook.txt",
+        extracted_text="L'azienda offre 500000 opportunita' di crescita ai dipendenti.",
+        chunks=[("L'azienda offre 500000 opportunita' di crescita ai dipendenti.", "Par 1")],
+    )
+
+    # Sanity check: the admin (who can see both) does get the secret library back.
+    admin_citations, _ = store.search_federated(query="500000", library_ids=None, limit=10, actor=admin)
+    assert lib_secret["id"] in {c["library_id"] for c in admin_citations}
+
+    # Unscoped: the outsider's federated search must silently exclude what they can't see.
+    citations, profile = store.search_federated(query="500000", library_ids=None, limit=10, actor=outsider)
+    assert lib_secret["id"] not in {c["library_id"] for c in citations}
+    assert profile["libraries_searched"] == 1
+
+    # Explicitly named: asking for the secret library by id must not leak it either —
+    # it should be silently skipped, the same way get_library() would refuse it directly.
+    targeted, targeted_profile = store.search_federated(
+        query="500000", library_ids=[lib_secret["id"], lib_shared["id"]], limit=10, actor=outsider
+    )
+    assert lib_secret["id"] not in {c["library_id"] for c in targeted}
+    assert targeted_profile["libraries_searched"] == 1
+
+
+def test_retention_endpoints_refuse_a_library_the_actor_cannot_access(temp_env):
+    """`_require_role("editor")`/`_verify_api_key` only check the account's global
+    role — never whether the actor belongs to `library_id`. Neither the route
+    functions nor RetentionEngine checked library membership before this fix:
+    any global-editor account could set a legal hold on a library it has no
+    membership in, and any authenticated account could read another library's
+    retention status and legal-hold reason."""
+    import pytest as _pytest
+    from fastapi import HTTPException
+
+    from api.retention import (
+        SetLegalHoldRequest,
+        SetRetentionPolicyRequest,
+        get_document_status,
+        get_policy,
+        set_legal_hold,
+        set_policy,
+    )
+
+    store = temp_env["store"]
+    outsider = temp_env["viewer_auth"]
+    lib_secret = store.create_library("Secret HR Salaries", "desc", "private", owner_id="admin")
+
+    for call in (
+        lambda: get_policy(lib_secret["id"], actor=outsider, store=store),
+        lambda: set_policy(
+            lib_secret["id"],
+            SetRetentionPolicyRequest(retention_days=30, action="archive"),
+            actor=outsider,
+            store=store,
+        ),
+        lambda: set_legal_hold(
+            SetLegalHoldRequest(library_id=lib_secret["id"], document_id="doc-1", legal_hold=True),
+            actor=outsider,
+            store=store,
+        ),
+        lambda: get_document_status(lib_secret["id"], "doc-1", actor=outsider, store=store),
+    ):
+        with _pytest.raises(HTTPException) as exc_info:
+            call()
+        assert exc_info.value.status_code == 404
+
+
 def test_federated_search_and_stream_endpoints(temp_env):
     client = TestClient(app)
     store = temp_env["store"]

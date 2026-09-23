@@ -8,9 +8,27 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
 from api.auth import _require_role, _verify_api_key
+from api.libraries import get_library_store
+from core.library_store import LibraryAccessError, LibraryNotFoundError, LibraryStore
 from core.retention_engine import RetentionAction, get_retention_engine
 
 router = APIRouter(prefix="/api/retention", tags=["Retention"])
+
+
+def _require_library_access(store: LibraryStore, library_id: str, actor: dict[str, Any], write: bool) -> None:
+    """Retention/legal-hold policy and status are per-library data: `_require_role`
+    only checks the account's global role, not membership in this specific
+    library. Without this, any account with the global "editor" role could set a
+    legal hold on a library it has no membership in, and any authenticated
+    account could read another library's retention status and legal-hold reason
+    (e.g. "under investigation for embezzlement") — neither the endpoints nor
+    RetentionEngine itself ever checked library-level access; `actor` there is
+    only a string used for audit attribution.
+    """
+    try:
+        store.get_library(library_id, actor=actor, write=write)
+    except (LibraryNotFoundError, LibraryAccessError) as error:
+        raise HTTPException(status_code=404, detail="Biblioteca non trovata") from error
 
 
 class SetRetentionPolicyRequest(BaseModel):
@@ -34,8 +52,10 @@ class EnforceRetentionRequest(BaseModel):
 def get_policy(
     library_id: str,
     actor: dict[str, Any] = Depends(_verify_api_key),
+    store: LibraryStore = Depends(get_library_store),
 ) -> dict[str, Any]:
     """Recupera la policy di retention attiva per una biblioteca."""
+    _require_library_access(store, library_id, actor, write=False)
     engine = get_retention_engine()
     policy = engine.get_library_policy(library_id)
     if not policy:
@@ -60,8 +80,10 @@ def set_policy(
     library_id: str,
     request: SetRetentionPolicyRequest,
     actor: dict[str, Any] = Depends(_require_role("editor")),
+    store: LibraryStore = Depends(get_library_store),
 ) -> dict[str, Any]:
-    """Imposta o aggiorna la retention policy per una biblioteca (richiede ruolo editor o superiore)."""
+    """Imposta o aggiorna la retention policy per una biblioteca (richiede ruolo editor o superiore, e accesso in scrittura alla biblioteca)."""
+    _require_library_access(store, library_id, actor, write=True)
     engine = get_retention_engine()
     try:
         policy = engine.set_library_policy(
@@ -86,8 +108,10 @@ def set_policy(
 def set_legal_hold(
     request: SetLegalHoldRequest,
     actor: dict[str, Any] = Depends(_require_role("editor")),
+    store: LibraryStore = Depends(get_library_store),
 ) -> dict[str, Any]:
     """Applica o rimuove un Legal Hold su un documento per impedire la cancellazione."""
+    _require_library_access(store, request.library_id, actor, write=True)
     engine = get_retention_engine()
     res = engine.set_document_legal_hold(
         library_id=request.library_id,
@@ -104,8 +128,10 @@ def get_document_status(
     library_id: str,
     document_id: str,
     actor: dict[str, Any] = Depends(_verify_api_key),
+    store: LibraryStore = Depends(get_library_store),
 ) -> dict[str, Any]:
     """Recupera lo stato di retention e eventuale legal hold del documento."""
+    _require_library_access(store, library_id, actor, write=False)
     engine = get_retention_engine()
     return engine.get_document_retention_status(library_id, document_id)
 
