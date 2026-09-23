@@ -45,6 +45,11 @@ class StorageProvider(ABC):
         """Restituisce un URL pre-firmato o diretto per il download, o None se non applicabile."""
         return None
 
+    @abstractmethod
+    def check_health(self) -> tuple[bool, str]:
+        """Verifica la disponibilità e lo stato di salute dello storage."""
+        pass
+
 
 class LocalStorageProvider(StorageProvider):
     """Implementazione su filesystem locale con protezioni anti-traversal e scritture atomiche."""
@@ -100,6 +105,19 @@ class LocalStorageProvider(StorageProvider):
             return self._resolve(storage_path).is_file()
         except (ValueError, FileNotFoundError):
             return False
+
+    def check_health(self) -> tuple[bool, str]:
+        import os
+
+        try:
+            self._root.mkdir(parents=True, exist_ok=True)
+            if not self._root.is_dir():
+                return False, f"La cartella di storage non esiste: {self._root}"
+            if not os.access(self._root, os.W_OK):
+                return False, f"La cartella di storage non è scrivibile: {self._root}"
+            return True, f"Storage locale pronto: {self._root}"
+        except Exception as e:
+            return False, f"Errore storage locale: {e}"
 
 
 class S3StorageProvider(StorageProvider):
@@ -192,6 +210,14 @@ class S3StorageProvider(StorageProvider):
             _logger.warning("Generazione presigned URL fallita per %s: %s", key, e)
             return None
 
+    def check_health(self) -> tuple[bool, str]:
+        try:
+            client = self._get_client()
+            client.head_bucket(Bucket=self.bucket_name)
+            return True, f"Bucket S3 raggiungibile: {self.bucket_name}"
+        except Exception as e:
+            return False, f"Bucket S3 non raggiungibile ({self.bucket_name}): {e}"
+
 
 class EncryptedStorageProvider(StorageProvider):
     """Wrapper decorator che cifra i documenti a riposo con AES-256-GCM e decifra in lettura."""
@@ -222,6 +248,9 @@ class EncryptedStorageProvider(StorageProvider):
         # Se cifrato, il presigned URL diretto verso S3 restituirebbe ciphertext illeggibile;
         # ritorniamo None affinché il download passi sempre dal gateway applicativo che decifra.
         return None
+
+    def check_health(self) -> tuple[bool, str]:
+        return self.underlying.check_health()
 
 
 def get_storage_provider(encrypted: bool | None = None) -> StorageProvider:
