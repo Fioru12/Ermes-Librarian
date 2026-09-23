@@ -16,7 +16,19 @@ from core.connectors.base import BaseConnector, RemoteDocument
 
 _logger = logging.getLogger(__name__)
 
-SUPPORTED_EXTENSIONS = {".pdf", ".docx", ".txt", ".md", ".markdown", ".xlsx", ".pptx", ".csv", ".rtf"}
+MEDIA_TYPES = {
+    ".pdf": "application/pdf",
+    ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ".txt": "text/plain",
+    ".md": "text/markdown",
+    ".markdown": "text/markdown",
+    ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    ".pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    ".csv": "text/csv",
+    ".rtf": "application/rtf",
+}
+
+SUPPORTED_EXTENSIONS = set(MEDIA_TYPES.keys())
 
 
 class LocalFolderConnector(BaseConnector):
@@ -70,9 +82,10 @@ class LocalFolderConnector(BaseConnector):
             try:
                 stat = file_path.stat()
                 content = file_path.read_bytes()
-                media_type, _ = mimetypes.guess_type(file_path.name)
+                media_type = MEDIA_TYPES.get(ext)
                 if not media_type:
-                    media_type = "application/octet-stream"
+                    guessed, _ = mimetypes.guess_type(file_path.name)
+                    media_type = guessed or "application/octet-stream"
 
                 rel_path = str(file_path.relative_to(self.folder_path))
                 doc_id = f"local_folder:{rel_path}"

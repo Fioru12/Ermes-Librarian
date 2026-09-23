@@ -47,6 +47,48 @@ def test_extracts_shared_strings_from_xlsx():
     assert units == 1
 
 
+def test_xlsx_with_reordered_sheets_and_booleans():
+    buffer = BytesIO()
+    with ZipFile(buffer, "w", ZIP_DEFLATED) as archive:
+        archive.writestr("[Content_Types].xml", "<Types />")
+        archive.writestr(
+            "xl/workbook.xml",
+            '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
+            '<sheets>'
+            '<sheet name="FoglioDue" sheetId="2" r:id="rId2" />'
+            '<sheet name="FoglioUno" sheetId="1" r:id="rId1" />'
+            '</sheets></workbook>',
+        )
+        archive.writestr(
+            "xl/_rels/workbook.xml.rels",
+            '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+            '<Relationship Id="rId1" Target="worksheets/sheet1.xml" />'
+            '<Relationship Id="rId2" Target="worksheets/sheet2.xml" />'
+            '</Relationships>',
+        )
+        archive.writestr(
+            "xl/worksheets/sheet1.xml",
+            '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>'
+            '<row r="1"><c r="A1" t="b"><v>1</v></c></row>'
+            '</sheetData></worksheet>',
+        )
+        archive.writestr(
+            "xl/worksheets/sheet2.xml",
+            '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>'
+            '<row r="1"><c r="A1" t="inlineStr"><is><t>Valore Due</t></is></c></row>'
+            '</sheetData></worksheet>',
+        )
+
+    units = extract_source_units("test.xlsx", buffer.getvalue())
+    assert len(units) == 2
+    # FoglioDue was mapped via rId2 to sheet2.xml
+    assert units[0].locator == "Foglio FoglioDue, riga 1"
+    assert units[0].text == "A1: Valore Due"
+    # FoglioUno was mapped via rId1 to sheet1.xml and boolean 1 mapped to VERO
+    assert units[1].locator == "Foglio FoglioUno, riga 1"
+    assert units[1].text == "A1: VERO"
+
+
 def test_rejects_unsupported_file_type():
     with pytest.raises(DocumentParseError):
         extract_text("immagine.png", b"not an image")

@@ -345,7 +345,7 @@ def _extract_xlsx_units(content: bytes) -> list[SourceUnit]:
     """Read an XLSX without adding an office-suite dependency.
 
     The generated workbook uses a private ZIP entry so callers can treat the
-    result as a deterministic preview.  It is not a replacement for a full
+    result as a deterministic preview. It is not a replacement for a full
     spreadsheet engine and formula values are intentionally not calculated.
     """
     with ZipFile(BytesIO(content)) as archive:
@@ -354,16 +354,47 @@ def _extract_xlsx_units(content: bytes) -> list[SourceUnit]:
         if "xl/sharedStrings.xml" in archive.namelist():
             root = _parse_office_xml(archive.read("xl/sharedStrings.xml"))
             shared_strings = ["".join(item.itertext()).strip() for item in root.findall(f"{ns}si")]
+
+        # Mappa le relazioni Id -> Target da xl/_rels/workbook.xml.rels per
+        # associare con certezza ogni <sheet r:id="..."> al rispettivo file xml,
+        # anche in caso di fogli rinominati, cancellati o riordinati.
+        rel_map: dict[str, str] = {}
+        if "xl/_rels/workbook.xml.rels" in archive.namelist():
+            rels_root = _parse_office_xml(archive.read("xl/_rels/workbook.xml.rels"))
+            for rel in rels_root:
+                r_id = rel.attrib.get("Id")
+                target = rel.attrib.get("Target", "")
+                if r_id and target:
+                    norm_target = target.replace("\\", "/").lstrip("/")
+                    if not norm_target.startswith("xl/"):
+                        norm_target = f"xl/{norm_target}"
+                    rel_map[r_id] = norm_target
+
         workbook = _parse_office_xml(archive.read("xl/workbook.xml"))
+
+        def _natural_sheet_key(path: str) -> tuple[int, str]:
+            match = re.search(r"(\d+)\.xml$", path)
+            return (int(match.group(1)), path) if match else (999999, path)
+
         worksheet_paths = sorted(
-            name for name in archive.namelist() if name.startswith("xl/worksheets/") and name.endswith(".xml")
+            (name for name in archive.namelist() if name.startswith("xl/worksheets/") and name.endswith(".xml")),
+            key=_natural_sheet_key,
         )
         units: list[SourceUnit] = []
         for index, sheet in enumerate(workbook.iter(f"{ns}sheet")):
             name = sheet.attrib.get("name", "Foglio")
-            if index >= len(worksheet_paths):
-                continue
-            sheet_path = worksheet_paths[index]
+            sheet_r_id = None
+            for attr_name, attr_val in sheet.attrib.items():
+                if attr_name.endswith("}id") or attr_name in ("r:id", "id"):
+                    sheet_r_id = attr_val
+                    break
+
+            sheet_path = rel_map.get(sheet_r_id) if sheet_r_id else None
+            if not sheet_path or sheet_path not in archive.namelist():
+                if index >= len(worksheet_paths):
+                    continue
+                sheet_path = worksheet_paths[index]
+
             root = _parse_office_xml(archive.read(sheet_path))
             for row in root.findall(f".//{ns}row"):
                 values: list[str] = []
@@ -376,6 +407,10 @@ def _extract_xlsx_units(content: bytes) -> list[SourceUnit]:
                         value = shared_strings[int(value)]
                     elif kind == "inlineStr":
                         value = "".join(cell.itertext()).strip()
+                    elif kind == "b":
+                        value = "VERO" if value in ("1", "true", "TRUE") else "FALSO"
+                    elif kind == "str":
+                        value = value.strip()
                     if value:
                         values.append(f"{reference}: {value}")
                 if values:
