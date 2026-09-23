@@ -29,6 +29,11 @@ class StorageConfig:
         """Alias di LIBRARY_DB_PATH per il factory del database backend."""
         return self.LIBRARY_DB_PATH
 
+    @property
+    def CONNECTOR_SCHEDULES_DB_PATH(self) -> str:
+        """Database locale per la pianificazione dei connettori cloud."""
+        return os.path.join(self.BASE_DIR, "data", "connector_schedules.db")
+
     # Backend database: vuoto = SQLite locale (default, zero-config);
     # "postgresql://user:pass@host:5432/ermes" = PostgreSQL multi-utente.
     # La selezione è documentata in docs/POSTGRES_MIGRATION_PLAN.md.

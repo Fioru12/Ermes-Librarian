@@ -47,7 +47,7 @@ class ConnectorScheduleStore:
     """Store persistente per la pianificazione dei connettori cloud."""
 
     def __init__(self, db_path: str | Path | None = None) -> None:
-        self.db_path = Path(db_path or (Path(cfg.BASE_DIR) / "connector_schedules.db"))
+        self.db_path = Path(db_path or cfg.CONNECTOR_SCHEDULES_DB_PATH)
         self._lock = threading.Lock()
         self._init_db()
 
