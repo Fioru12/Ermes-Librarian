@@ -13,11 +13,14 @@ d = ImageDraw.Draw(img)
 # Cerchio di base con gradiente (semplificato con bordo)
 d.ellipse((20, 20, 492, 492), fill=(15, 18, 37), outline=(212, 175, 55), width=20)
 
+from typing import Any
+
 # "E" stilizzata
 # Cerchiamo un font di sistema (Arial o simile)
+font: Any
 try:
     font = ImageFont.truetype("arial.ttf", 350)
-except:
+except Exception:
     font = ImageFont.load_default()
 
 # Centratura testo "E"

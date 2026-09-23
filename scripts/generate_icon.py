@@ -1,4 +1,5 @@
 import math
+from typing import Any
 
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
@@ -46,12 +47,12 @@ for deg in [45, 135, 225, 315]:
 
 # Render "E" text with system font, precisely center via pixel analysis
 font_size = 340
-font = None
+font: Any = None
 for name in ["arial.ttf", "segoeui.ttf", "tahoma.ttf", "C:\\Windows\\Fonts\\arial.ttf"]:
     try:
         font = ImageFont.truetype(name, font_size)
         break
-    except:
+    except Exception:
         continue
 
 if font is None:
@@ -68,7 +69,7 @@ ty = (SIZE - th) // 2 - bbox[1]
 tdr.text((tx, ty), "E", font=font, fill=255)
 
 # Find actual pixel bounds
-pxs = txt.load()
+pxs: Any = txt.load()
 xmin, xmax, ymin, ymax = SIZE, 0, SIZE, 0
 for x in range(SIZE):
     for y in range(SIZE):

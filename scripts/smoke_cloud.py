@@ -13,7 +13,6 @@ import os
 import sys
 import tempfile
 import time
-from dataclasses import replace
 
 TMP = tempfile.mkdtemp(prefix="ermes_cloud_")
 os.environ["ERMES_BASE_DIR"] = TMP
@@ -70,7 +69,7 @@ def main() -> int:
         base = f"/api/libraries/{library_id}"
 
         # ── Cancello 1: chiave SENZA consenso globale ──
-        no_consent = replace(config.cfg, LIBRARY_CLOUD_CONSENT=False)
+        no_consent = config.cfg.replace(LIBRARY_CLOUD_CONSENT=False)
         saved = (config.cfg, api_libraries.cfg, evidence_assistant.cfg)
         config.cfg = api_libraries.cfg = evidence_assistant.cfg = no_consent
         r = client.put(f"{base}/assistant-policy", json={"mode": "approved_openrouter", "provider_name": ""})

@@ -21,6 +21,7 @@ import json
 import pathlib
 import re
 import sys
+from typing import Any
 
 RADICE = pathlib.Path(__file__).resolve().parents[1]
 USCITA = RADICE / "THIRD_PARTY_NOTICES.md"
@@ -66,7 +67,7 @@ def licenza_python(nome: str) -> str:
         dist = md.distribution(nome)
     except md.PackageNotFoundError:
         return "NON INSTALLATA"
-    meta = dist.metadata
+    meta: Any = dist.metadata
     for chiave in ("License-Expression", "License"):
         valore = (meta.get(chiave) or "").strip()
         if valore and len(valore) < 80:

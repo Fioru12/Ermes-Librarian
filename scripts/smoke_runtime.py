@@ -19,10 +19,13 @@ os.environ["ERMES_ADMIN_PASSWORD"] = "StrongSmoke!123"
 os.environ["ERMES_API_KEY"] = ""
 os.environ["ERMES_BACKUP_ENABLED"] = "0"
 os.environ["ERMES_INGESTION_POLL_SECONDS"] = "2"
+os.environ["ERMES_LOGIN_MAX_ATTEMPTS"] = "5"
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from fastapi.testclient import TestClient  # noqa: E402
+
+from config import cfg  # noqa: E402
 
 PASS: list[str] = []
 FAIL: list[str] = []
@@ -41,17 +44,17 @@ def main() -> int:
         r = client.get("/health")
         body = r.json()
         step("health risponde", r.status_code == 200)
-        step("health espone coerenza indice", "library_index_ok" in body and body.get("library_index_ok") is True)
-        step("consistency negato ad anonimo", client.get("/health/index-consistency").status_code == 401)
+        step("health espone db biblioteca", "library_db_ok" in body and body.get("library_db_ok") is True)
+        step("consistency negato ad anonimo", client.get("/api/libraries/index-consistency").status_code == 401)
 
         r = client.post("/api/auth/login", json={"username": "owner", "password": "StrongSmoke!123"})
         step("login owner", r.status_code == 200 and r.json()["role"] == "admin")
 
-        from api.auth import _SESSIONS
+        from core.session_store import session_store
 
         step(
             "sessione persistita su SQLite",
-            len(_SESSIONS) >= 1 and (Path(TMP) / "security" / "sessions.sqlite3").exists(),
+            session_store.count() >= 1 and Path(cfg.LIBRARY_DB_PATH).exists(),
         )
 
         codes = [
@@ -101,7 +104,7 @@ def main() -> int:
         dl = client.get(f"/api/libraries/{library_id}/documents/{doc_id}/download")
         step("download originale", dl.status_code == 200 and dl.content == content)
 
-        rep = client.get("/health/index-consistency").json()
+        rep = client.get("/api/libraries/index-consistency").json()
         step(
             "report coerenza admin ok",
             rep["ok"] is True and rep["checked_documents"] >= 1,
@@ -117,8 +120,9 @@ def main() -> int:
 def restart_check() -> int:
     """Riavvio simulato: memoria vuota ma disco intatto -> sessione sopravvive."""
     from api import app as app2
-    from api.auth import _SESSIONS, load_persisted_sessions
+    from core.login_guard import login_guard
 
+    login_guard.clear()
     token = None
     with TestClient(app2) as client2:
         r = client2.post("/api/auth/login", json={"username": "owner", "password": "StrongSmoke!123"})
@@ -127,8 +131,6 @@ def restart_check() -> int:
     step("secondo avvio: login ok", token is not None)
 
     with TestClient(app2):
-        dict.clear(_SESSIONS)  # simula il processo nuovo: solo la memoria e' vuota
-        load_persisted_sessions()  # l'avvio reale ricarica dal disco...
         client3 = TestClient(app2)
         client3.cookies.set("ermes_session", token or "")
         ok = client3.get("/api/auth/me").status_code == 200
