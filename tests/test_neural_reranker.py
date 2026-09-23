@@ -95,3 +95,55 @@ def test_disabled_by_config_skips_model(monkeypatch):
     monkeypatch.setattr(reranker_mod, "_load_neural_model", lambda: None)
     results = rerank_candidates(query="pausa pranzo", candidates=[dict(c) for c in CANDIDATES])
     assert results[0]["rerank_mode"] == "lexical"
+
+
+def test_search_library_two_stage_candidate_pool_expansion(tmp_path, monkeypatch):
+    """Verifica che LibraryStore.search_library valuti un pool esteso di candidati
+    prima di tagliare i risultati al limit richiesto dall'utente."""
+    import config
+    from core.library_store import LibraryStore
+
+    test_cfg = config.cfg.replace(
+        BASE_DIR=str(tmp_path),
+        RERANKER_ENABLED=True,
+    )
+    monkeypatch.setattr("core.library_store.cfg", test_cfg)
+    store = LibraryStore(tmp_path / "test_rag.sqlite3")
+    lib = store.create_library("Policy Test", "Descrizione", "private", owner_id="owner")
+
+    # Documento A: contiene la parola 'permesso' tante volte (alto punteggio lessicale stage 1)
+    # ma senza la frase esatta
+    store.add_document(
+        library_id=lib["id"],
+        filename="regolamento_generico.txt",
+        media_type="text/plain",
+        content=b"permesso permesso permesso permesso generico",
+        storage_path=f"{lib['id']}/regolamento_generico.txt",
+        extracted_text="permesso permesso permesso permesso generico",
+        chunks=[("permesso permesso permesso permesso generico", "Sezione 1")],
+    )
+
+    # Documento B: contiene esattamente la query ricercata "permesso straordinario retribuito"
+    # ma con minor ripetizione isolata
+    doc_b = store.add_document(
+        library_id=lib["id"],
+        filename="permessi_speciali.txt",
+        media_type="text/plain",
+        content=b"La procedura per il permesso straordinario retribuito richiede il benestare del manager.",
+        storage_path=f"{lib['id']}/permessi_speciali.txt",
+        extracted_text="La procedura per il permesso straordinario retribuito richiede il benestare del manager.",
+        chunks=[("La procedura per il permesso straordinario retribuito richiede il benestare del manager.", "Sezione 2")],
+    )
+
+    # Con limit=1, se il candidate pool tagliasse a limit=1 prima del reranker,
+    # solo il documento con token ripetuti passerebbe.
+    # Con il candidate pool allargato a Stage 2, doc_b con frase esatta viene promosso al top!
+    results, profile = store.search_with_profile(
+        library_id=lib["id"],
+        query="permesso straordinario retribuito",
+        limit=1,
+    )
+
+    assert len(results) == 1
+    assert results[0]["document_id"] == doc_b["id"]
+    assert "straordinario retribuito" in results[0]["excerpt"]

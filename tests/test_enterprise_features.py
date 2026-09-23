@@ -340,6 +340,11 @@ def test_web_scraper_html_to_markdown():
           <li>Regola 1</li>
           <li>Regola 2</li>
         </ul>
+        <table>
+          <tr><th>Ruolo</th><th>Ufficio</th></tr>
+          <tr><td>DPO</td><td>Roma</td></tr>
+          <tr><td>IT Lead</td><td>Milano</td></tr>
+        </table>
       </body>
     </html>
     """
@@ -347,6 +352,10 @@ def test_web_scraper_html_to_markdown():
     assert "# Policy Aziendale" in md
     assert "Regola 1" in md
     assert "Regola 2" in md
+    assert "| Ruolo | Ufficio |" in md
+    assert "| --- | --- |" in md
+    assert "| DPO | Roma |" in md
+    assert "| IT Lead | Milano |" in md
 
     connector = WebScraperConnector({"base_url": ""})
     ok, msg = connector.test_connection()

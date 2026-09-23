@@ -1566,6 +1566,12 @@ class LibraryStore:
                     )
                 )
         ranked.sort(key=lambda item: (-item[0], item[1]["ordinal"]))
+        target_limit = max(1, min(limit, 50))
+        candidate_pool_size = (
+            max(target_limit * 3, 20)
+            if getattr(cfg, "RERANKER_ENABLED", True)
+            else target_limit
+        )
         results = [
             {
                 **d,
@@ -1579,12 +1585,14 @@ class LibraryStore:
                     "locator": d["source_locator"] or f"Passaggio {d['ordinal'] + 1}",
                 },
             }
-            for s, d in ranked[: max(1, min(limit, 50))]
+            for s, d in ranked[:candidate_pool_size]
         ]
         if getattr(cfg, "RERANKER_ENABLED", True) and results:
             from core.reranker import rerank_candidates
 
-            results = rerank_candidates(query=normalized, candidates=results, limit=max(1, min(limit, 50)))
+            results = rerank_candidates(query=normalized, candidates=results, limit=target_limit)
+        else:
+            results = results[:target_limit]
         profile = {
             "mode": "hybrid_local" if semantic_used else "keyword",
             "semantic_indexed_chunks": indexed_count,

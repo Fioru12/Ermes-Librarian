@@ -67,6 +67,8 @@ def generate_hypothetical_document(query: str, mode: str | None = None) -> str:
             if content:
                 return content
         elif mode == "approved_openrouter" and cfg.LIBRARY_CLOUD_CONSENT and cfg.OPENROUTER_API_KEY:
+            from core.evidence_assistant import openrouter_model_id
+
             response = httpx.post(
                 f"{cfg.OPENROUTER_BASE_URL.rstrip('/')}/chat/completions",
                 headers={
@@ -74,7 +76,7 @@ def generate_hypothetical_document(query: str, mode: str | None = None) -> str:
                     "Content-Type": "application/json",
                 },
                 json={
-                    "model": cfg.DEFAULT_MODEL_ID,
+                    "model": openrouter_model_id(),
                     "messages": [
                         {"role": "system", "content": _HYDE_SYSTEM_PROMPT},
                         {"role": "user", "content": cleaned_query},
