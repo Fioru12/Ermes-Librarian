@@ -19,6 +19,7 @@ import uuid
 from contextlib import contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 from config import cfg
 from core.database_backend import INTEGRITY_ERRORS, Backend, SqliteBackend, create_backend
@@ -464,7 +465,7 @@ class LibraryStore:
         return datetime.now(UTC).isoformat()
 
     @staticmethod
-    def _row(row: sqlite3.Row) -> dict:
+    def _row(row: sqlite3.Row | dict | Any) -> dict:
         return dict(row)
 
     @staticmethod
@@ -939,9 +940,26 @@ class LibraryStore:
     def claim_next_ingestion_job(self, worker_id: str = "") -> dict | None:
         """Claim the oldest queued ingestion job atomically.
 
-        Designed for standalone decoupled workers to safely pull jobs
-        without collisions in multi-worker environments.
+        On PostgreSQL (Phase 3), uses `SELECT ... FOR UPDATE SKIP LOCKED` inside a single
+        atomic statement to avoid worker collision across distributed processes.
+        On SQLite, falls back to two-step select + atomic update under process lock.
         """
+        if self._is_postgres:
+            sql = """
+                UPDATE ingestion_jobs
+                SET status = 'processing'
+                WHERE id = (
+                    SELECT id FROM ingestion_jobs
+                    WHERE status = 'queued'
+                    ORDER BY created_at ASC
+                    FOR UPDATE SKIP LOCKED
+                    LIMIT 1
+                )
+                RETURNING *
+            """
+            row = self._exec_returning(sql)
+            return self._row(row) if row else None
+
         with self._lock, self._connection() as connection:
             row = connection.execute(
                 "SELECT id FROM ingestion_jobs WHERE status = 'queued' ORDER BY created_at ASC LIMIT 1"
