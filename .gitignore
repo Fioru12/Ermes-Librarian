@@ -8,11 +8,15 @@ logs/
 backups/
 security/
 *.bak
+*.db
+*.sqlite
+*.sqlite3
+connector_schedules.db
 
 # ── Documenti utente (dati aziendali, non nel repo) ─────────
 documenti/
 storage/
-data/ermes_knowledge.sqlite3
+data/
 
 # ── Ambiente virtuale Python ────────────────────────────────
 venv/
