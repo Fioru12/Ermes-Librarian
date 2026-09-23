@@ -1,7 +1,13 @@
 # Piano di Migrazione a PostgreSQL
 
-> Stato: **GROUNDWORK COMPLETO — migrazione da eseguire** (vedi Fasi).
-> Ultimo aggiornamento: 2026-09-06
+> Stato: **Fasi 0-4 fatte e verificate in CI contro un Postgres 16 reale
+> (`tests/test_postgres_parity.py`, 11 test); Fase 5 (script di migrazione
+> dati) non iniziata.** Questo file è rimasto fermo al 6 settembre 2026
+> mentre il lavoro procedeva altrove, ed è stato letto — comprensibilmente,
+> visto lo stato dichiarato — come prova che la migrazione non fosse ancora
+> partita. Non fidarti di questa intestazione più della CI: `git log --
+> core/postgres_backend.py core/database_backend.py` mostra il lavoro reale.
+> Ultimo aggiornamento: 2026-09-23
 
 ## Perché un piano e non un refactoring diretto
 
@@ -30,7 +36,7 @@ su SQLite. La migrazione va quindi fatta per fasi verificabili.
 | `document_chunks` | `embedding_json` TEXT (JSON di float). In PG: `JSONB` ora, **pgvector** in fase 2 |
 | `document_versions` | chiave composta (document_id, version) |
 | `document_acls` | chiave composta, usato dal filtro per-documento |
-| `ingestion_jobs` | `claim_ingestion_job` usa UPDATE+SELECT: in PG usare `FOR UPDATE SKIP LOCKED` (oggi il file-lock rende impossibili le race; in PG multi-processo servono) |
+| `ingestion_jobs` | `claim_ingestion_job` usa UPDATE+SELECT sotto un `threading.RLock` per-backend (`PostgresBackend._serial`, non `FOR UPDATE SKIP LOCKED`): corretto — un solo processo alla volta tocca la connessione — ma serializza il claim invece di lasciarlo concorrente. A un solo worker (`ERMES_INGESTION_WORKERS` di default) non si nota; con più worker/processi diventa un collo di bottiglia, non un bug. `SKIP LOCKED` resta la Fase 3, non iniziata. |
 | `import_sources` | UNIQUE(library_id, path) |
 | `chat_integrations` | UNIQUE(platform, external_channel_id) |
 
@@ -45,18 +51,22 @@ La ricerca ibrida usa `MATCH` FTS5 con tokenizzazione custom
 - **Verifica obbligatoria**: parità dei risultati con la suite
   `evaluation/` (RETRIEVAL_EVALUATION.md) prima e dopo.
 
-### 2. Similarità vettoriale (rischio MEDIO)
-Oggi i chunk portano `embedding_json` e la similarità coseno è calcolata in
-Python dopo aver caricato le righe. Fase 1 PG: `JSONB` + calcolo in Python
-(comportamento identico). Fase 2 (opzionale): estensione `pgvector` con
-indice HNSW — guadagno reale solo oltre ~100k chunk.
+### 2. Similarità vettoriale (rischio MEDIO) — FATTO
+`embedding_json` è `JSONB`; il calcolo in Python resta il percorso di
+default (comportamento identico a SQLite). L'estensione `pgvector` con
+indice HNSW è implementata e opzionale (`core/postgres_backend.py::
+enable_pgvector`) — va abilitata esplicitamente, il guadagno è reale solo
+oltre ~100k chunk.
 
-### 3. Concorrenza (rischio MEDIO)
-- `threading.Lock` protegge solo il processo: con PG multi-worker serve
-  transazionalità reale (già presente via context manager) e
-  `SELECT ... FOR UPDATE SKIP LOCKED` per i job di ingestion.
+### 3. Concorrenza (rischio MEDIO) — parzialmente fatto
+- psycopg non è thread-safe per connessione: `PostgresBackend` tiene un
+  `threading.RLock` (`_serial`) che serializza *ogni* accesso del processo
+  alla connessione — scrittura corretta, ma non concorrenza reale.
+  `SELECT ... FOR UPDATE SKIP LOCKED` per i job di ingestion (Fase 3) resta
+  da fare: oggi il claim funziona ma non scala oltre un worker per processo.
 - `connection.execute("PRAGMA ...")` e `executescript` non esistono in
-  psycopg: lo schema andrà eseguito statement-per-statement.
+  psycopg: lo schema viene eseguito statement-per-statement
+  (`ensure_schema`), fatto.
 
 ### 4. Tipi e valori (rischio BASSO ma capillare)
 - `sqlite3.Row` → `psycopg.rows.dict_row`
@@ -73,19 +83,31 @@ business NON deve duplicarsi.
 ## Fasi
 
 - **Fase 0 (fatta)**: config `ERMES_DATABASE_URL`, extra `postgres`, questo documento.
-- **Fase 1**: adapter connessione + DDL PG + parity test sullo schema
-  (stesse tabelle, stessi vincoli). Nessun cambio di comportamento su SQLite.
-- **Fase 2**: porting dei metodi CRUD semplici (libraries, members, ACL,
-  import_sources, chat_integrations) con test doppio-backend parametrici.
-- **Fase 3**: ingestion_jobs con `SKIP LOCKED` + versioni documenti.
-- **Fase 4**: ricerca ibrida su tsvector + benchmark con `evaluation/`
-  (gate: nessuna regressione oltre soglia concordata su nDCG/recall).
-- **Fase 5**: script di migrazione dati SQLite→PG (`scripts/migrate_to_postgres.py`)
-  con verifica conteggi e hash, e flag feature per il cutover.
+- **Fase 1 (fatta)**: adapter connessione (`PostgresConnectionAdapter`,
+  traduzione `?`→`%s`) + DDL PG (`ensure_schema`) + parity test sullo schema.
+  Nessun cambio di comportamento su SQLite. Verificato in CI contro
+  `postgres:16-alpine` reale (job `test`, non un mock).
+- **Fase 2 (fatta)**: `LibraryStore` gira identico su entrambi i backend —
+  libraries, members, ACL, import_sources, chat_integrations, versioni
+  documento — coperto da `tests/test_postgres_parity.py` (11 test: CRUD,
+  cascade delete, vincoli CHECK, integrity error non-500, roundtrip JSONB).
+- **Fase 3 (non iniziata)**: `ingestion_jobs` con `SELECT ... FOR UPDATE
+  SKIP LOCKED`. Oggi il claim è corretto ma serializzato da un lock per
+  processo (vedi sezione Concorrenza) — funziona, non scala oltre un
+  worker.
+- **Fase 4 (fatta)**: ricerca ibrida su `tsvector` + GIN (`search_tsv`,
+  tokenizzazione `'simple'` come da piano) e similarità vettoriale via
+  `pgvector`/HNSW opzionale. Non è stato eseguito un benchmark A/B
+  SQLite-vs-PG con `evaluation/`: la parità è verificata a livello di
+  schema e query, non di nDCG/recall misurato sui due backend.
+- **Fase 5 (non iniziata)**: script di migrazione dati SQLite→PG
+  (`scripts/migrate_to_postgres.py` non esiste ancora) con verifica
+  conteggi e hash, e flag feature per il cutover. Oggi passare a Postgres
+  significa ripartire da un database vuoto, non migrare dati esistenti.
 
 ## Criterio di accettazione
 
-1. Tutti i 275+ test passano su SQLite (default, invariato).
-2. Suite parametrica identica passa su PG (docker: `postgres:16-alpine`).
-3. Benchmark retrieval invariato (evaluation/).
-4. Migrazione dati round-trip verificata su un archivio reale di prova.
+1. Tutti i test passano su SQLite (default, invariato) — vero oggi.
+2. Suite parametrica identica passa su PG (docker: `postgres:16-alpine`) — vero oggi, in CI a ogni push.
+3. Benchmark retrieval invariato (evaluation/) — non ancora eseguito su PG.
+4. Migrazione dati round-trip verificata su un archivio reale di prova — non ancora possibile, manca lo script (Fase 5).
