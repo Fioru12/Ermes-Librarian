@@ -69,6 +69,13 @@ def migrate_table(
     clean_target: bool = False,
 ) -> tuple[int, int]:
     """Migra una singola tabella da SQLite a PostgreSQL a blocchi."""
+    # table_name interpolato piu' sotto arriva sempre da TABLES_ORDER (lista
+    # chiusa, mai da un argomento CLI o da un valore letto dai database): il
+    # controllo qui non e' contro un attacco possibile in questo script, ma
+    # impedisce che diventi possibile se in futuro qualcuno lo richiama con
+    # un nome arbitrario. bandit non puo' saperlo dal solo tipo `str`.
+    if table_name not in TABLES_ORDER:
+        raise ValueError(f"Tabella non riconosciuta: {table_name!r}")
     sqlite_cur = sqlite_conn.cursor()
 
     # Verifica se la tabella esiste in SQLite
@@ -91,15 +98,15 @@ def migrate_table(
 
     if clean_target:
         with pg_conn.cursor() as pg_cur:
-            pg_cur.execute(f"TRUNCATE TABLE {table_name} CASCADE")
+            pg_cur.execute(f"TRUNCATE TABLE {table_name} CASCADE")  # nosec B608: table_name validato sopra
         pg_conn.commit()
         logger.info("Tabella target '%s' ripulita con TRUNCATE.", table_name)
 
     cols_str = ", ".join(common_cols)
     placeholders = ", ".join(["%s"] * len(common_cols))
-    insert_sql = f"INSERT INTO {table_name} ({cols_str}) VALUES ({placeholders}) ON CONFLICT DO NOTHING"
+    insert_sql = f"INSERT INTO {table_name} ({cols_str}) VALUES ({placeholders}) ON CONFLICT DO NOTHING"  # nosec B608: table_name validato sopra, cols_str da _get_sqlite_columns/_get_pg_columns
 
-    sqlite_cur.execute(f"SELECT {cols_str} FROM {table_name}")
+    sqlite_cur.execute(f"SELECT {cols_str} FROM {table_name}")  # nosec B608: table_name validato sopra
 
     total_migrated = 0
     total_skipped = 0
@@ -152,11 +159,11 @@ def verify_migration(
         if not sqlite_cur.fetchone():
             continue
 
-        sqlite_cur.execute(f"SELECT COUNT(*) FROM {table}")
+        sqlite_cur.execute(f"SELECT COUNT(*) FROM {table}")  # nosec B608: table viene da TABLES_ORDER, lista chiusa
         sqlite_count = int(sqlite_cur.fetchone()[0])
 
         with pg_conn.cursor() as pg_cur:
-            pg_cur.execute(f"SELECT COUNT(*) as count FROM {table}")
+            pg_cur.execute(f"SELECT COUNT(*) as count FROM {table}")  # nosec B608: table viene da TABLES_ORDER, lista chiusa
             pg_row = pg_cur.fetchone()
             pg_count = int(pg_row["count"])
 
