@@ -96,11 +96,16 @@ class SharedRateLimiter(SharedTableStore):
 
     def reset(self, identifier: str | None = None) -> None:
         backend = self._connection()
-        if identifier:
-            backend.execute_write("DELETE FROM rate_events WHERE identifier = ?", (identifier,))
-        else:
-            backend.execute_write("DELETE FROM rate_events")
-        backend.commit()
+        try:
+            if identifier:
+                backend.execute_write("DELETE FROM rate_events WHERE identifier = ?", (identifier,))
+            else:
+                backend.execute_write("DELETE FROM rate_events")
+            backend.commit()
+        except Exception:
+            backend.execute_script(self._SCHEMA)
+            for statement in self._INDEXES:
+                backend.execute_script(statement)
 
     def get_upload_status(self, identifier: str) -> dict:
         quanti, totale_mb = self._conta(identifier, "upload", _FINESTRA_UPLOAD)

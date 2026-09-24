@@ -23,6 +23,8 @@ os.environ["OLLAMA_HOST"] = "http://127.0.0.1:11434"
 os.makedirs(os.path.join(BASE_TEMP, "logs"), exist_ok=True)
 os.makedirs(os.path.join(BASE_TEMP, "security"), exist_ok=True)
 os.makedirs(os.path.join(BASE_TEMP, "chroma_db"), exist_ok=True)
+os.makedirs(os.path.join(BASE_TEMP, "data"), exist_ok=True)
+os.makedirs(os.path.join(BASE_TEMP, "storage"), exist_ok=True)
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
@@ -51,6 +53,7 @@ import config as _config_module
 # first time this fix was attempted).
 _overrides = {
     "BASE_DIR": BASE_TEMP,
+    "LIBRARY_DB_PATH": os.path.join(BASE_TEMP, "data", "ermes_knowledge.sqlite3"),
     "API_KEY": "e2e-super-admin-key-12345",
     "ADMIN_PASSWORD": "test-admin-pass-123!",
     "ADMIN_USERNAME": "admin",
@@ -177,3 +180,14 @@ def test_e2e_v1_versioned_routes(client):
 
     resp = client.get("/v1/api/users")
     assert resp.status_code in (401, 403), "il prefisso v1 non deve aggirare l'autenticazione"
+
+
+def test_e2e_security_headers(client):
+    """Verifica che ogni risposta HTTP includa gli header di sicurezza standard OWASP."""
+    resp = client.get("/health")
+    assert resp.status_code == 200
+    assert resp.headers.get("X-Content-Type-Options") == "nosniff"
+    assert resp.headers.get("X-Frame-Options") == "DENY"
+    assert resp.headers.get("X-XSS-Protection") == "1; mode=block"
+    assert resp.headers.get("Referrer-Policy") == "strict-origin-when-cross-origin"
+    assert "X-Request-ID" in resp.headers
