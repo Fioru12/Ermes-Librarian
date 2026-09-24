@@ -21,7 +21,7 @@ RUN --mount=type=secret,id=corporate_ca,target=/run/secrets/corporate_ca,require
     if [ -s /run/secrets/corporate_ca ]; then \
         cp /run/secrets/corporate_ca /usr/local/share/ca-certificates/corporate-ca.crt && update-ca-certificates; \
     fi && \
-    pip install --no-cache-dir --user -r requirements.txt
+    pip install --no-cache-dir --prefix=/install -r requirements.txt
 
 # Build frontend
 COPY frontend/ ./frontend/
@@ -43,25 +43,30 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     tesseract-ocr-eng \
     && rm -rf /var/lib/apt/lists/*
 
-COPY --from=builder /root/.local /root/.local
-ENV PATH=/root/.local/bin:$PATH
+# Copy installed python dependencies to system location so any non-root user can access them
+COPY --from=builder /install /usr/local
 
-# Copy application code.
-# Copy the config package explicitly rather than globbing *.py: a glob silently
-# ships whatever happens to sit in the repository root into the production
-# image. data/ is deliberately NOT copied — it holds the runtime SQLite
-# database, is untracked, and is created empty below; copying it broke
-# clean-clone builds.
+# Copy application code, scripts, examples and frontend dist
 COPY config/ ./config/
 COPY api/ ./api/
 COPY core/ ./core/
 COPY evaluation/ ./evaluation/
 COPY docs/ ./docs/
+COPY scripts/ ./scripts/
+COPY examples/ ./examples/
 COPY --from=builder /app/frontend/dist ./frontend/dist/
 
-# Create runtime directories
-RUN mkdir -p documenti chroma_db logs security backups data storage/libraries && \
+# Creazione directory applicative necessarie per i volumi
+RUN mkdir -p documenti chroma_db logs security backups data storage/libraries
+
+# Creazione utente non-root conforme alle best practice di security enterprise
+# (UID 10001 corrisponde esattamente al podSecurityContext definito nei manifesti Helm)
+RUN groupadd -g 10001 appuser && \
+    useradd -u 10001 -g 10001 -m -s /bin/sh -d /app appuser && \
+    chown -R appuser:appuser /app && \
     chmod 755 documenti chroma_db logs security backups data storage storage/libraries
+
+USER 10001
 
 ENV ERMES_HOST=0.0.0.0
 ENV ERMES_PORT=8502
@@ -69,11 +74,6 @@ ENV PYTHONUNBUFFERED=1
 
 EXPOSE 8502
 
-# La porta deve seguire ERMES_PORT, non essere fissata: con ERMES_PORT=8504
-# l'applicazione ascoltava su 8504 mentre l'healthcheck interrogava 8502, e il
-# container restava unhealthy per sempre. Un container unhealthy viene ucciso
-# dagli orchestratori e blocca chi dipende da lui via `depends_on: healthy`.
-# La forma shell di CMD espande la variabile a runtime.
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD curl -f "http://localhost:${ERMES_PORT:-8502}/health" || exit 1
 

@@ -69,6 +69,19 @@ autoscaling:
   targetCPUUtilizationPercentage: 75
   targetMemoryUtilizationPercentage: 80
 
+# Background Ingestion Worker (Decoupled ingestion pods)
+worker:
+  enabled: false
+  replicaCount: 1
+  concurrency: 4
+  resources:
+    limits:
+      cpu: 2000m
+      memory: 2048Mi
+    requests:
+      cpu: 500m
+      memory: 512Mi
+
 # Enterprise Configuration
 config:
   logLevel: "INFO"
