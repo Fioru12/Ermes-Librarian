@@ -187,6 +187,18 @@ jobs:
           severity: HIGH,CRITICAL
           ignore-unfixed: true
           exit-code: "1"
+      # Il container gira come utente non-root (UID 10001, Dockerfile) da
+      # quando e' stato introdotto per le best practice di sicurezza
+      # enterprise. docker-compose.yml monta queste cartelle dall'host: se
+      # non esistono ancora, Docker le crea di proprieta' di root, e un
+      # processo UID 10001 non puo' scriverci — l'app resta "degraded"
+      # per sempre (fallita la creazione dell'admin di default) e /health
+      # non torna mai healthy. Le stesse cartelle, stesso motivo, servono
+      # su un host Linux reale: non solo qui.
+      - name: Prepare bind-mounted directories for the non-root container user
+        run: |
+          mkdir -p documenti chroma_db data storage/libraries logs security backups
+          sudo chown -R 10001:10001 documenti chroma_db data storage logs security backups
       - name: Start app (evidence_only, no model)
         # --no-deps: il default non usa alcun modello, e scaricare Ollama
         # solo per soddisfare depends_on renderebbe il job lento e fragile.
