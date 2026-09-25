@@ -778,6 +778,11 @@ class LibraryStore:
                 "INSERT INTO document_acls (document_id, username, created_at) VALUES (?, ?, ?)",
                 [(document_id, username, now) for username in cleaned],
             )
+        # La cache si invalida da sola solo quando cambia il numero di
+        # documenti, e una restrizione non lo cambia: senza questa riga chi
+        # era appena stato escluso riceveva gli estratti riservati dalla
+        # propria cache fino alla scadenza del TTL.
+        get_search_cache().invalidate(library_id)
         return {"document_id": document_id, "usernames": cleaned}
 
     def list_documents(self, library_id: str, actor: dict | None = None) -> list[dict]:
