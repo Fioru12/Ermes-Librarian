@@ -345,12 +345,14 @@ This workspace intentionally contains development history and local artifacts. B
 
 ## Documentation
 
-Eleven documents, each written for a reader with a job to do. Start with the first three.
+Thirteen documents, each written for a reader with a job to do. Start with the first three.
 
 - [One-pager](docs/ONE_PAGER.md) — the short version, for someone evaluating this project in two minutes
 - [Runbook](docs/RUNBOOK.md) — install, back up, upgrade and diagnose, written for whoever operates it
 - [Threat Model](docs/THREAT_MODEL.md) — assets, trust boundaries, what is defended and what is not, with automated CI verification
 - [Retrieval Evaluation](docs/RETRIEVAL_EVALUATION.md) — golden set, abstention analysis, the three fixes that were measured and rejected
+- [Architecture decisions](docs/adr/) — why evidence-first with a lexical default, why permissions filter inside retrieval, why SQLite and no RAG framework
+- [Integration Guide](docs/INTEGRATION_GUIDE.md) (IT) — REST, SSE, n8n/Zapier, Slack/Teams/Telegram, MCP, SCIM, with [client examples](examples/integrations/)
 - [Demo Guide](docs/DEMO_GUIDE.md) — the walkthrough behind the GIF above, step by step
 - [Changelog](CHANGELOG.md) — a readable log of this work, not a raw commit list
 - [Descrizione del progetto](docs/DESCRIZIONE_PROGETTO.md) (IT) — architecture, RAG flow, security and enterprise modules
@@ -360,5 +362,3 @@ Eleven documents, each written for a reader with a job to do. Start with the fir
 - [Release Plan](docs/GITHUB_RELEASE_PLAN.md) — the publishing checklist this repository follows
 
 Course material (thesis, slides, presentation assets) and superseded internal plans were removed from the public tree on 18 September 2026; Git history keeps them.
-- [Team Audit](docs/AUDIT_2026-08-19.md) & [Code Review](docs/CODE_REVIEW.md)
-- [Demo Guide](docs/DEMO_GUIDE.md) & [GitHub Release Plan](docs/GITHUB_RELEASE_PLAN.md)
