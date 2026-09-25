@@ -178,8 +178,23 @@ I connettori stanno in `core/connectors/` ed estendono `BaseConnector`
 `fetch_documents()`, che restituisce oggetti `RemoteDocument`; `fetch_delta()`
 è facoltativo e di default ripiega sulla scansione completa.
 
-Non esiste un registro a plugin: un nuovo tipo va aggiunto a mano a
-`_build_connector()` in `api/connectors.py`. Un punto di partenza è
+Un connettore aziendale non richiede di modificare Ermes: si scrive in un
+modulo Python importabile che chiama
+`core.connectors.registry.register_connector("nome_tipo", Classe)` all'import,
+e si elenca il modulo in `ERMES_CONNECTOR_PLUGINS` (più moduli separati da
+virgola). `GET /api/connectors/types` (solo admin) mostra i tipi disponibili,
+integrati e plugin.
+
+Due regole volute:
+
+- si caricano **solo** i moduli elencati, non tutto ciò che è installato:
+  importare un modulo ne esegue il codice con i permessi di Ermes;
+- un plugin non può sostituire un tipo integrato (`local_folder` ha controlli
+  sui percorsi che un sostituto potrebbe non avere), e un plugin che non si
+  importa o non registra nulla fa rispondere `503` alle rotte dei connettori
+  invece di sparire in silenzio.
+
+Punto di partenza:
 [`examples/integrations/custom_connector_template.py`](../examples/integrations/custom_connector_template.py).
 
 ## 9. SCIM 2.0

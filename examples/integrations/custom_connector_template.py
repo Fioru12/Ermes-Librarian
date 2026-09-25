@@ -4,9 +4,12 @@ Utilizza questo file come punto di partenza per connettere Ermes a qualsiasi sor
 dati aziendale proprietaria: Database SQL (PostgreSQL, Oracle, SQL Server), ERP (SAP, Dynamics),
 CRM (Salesforce, HubSpot) o API REST interne.
 
-Per renderlo utilizzabile dalle API: copiarlo in core/connectors/ e aggiungere
-il suo tipo a _build_connector() in api/connectors.py. Non esiste un registro
-automatico dei connettori.
+Per renderlo utilizzabile dalle API senza modificare Ermes: metterlo in un
+modulo importabile (es. azienda_connettori/erp.py) ed elencarlo in
+ERMES_CONNECTOR_PLUGINS=azienda_connettori.erp. La chiamata a
+register_connector() in fondo al file lo registra all'import; da quel momento
+il tipo compare in GET /api/connectors/types e si usa con /test, /sync e
+/sync/delta come quelli integrati.
 """
 
 from __future__ import annotations
@@ -22,6 +25,7 @@ if str(_ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(_ROOT_DIR))
 
 from core.connectors.base import BaseConnector, DeltaSyncResult, RemoteDocument  # noqa: E402
+from core.connectors.registry import register_connector  # noqa: E402
 
 
 class CustomEnterpriseConnector(BaseConnector):
@@ -111,6 +115,9 @@ class CustomEnterpriseConnector(BaseConnector):
         # Se il sistema esterno supporta una sync incrementale (es. updated_at > delta_token),
         # è possibile restituire solo il delta, altrimenti fallback automatico su fetch_documents.
         return super().fetch_delta(delta_token=delta_token)
+
+
+register_connector(CustomEnterpriseConnector.connector_type, CustomEnterpriseConnector)
 
 
 # Test standalone:

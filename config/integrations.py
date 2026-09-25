@@ -94,6 +94,14 @@ class IntegrationsConfig:
     TELEGRAM_WEBHOOK_SECRET: str = field(default_factory=lambda: os.environ.get("ERMES_TELEGRAM_WEBHOOK_SECRET", ""))
 
     # ---------------------------------------------------------
+    # CONNETTORI ESTERNI
+    # ---------------------------------------------------------
+    # Moduli Python separati da virgola, importati alla prima richiesta ai
+    # connettori; ognuno chiama core.connectors.registry.register_connector().
+    # Solo quelli elencati: vedi il docstring di core/connectors/registry.py.
+    CONNECTOR_PLUGINS: str = field(default_factory=lambda: os.environ.get("ERMES_CONNECTOR_PLUGINS", ""))
+
+    # ---------------------------------------------------------
     # WEBHOOK GATEWAY
     # ---------------------------------------------------------
     # Dove tenere i contatori del limitatore di frequenza. "shared" li mette
