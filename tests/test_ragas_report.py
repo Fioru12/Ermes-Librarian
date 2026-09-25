@@ -35,11 +35,11 @@ def test_full_report_on_the_golden_set_matches_the_published_facts(monkeypatch):
     monkeypatch.setenv("OLLAMA_HOST", "http://127.0.0.1:1")
     gold = json.loads(rr.GOLD_SET.read_text(encoding="utf-8"))
     report = rr.evaluate(gold, k=3)
-    assert report["queries"] == len(gold) == 27
+    assert report["queries"] == len(gold) == 52
     # Gli stessi fatti di README "Measured, not claimed", shipped default.
     assert report["context_recall_direct"] == 1.0
-    assert report["context_recall_paraphrase"] == 0.5
-    assert report["abstention_precision"] == 1.0
+    assert report["context_recall_paraphrase"] == 0.45
+    assert report["abstention_precision"] == 0.375
     assert 0 < report["context_precision"] <= report["context_recall"]
     assert report["not_measured"]["faithfulness"]
     assert "hybrid_local" not in report["retrieval_modes"]
