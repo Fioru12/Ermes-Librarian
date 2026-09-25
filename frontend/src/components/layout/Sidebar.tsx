@@ -1,4 +1,4 @@
-import { Sun, Moon, MessageSquare, FileText, Activity, Settings, Users, Shield, RefreshCw, Sparkles, BarChart2, HardDrive, LogOut } from 'lucide-react'
+import { Sun, Moon, MessageSquare, BookOpen, FileText, Activity, Settings, Users, Shield, RefreshCw, Sparkles, BarChart2, HardDrive, LogOut } from 'lucide-react'
 import { useTheme } from '../../hooks/useTheme'
 import type { TabId } from '../../types'
 
@@ -14,6 +14,7 @@ interface SidebarProps {
 
 const navItems: { tab: TabId; icon: typeof MessageSquare; label: string; admin?: boolean }[] = [
   { tab: 'chat', icon: MessageSquare, label: 'Assistente' },
+  { tab: 'studio', icon: BookOpen, label: 'Studio' },
   { tab: 'docs', icon: FileText, label: 'Biblioteche e documenti' },
   { tab: 'connectors', icon: HardDrive, label: 'Connettori & Automazioni' },
   { tab: 'health', icon: Activity, label: 'Stato Sistema' },

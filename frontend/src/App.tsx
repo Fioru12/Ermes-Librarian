@@ -10,6 +10,7 @@ const AuditLogs = lazy(() => import('./components/Admin/AuditLogs'))
 const AnalyticsDashboard = lazy(() => import('./components/Admin/AnalyticsDashboard'))
 const DocumentsTab = lazy(() => import('./components/documents/DocumentsTab'))
 const HealthTab = lazy(() => import('./components/health/HealthTab'))
+const StudioTab = lazy(() => import('./components/studio/StudioTab'))
 const SettingsTab = lazy(() => import('./components/settings/SettingsTab'))
 const ConnectorsTab = lazy(() => import('./components/connectors/ConnectorsTab'))
 const OnboardingWizard = lazy(() => import('./components/OnboardingWizard/OnboardingWizard'))
@@ -354,7 +355,7 @@ function AppInner() {
   }
 
   const tabHeaders: Record<TabId, string> = {
-    chat: 'Assistente documentale', docs: 'Biblioteche e documenti', connectors: 'Connettori & Automazioni',
+    chat: 'Assistente documentale', studio: 'Studio della biblioteca', docs: 'Biblioteche e documenti', connectors: 'Connettori & Automazioni',
     health: 'Stato sistema', settings: 'Impostazioni',
     'admin-analytics': 'Analytics & Knowledge Gaps',
     'admin-users': 'Accessi e chiavi API', 'admin-audit': 'Audit log',
@@ -424,6 +425,14 @@ function AppInner() {
             onSelectConversation={selectConversation}
             onNewConversation={newConversation}
             onDeleteConversation={deleteConversation}
+          />
+        )}
+        {activeTab === 'studio' && (
+          <StudioTab
+            libraries={libraries}
+            selectedLibraryId={selectedLibraryId}
+            onSelectLibrary={setSelectedLibraryId}
+            onAsk={question => { setActiveTab('chat'); void sendQuestion(question) }}
           />
         )}
         {activeTab === 'docs' && <DocumentsTab showNotif={showNotif} />}
