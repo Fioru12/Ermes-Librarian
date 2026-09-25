@@ -19,6 +19,7 @@
   <a href="#architecture"><b>Architecture</b></a> •
   <a href="#measured-not-claimed"><b>Benchmarks</b></a> •
   <a href="#current-capabilities"><b>Capabilities</b></a> •
+  <a href="docs/INTEGRATION_GUIDE.md"><b>Integrazioni & API</b></a> •
   <a href="#documentation"><b>Documentation</b></a> •
   <a href="docs/DESCRIZIONE_PROGETTO.md"><b>Descrizione Completa (IT)</b></a>
 </p>
