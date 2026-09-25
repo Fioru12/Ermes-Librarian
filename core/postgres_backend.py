@@ -98,6 +98,19 @@ CREATE TABLE IF NOT EXISTS document_versions (
 CREATE INDEX IF NOT EXISTS versions_by_document
     ON document_versions(document_id, version DESC);
 
+CREATE TABLE IF NOT EXISTS library_notes (
+    id TEXT PRIMARY KEY,
+    library_id TEXT NOT NULL REFERENCES libraries(id) ON DELETE CASCADE,
+    owner TEXT NOT NULL,
+    title TEXT NOT NULL,
+    body TEXT NOT NULL,
+    sources_json TEXT NOT NULL DEFAULT '[]',
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS library_notes_by_owner
+    ON library_notes(library_id, owner);
+
 CREATE TABLE IF NOT EXISTS document_acls (
     document_id TEXT NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
     username TEXT NOT NULL,
