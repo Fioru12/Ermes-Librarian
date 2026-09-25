@@ -1683,6 +1683,42 @@ def summarize_library_document(
     }
 
 
+@router.post("/{library_id}/studio/{kind}", dependencies=[Depends(rate_limited)])
+def generate_library_studio(
+    library_id: str,
+    kind: Literal["briefing", "faq", "study_guide", "questions"],
+    _auth: dict = Depends(_verify_api_key),
+    store: LibraryStore = Depends(get_library_store),
+):
+    """Briefing, FAQ, guida di studio o domande suggerite dalla biblioteca.
+
+    Ogni punto cita i passaggi da cui viene; i punti senza citazione valida
+    sono scartati (vedi core/library_studio.py). Usa il fornitore scelto per
+    la biblioteca e nessun altro; in `evidence_only` risponde `unavailable`.
+    """
+    from core.library_studio import genera_studio
+
+    try:
+        library = store.get_library(library_id, _auth)
+    except (LibraryNotFoundError, LibraryAccessError) as error:
+        raise HTTPException(status_code=404, detail="Biblioteca non trovata") from error
+    result = genera_studio(store, library, kind, _auth)
+    append_audit(
+        cfg.AUDIT_FILE,
+        "library_studio",
+        _auth["username"],
+        {
+            "library_id": library_id,
+            "kind": kind,
+            "status": result["status"],
+            "assistant_mode": library["assistant_mode"],
+            "items": len(result["items"]),
+            "discarded": result["discarded"],
+        },
+    )
+    return {"library": {"id": library["id"], "name": library["name"]}, **result}
+
+
 @router.get("/{library_id}/documents/{document_id}/acl")
 def get_document_acl(
     library_id: str,
