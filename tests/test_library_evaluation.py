@@ -34,4 +34,6 @@ def test_demo_gold_set_meets_retrieval_quality_bar():
     # degrading retrieval. Reproduce the comparison with
     # `python evaluation/run_library_eval.py --compare`.
     assert (report["recall_at_3_paraphrase"] or 0) >= 0.5
-    assert (report["abstention_accuracy"] or 0) > 0
+    # The README publishes 1.000 for this slice, and the evaluation is
+    # deterministic: anything lower means the published number is false.
+    assert report["abstention_accuracy"] == 1.0

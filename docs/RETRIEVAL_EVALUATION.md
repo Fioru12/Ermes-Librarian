@@ -348,7 +348,7 @@ non cambi i risultati.
 
 ## Gate CI
 
-`tests/test_library_evaluation.py` verifica `recall_at_3_direct >= 0.9` e `citation_coverage >= 0.9` come soglie dure (sempre raggiungibili senza Ollama), piu' due soglie morbide (`recall_at_3_paraphrase > 0`, `abstention_accuracy > 0`) per accorgersi se la qualita' sulle query difficili crolla a zero, senza pretendere che il keyword-only le risolva tutte. Il gate CI resta sulla modalita' keyword-only: la modalita' `--semantic` non e' ancora adatta a un default di prodotto (vedi sopra) e comunque richiederebbe Ollama in CI, non disponibile.
+`tests/test_library_evaluation.py` verifica `recall_at_3_direct >= 0.9` e `citation_coverage >= 0.9`, `recall_at_3_paraphrase >= 0.5` (il valore misurato della configurazione rilasciata: un reranker riattivato senza misura lo porterebbe a 0.375 e farebbe diventare rossa la CI) e `abstention_accuracy == 1.0`, perche' il README la dichiara a 1.000 e la valutazione e' deterministica: se scende, il numero pubblicato e' diventato falso. Il gate CI resta sulla modalita' keyword-only: la modalita' `--semantic` non e' ancora adatta a un default di prodotto (vedi sopra) e comunque richiederebbe Ollama in CI, non disponibile.
 
 ## Cosa NON misura ancora
 
@@ -356,4 +356,4 @@ non cambi i risultati.
 - Il comportamento su versioni ripristinate o casi di accesso negato tra librerie.
 - Una soglia di coseno-similarita' che non sacrifichi l'astensione per guadagnare sulle parafrasi — vedi l'implicazione pratica sopra.
 
-Prima di una release pubblica, il golden set dovrebbe crescere ulteriormente con query derivate dal corpus demo fittizio della Fase D del roadmap (`docs/ROADMAP_V2.md`), non solo dal corpus sintetico qui sopra.
+Prima di una release pubblica, il golden set dovrebbe crescere ulteriormente con query derivate da documenti realistici, non solo dal corpus sintetico qui sopra.
