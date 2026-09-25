@@ -9,31 +9,27 @@ def test_demo_gold_set_meets_retrieval_quality_bar():
 
     Only the "direct" queries (worded close to the source text) are held to
     a hard bar — that is the retrieval mode every deployment gets by
-    default. "paraphrase" queries are a deliberate stress test of what
-    keyword-only matching cannot do (see docs/RETRIEVAL_EVALUATION.md);
-    holding them to the same 0.9 bar would either make the gold set
-    dishonestly easy or make CI red for a known, documented limitation.
-    "abstention" queries assert the system doesn't fabricate a citation
-    when the corpus has no real answer.
+    default. The other slices are floors at the measured value of the shipped
+    configuration: the evaluation is deterministic, so any drop is a real
+    regression, and any rise should be published (docs/RETRIEVAL_EVALUATION.md).
     """
     gold_set = json.loads(Path(GOLD_SET_PATH).read_text(encoding="utf-8"))
 
     report = evaluate(gold_set)
 
-    assert len(gold_set) >= 16
+    # 16 direct, 20 paraphrase, 16 abstention since 25 September 2026. With
+    # the earlier 3 abstention questions, one error was worth 33 points and
+    # the published 1.000 turned out to be 0.375 on a sample of 16.
+    assert len(gold_set) >= 52
     assert report["recall_at_3_direct"] >= 0.9
-    assert report["citation_coverage"] >= 0.9
-    # Floors on the harder slices. They are not held to the direct-query bar
-    # — keyword-only matching is not expected to solve paraphrases — but they
-    # are no longer a token "greater than zero".
-    #
-    # 0.5 is the measured value of the shipped configuration, and the number
-    # guards a specific decision: the reranker used to be enabled by default
-    # and pulled this slice down to 0.375, so re-enabling it without first
-    # measuring an improvement turns this test red instead of quietly
-    # degrading retrieval. Reproduce the comparison with
-    # `python evaluation/run_library_eval.py --compare`.
-    assert (report["recall_at_3_paraphrase"] or 0) >= 0.5
-    # The README publishes 1.000 for this slice, and the evaluation is
-    # deterministic: anything lower means the published number is false.
-    assert report["abstention_accuracy"] == 1.0
+    assert report["citation_coverage"] >= 0.833
+    # Paraphrase floor also guards a specific decision: the reranker used to
+    # be enabled by default and made this slice worse, so re-enabling it
+    # without first measuring an improvement turns this test red. Reproduce
+    # with `python evaluation/run_library_eval.py --compare`.
+    assert (report["recall_at_3_paraphrase"] or 0) >= 0.45
+    # Keyword-only matching cites a passage whenever one term matches, so it
+    # refuses correctly only 6 times out of 16. The remedy is evidence
+    # verification (16/16), which needs a local model and is therefore not
+    # what CI can run; this floor only stops the default from getting worse.
+    assert (report["abstention_accuracy"] or 0) >= 0.375

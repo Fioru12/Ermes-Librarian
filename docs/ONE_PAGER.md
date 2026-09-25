@@ -17,7 +17,7 @@ La conoscenza aziendale vive sparsa tra cartelle e versioni. Un chatbot generico
 ## Verificato, non dichiarato
 
 - **Isolamento tra biblioteche provato dal vivo**: una domanda la cui risposta esiste solo nella biblioteca A, posta con la biblioteca B selezionata, restituisce correttamente "nessuna evidenza" — verificato con uno script automatico contro un server reale a ogni esecuzione, non solo in un documento di design.
-- **Qualità del retrieval misurata e pubblicata**: golden set di 27 query (dirette, parafrasate, di astensione), risultati riportati onestamente, incluso dove il solo keyword matching non basta.
+- **Qualità del retrieval misurata e pubblicata**: golden set di 52 query (16 dirette, 20 parafrasate, 16 di astensione, con trappole lessicali), risultati riportati onestamente, incluso dove il solo keyword matching non basta.
 - **Controllo accessi testato a livello API**: un non-membro di una biblioteca privata riceve 404 (non 403, per non confermare l'esistenza della biblioteca) tentando di scaricare un documento — verificato contro la tabella di route reale, con una guardia di regressione che blocca la CI se un futuro endpoint viene spedito senza autenticazione.
 - **Cronologia git scansionata per intero**: un documento riservato di terzi trovato e rimosso completamente dalla history, non solo cancellato in un nuovo commit.
 

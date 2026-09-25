@@ -1,5 +1,46 @@
 # Valutazione del retrieval locale
 
+> **Rimisura del 25–26 settembre 2026 — leggere prima di tutto il resto.**
+> Le sezioni successive sono la storia delle misure e restano come erano: i
+> loro numeri vengono da **27 domande** e da un rumore letto dal vivo dalla
+> documentazione. Due difetti di quella base:
+>
+> 1. **Campione troppo piccolo.** Le domande di astensione erano tre: un
+>    errore valeva 33 punti, e l'1.000 pubblicato era fragile. Il gold set ora
+>    ha 52 domande: 16 dirette, 20 parafrasi, 16 di astensione, diverse delle
+>    quali sono trappole lessicali (condividono parole con un passaggio vero
+>    ma non hanno risposta, es. *"le ferie non godute si possono convertire in
+>    denaro?"*). Le domande nuove sono state scritte prima di misurarle.
+> 2. **Rumore non riproducibile e contaminato.** `scale_check.py` leggeva i
+>    `.md` del repository a ogni esecuzione: cambiava a ogni modifica dei
+>    documenti (due misure dello stesso codice davano 0.704 e 0.667) e
+>    includeva questo stesso documento, che cita gli argomenti delle domande di
+>    astensione. Ora il rumore e' congelato in `evaluation/noise_corpus.json`
+>    (245 paragrafi, generato da `build_noise_corpus.py`, esclusi i documenti
+>    che parlano della valutazione).
+>
+> Numeri attuali, corpus demo / con 388 passaggi estranei
+> (`python evaluation/scale_check.py --sizes 0,97 [--semantic] [--verify]`):
+>
+> | | Lessicale | Ibrida | Lessicale + verifica | Ibrida + verifica |
+> |---|---|---|---|---|
+> | Dirette | 1.000 / 0.938 | 1.000 / 1.000 | 1.000 / 0.938 | 1.000 / 0.625 |
+> | Parafrasi | 0.450 / 0.250 | 0.900 / 0.500 | 0.350 / 0.200 | 0.350 / 0.050 |
+> | Astensione | 0.375 / 0.062 | 0.000 / 0.000 | 1.000 / 1.000 | 1.000 / 1.000 |
+>
+> Verificatore `qwen3.5:4b`, temperatura 0. La corsa "ibrida + verifica" ha
+> avuto 3 errori del modello su diverse centinaia di chiamate; una prima corsa
+> con 9 errori dava 1.000 / 0.350 sulle ultime due righe a destra, perche' in
+> caso di errore il verificatore lascia passare i passaggi senza controllo —
+> gli errori gonfiano il recall, non l'astensione.
+>
+> Lettura: la verifica e' l'unica configurazione che si astiene 16/16 a
+> entrambe le taglie senza perdere le domande dirette. Con l'ibrida sotto, il
+> verificatore da 4B scarta anche passaggi corretti sull'archivio grande: il
+> suo 1.000 di astensione e' in parte astenersi da tutto. Le parafrasi restano
+> il punto debole di ogni configurazione che si astiene bene; il prossimo
+> esperimento e' un verificatore piu' forte (`qwen3.5:9b`).
+
 `evaluation/library_gold_set.json` e' il dataset fittizio per verificare il bibliotecario Ermes senza documenti aziendali reali. Copre quattro biblioteche indipendenti: HR, IT, Qualita e Amministrazione, con 27 query in tre categorie (`type`):
 
 - **`direct`** (16 query): la domanda usa parole vicine al testo sorgente — il caso base che qualunque ricerca a parole chiave deve gestire.

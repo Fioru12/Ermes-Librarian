@@ -42,23 +42,39 @@ Every number below was produced by a command in this repository, and every
 command can be re-run by anyone who clones it. The unflattering results are
 here too — they are the reason several features are switched off.
 
-**Retrieval quality** — 27 questions over a demo corpus, three categories
-(`python evaluation/run_library_eval.py`):
+**Retrieval quality** — 52 questions over a demo corpus: 16 direct, 20
+paraphrased, 16 with no answer in the corpus (several of them lexical traps
+that share words with a real passage). Recall@3 for the first two, correct
+refusals for the third. Left: the 16-passage demo corpus. Right: the same
+corpus with 388 unrelated passages of real prose around it
+(`python evaluation/scale_check.py --sizes 0,97`, add `--semantic` /
+`--verify`):
 
-| | Shipped default | With semantic search | With evidence verification |
-|---|---|---|---|
-| Direct questions | **1.000** | 1.000 | 1.000 |
-| Paraphrased questions | 0.500 | **0.875** | 0.625 |
-| Correctly refusing to answer | **1.000** | 0.000 | **1.000** |
+| | Shipped default | Semantic search | Evidence verification | Semantic + verification |
+|---|---|---|---|---|
+| Direct | 1.000 / 0.938 | 1.000 / 1.000 | 1.000 / 0.938 | 1.000 / 0.625 |
+| Paraphrased | 0.450 / 0.250 | **0.900 / 0.500** | 0.350 / 0.200 | 0.350 / 0.050 |
+| Correct refusals | 0.375 / 0.062 | 0.000 / 0.000 | **1.000 / 1.000** | 1.000 / 1.000 |
+
+Until 25 September 2026 this table read "1.000" for refusals. That number
+came from **three** questions, so one error was worth 33 points; on sixteen
+the shipped default refuses correctly 6 times, and with a large archive
+around it once. Evidence verification (a local model checks each cited
+passage) is the only configuration that keeps refusals at 16/16 at both
+sizes without losing direct questions. Semantic + verification refuses just
+as well, but on the large archive it also rejects correct passages, so its
+perfect refusal score is partly refusing everything. Verification uses
+`qwen3.5:4b`; the semantic + verification run hit 3 model errors out of
+several hundred calls.
 
 **Same corpus, RAGAS definitions** (`python evaluation/ragas_report.py`), so the
 numbers can sit next to other projects' — shipped default, k=3:
 
 | context_precision | context_recall | MRR | abstention precision | false abstention |
 |---|---|---|---|---|
-| 0.792 | 0.833 | 0.792 | 1.000 | 0.042 |
+| 0.653 | 0.694 | 0.653 | 0.375 | 0.167 |
 
-Direct questions: precision 0.938 / recall 1.000 (one question finds its citation at rank 2, not 1). Paraphrased: 0.500 / 0.500. Faithfulness and answer relevancy are *not* reported: in the default evidence-only mode there is no generated answer to judge, and reporting them would require a generator plus a judge model — a different measurement, kept separate rather than decorated in.
+Direct questions: precision 0.938 / recall 1.000 (one question finds its citation at rank 2, not 1). Paraphrased: 0.425 / 0.450. Faithfulness and answer relevancy are *not* reported: in the default evidence-only mode there is no generated answer to judge, and reporting them would require a generator plus a judge model — a different measurement, kept separate rather than decorated in.
 
 **Speed on an office-sized archive** (`python evaluation/archive_scale.py`):
 
@@ -74,17 +90,20 @@ and the retrieval-quality numbers above are unchanged.
 
 ### What does not work, stated here rather than discovered later
 
-- **Abstention degrades as the library grows.** Perfect on the demo corpus,
-  0.333 once 100 passages of unrelated prose are added: any single shared term
-  is enough to be cited as evidence. Evidence verification restores it to
-  1.000, and at that size also improves overall recall — but it needs a model
-  running, so it is off by default. For libraries beyond a demo corpus, run
-  the [verified profile](#verified-profile-ollama-required), which makes the
-  model a declared requirement. Reproduce with
-  `python evaluation/scale_check.py --sizes 0,25,97`.
+- **Without a model, the shipped default does not reliably say "I don't
+  know".** 6 correct refusals out of 16 on the demo corpus, 1 out of 16 with a
+  large archive around it: any single shared term is enough to be cited as
+  evidence. Evidence verification brings it to 16/16 at both sizes, but needs
+  a model running, so it is off by default. For libraries beyond a demo
+  corpus, run the [verified profile](#verified-profile-ollama-required), which
+  makes the model a declared requirement.
 - **The neural reranker is disabled**, because measuring it showed it makes
   every configuration worse — the previously shipped default was the worst of
   the five.
+- **Paraphrases are the weak spot of every configuration that refuses
+  correctly** (0.200–0.450). Semantic search finds twice as many but never
+  refuses; with verification on top, the 4B verifier rejects correct passages
+  too. A stronger verifier model is the next thing to measure.
 - **Semantic search is disabled**, because it doubles paraphrase recall and
   destroys abstention. Four score-based signals were measured looking for a
   cutoff that keeps both; none separates the two populations, and the analysis
@@ -265,11 +284,13 @@ The security principles are in [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md); wha
 
 The number that degrades with corpus size is abstention, and it is the
 product's central claim. `evaluation/scale_check.py` isolates that single
-variable — same 27 questions, same expected answers, only the amount of
-surrounding text changes, using real prose from this repository as noise.
+variable — same 52 questions, same expected answers, only the amount of
+surrounding text changes, using real prose from this repository as noise
+(frozen in `evaluation/noise_corpus.json`, without the documents that discuss
+the evaluation itself).
 
-Direct questions hold up as the archive grows; abstention falls to 0.333 as
-soon as the library contains other text. The cause is not statistical: a
+Direct questions hold up as the archive grows; abstention falls from 6/16 to
+1/16 as soon as the library contains other text. The cause is not statistical: a
 question about a colleague working *sempre da casa senza mai* venire in sede
 matched an unrelated technical paragraph on *sempre*, *senza* and *mai* alone —
 three words that carry no meaning — because any single shared term is enough to
