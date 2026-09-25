@@ -22,6 +22,11 @@ logger = logging.getLogger(__name__)
 DEFAULT_PG_DSN = "postgresql://postgres:ermes_dev@localhost:5433/ermes_test"
 
 POSTGRES_SCHEMA = """
+CREATE TABLE IF NOT EXISTS search_cache_generations (
+    library_id TEXT PRIMARY KEY,
+    generation INTEGER NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS libraries (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,

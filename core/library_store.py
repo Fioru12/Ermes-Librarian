@@ -261,6 +261,11 @@ class LibraryStore:
                 """
                 PRAGMA foreign_keys = ON;
 
+                CREATE TABLE IF NOT EXISTS search_cache_generations (
+                    library_id TEXT PRIMARY KEY,
+                    generation INTEGER NOT NULL
+                );
+
                 CREATE TABLE IF NOT EXISTS libraries (
                     id TEXT PRIMARY KEY,
                     name TEXT NOT NULL,
@@ -665,7 +670,10 @@ class LibraryStore:
         with self._connection() as connection:
             row = connection.execute(
                 """
-                SELECT libraries.*, COUNT(documents.id) AS document_count
+                SELECT libraries.*, COUNT(documents.id) AS document_count,
+                       COALESCE(
+                           (SELECT g.generation FROM search_cache_generations g WHERE g.library_id = libraries.id), 0
+                       ) AS cache_generation
                 FROM libraries
                 LEFT JOIN documents ON documents.library_id = libraries.id
                 WHERE libraries.id = ?
@@ -745,6 +753,22 @@ class LibraryStore:
     # allow-list esplicita, non un'aggiunta ai permessi base.
 
     @staticmethod
+    def _bump_cache_generation(connection, library_id: str) -> None:
+        """Da chiamare dentro la transazione che modifica documenti o permessi.
+
+        Invalida la cache di ricerca su tutte le repliche, non solo su quella
+        che serve la richiesta: vedi core/search_cache.py. Nella stessa
+        transazione, quindi senza connessioni ne' commit in piu'.
+        """
+        connection.execute(
+            """
+            INSERT INTO search_cache_generations (library_id, generation) VALUES (?, 1)
+            ON CONFLICT (library_id) DO UPDATE SET generation = search_cache_generations.generation + 1
+            """,
+            (library_id,),
+        )
+
+    @staticmethod
     def _actor_bypasses_document_acl(library: dict, actor: dict | None) -> bool:
         """Admin e proprietario vedono sempre tutto; None e' il sistema."""
         return actor is None or actor.get("role") == "admin" or library.get("owner_id") == actor.get("username")
@@ -784,6 +808,7 @@ class LibraryStore:
                 "INSERT INTO document_acls (document_id, username, created_at) VALUES (?, ?, ?)",
                 [(document_id, username, now) for username in cleaned],
             )
+            self._bump_cache_generation(connection, library_id)
         # La cache si invalida da sola solo quando cambia il numero di
         # documenti, e una restrizione non lo cambia: senza questa riga chi
         # era appena stato escluso riceveva gli estratti riservati dalla
@@ -1347,6 +1372,7 @@ class LibraryStore:
                     """,
                     (str(uuid.uuid4()), document_id, ordinal, text, locator, now),
                 )
+            self._bump_cache_generation(connection, library_id)
         # Il conteggio dei documenti non cambia, quindi la cache non se ne
         # accorgerebbe: i chunk si', e sono cio' che viene citato.
         get_search_cache().invalidate(library_id)
@@ -1453,7 +1479,10 @@ class LibraryStore:
         cache = get_search_cache()
         doc_count = library.get("document_count", 0)
         scope = actor.get("username", "") if actor else ""
-        cached = cache.get(library_id, normalized, doc_count, scope)
+        # Letta da get_library, quindi prima della ricerca: vedi
+        # SemanticSearchCache.put().
+        generation = library.get("cache_generation", 0)
+        cached = cache.get(library_id, normalized, doc_count, scope, generation=generation)
         if cached is not None:
             return cached
 
@@ -1649,7 +1678,7 @@ class LibraryStore:
             "semantic_used": semantic_used,
         }
         # Store in semantic cache (per-user scope, come sopra)
-        cache.put(library_id, normalized, doc_count, results, profile, scope)
+        cache.put(library_id, normalized, doc_count, results, profile, scope, generation=generation)
         return results, profile
 
     def store_chunk_embeddings(
@@ -1674,6 +1703,7 @@ class LibraryStore:
                     for row, embedding in zip(rows, embeddings)
                 ],
             )
+            self._bump_cache_generation(connection, library_id)
         # Una ricerca memorizzata prima degli embedding era lessicale; con
         # la semantica accesa deve essere rifatta.
         get_search_cache().invalidate(library_id)
@@ -1717,6 +1747,7 @@ class LibraryStore:
                 "DELETE FROM documents WHERE id = ? AND library_id = ?",
                 (document_id, library_id),
             )
+            self._bump_cache_generation(connection, library_id)
         # Invalidate search cache (document count changed)
         get_search_cache().invalidate(library_id)
         return paths
@@ -1829,6 +1860,7 @@ class LibraryStore:
             connection.execute("DELETE FROM library_members WHERE library_id = ?", (library_id,))
             connection.execute("DELETE FROM documents WHERE library_id = ?", (library_id,))
             connection.execute("DELETE FROM libraries WHERE id = ?", (library_id,))
+            connection.execute("DELETE FROM search_cache_generations WHERE library_id = ?", (library_id,))
         # Invalidate search cache (library deleted)
         get_search_cache().invalidate(library_id)
         return paths
@@ -1920,6 +1952,7 @@ class LibraryStore:
                     """,
                     (str(uuid.uuid4()), document["id"], ordinal, text, locator, now),
                 )
+            self._bump_cache_generation(connection, library_id)
         # Invalidate search cache (document count changed)
         get_search_cache().invalidate(library_id)
         return document

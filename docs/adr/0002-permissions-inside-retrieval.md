@@ -37,6 +37,13 @@ Il filtro dei permessi è un argomento del recupero stesso.
   25 settembre 2026: un utente appena escluso da un documento continuava a
   riceverne gli estratti dalla propria cache fino al TTL (5 minuti). Trovato
   scrivendo questo documento e verificandone le affermazioni sul codice.
+- La cache vive nel processo, ma l'invalidazione vale per tutte le repliche:
+  ogni modifica a documenti o permessi incrementa, nella stessa transazione,
+  un contatore per biblioteca sul database condiviso
+  (`search_cache_generations`), che la ricerca legge insieme alla riga della
+  biblioteca. Senza, con le due repliche predefinite del chart Helm la revoca
+  valeva solo sulla replica che l'aveva ricevuta
+  (`tests/test_search_cache_replicas.py`).
 - Test di riferimento: `tests/test_document_acl.py`,
   `tests/test_connector_sync_authorization.py`,
   `tests/test_api_auth_coverage.py` (ogni rotta `/api/*` rifiuta le richieste
