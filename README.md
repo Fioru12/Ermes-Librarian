@@ -64,8 +64,13 @@ Direct questions: precision 0.938 / recall 1.000 (one question finds its citatio
 
 | Passages | Indexing | Typical search | Worst-case search |
 |---|---|---|---|
-| 10.000 | 11,5 s | 1,4 ms | 281 ms |
-| 50.000 | 68,8 s | **3,2 ms** | 3,3 s |
+| 10.000 | 15,1 s | 1,9 ms | 58 ms |
+| 50.000 | 79,6 s | **4,6 ms** | **308 ms** |
+
+The worst case was 3,2 s at 50.000 passages until 25 September 2026: every
+row matching a common word was scored in Python. Candidates are now capped by
+the database's own full-text rank (`bm25()` / `ts_rank`) — ten times faster,
+and the retrieval-quality numbers above are unchanged.
 
 ### What does not work, stated here rather than discovered later
 
@@ -87,6 +92,8 @@ Direct questions: precision 0.938 / recall 1.000 (one question finds its citatio
 - **The corpus is synthetic.** These numbers are honest for it and prove
   nothing about yours. `evaluation/scale_check.py` is the starting point for
   measuring on real documents.
+- **SCIM provisions users only** (no `Groups` resource), and a new connector
+  type is wired by hand in `api/connectors.py` — there is no plugin registry.
 
 The full analysis, including three attempted fixes that were measured and
 rejected, is in [docs/RETRIEVAL_EVALUATION.md](docs/RETRIEVAL_EVALUATION.md).
@@ -302,28 +309,6 @@ With the local application running and an administrator password or API key conf
 - ✅ **UI & Governance Polish**: Tamper-evident SHA-256 audit log, Markdown chat export, instant chat reset, and citation modal.
 
 The historical WinSarp formula engine, kept frozen under `legacy_winsarp/` behind a dev-only flag since August 2026, was removed from the repository on 18 September 2026: its flag path imported routers that no longer existed, so it could not have been switched on. Git history keeps it. `tests/test_legacy_packages_stay_out.py` still fails the build if LlamaIndex, ChromaDB or the Ollama client come back into the product requirements — the reason they were removed in the first place (150 packages instead of 56) has not changed.
-
-## Known limitations
-
-What this project does not do yet, stated before someone else finds it. Each
-item links to where it is measured or tracked.
-
-- **Refusing to answer degrades on large, mixed corpora.** On the demo corpus
-  the shipped default refuses correctly 3 times out of 3; with 100 unrelated
-  passages added it drops to 1 out of 3. Evidence verification restores it to
-  3/3, but needs a local model and is off by default
-  ([measurements](docs/RETRIEVAL_EVALUATION.md#il-numero-regge-alla-scala-misurato-9-settembre-2026)).
-- **Paraphrases are the weak spot of the default mode**: 0.500 recall@3.
-  Semantic search raises it to 0.875 but loses abstention entirely, which is
-  why it is not the default.
-- **The gold set is small and synthetic**: 27 questions written by us. It
-  measures robustness, not fit to a real company's documents — re-measure on
-  those before promising anything.
-- **Worst-case search latency grows with the archive**: 3 ms median but ~3.3 s
-  worst case at 50,000 passages, because scoring runs in Python over every
-  candidate instead of in the database's full-text ranking.
-- **SCIM provisions users only** (no `Groups` resource), and new connector
-  types are wired by hand in `api/connectors.py` — there is no plugin registry.
 
 ## License
 

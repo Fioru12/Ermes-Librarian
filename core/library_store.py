@@ -63,6 +63,12 @@ def _resolve_backend(database_path: str | Path | None, database_url: str | None 
 # nelle build recenti e 999 in quelle storiche: 900 e' sotto entrambi.
 _MAX_SQL_VARIABILI = 900
 
+# Candidati lessicali per interrogazione, scelti dal ranking full-text del
+# database prima del punteggio in Python. Sui corpus di valutazione (fino a
+# 404 passaggi) non viene mai raggiunto, quindi i numeri pubblicati non
+# cambiano; su un archivio grande taglia la coda dei candidati irrilevanti.
+_MAX_KEYWORD_CANDIDATES = 1000
+
 
 _QUERY_STOPWORDS = {
     "sempre",
@@ -1362,6 +1368,13 @@ class LibraryStore:
         if not tokens:
             return set()
 
+        # Il ranking finale e' calcolato in Python su ogni candidato: con una
+        # parola presente quasi ovunque erano decine di migliaia di righe, e
+        # 3,2 s a 50.000 passaggi (evaluation/archive_scale.py). Il database
+        # ordina gia' per rilevanza full-text, quindi si prendono solo i primi,
+        # piu' quanti potrebbero essere scartati come nascosti.
+        tetto = _MAX_KEYWORD_CANDIDATES + len(hidden)
+
         if self._is_postgres:
             # Stessa semantica del ramo SQLite: la frase intera OPPURE uno
             # qualunque dei token (prefisso). Fino al 18 settembre 2026 la
@@ -1376,13 +1389,22 @@ class LibraryStore:
             token_query = " | ".join(f"{t}:*" for t in clean_tokens if t)
             rows = connection.execute(
                 """
-                SELECT c.id AS chunk_id FROM document_chunks c
+                SELECT c.id AS chunk_id, c.document_id AS document_id FROM document_chunks c
                 JOIN documents d ON d.id = c.document_id
                 WHERE d.library_id = ?
                   AND (c.search_tsv @@ to_tsquery('simple', ?)
                        OR (? <> '' AND c.search_tsv @@ phraseto_tsquery('simple', ?)))
+                ORDER BY ts_rank(c.search_tsv, to_tsquery('simple', ?)) DESC
+                LIMIT ?
                 """,
-                (library_id, token_query, clean_phrase if len(clean_phrase.split()) > 1 else "", clean_phrase),
+                (
+                    library_id,
+                    token_query,
+                    clean_phrase if len(clean_phrase.split()) > 1 else "",
+                    clean_phrase,
+                    token_query,
+                    tetto,
+                ),
             ).fetchall()
         else:
             # SQLite: FTS5
@@ -1399,11 +1421,16 @@ class LibraryStore:
             if not fts_match_query:
                 return set()
             rows = connection.execute(
-                "SELECT chunk_id FROM document_chunks_fts WHERE document_chunks_fts MATCH ?",
-                (fts_match_query,),
+                "SELECT chunk_id, document_id FROM document_chunks_fts "
+                "WHERE document_chunks_fts MATCH ? AND library_id = ? "
+                "ORDER BY bm25(document_chunks_fts) LIMIT ?",
+                (fts_match_query, library_id, tetto),
             ).fetchall()
 
-        return {row["chunk_id"] for row in rows if row["chunk_id"] not in hidden}
+        # Il confronto era fra chunk_id e l'insieme `hidden`, che contiene id
+        # di documento: non filtrava mai niente. Innocuo finche' il filtro vero
+        # restava a valle, sbagliato da leggere e da ereditare.
+        return {row["chunk_id"] for row in rows if row["document_id"] not in hidden}
 
     def search_documents(self, library_id: str, query: str, limit: int = 20) -> list[dict]:
         """Return only the result list for callers that do not need retrieval metadata."""

@@ -36,9 +36,10 @@ requisiti del prodotto.
 - Due backend da mantenere in parità: `tests/test_postgres_parity.py` gira in
   CI contro un PostgreSQL 16 reale (servizio del job `test` in
   `.github/workflows/ci.yml`).
-- Il ranking è calcolato in Python sui candidati: la mediana resta di pochi
-  millisecondi a 50.000 passaggi, ma il caso peggiore arriva a ~3,3 s. La
-  direzione indicata è limitare i candidati con il ranking full-text del
-  database (`bm25()` su SQLite, `ts_rank` su PostgreSQL).
+- Il ranking fine è calcolato in Python, quindi i candidati vanno limitati
+  prima: il database li ordina con il proprio ranking full-text (`bm25()` su
+  SQLite, `ts_rank` su PostgreSQL) e se ne tengono al massimo 1.000. Senza
+  questo tetto il caso peggiore arrivava a 3,2 s a 50.000 passaggi; con il
+  tetto è 0,3 s.
 - Il piano per portare PostgreSQL a default dei deploy multi-utente è in
   `docs/POSTGRES_MIGRATION_PLAN.md`.

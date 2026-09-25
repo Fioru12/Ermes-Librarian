@@ -332,6 +332,21 @@ passaggi sarebbero una decina di secondi. La direzione indicata e' limitare i
 candidati usando il ranking dell'indice full-text (`bm25()` su SQLite,
 `ts_rank` su PostgreSQL) invece di prenderli tutti.
 
+**Corretto il 25 settembre 2026.** I candidati lessicali sono ora al massimo
+1.000 per interrogazione (`_MAX_KEYWORD_CANDIDATES`), scelti dal database in
+ordine di rilevanza full-text e filtrati per biblioteca dentro la stessa query:
+
+| Passaggi | Ricerca (mediana) | Peggiore prima | Peggiore dopo |
+|---|---|---|---|
+| 10.000 | 1,9 ms | 261 ms | **58 ms** |
+| 50.000 | 4,6 ms | 3.183 ms | **308 ms** |
+
+Stessa macchina, stessa esecuzione di `archive_scale.py`, prima e dopo. La
+qualita' non cambia: `scale_check.py --sizes 0,25,97` da' valori identici
+con e senza il tetto, che sui corpus di valutazione (al massimo 404
+passaggi) non viene mai raggiunto. Coperto da
+`tests/test_keyword_candidate_cap.py`.
+
 ### Un difetto trovato facendo questa misura
 
 A cinquantamila passaggi la ricerca non rallentava: **falliva**, con
