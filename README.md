@@ -92,7 +92,6 @@ and the retrieval-quality numbers above are unchanged.
 - **The corpus is synthetic.** These numbers are honest for it and prove
   nothing about yours. `evaluation/scale_check.py` is the starting point for
   measuring on real documents.
-- **SCIM provisions users only** (no `Groups` resource yet).
 
 The full analysis, including three attempted fixes that were measured and
 rejected, is in [docs/RETRIEVAL_EVALUATION.md](docs/RETRIEVAL_EVALUATION.md).

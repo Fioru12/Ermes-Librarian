@@ -199,12 +199,31 @@ Punto di partenza:
 
 ## 9. SCIM 2.0
 
-Provisioning utenti da un identity provider (Entra ID, Okta, Keycloak) sotto
-`/scim/v2` (senza prefisso `/api`):
+Provisioning di utenti e gruppi da un identity provider (Entra ID, Okta,
+Keycloak) sotto `/scim/v2` (senza prefisso `/api`):
 
 - `GET /scim/v2/ServiceProviderConfig`, `GET /scim/v2/Schemas`
 - `GET|POST /scim/v2/Users`, `GET|PUT|PATCH|DELETE /scim/v2/Users/{id}`
+- `GET|POST /scim/v2/Groups`, `GET|PUT|PATCH|DELETE /scim/v2/Groups/{id}`
 
 Autenticazione Bearer con `ERMES_SCIM_TOKEN` (o, in alternativa,
-`ERMES_API_KEY`). Si disattiva con `ERMES_SCIM_ENABLED=0`. Oggi è implementata
-la risorsa `Users`; `Groups` non c'è ancora.
+`ERMES_API_KEY`). Si disattiva con `ERMES_SCIM_ENABLED=0`.
+
+**Come i gruppi danno accesso.** Un gruppo si collega a una biblioteca con le
+stesse mappature usate per i gruppi OIDC (ruolo `viewer` o `editor`, mai
+admin), usando il suo `displayName`. Da quel momento i membri del gruppo
+accedono alla biblioteca qualunque sia il modo in cui entrano (SSO, password,
+chiave API), e toglierli dal gruppo nell'IdP toglie loro l'accesso alla
+richiesta successiva, su tutte le repliche. I gruppi del token OIDC e quelli
+SCIM si sommano; un gruppo non degrada mai una membership diretta.
+
+Comportamenti voluti:
+
+- `PATCH` accetta le due forme di rimozione in uso:
+  `path: members[value eq "id"]` (Entra ID) e `path: members` con l'elenco in
+  `value` (Okta);
+- un membro che non corrisponde a un utente esistente viene rifiutato con
+  `400`, non tenuto "per dopo": un account creato più tardi con quel nome
+  erediterebbe l'accesso senza che l'IdP lo abbia deciso;
+- un `PATCH` con un'operazione non valida non applica nemmeno le altre;
+- eliminare un utente lo toglie da tutti i gruppi.

@@ -531,19 +531,30 @@ class LibraryStore:
         return row["role"] if row else None
 
     @staticmethod
-    def _effective_member_role(direct_role: str | None, library_id: str, actor: dict | None) -> str | None:
-        """Ruolo efficace = max(membership diretta, gruppi OIDC mappati).
+    def _effective_member_role(
+        direct_role: str | None, library_id: str, actor: dict | None, groups: list[str] | None = None
+    ) -> str | None:
+        """Ruolo efficace = max(membership diretta, gruppi mappati).
 
-        I gruppi SSO NON possono mai degradare una membership esplicita:
-        se il proprietario ha dato editor a un utente, resta editor anche
-        se il suo gruppo mappa solo viewer. Il valore admin non deriva mai
-        dai gruppi (solo dai ruoli del token o da account espliciti).
+        I gruppi vengono dal token OIDC e dal provisioning SCIM
+        (core/scim_groups.py::effective_groups). Non possono mai degradare una
+        membership esplicita: se il proprietario ha dato editor a un utente,
+        resta editor anche se il suo gruppo mappa solo viewer. Il valore admin
+        non deriva mai dai gruppi (solo dai ruoli del token o da account
+        espliciti). `groups` si passa gia' calcolato quando si valutano molte
+        biblioteche per lo stesso utente, per non rileggerli a ogni biblioteca.
         """
-        if actor is None or actor.get("provider") != "oidc":
+        if actor is None:
+            return direct_role
+        if groups is None:
+            from core.scim_groups import effective_groups
+
+            groups = effective_groups(actor)
+        if not groups:
             return direct_role
         from core.governance import resolve_oidc_group_role
 
-        group_role = resolve_oidc_group_role(actor.get("groups"), library_id)
+        group_role = resolve_oidc_group_role(groups, library_id)
         if group_role is None:
             return direct_role
         hierarchy = {"manager": 4, "editor": 3, "reviewer": 2, "viewer": 1}
@@ -586,18 +597,22 @@ class LibraryStore:
                 """
             ).fetchall()
         memberships = self._membership_roles(actor["username"]) if actor and actor.get("role") != "admin" else {}
-        # Propagazione ACL: le biblioteche raggiungibili SOLO via gruppi SSO
-        # appaiono nell'elenco anche senza membership diretta (scoperta via OIDC).
+        # Propagazione ACL: le biblioteche raggiungibili SOLO via gruppi (token
+        # OIDC o provisioning SCIM) appaiono nell'elenco anche senza
+        # membership diretta.
         group_roles: dict[str, str] = {}
-        if actor and actor.get("provider") == "oidc" and actor.get("role") != "admin":
+        groups: list[str] = []
+        if actor and actor.get("role") != "admin":
             from core.governance import oidc_group_roles_for_user
+            from core.scim_groups import effective_groups
 
-            group_roles = oidc_group_roles_for_user(actor.get("groups"))
+            groups = effective_groups(actor)
+            group_roles = oidc_group_roles_for_user(groups)
         visible: list[dict] = []
         for row in rows:
             library = self._row(row)
             member_role = memberships.get(library["id"])
-            effective_role = self._effective_member_role(member_role, library["id"], actor)
+            effective_role = self._effective_member_role(member_role, library["id"], actor, groups=groups)
             if group_roles.get(library["id"]) and effective_role is None:
                 effective_role = group_roles[library["id"]]
             if self._can_access(library, actor, member_role=member_role) or (
