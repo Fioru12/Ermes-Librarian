@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
-import { BookOpen, HelpCircle, ListChecks, MessageCircleQuestion, RefreshCw, Sparkles } from 'lucide-react'
+import { BookOpen, BookmarkPlus, HelpCircle, ListChecks, MessageCircleQuestion, RefreshCw, Sparkles } from 'lucide-react'
 import { useTheme } from '../../hooks/useTheme'
 import { Button, CardTitle } from '../ui'
+import NotesPanel, { type NoteDraft } from './NotesPanel'
 
 export type StudioKind = 'briefing' | 'faq' | 'study_guide' | 'questions'
 
@@ -50,6 +51,7 @@ export default function StudioTab({ libraries, selectedLibraryId, onSelectLibrar
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [openSource, setOpenSource] = useState<StudioSource | null>(null)
+  const [noteToSave, setNoteToSave] = useState<NoteDraft | null>(null)
 
   // Cambiare biblioteca invalida quanto generato: appartiene all'altra.
   useEffect(() => { setResults({}); setOpenSource(null); setError('') }, [selectedLibraryId])
@@ -76,6 +78,19 @@ export default function StudioTab({ libraries, selectedLibraryId, onSelectLibrar
   const result = results[kind]
   const sourceFor = (marker: number) => result?.sources.find(s => s.marker === marker)
   const active = KINDS.find(k => k.kind === kind)!
+
+  const saveAsNote = (item: StudioItem) => setNoteToSave({
+    title: item.question || item.section || active.label,
+    body: item.question ? `${item.question}
+${item.text}` : item.text,
+    sources: item.citations.map(sourceFor).filter((s): s is StudioSource => Boolean(s)),
+  })
+
+  const saveButton = (item: StudioItem) => (
+    <button type="button" onClick={() => saveAsNote(item)} aria-label="Salva nelle note" title="Salva nelle note" className="ml-1.5 inline-flex align-middle text-slate-500 hover:text-blue-300">
+      <BookmarkPlus className="h-3.5 w-3.5" />
+    </button>
+  )
 
   const citationChips = (item: StudioItem) => item.citations.map(marker => {
     const source = sourceFor(marker)
@@ -124,7 +139,7 @@ export default function StudioTab({ libraries, selectedLibraryId, onSelectLibrar
         {result.items.map(item => (
           <div key={`${item.question}-${item.text}`} className={`rounded-xl border p-4 ${t.card}`}>
             <dt className="text-sm font-semibold">{item.question}</dt>
-            <dd className={`mt-1.5 text-sm leading-6 ${t.cardDesc}`}>{item.text}{citationChips(item)}</dd>
+            <dd className={`mt-1.5 text-sm leading-6 ${t.cardDesc}`}>{item.text}{citationChips(item)}{saveButton(item)}</dd>
           </div>
         ))}
       </dl>
@@ -138,7 +153,7 @@ export default function StudioTab({ libraries, selectedLibraryId, onSelectLibrar
               {section && <h3 className="mb-2 text-sm font-semibold">{section}</h3>}
               <ul className="list-disc space-y-1.5 pl-5">
                 {result.items.filter(item => (item.section || '') === section).map(item => (
-                  <li key={item.text} className={`text-sm leading-6 ${t.cardDesc}`}>{item.text}{citationChips(item)}</li>
+                  <li key={item.text} className={`text-sm leading-6 ${t.cardDesc}`}>{item.text}{citationChips(item)}{saveButton(item)}</li>
                 ))}
               </ul>
             </section>
@@ -149,7 +164,7 @@ export default function StudioTab({ libraries, selectedLibraryId, onSelectLibrar
     return (
       <div className="space-y-4">
         {result.items.map(item => (
-          <p key={item.text} className={`text-sm leading-7 ${t.cardDesc}`}>{item.text}{citationChips(item)}</p>
+          <p key={item.text} className={`text-sm leading-7 ${t.cardDesc}`}>{item.text}{citationChips(item)}{saveButton(item)}</p>
         ))}
       </div>
     )
@@ -202,6 +217,7 @@ export default function StudioTab({ libraries, selectedLibraryId, onSelectLibrar
             </div>
           )}
         </div>
+        <div className="space-y-4">
         <aside className={`h-fit rounded-2xl border p-4 ${t.card}`} aria-label="Fonte">
           {openSource ? (
             <>
@@ -214,6 +230,10 @@ export default function StudioTab({ libraries, selectedLibraryId, onSelectLibrar
             <p className={`text-xs leading-5 ${t.cardDesc}`}>Clicca un numero accanto a un punto per vedere il passaggio da cui viene.</p>
           )}
         </aside>
+        {selectedLibraryId && (
+          <NotesPanel libraryId={selectedLibraryId} incoming={noteToSave} onIncomingHandled={() => setNoteToSave(null)} />
+        )}
+        </div>
       </div>
     </div>
   )
