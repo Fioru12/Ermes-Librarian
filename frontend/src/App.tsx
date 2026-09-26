@@ -1,5 +1,5 @@
 import { Suspense, lazy, useEffect, useRef, useState } from 'react'
-import { AlertTriangle, CheckCircle, LockKeyhole, ShieldCheck, Sparkles, KeyRound } from 'lucide-react'
+import { AlertTriangle, CheckCircle, LockKeyhole, Menu, ShieldCheck, Sparkles, KeyRound } from 'lucide-react'
 import Sidebar from './components/layout/Sidebar'
 import ChatArea from './components/chat/ChatArea'
 // Every tab was in the main bundle: a viewer who only ever asks questions
@@ -10,6 +10,7 @@ const AuditLogs = lazy(() => import('./components/Admin/AuditLogs'))
 const AnalyticsDashboard = lazy(() => import('./components/Admin/AnalyticsDashboard'))
 const DocumentsTab = lazy(() => import('./components/documents/DocumentsTab'))
 const HealthTab = lazy(() => import('./components/health/HealthTab'))
+const StudioTab = lazy(() => import('./components/studio/StudioTab'))
 const SettingsTab = lazy(() => import('./components/settings/SettingsTab'))
 const ConnectorsTab = lazy(() => import('./components/connectors/ConnectorsTab'))
 const OnboardingWizard = lazy(() => import('./components/OnboardingWizard/OnboardingWizard'))
@@ -34,6 +35,7 @@ function AppInner() {
   const [isGenerating, setIsGenerating] = useState(false)
     const [authState, setAuthState] = useState<'checking' | 'anonymous' | 'authenticated'>('checking')
   const [showOnboarding, setShowOnboarding] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [currentUser, setCurrentUser] = useState<{ username: string; role: string } | null>(null)
   const [oidcConfig, setOidcConfig] = useState<OidcConfig | null>(null)
   const [loginUsername, setLoginUsername] = useState('')
@@ -77,9 +79,17 @@ function AppInner() {
       }
       if (healthResponse.ok) setHealth(await healthResponse.json())
     } catch {
-      showNotif('Impossibile aggiornare lo stato dell’istanza', 'error')
+      showNotif('Impossibile aggiornare i dati. Controlla la connessione e riprova.', 'error')
     }
   }
+
+  // Biblioteche e documenti vengono creati anche da altre schede
+  // (DocumentsTab, OnboardingWizard) che non aggiornano questo elenco: lo si
+  // rilegge a ogni cambio di scheda, altrimenti l'assistente e lo Studio
+  // mostrano uno stato vecchio finche' non si ricarica la pagina.
+  useEffect(() => {
+    if (authState === 'authenticated') void fetchData()
+  }, [activeTab])
 
   useEffect(() => {
     const configRequest = fetch('/api/auth/oidc/config')
@@ -354,10 +364,10 @@ function AppInner() {
   }
 
   const tabHeaders: Record<TabId, string> = {
-    chat: 'Assistente documentale', docs: 'Biblioteche e documenti', connectors: 'Connettori & Automazioni',
-    health: 'Stato sistema', settings: 'Impostazioni',
-    'admin-analytics': 'Analytics & Knowledge Gaps',
-    'admin-users': 'Accessi e chiavi API', 'admin-audit': 'Audit log',
+    chat: 'Assistente documentale', studio: 'Studio della biblioteca', docs: 'Biblioteche e documenti', connectors: 'Collegamenti esterni',
+    health: 'Stato del sistema', settings: 'Impostazioni',
+    'admin-analytics': 'Domande senza risposta',
+    'admin-users': 'Accessi e chiavi API', 'admin-audit': 'Registro attività',
   }
 
   if (authState !== 'authenticated') {
@@ -365,7 +375,7 @@ function AppInner() {
       <div className="grid w-full max-w-5xl overflow-hidden rounded-3xl border border-white/10 bg-[#121722]/85 shadow-2xl shadow-slate-950/40 ermes-glass lg:grid-cols-[1.05fr_.95fr]">
         <section className="hidden min-h-[34rem] flex-col justify-between border-r border-white/[0.08] bg-gradient-to-br from-blue-600/20 via-slate-950/20 to-indigo-500/10 p-10 lg:flex">
           <div><div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-400 to-indigo-600 text-xl font-bold text-white shadow-lg shadow-blue-500/30">E</div><p className="mt-12 text-xs font-bold uppercase tracking-[0.2em] text-blue-300">ERMES Knowledge</p><h1 className="mt-4 max-w-md text-4xl font-semibold leading-tight tracking-tight text-white">La conoscenza aziendale, finalmente consultabile.</h1><p className="mt-5 max-w-md text-sm leading-6 text-slate-300">Organizza documenti, cerca passaggi e ottieni risposte legate alle fonti originali.</p></div>
-          <div className="space-y-3 text-sm text-slate-300"><p className="flex items-center gap-3"><ShieldCheck className="h-4 w-4 text-emerald-400" />Local-first e controllato</p><p className="flex items-center gap-3"><Sparkles className="h-4 w-4 text-blue-300" />Risposte con citazioni verificabili</p></div>
+          <div className="space-y-3 text-sm text-slate-300"><p className="flex items-center gap-3"><ShieldCheck className="h-4 w-4 text-emerald-400" />I documenti restano nella tua azienda</p><p className="flex items-center gap-3"><Sparkles className="h-4 w-4 text-blue-300" />Ogni risposta dice da quale documento viene</p></div>
         </section>
         <form onSubmit={handleLogin} className="flex min-h-[34rem] w-full flex-col justify-center p-7 sm:p-10">
           <div className="mb-8"><div className="mb-6 flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/10 text-blue-300 lg:hidden"><LockKeyhole className="h-5 w-5" /></div><p className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-400">Accesso protetto</p><h2 className="mt-2 text-2xl font-semibold tracking-tight text-white">Accedi al tuo spazio</h2><p className="mt-2 text-sm leading-6 text-slate-400">Usa le credenziali o il provider SSO della tua organizzazione.</p></div>
@@ -383,7 +393,7 @@ function AppInner() {
               </div>
             )}
             <label className="block text-sm font-medium text-slate-300">Utente<input value={loginUsername} onChange={event => setLoginUsername(event.target.value)} placeholder="nome utente" className={`mt-2 w-full rounded-xl border px-3.5 py-3 outline-none ${t.sidebarInput}`} autoComplete="username" /></label><label className="mt-5 block text-sm font-medium text-slate-300">Password<input type="password" value={loginPassword} onChange={event => setLoginPassword(event.target.value)} className={`mt-2 w-full rounded-xl border px-3.5 py-3 outline-none ${t.sidebarInput}`} autoComplete="current-password" /></label>{loginError && <p className="mt-4 rounded-lg border border-rose-500/20 bg-rose-500/10 px-3 py-2 text-sm text-rose-300">{loginError}</p>}<button className="mt-7 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-3 font-semibold text-white shadow-lg shadow-blue-900/30 transition hover:from-blue-500 hover:to-indigo-500">Accedi <LockKeyhole className="h-4 w-4" /></button></>}
-          <p className="mt-7 text-center text-xs leading-5 text-slate-500">Le tue sessioni restano protette su questa istanza Ermes.</p>
+          <p className="mt-7 text-center text-xs leading-5 text-slate-500">Le tue sessioni restano protette su questo server.</p>
         </form>
       </div>
     </main>
@@ -393,15 +403,23 @@ function AppInner() {
     {showOnboarding && currentUser && (
       <Suspense fallback={null}>
       <OnboardingWizard
-        onLibraryCreated={libraryId => { setShowOnboarding(false); setSelectedLibraryId(libraryId) }}
+        onLibraryCreated={async libraryId => {
+          // Senza ricaricare l'elenco, l'app continuava a dire "Crea la prima
+          // biblioteca" subito dopo averla creata. Poi si va dove serve:
+          // caricare il primo documento.
+          setShowOnboarding(false)
+          await fetchData()
+          setSelectedLibraryId(libraryId)
+          setActiveTab('docs')
+        }}
         showNotif={showNotif}
       />
       </Suspense>
     )}
-    <Sidebar activeTab={activeTab} onTabChange={setActiveTab} healthStatus={health ? { status: health.status } : undefined} onRefresh={fetchData} isAdmin={currentUser?.role === 'admin'} username={currentUser?.username} onLogout={handleLogout} />
+    <Sidebar activeTab={activeTab} onTabChange={setActiveTab} healthStatus={health ? { status: health.status } : undefined} onRefresh={fetchData} isAdmin={currentUser?.role === 'admin'} username={currentUser?.username} onLogout={handleLogout} mobileOpen={mobileMenuOpen} onMobileClose={() => setMobileMenuOpen(false)} />
     <main className="relative flex flex-1 flex-col overflow-hidden">
       {notif && <div className={`absolute right-4 top-4 z-50 flex items-center gap-2.5 rounded-xl border px-4 py-3 shadow-lg ${notif.type === 'error' ? 'border-rose-800 bg-rose-950/90 text-rose-200' : 'border-emerald-800 bg-emerald-950/90 text-emerald-200'}`}>{notif.type === 'error' ? <AlertTriangle className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}<span className="text-sm font-medium">{notif.message}</span></div>}
-      <header className={`z-10 flex h-[4.5rem] items-center justify-between border-b px-7 ${t.header}`}><div className="flex items-center gap-3"><div><p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">Spazio di lavoro</p><h2 className={`mt-0.5 text-sm font-semibold ${t.cardTitle}`}>{tabHeaders[activeTab]}</h2></div><span className="hidden rounded-full border border-blue-500/20 bg-blue-500/10 px-2.5 py-1 text-[10px] font-semibold text-blue-400 sm:inline">Biblioteca locale</span></div><p className={`text-xs ${t.cardDesc}`}>Policy AI per singola biblioteca</p></header>
+      <header className={`z-10 flex h-[4.5rem] items-center justify-between gap-3 border-b px-4 md:px-7 ${t.header}`}><div className="flex min-w-0 items-center gap-3"><button type="button" onClick={() => setMobileMenuOpen(true)} aria-label="Apri il menu" aria-controls="ermes-menu" aria-expanded={mobileMenuOpen} className="rounded-lg border border-white/10 p-2 text-slate-300 md:hidden"><Menu className="h-5 w-5" /></button><div className="min-w-0"><p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">Spazio di lavoro</p><h2 className={`mt-0.5 text-sm font-semibold ${t.cardTitle}`}>{tabHeaders[activeTab]}</h2></div></div><p className={`hidden text-xs md:block ${t.cardDesc}`}>Ogni biblioteca decide come usare l’IA</p></header>
       <div className="flex-1 overflow-hidden">
         <Suspense fallback={<div className={`p-8 text-sm ${t.cardDesc}`}>Caricamento…</div>}>
         {activeTab === 'chat' && (
@@ -424,6 +442,14 @@ function AppInner() {
             onSelectConversation={selectConversation}
             onNewConversation={newConversation}
             onDeleteConversation={deleteConversation}
+          />
+        )}
+        {activeTab === 'studio' && (
+          <StudioTab
+            libraries={libraries}
+            selectedLibraryId={selectedLibraryId}
+            onSelectLibrary={setSelectedLibraryId}
+            onAsk={question => { setActiveTab('chat'); void sendQuestion(question) }}
           />
         )}
         {activeTab === 'docs' && <DocumentsTab showNotif={showNotif} />}

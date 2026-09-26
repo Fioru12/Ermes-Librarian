@@ -15,14 +15,8 @@ from pydantic import BaseModel, Field
 from api.auth import _require_role
 from api.libraries import _reject_source_path_inside_app, _require_library_owner_or_admin, get_library_store
 from config import cfg
+from core.connectors import registry
 from core.connectors.base import BaseConnector
-from core.connectors.confluence import ConfluenceConnector
-from core.connectors.google_drive import GoogleDriveConnector
-from core.connectors.local_folder import LocalFolderConnector
-from core.connectors.microsoft_graph import MicrosoftGraphConnector
-from core.connectors.s3_bucket import S3BucketConnector
-from core.connectors.web_scraper import WebScraperConnector
-from core.connectors.webdav import WebDAVConnector
 from core.document_parser import extract_source_units
 from core.governance import append_audit
 from core.library_store import LibraryAccessError, LibraryNotFoundError, LibraryStore, storage_relative_path
@@ -33,7 +27,9 @@ _logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/connectors", tags=["Enterprise Connectors"])
 
 
-SUPPORTED_CONNECTORS_PATTERN = "^(microsoft_graph|google_drive|confluence|web_scraper|local_folder|s3_bucket|webdav)$"
+# Solo la forma del nome: quali tipi esistono lo decide il registro
+# (core/connectors/registry.py), che include i plugin configurati.
+SUPPORTED_CONNECTORS_PATTERN = r"^[a-z][a-z0-9_]{1,63}$"
 
 
 class TestConnectorRequest(BaseModel):
@@ -55,21 +51,24 @@ class DeltaSyncRequest(BaseModel):
 
 
 def _build_connector(connector_type: str, config: dict[str, Any]) -> BaseConnector:
-    if connector_type == "microsoft_graph":
-        return MicrosoftGraphConnector(config)
-    elif connector_type == "google_drive":
-        return GoogleDriveConnector(config)
-    elif connector_type == "confluence":
-        return ConfluenceConnector(config)
-    elif connector_type == "web_scraper":
-        return WebScraperConnector(config)
-    elif connector_type == "local_folder":
-        return LocalFolderConnector(config)
-    elif connector_type == "s3_bucket":
-        return S3BucketConnector(config)
-    elif connector_type == "webdav":
-        return WebDAVConnector(config)
-    raise HTTPException(status_code=400, detail=f"Tipo connettore non supportato: {connector_type}")
+    try:
+        return registry.create_connector(connector_type, config)
+    except KeyError:
+        raise HTTPException(status_code=400, detail=f"Tipo connettore non supportato: {connector_type}") from None
+    except registry.ConnectorPluginError as errore:
+        # Configurazione dell'installazione sbagliata, non richiesta sbagliata.
+        _logger.error("%s", errore)
+        raise HTTPException(status_code=503, detail="Plugin connettori non configurati correttamente") from errore
+
+
+@router.get("/types", summary="Tipi di connettore disponibili (integrati e plugin)")
+def list_connector_types(_auth: dict = Depends(_require_role("admin"))) -> dict[str, Any]:
+    try:
+        types = registry.available_types()
+    except registry.ConnectorPluginError as errore:
+        _logger.error("%s", errore)
+        raise HTTPException(status_code=503, detail="Plugin connettori non configurati correttamente") from errore
+    return {"types": [{"type": t, "builtin": registry.is_builtin(t)} for t in types]}
 
 
 @router.post("/test", summary="Testa connettività e credenziali connettore")

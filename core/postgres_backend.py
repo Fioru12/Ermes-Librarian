@@ -22,6 +22,11 @@ logger = logging.getLogger(__name__)
 DEFAULT_PG_DSN = "postgresql://postgres:ermes_dev@localhost:5433/ermes_test"
 
 POSTGRES_SCHEMA = """
+CREATE TABLE IF NOT EXISTS search_cache_generations (
+    library_id TEXT PRIMARY KEY,
+    generation INTEGER NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS libraries (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
@@ -92,6 +97,19 @@ CREATE TABLE IF NOT EXISTS document_versions (
 );
 CREATE INDEX IF NOT EXISTS versions_by_document
     ON document_versions(document_id, version DESC);
+
+CREATE TABLE IF NOT EXISTS library_notes (
+    id TEXT PRIMARY KEY,
+    library_id TEXT NOT NULL REFERENCES libraries(id) ON DELETE CASCADE,
+    owner TEXT NOT NULL,
+    title TEXT NOT NULL,
+    body TEXT NOT NULL,
+    sources_json TEXT NOT NULL DEFAULT '[]',
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS library_notes_by_owner
+    ON library_notes(library_id, owner);
 
 CREATE TABLE IF NOT EXISTS document_acls (
     document_id TEXT NOT NULL REFERENCES documents(id) ON DELETE CASCADE,

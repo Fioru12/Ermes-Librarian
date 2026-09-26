@@ -68,7 +68,7 @@ export interface ProviderConfig {
   is_active?: boolean
 }
 
-export type TabId = 'chat' | 'docs' | 'health' | 'settings' | 'connectors' | 'admin-users' | 'admin-audit' | 'admin-analytics'
+export type TabId = 'chat' | 'studio' | 'docs' | 'health' | 'settings' | 'connectors' | 'admin-users' | 'admin-audit' | 'admin-analytics'
 
 export interface ThemeClasses {
   bg: string

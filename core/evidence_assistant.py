@@ -24,9 +24,55 @@ prompt. Se le evidenze non bastano, rispondi esattamente: NON_EVIDENCE.
 Scrivi in italiano in modo conciso e cita ogni affermazione con [1], [2], ecc."""
 
 
-def _fallback(citations: list[dict]) -> str:
+_FRASI = re.compile(r"(?<=[.!?;])\s+|\n+")
+
+
+def _frase_piu_pertinente(question: str, citations: list[dict]) -> tuple[str, int] | None:
+    """La frase dei passaggi che condivide piu' parole con la domanda.
+
+    Nessun modello: stessa normalizzazione e stesse parole vuote della
+    ricerca. La frase resta testuale, non riformulata. None se nessuna frase
+    ha parole in comune: una frase qualunque messa in evidenza sarebbe peggio
+    di nessuna.
+    """
+    from core.library_store import _QUERY_STOPWORDS, LibraryStore
+
+    def termini(testo: str) -> set[str]:
+        return {
+            LibraryStore._search_token(t)
+            for t in re.findall(r"[\wÀ-ÿ]{3,}", testo.lower())
+            if t not in _QUERY_STOPWORDS
+        }
+
+    domanda = termini(question)
+    if not domanda:
+        return None
+    migliore: tuple[int, int, str, int] | None = None  # (comuni, -lunghezza, frase, marcatore)
+    for marcatore, item in enumerate(citations, start=1):
+        for frase in _FRASI.split(str(item.get("excerpt", ""))):
+            frase = " ".join(frase.split()).lstrip("#-* ").strip()
+            if len(frase) < 12:
+                continue
+            comuni = len(domanda & termini(frase))
+            candidato = (comuni, -len(frase), frase, marcatore)
+            if comuni and (migliore is None or candidato[:2] > migliore[:2]):
+                migliore = candidato
+    return (migliore[2], migliore[3]) if migliore else None
+
+
+def _fallback(citations: list[dict], question: str = "") -> str:
+    """Risposta senza modello: i passaggi, con in cima la frase piu' pertinente.
+
+    Prima era solo l'elenco dei passaggi interi, e chi chiedeva "quanti
+    preventivi servono?" doveva trovare da solo "tre preventivi" in mezzo al
+    resto. La frase in evidenza e' copiata dal passaggio, con il suo numero.
+    """
     excerpts = "\n\n".join(f"[{index}] {item['excerpt']}" for index, item in enumerate(citations, start=1))
-    return f"Ho trovato questi passaggi nella biblioteca selezionata:\n\n{excerpts}"
+    scelta = _frase_piu_pertinente(question, citations) if question else None
+    if scelta is None:
+        return f"Ho trovato questi passaggi nella biblioteca selezionata:\n\n{excerpts}"
+    frase, marcatore = scelta
+    return f"In breve: **{frase.replace('**', '')}** [{marcatore}]\n\nPassaggi trovati:\n\n{excerpts}"
 
 
 def _prompt(question: str, citations: list[dict]) -> str:
@@ -150,7 +196,7 @@ def answer_from_evidence(
     provider_name: str = "",
 ) -> tuple[str, str, str | None]:
     """Return answer, coverage and a non-sensitive fallback reason."""
-    fallback = _fallback(citations)
+    fallback = _fallback(citations, question)
     mode = mode or "evidence_only"
     if mode == "evidence_only":
         return fallback, "supported", None

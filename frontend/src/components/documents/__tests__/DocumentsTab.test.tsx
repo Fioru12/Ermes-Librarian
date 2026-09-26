@@ -86,7 +86,7 @@ describe('DocumentsTab', () => {
     fireEvent.change(input, { target: { value: 'ferie' } })
     fireEvent.click(screen.getByRole('button', { name: 'Cerca' }))
 
-    expect(await screen.findByText('Ricerca ibrida locale · 4 passaggi vettoriali')).toBeInTheDocument()
+    expect(await screen.findByText('Ricerca per significato e per parole')).toBeInTheDocument()
   })
 
   it('keeps write controls hidden for a viewer library role', async () => {
@@ -105,6 +105,6 @@ describe('DocumentsTab', () => {
 
     await screen.findByText('Sola lettura')
     expect(screen.queryByText('Carica documento')).not.toBeInTheDocument()
-    expect(screen.queryByText('Reindicizza')).not.toBeInTheDocument()
+    expect(screen.queryByText('Rielabora')).not.toBeInTheDocument()
   })
 })

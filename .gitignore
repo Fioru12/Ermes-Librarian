@@ -87,6 +87,7 @@ frontend/node_modules/
 frontend/dist/
 coverage/
 .coverage
+coverage.xml
 
 # ── Script di debug temporanei ──────────────────────────────
 fix_*.py
