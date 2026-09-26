@@ -75,7 +75,7 @@ test('upload, indicizzazione e gestione accessi per-documento', async ({ page })
   await expect(panel.getByText(/Nessuna restrizione/)).toBeVisible({ timeout: 15_000 })
 
   // ── Health: la nuova card coerenza indice e' presente e senza anomalie ──
-  await page.getByRole('button', { name: /stato sistema/i }).click()
+  await page.getByRole('button', { name: /stato del sistema/i }).click()
   await expect(page.getByText(/coerenza indice/i)).toBeVisible({ timeout: 15_000 })
   // La card riporta i conteggi, non una frase: fino al 18 settembre 2026 il
   // test cercava un testo rimosso dalla UI mesi prima, e nessuno lo vedeva
