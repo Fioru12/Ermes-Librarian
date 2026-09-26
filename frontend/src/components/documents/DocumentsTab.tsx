@@ -699,7 +699,7 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
                 className={`w-full rounded-xl border p-3 text-left text-sm transition ${selectedLibraryId === library.id ? t.docSelected : t.card}`}
               >
                 <span className="block truncate font-medium">{library.name}</span>
-                <span className="mt-1 block text-xs text-slate-400">{library.document_count} documenti · {library.visibility === 'shared' ? 'Condivisa' : 'Privata'}</span>
+                <span className="mt-1 block text-xs text-slate-400">{library.document_count} {library.document_count === 1 ? 'documento' : 'documenti'} · {library.visibility === 'shared' ? 'Condivisa' : 'Privata'}</span>
               </button>
             ))}
           </div>
@@ -709,12 +709,21 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
       <section className="flex flex-1 flex-col overflow-hidden">
         {selectedLibrary ? (
           <>
-            <header className={`flex items-center justify-between gap-4 border-b bg-slate-950/15 px-7 py-5 ermes-glass ${t.documentsBg}`}>
-              <div>
+            <header className={`flex flex-wrap items-center justify-between gap-4 border-b bg-slate-950/15 px-7 py-5 ermes-glass ${t.documentsBg}`}>
+              <div className="min-w-0">
                 <CardTitle><Library className="w-4 h-4 text-blue-400" />{selectedLibrary.name}</CardTitle>
                 {selectedLibrary.description && <p className="mt-1 text-xs text-slate-400">{selectedLibrary.description}</p>}
               </div>
-              <div className="flex items-center gap-3">
+              {/* Va a capo invece di uscire dallo schermo: su un portatile da
+                  1280 px l'ultimo pulsante, "Carica documento", finiva oltre il
+                  bordo destro. Ora e' anche il primo: e' l'azione principale. */}
+              <div className="flex flex-wrap items-center gap-3">
+                {canEditLibrary && <label className="cursor-pointer rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-blue-900/30 transition hover:bg-blue-500 focus-within:ring-2 focus-within:ring-blue-300">
+                  <span className="flex items-center gap-1.5"><Upload className="w-3.5 h-3.5" />Carica documento</span>
+                  {/* sr-only e non hidden: un input nascosto con display:none non
+                      riceve il focus, e il pulsante non era raggiungibile da tastiera. */}
+                  <input type="file" className="sr-only" accept=".pdf,.docx,.xlsx,.csv,.rtf,.txt,.md" onChange={uploadDocument} />
+                </label>}
                 {selectedLibrary.access_role && <span className={`rounded-full px-2 py-1 text-[11px] font-medium ${canEditLibrary ? 'bg-emerald-500/10 text-emerald-300' : 'bg-slate-500/10 text-slate-400'}`}>
                   {selectedLibrary.access_role === 'owner' ? 'Proprietario' : selectedLibrary.access_role === 'admin' ? 'Admin' : selectedLibrary.access_role === 'editor' ? 'Editor' : 'Sola lettura'}
                 </span>}
@@ -722,7 +731,7 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
                   <span className="flex items-center gap-1.5"><Users className="h-3.5 w-3.5" />Collaboratori{members.length > 1 ? ` (${members.length - 1})` : ''}</span>
                 </button>}
                 {canManageLibrary && <button onClick={() => setShowSources(current => !current)} className={`rounded-xl border px-3 py-2 text-xs font-medium transition ${showSources ? 'border-blue-500/60 bg-blue-500/10 text-blue-300' : 'border-white/10 text-slate-300 hover:bg-white/5'}`}>
-                  <span className="flex items-center gap-1.5"><FolderCog className="h-3.5 w-3.5" />Sorgenti{sources.length > 0 ? ` (${sources.length})` : ''}</span>
+                  <span className="flex items-center gap-1.5"><FolderCog className="h-3.5 w-3.5" />Cartelle collegate{sources.length > 0 ? ` (${sources.length})` : ''}</span>
                 </button>}
                 {canManageLibrary && <button onClick={deleteLibrary} disabled={deletingLibrary} aria-label="Elimina biblioteca" title="Elimina biblioteca" className="rounded-xl border border-rose-500/30 px-3 py-2 text-xs font-medium text-rose-300 transition hover:bg-rose-500/10 disabled:cursor-not-allowed disabled:opacity-40">
                   <Trash2 className="h-3.5 w-3.5" />
@@ -731,37 +740,33 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
                   <button
                     onClick={() => setShowDLQ(true)}
                     className="flex items-center gap-1.5 rounded-xl border border-rose-500/40 bg-rose-500/15 px-3 py-2 text-xs font-semibold text-rose-300 transition hover:bg-rose-500/25 animate-pulse"
-                    title="Documenti con errori di elaborazione in Dead-Letter Queue"
+                    title="Documenti che non e' stato possibile elaborare"
                   >
                     <AlertTriangle className="h-3.5 w-3.5" />
-                    <span>DLQ ({deadLetterJobs.length})</span>
+                    <span>Documenti con errori ({deadLetterJobs.length})</span>
                   </button>
                 )}
                 <button
                   onClick={() => window.open(`/api/libraries/${selectedLibrary.id}/export`, '_blank', 'noopener,noreferrer')}
                   className="rounded-xl border border-blue-500/30 bg-blue-500/10 px-3 py-2 text-xs font-medium text-blue-300 transition hover:bg-blue-500/20"
-                  title="Esporta Knowledge Pack (.ermes)"
+                  title="Scarica tutta la biblioteca in un file, per copiarla su un'altra installazione"
                 >
-                  <span className="flex items-center gap-1.5"><Download className="h-3.5 w-3.5" />Esporta .ermes</span>
+                  <span className="flex items-center gap-1.5"><Download className="h-3.5 w-3.5" />Esporta</span>
                 </button>
                 {canEditLibrary && <div className="flex items-center gap-2">
                   <select value={selectedLibrary.assistant_mode ?? 'evidence_only'} onChange={event => {
                     const mode = event.target.value as LibraryItem['assistant_mode']
                     changeAssistantMode(mode, mode === 'approved_provider' ? approvedProviders[0]?.name ?? '' : '')
-                  }} className={`rounded-xl border px-3 py-2 text-xs outline-none ${t.sidebarInput}`} aria-label="Modalità assistente biblioteca">
-                    <option value="evidence_only">Solo evidenze locali</option>
-                    <option value="local_ollama">Ollama locale</option>
-                    <option value="approved_openrouter">OpenRouter (cloud)</option>
-                    <option value="approved_provider" disabled={!approvedProviders.length}>Provider approvato (cloud)</option>
+                  }} className={`rounded-xl border px-3 py-2 text-xs outline-none ${t.sidebarInput}`} aria-label="Come risponde l'assistente in questa biblioteca" title="Come risponde l'assistente in questa biblioteca">
+                    <option value="evidence_only">Solo i passaggi dei documenti (nessuna IA)</option>
+                    <option value="local_ollama">IA su questo server (i documenti non escono)</option>
+                    <option value="approved_openrouter">IA cloud OpenRouter (i passaggi escono)</option>
+                    <option value="approved_provider" disabled={!approvedProviders.length}>IA cloud approvata (i passaggi escono)</option>
                   </select>
                   {selectedLibrary.assistant_mode === 'approved_provider' && <select value={selectedLibrary.assistant_provider ?? ''} onChange={event => changeAssistantMode('approved_provider', event.target.value)} className={`max-w-44 rounded-xl border px-3 py-2 text-xs outline-none ${t.sidebarInput}`} aria-label="Provider cloud biblioteca">
                     {approvedProviders.map(provider => <option key={provider.name} value={provider.name}>{provider.name} · {provider.default_model}</option>)}
                   </select>}
                 </div>}
-                {canEditLibrary && <label className="cursor-pointer rounded-xl border border-white/10 px-4 py-2 text-sm font-semibold text-slate-300 transition hover:bg-white/5">
-                  <span className="flex items-center gap-1.5"><Upload className="w-3.5 h-3.5" />Carica documento</span>
-                  <input type="file" className="hidden" accept=".pdf,.docx,.xlsx,.csv,.rtf,.txt,.md" onChange={uploadDocument} />
-                </label>}
               </div>
             </header>
             {showMembers && canManageMembers && (

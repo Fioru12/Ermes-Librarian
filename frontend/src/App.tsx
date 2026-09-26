@@ -82,6 +82,14 @@ function AppInner() {
     }
   }
 
+  // Biblioteche e documenti vengono creati anche da altre schede
+  // (DocumentsTab, OnboardingWizard) che non aggiornano questo elenco: lo si
+  // rilegge a ogni cambio di scheda, altrimenti l'assistente e lo Studio
+  // mostrano uno stato vecchio finche' non si ricarica la pagina.
+  useEffect(() => {
+    if (authState === 'authenticated') void fetchData()
+  }, [activeTab])
+
   useEffect(() => {
     const configRequest = fetch('/api/auth/oidc/config')
       .then(res => res.json())
@@ -355,10 +363,10 @@ function AppInner() {
   }
 
   const tabHeaders: Record<TabId, string> = {
-    chat: 'Assistente documentale', studio: 'Studio della biblioteca', docs: 'Biblioteche e documenti', connectors: 'Connettori & Automazioni',
-    health: 'Stato sistema', settings: 'Impostazioni',
-    'admin-analytics': 'Analytics & Knowledge Gaps',
-    'admin-users': 'Accessi e chiavi API', 'admin-audit': 'Audit log',
+    chat: 'Assistente documentale', studio: 'Studio della biblioteca', docs: 'Biblioteche e documenti', connectors: 'Collegamenti esterni',
+    health: 'Stato del sistema', settings: 'Impostazioni',
+    'admin-analytics': 'Domande senza risposta',
+    'admin-users': 'Accessi e chiavi API', 'admin-audit': 'Registro attività',
   }
 
   if (authState !== 'authenticated') {
@@ -394,7 +402,15 @@ function AppInner() {
     {showOnboarding && currentUser && (
       <Suspense fallback={null}>
       <OnboardingWizard
-        onLibraryCreated={libraryId => { setShowOnboarding(false); setSelectedLibraryId(libraryId) }}
+        onLibraryCreated={async libraryId => {
+          // Senza ricaricare l'elenco, l'app continuava a dire "Crea la prima
+          // biblioteca" subito dopo averla creata. Poi si va dove serve:
+          // caricare il primo documento.
+          setShowOnboarding(false)
+          await fetchData()
+          setSelectedLibraryId(libraryId)
+          setActiveTab('docs')
+        }}
         showNotif={showNotif}
       />
       </Suspense>

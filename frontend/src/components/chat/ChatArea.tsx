@@ -273,7 +273,7 @@ export default function ChatArea({
                 )}
                 {m.role === 'assistant' && m.evidence && (
                   <p className={`mb-2 text-xs font-medium ${m.evidence.coverage === 'supported' ? 'text-emerald-400' : 'text-amber-400'}`}>
-                    {m.evidence.coverage === 'supported' ? `Basata su ${m.sources?.length ?? 0} fonti` : 'Evidenza insufficiente'}
+                    {m.evidence.coverage === 'supported' ? `Basata su ${m.sources?.length ?? 0} ${(m.sources?.length ?? 0) === 1 ? 'fonte' : 'fonti'}` : 'Nessuna fonte sufficiente nei documenti'}
                     {m.evidence.reason ? ` - ${m.evidence.reason}` : ''}
                   </p>
                 )}

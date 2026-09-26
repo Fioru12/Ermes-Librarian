@@ -16,12 +16,14 @@ const navItems: { tab: TabId; icon: typeof MessageSquare; label: string; admin?:
   { tab: 'chat', icon: MessageSquare, label: 'Assistente' },
   { tab: 'studio', icon: BookOpen, label: 'Studio' },
   { tab: 'docs', icon: FileText, label: 'Biblioteche e documenti' },
-  { tab: 'connectors', icon: HardDrive, label: 'Connettori & Automazioni' },
-  { tab: 'health', icon: Activity, label: 'Stato Sistema' },
+  // Solo amministratori: le operazioni di queste pagine richiedono admin o
+  // editor lato server, e a un utente semplice mostravano schermate inutili.
+  { tab: 'connectors', icon: HardDrive, label: 'Collegamenti esterni', admin: true },
+  { tab: 'health', icon: Activity, label: 'Stato del sistema', admin: true },
   { tab: 'settings', icon: Settings, label: 'Impostazioni' },
-  { tab: 'admin-analytics', icon: BarChart2, label: 'Analytics & Gaps', admin: true },
+  { tab: 'admin-analytics', icon: BarChart2, label: 'Domande senza risposta', admin: true },
   { tab: 'admin-users', icon: Users, label: 'Accessi e chiavi API', admin: true },
-  { tab: 'admin-audit', icon: Shield, label: 'Audit Log', admin: true },
+  { tab: 'admin-audit', icon: Shield, label: 'Registro attività', admin: true },
 ]
 
 export default function Sidebar({ activeTab, onTabChange, healthStatus, onRefresh, isAdmin = false, username, onLogout }: SidebarProps) {
@@ -48,7 +50,7 @@ export default function Sidebar({ activeTab, onTabChange, healthStatus, onRefres
           <label className={`text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5 ${t.sidebarLabel}`}>
             <Shield className="w-3.5 h-3.5 text-purple-400" /> Assistente IA
           </label>
-          <p className="text-xs leading-5 text-slate-400">La biblioteca scelta decide se usare solo evidenze, Ollama locale o un provider cloud approvato.</p>
+          <p className="text-xs leading-5 text-slate-400">Ogni biblioteca decide se l’assistente usa l’intelligenza artificiale e se i documenti restano su questo server.</p>
         </div>
 
         {/* Navigation */}
