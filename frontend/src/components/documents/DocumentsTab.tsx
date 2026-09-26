@@ -658,8 +658,10 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
   }
 
   return (
-    <div className="flex h-full">
-      <aside className={`w-80 border-r p-6 flex flex-col gap-4 bg-slate-950/20 ermes-glass ${t.documentsBg}`}>
+    // Sotto i 768 px le due colonne si impilano: affiancate, su un telefono la
+    // seconda (i documenti) finiva tagliata fuori dallo schermo.
+    <div className="flex h-full flex-col overflow-y-auto md:flex-row md:overflow-hidden">
+      <aside className={`w-full shrink-0 border-b p-4 flex flex-col gap-4 bg-slate-950/20 ermes-glass max-h-[45vh] overflow-y-auto md:max-h-none md:w-80 md:border-b-0 md:border-r md:p-6 ${t.documentsBg}`}>
         <div className="flex items-center justify-between gap-3">
           <CardTitle><Library className="w-4 h-4 text-blue-400" />Biblioteche</CardTitle>
           <button onClick={fetchLibraries} aria-label="Aggiorna biblioteche" className="text-slate-400 hover:text-blue-400 transition">
@@ -706,10 +708,10 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
         )}
       </aside>
 
-      <section className="flex flex-1 flex-col overflow-hidden">
+      <section className="flex min-h-[60vh] flex-1 flex-col md:min-h-0 md:overflow-hidden">
         {selectedLibrary ? (
           <>
-            <header className={`flex flex-wrap items-center justify-between gap-4 border-b bg-slate-950/15 px-7 py-5 ermes-glass ${t.documentsBg}`}>
+            <header className={`flex flex-wrap items-center justify-between gap-4 border-b bg-slate-950/15 px-4 py-4 md:px-7 md:py-5 ermes-glass ${t.documentsBg}`}>
               <div className="min-w-0">
                 <CardTitle><Library className="w-4 h-4 text-blue-400" />{selectedLibrary.name}</CardTitle>
                 {selectedLibrary.description && <p className="mt-1 text-xs text-slate-400">{selectedLibrary.description}</p>}

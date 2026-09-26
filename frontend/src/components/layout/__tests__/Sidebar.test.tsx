@@ -36,4 +36,13 @@ describe('Sidebar', () => {
     expect(screen.getAllByText('Registro attività').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Collegamenti esterni').length).toBeGreaterThan(0)
   })
+
+  it('on phones, choosing a page closes the slide-over menu', () => {
+    const onMobileClose = vi.fn()
+    const onTabChange = vi.fn()
+    renderSidebar({ mobileOpen: true, onMobileClose, onTabChange })
+    fireEvent.click(screen.getByText('Studio'))
+    expect(onTabChange).toHaveBeenCalledWith('studio')
+    expect(onMobileClose).toHaveBeenCalled()
+  })
 })

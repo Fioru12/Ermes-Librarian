@@ -10,6 +10,9 @@ interface SidebarProps {
   isAdmin?: boolean
   username?: string
   onLogout?: () => void
+  /** Solo sotto i 768 px: il menu e' un pannello a scomparsa. */
+  mobileOpen?: boolean
+  onMobileClose?: () => void
 }
 
 const navItems: { tab: TabId; icon: typeof MessageSquare; label: string; admin?: boolean }[] = [
@@ -26,12 +29,20 @@ const navItems: { tab: TabId; icon: typeof MessageSquare; label: string; admin?:
   { tab: 'admin-audit', icon: Shield, label: 'Registro attività', admin: true },
 ]
 
-export default function Sidebar({ activeTab, onTabChange, healthStatus, onRefresh, isAdmin = false, username, onLogout }: SidebarProps) {
+export default function Sidebar({ activeTab, onTabChange, healthStatus, onRefresh, isAdmin = false, username, onLogout, mobileOpen = false, onMobileClose }: SidebarProps) {
   const { isDark, toggle, t } = useTheme()
   const visibleNavItems = navItems.filter(item => !item.admin || isAdmin)
 
+  // Sotto i 768 px la barra occupava tre quarti del telefono e schiacciava
+  // il contenuto fuori dallo schermo. Li' diventa un pannello sopra la
+  // pagina, aperto dal pulsante menu dell'intestazione.
   return (
-    <aside className={`w-[17.5rem] border-r flex flex-col z-10 transition-colors duration-200 ${t.sidebar}`}>
+    <>
+    {mobileOpen && <div className="fixed inset-0 z-30 bg-slate-950/60 md:hidden" onClick={onMobileClose} aria-hidden="true" />}
+    <aside
+      id="ermes-menu"
+      className={`fixed inset-y-0 left-0 z-40 w-[17.5rem] max-w-[85vw] border-r flex flex-col transition-transform duration-200 md:static md:z-10 md:translate-x-0 ${mobileOpen ? 'translate-x-0' : '-translate-x-full'} ${t.sidebar}`}
+    >
       {/* Title */}
       <div className="px-5 pt-6 pb-5 flex items-center gap-3">
         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-400 via-blue-600 to-indigo-700 flex items-center justify-center shadow-lg shadow-blue-500/30 ring-1 ring-white/10">
@@ -56,7 +67,7 @@ export default function Sidebar({ activeTab, onTabChange, healthStatus, onRefres
         {/* Navigation */}
         <nav className="flex flex-col gap-1 pt-1">
           {visibleNavItems.map((item) => (
-            <button key={item.tab} onClick={() => onTabChange(item.tab)} aria-current={activeTab === item.tab ? 'page' : undefined}
+            <button key={item.tab} onClick={() => { onTabChange(item.tab); onMobileClose?.() }} aria-current={activeTab === item.tab ? 'page' : undefined}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${activeTab === item.tab ? t.navButtonActive : t.navButtonInactive}`}>
               <item.icon className={`w-4 h-4 ${activeTab === item.tab ? '' : 'opacity-70 group-hover:opacity-100 transition-opacity'}`} />
               {item.label}
@@ -91,5 +102,6 @@ export default function Sidebar({ activeTab, onTabChange, healthStatus, onRefres
         </div>
       </div>
     </aside>
+    </>
   )
 }
