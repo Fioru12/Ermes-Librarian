@@ -59,7 +59,9 @@ test('upload, indicizzazione e gestione accessi per-documento', async ({ page })
   await expect(page.getByText(/portale HR/).first()).toBeVisible({ timeout: 15_000 })
 
   // ── Pannello ACL: solo l'owner/admin lo vede; allow-list modificabile ──
-  await documentCard.getByRole('button', { name: /accessi/i }).click()
+  // Le azioni meno usate stanno nel menu "Altro…" della scheda documento.
+  await documentCard.getByText('Altro…').click()
+  await documentCard.getByRole('button', { name: /chi può vederlo/i }).click()
   const panel = page.locator('section[aria-label="Accessi documento"]')
   await expect(panel).toBeVisible()
   await expect(panel.getByText(/Nessuna restrizione/)).toBeVisible()

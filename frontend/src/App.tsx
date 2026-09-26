@@ -79,7 +79,7 @@ function AppInner() {
       }
       if (healthResponse.ok) setHealth(await healthResponse.json())
     } catch {
-      showNotif('Impossibile aggiornare lo stato dell’istanza', 'error')
+      showNotif('Impossibile aggiornare i dati. Controlla la connessione e riprova.', 'error')
     }
   }
 
@@ -375,7 +375,7 @@ function AppInner() {
       <div className="grid w-full max-w-5xl overflow-hidden rounded-3xl border border-white/10 bg-[#121722]/85 shadow-2xl shadow-slate-950/40 ermes-glass lg:grid-cols-[1.05fr_.95fr]">
         <section className="hidden min-h-[34rem] flex-col justify-between border-r border-white/[0.08] bg-gradient-to-br from-blue-600/20 via-slate-950/20 to-indigo-500/10 p-10 lg:flex">
           <div><div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-400 to-indigo-600 text-xl font-bold text-white shadow-lg shadow-blue-500/30">E</div><p className="mt-12 text-xs font-bold uppercase tracking-[0.2em] text-blue-300">ERMES Knowledge</p><h1 className="mt-4 max-w-md text-4xl font-semibold leading-tight tracking-tight text-white">La conoscenza aziendale, finalmente consultabile.</h1><p className="mt-5 max-w-md text-sm leading-6 text-slate-300">Organizza documenti, cerca passaggi e ottieni risposte legate alle fonti originali.</p></div>
-          <div className="space-y-3 text-sm text-slate-300"><p className="flex items-center gap-3"><ShieldCheck className="h-4 w-4 text-emerald-400" />Local-first e controllato</p><p className="flex items-center gap-3"><Sparkles className="h-4 w-4 text-blue-300" />Risposte con citazioni verificabili</p></div>
+          <div className="space-y-3 text-sm text-slate-300"><p className="flex items-center gap-3"><ShieldCheck className="h-4 w-4 text-emerald-400" />I documenti restano nella tua azienda</p><p className="flex items-center gap-3"><Sparkles className="h-4 w-4 text-blue-300" />Ogni risposta dice da quale documento viene</p></div>
         </section>
         <form onSubmit={handleLogin} className="flex min-h-[34rem] w-full flex-col justify-center p-7 sm:p-10">
           <div className="mb-8"><div className="mb-6 flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/10 text-blue-300 lg:hidden"><LockKeyhole className="h-5 w-5" /></div><p className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-400">Accesso protetto</p><h2 className="mt-2 text-2xl font-semibold tracking-tight text-white">Accedi al tuo spazio</h2><p className="mt-2 text-sm leading-6 text-slate-400">Usa le credenziali o il provider SSO della tua organizzazione.</p></div>
@@ -393,7 +393,7 @@ function AppInner() {
               </div>
             )}
             <label className="block text-sm font-medium text-slate-300">Utente<input value={loginUsername} onChange={event => setLoginUsername(event.target.value)} placeholder="nome utente" className={`mt-2 w-full rounded-xl border px-3.5 py-3 outline-none ${t.sidebarInput}`} autoComplete="username" /></label><label className="mt-5 block text-sm font-medium text-slate-300">Password<input type="password" value={loginPassword} onChange={event => setLoginPassword(event.target.value)} className={`mt-2 w-full rounded-xl border px-3.5 py-3 outline-none ${t.sidebarInput}`} autoComplete="current-password" /></label>{loginError && <p className="mt-4 rounded-lg border border-rose-500/20 bg-rose-500/10 px-3 py-2 text-sm text-rose-300">{loginError}</p>}<button className="mt-7 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-3 font-semibold text-white shadow-lg shadow-blue-900/30 transition hover:from-blue-500 hover:to-indigo-500">Accedi <LockKeyhole className="h-4 w-4" /></button></>}
-          <p className="mt-7 text-center text-xs leading-5 text-slate-500">Le tue sessioni restano protette su questa istanza Ermes.</p>
+          <p className="mt-7 text-center text-xs leading-5 text-slate-500">Le tue sessioni restano protette su questo server.</p>
         </form>
       </div>
     </main>

@@ -387,7 +387,7 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
   const changeAssistantMode = async (mode: LibraryItem['assistant_mode'], providerName = '') => {
     if (!selectedLibrary) return
     const providerLabel = mode === 'approved_provider' ? providerName : 'OpenRouter'
-    if ((mode === 'approved_openrouter' || mode === 'approved_provider') && !(await confirm({ title: 'Inviare passaggi a un provider cloud?', message: `I passaggi recuperati da questa biblioteca potranno essere inviati a ${providerLabel} per generare le risposte. Solo gli estratti autorizzati escono dal perimetro, mai i documenti interi.`, confirmLabel: 'Attiva' }))) return
+    if ((mode === 'approved_openrouter' || mode === 'approved_provider') && !(await confirm({ title: 'Inviare parti dei documenti a un servizio esterno?', message: `I passaggi recuperati da questa biblioteca potranno essere inviati a ${providerLabel} per generare le risposte. Solo gli estratti autorizzati escono dal perimetro, mai i documenti interi.`, confirmLabel: 'Attiva' }))) return
     try {
       const response = await fetch(`/api/libraries/${selectedLibrary.id}/assistant-policy`, {
         method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mode, provider_name: providerName }),
@@ -684,7 +684,7 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
 
         <label className="flex cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-dashed border-purple-500/40 bg-purple-500/10 px-3 py-2 text-xs font-medium text-purple-300 transition hover:bg-purple-500/20">
           <PackageOpen className="w-3.5 h-3.5" />
-          <span>Importa .ermes</span>
+          <span>Importa una biblioteca esportata</span>
           <input type="file" className="hidden" accept=".ermes,.tar.gz" onChange={importKnowledgePack} />
         </label>
 
@@ -798,10 +798,10 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
               </section>
             )}
             {showSources && canManageLibrary && (
-              <section className={`border-b px-6 py-5 ${t.documentsBg}`} aria-label="Sorgenti cartella">
+              <section className={`border-b px-6 py-5 ${t.documentsBg}`} aria-label="Cartelle collegate">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div>
-                    <h2 className="text-sm font-semibold text-slate-200">Sorgenti cartella</h2>
+                    <h2 className="text-sm font-semibold text-slate-200">Cartelle collegate</h2>
                     <p className="mt-1 flex max-w-md items-start gap-1.5 text-xs text-slate-400">
                       <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-400" />
                       <span>Registra un percorso locale o di rete (UNC): i diritti sulla cartella sono quelli dell'account con cui gira Ermes, nessuna credenziale viene salvata. Solo il proprietario o un amministratore possono registrarne; il percorso non può trovarsi dentro la cartella dell'applicazione. Scansionare importa i file .txt/.pdf/.docx nuovi, saltando i duplicati per contenuto.</span>
@@ -863,7 +863,7 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
                   <div className="flex flex-wrap items-center gap-2 text-xs font-medium uppercase tracking-wide text-slate-400">
                     <span>{searchResults.length} risultati</span>
                     {retrievalProfile && <span className={`rounded-full px-2 py-0.5 normal-case tracking-normal ${retrievalProfile.semantic_used ? 'bg-violet-500/10 text-violet-300' : 'bg-slate-500/10 text-slate-400'}`}>
-                      {retrievalProfile.semantic_used ? `Ricerca ibrida locale · ${retrievalProfile.semantic_indexed_chunks} passaggi vettoriali` : 'Ricerca per parole locali'}
+                      {retrievalProfile.semantic_used ? 'Ricerca per significato e per parole' : 'Ricerca per parole'}
                     </span>}
                   </div>
                   {searchResults.length === 0 ? <p className="text-sm text-slate-500">Nessun passaggio trovato.</p> : searchResults.map(result => (
@@ -942,7 +942,14 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
                                 const status = documentStatus(document.status)
                                 return <span className={`mt-3 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${status.className}`}><status.Icon className={`h-3 w-3 ${document.status === 'processing' ? 'animate-spin' : ''}`} />{status.label}</span>
                               })()}
-                              <div className="mt-3 flex flex-wrap gap-3">{isTabularDoc(document.filename) && <button onClick={() => setTabularDoc(document)} className="flex items-center gap-1 text-xs text-blue-400 font-semibold transition hover:text-blue-300" title="Esplora dati e query SQL"><Table className="h-3 w-3" />Dati SQL</button>}<button onClick={() => { setSearchScopeDoc(current => current?.id === document.id ? null : document); setSearchQuery(''); setSearchResults(null); setRetrievalProfile(null) }} className={`flex items-center gap-1 text-xs transition hover:text-blue-400 ${searchScopeDoc?.id === document.id ? 'text-blue-300' : 'text-slate-400'}`}><Search className="h-3 w-3" />{searchScopeDoc?.id === document.id ? 'Scope attivo' : 'Cerca qui'}</button><button onClick={() => showSummary(document)} disabled={summarizing} className="flex items-center gap-1 text-xs text-slate-400 transition hover:text-blue-400 disabled:cursor-not-allowed disabled:opacity-40"><FileText className="h-3 w-3" />{summarizing ? 'Riassumo…' : 'Riassumi'}</button><button onClick={() => downloadDocument(document)} className="flex items-center gap-1 text-xs text-slate-400 transition hover:text-blue-400"><Download className="h-3 w-3" />Apri</button>{canManageMembers && <button onClick={() => openAclPanel(document)} className="flex items-center gap-1 text-xs text-slate-400 transition hover:text-blue-400"><ShieldCheck className="h-3 w-3" />Accessi</button>}{canEditLibrary && <button disabled={document.status === 'queued' || document.status === 'processing'} onClick={() => reindexDocument(document)} className="flex items-center gap-1 text-xs text-slate-400 transition hover:text-blue-400 disabled:cursor-not-allowed disabled:opacity-40"><RefreshCw className="h-3 w-3" />Reindicizza</button>}<button onClick={() => showVersions(document)} className="text-xs text-slate-400 transition hover:text-blue-400">Versioni</button>{canEditLibrary && <button onClick={() => deleteDocument(document)} disabled={deletingDocumentId === document.id} aria-label={`Elimina ${document.filename}`} className="flex items-center gap-1 text-xs text-rose-400/80 transition hover:text-rose-300 disabled:cursor-not-allowed disabled:opacity-40"><Trash2 className="h-3 w-3" />{deletingDocumentId === document.id ? 'Elimino…' : 'Elimina'}</button>}</div>
+                              {/* Tre azioni in vista, le altre in "Altro": sette pulsanti insieme
+                                  su ogni scheda erano troppi per chi usa Ermes solo per consultare. */}
+                              <div className="mt-3 flex flex-wrap items-center gap-3"><button onClick={() => downloadDocument(document)} className="flex items-center gap-1 text-xs text-slate-400 transition hover:text-blue-400"><Download className="h-3 w-3" />Apri</button><button onClick={() => showSummary(document)} disabled={summarizing} className="flex items-center gap-1 text-xs text-slate-400 transition hover:text-blue-400 disabled:cursor-not-allowed disabled:opacity-40"><FileText className="h-3 w-3" />{summarizing ? 'Riassumo…' : 'Riassumi'}</button><button onClick={() => { setSearchScopeDoc(current => current?.id === document.id ? null : document); setSearchQuery(''); setSearchResults(null); setRetrievalProfile(null) }} className={`flex items-center gap-1 text-xs transition hover:text-blue-400 ${searchScopeDoc?.id === document.id ? 'text-blue-300' : 'text-slate-400'}`}><Search className="h-3 w-3" />{searchScopeDoc?.id === document.id ? 'Ricerca limitata a questo' : 'Cerca qui'}</button>
+                                <details className="relative text-xs">
+                                  <summary className="cursor-pointer list-none text-slate-400 transition hover:text-blue-400">Altro…</summary>
+                                  <div className="absolute left-0 z-20 mt-2 flex min-w-44 flex-col gap-2 rounded-xl border border-white/10 bg-slate-900 p-3 shadow-xl">{isTabularDoc(document.filename) && <button onClick={() => setTabularDoc(document)} className="flex items-center gap-1 text-xs text-blue-400 font-semibold transition hover:text-blue-300" title="Esplora i dati della tabella"><Table className="h-3 w-3" />Esplora tabella</button>}{canManageMembers && <button onClick={() => openAclPanel(document)} className="flex items-center gap-1 text-xs text-slate-400 transition hover:text-blue-400"><ShieldCheck className="h-3 w-3" />Chi può vederlo</button>}{canEditLibrary && <button disabled={document.status === 'queued' || document.status === 'processing'} title="Rilegge il file, se le risposte sembrano non aggiornate" onClick={() => reindexDocument(document)} className="flex items-center gap-1 text-xs text-slate-400 transition hover:text-blue-400 disabled:cursor-not-allowed disabled:opacity-40"><RefreshCw className="h-3 w-3" />Rielabora</button>}<button onClick={() => showVersions(document)} className="text-xs text-slate-400 transition hover:text-blue-400">Versioni</button>{canEditLibrary && <button onClick={() => deleteDocument(document)} disabled={deletingDocumentId === document.id} aria-label={`Elimina ${document.filename}`} className="flex items-center gap-1 text-xs text-rose-400/80 transition hover:text-rose-300 disabled:cursor-not-allowed disabled:opacity-40"><Trash2 className="h-3 w-3" />{deletingDocumentId === document.id ? 'Elimino…' : 'Elimina'}</button>}</div>
+                                </details>
+                              </div>
                             </div>
                           </div>
                         </article>

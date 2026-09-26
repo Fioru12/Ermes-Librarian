@@ -222,7 +222,7 @@ export default function ChatArea({
               {needsLibrary ? 'Crea biblioteca' : 'Carica documento'}
             </button>
           </div>
-          <p className="text-xs text-slate-500">Di default Ermes usa solo evidenze locali: nessun file viene inviato a un provider cloud.</p>
+          <p className="text-xs text-slate-500">Di norma Ermes lavora solo su questo server: nessun documento viene inviato su internet.</p>
         </div>
       ) : messages.length === 0 ? (
         <div className="flex-1 overflow-y-auto px-6 py-8 flex flex-col items-center justify-center max-w-5xl mx-auto w-full">
