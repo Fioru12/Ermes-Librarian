@@ -16,7 +16,7 @@ dependencies = [
     "python-docx>=1.1",
     # Il pavimento sale a 6.16.1: le versioni precedenti hanno vulnerabilita'
     # note, e pypdf legge file caricati dagli utenti.
-    "pypdf>=6.16.1",
+    "pypdf>=6.19.0",
     "python-dotenv>=1.0",
     "filelock>=3.0",
     "prometheus-client>=0.20",
