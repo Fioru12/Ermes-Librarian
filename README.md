@@ -343,9 +343,12 @@ only and are not shipped in the bundle. The full inventory with versions is in
 `tests/test_third_party_notices.py` — which is how four missing entries and that
 false "every dependency is permissive" claim were found.
 
-## Repository hygiene before publishing
+## Community and security
 
-This workspace intentionally contains development history and local artifacts. Before making a public repository, use the release checklist in [docs/GITHUB_RELEASE_PLAN.md](docs/GITHUB_RELEASE_PLAN.md). A full-history secret scan has been run and one sensitive non-public document was found and purged from Git history entirely (not just deleted); re-scan before publishing if the history changes further.
+- [Contributing guide](CONTRIBUTING.md) and [developer notes](DEVELOPER.md) — how to run the stack, tests and linters locally
+- [Security policy](SECURITY.md) — how to report a vulnerability privately; please do not open a public issue for one
+- [Code of conduct](CODE_OF_CONDUCT.md)
+- Every change goes through a pull request with CI: pytest, vitest, lint/mypy, gitleaks secret scan, clean-clone `docker compose` smoke test and a browser E2E against the container. The full Git history was scanned for secrets before the repository went public.
 
 ## Documentation
 
@@ -363,6 +366,6 @@ Thirteen documents, each written for a reader with a job to do. Start with the f
 - [Guida operativa aziendale](docs/GUIDA_OPERATIVA_AZIENDA.md) (IT) — for the IT team: Docker, Windows, OIDC, backup, NAS
 - [Code Review](docs/CODE_REVIEW.md) and [Audit 2026-08-19](docs/AUDIT_2026-08-19.md) — the findings that shaped the current code, kept because several comments in the code point at them
 - [Postgres Migration Plan](docs/POSTGRES_MIGRATION_PLAN.md) — status of the dual SQLite/PostgreSQL backend
-- [Release Plan](docs/GITHUB_RELEASE_PLAN.md) — the publishing checklist this repository follows
+- [Release Plan](docs/GITHUB_RELEASE_PLAN.md) — the publishing checklist this repository follows (historical)
 
 Course material (thesis, slides, presentation assets) and superseded internal plans were removed from the public tree on 18 September 2026; Git history keeps them.

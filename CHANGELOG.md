@@ -2,6 +2,18 @@
 
 Registro leggibile del lavoro su questo progetto. Per i finding tecnici completi, [docs/AUDIT_2026-08-19.md](docs/AUDIT_2026-08-19.md) e [docs/CODE_REVIEW.md](docs/CODE_REVIEW.md). La roadmap per fasi e il registro delle sessioni (`ROADMAP_V2.md`, `WORK_PROGRESS.md`) sono stati tolti dall'albero pubblico il 18 settembre 2026: la cronologia Git li conserva.
 
+## 2026-10-13 — v2.3.0: Studio, note, SCIM Groups, GPL-3.0 e repository pronto per i contributori
+
+- **Studio** (briefing, FAQ, guida di studio, domande suggerite) e **note personali per libreria** con le relative fonti.
+- **SCIM Groups**: i gruppi gestiti dall'IdP concedono l'accesso alle librerie. **Registro dei connettori** con plugin esplicitamente abilitati.
+- **Sicurezza**: la revoca dell'accesso a un documento non serve più estratti dalla cache per 5 minuti; l'invalidazione della cache di ricerca raggiunge ogni replica; gli endpoint di retention/legal-hold rispettano l'appartenenza alla libreria.
+- **Prestazioni**: candidati della ricerca per parola chiave limitati dal rank full-text del database — caso peggiore da 3,2 s a 0,3 s a 50.000 passaggi.
+- **Valutazione**: gold set di 52 domande e noise corpus congelato, numeri reali pubblicati nel README.
+- **UI**: badge di evidenza più chiaro, pannello laterale per ispezionare la fonte citata, uso da telefono, italiano semplice sul percorso principale, primo avvio in un passo.
+- **CI**: copertura minima 75% (misurata 77%, 798 test), mypy anche su `scripts/`, E2E nel container.
+- **Licenza**: passaggio a GPL-3.0, allineata in README, NOTICE, notices di terze parti e test.
+- **Repository**: template per issue e PR, `CODEOWNERS`, codice di condotta, dependabot raggruppato (solo minor/patch), tre ADR e guida di integrazione allineata alle API reali. Il materiale della tesina è stato tolto dall'albero pubblico.
+
 ## 2026-09-22 — Antivirus ClamAV, streaming SIEM e chart Helm, recuperati da un ramo divergente
 
 Un ramo parallelo (`feat/enterprise-v2.3.0`, 12 commit) aveva costruito indipendentemente, senza coordinamento, funzionalità in parte già presenti su `main` con un'implementazione diversa e incompatibile: una seconda astrazione di storage S3 (`core/storage_backend.py` contro `core/storage_provider.py`) e una seconda cifratura AES-256-GCM a riposo. Quelle parti sono state scartate — mergiarle avrebbe significato mantenere due percorsi di storage/cifratura paralleli, con dati scritti da uno potenzialmente illeggibili dall'altro. Recuperate solo le parti genuinamente nuove, adattate ai nomi di configurazione reali di `main` (il ramo usava `ERMES_S3_*`, `main` usa `S3_*` senza prefisso):
