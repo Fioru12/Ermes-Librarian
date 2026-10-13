@@ -27,7 +27,7 @@ pypdf==6.16.1
 # pytesseract la passa al binario Tesseract, che sta nel Dockerfile. Senza
 # il binario l'applicazione parte, /health segnala il degrado e le pagine
 # scansionate restano vuote. Vedi core/ocr.py.
-pypdfium2==5.13.0
+pypdfium2==5.14.0
 pytesseract==0.3.13
 # RTF: core/document_parser.py la importa con un fallback interno; fino al
 # 21 settembre 2026 non era dichiarata, quindi su un'installazione pulita
