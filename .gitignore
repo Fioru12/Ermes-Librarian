@@ -108,3 +108,5 @@ scripts/ollama_*.json
 
 # ── Pacchetti di release precompilati (250+ MB, mai nel repo) ──
 release/
+# ── Backup locali di file sorgente ──
+*.original_backup
