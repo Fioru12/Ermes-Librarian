@@ -9,16 +9,16 @@ version = "2.3.0"
 description = "Enterprise Knowledge Hub — RAG locale per documentazione aziendale"
 requires-python = ">=3.11"
 dependencies = [
-    "fastapi>=0.115",
-    "python-multipart>=0.0.31",
-    "uvicorn[standard]>=0.30",
-    "pydantic>=2.0",
+    "fastapi>=0.136.3",
+    "python-multipart>=0.0.32",
+    "uvicorn[standard]>=0.54.0",
+    "pydantic>=2.14.0",
     "python-docx>=1.1",
     # Il pavimento sale a 6.16.1: le versioni precedenti hanno vulnerabilita'
     # note, e pypdf legge file caricati dagli utenti.
-    "pypdf>=6.16.1",
-    "python-dotenv>=1.0",
-    "filelock>=3.0",
+    "pypdf>=6.20.0",
+    "python-dotenv>=1.2.4",
+    "filelock>=3.32.7",
     "prometheus-client>=0.20",
 ]
 
@@ -32,7 +32,7 @@ neural = [
 # Backend PostgreSQL multi-utente (ERMES_DATABASE_URL). Vedi
 # docs/POSTGRES_MIGRATION_PLAN.md per lo stato della migrazione.
 postgres = [
-    "psycopg[binary]>=3.1",
+    "psycopg[binary]>=3.3.6",
 ]
 # Metriche Prometheus native (/metrics). L'extra resta per compatibilita' con
 # chi lo installava, ma prometheus-client e' una dipendenza obbligatoria sopra:
