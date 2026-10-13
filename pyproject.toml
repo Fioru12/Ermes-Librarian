@@ -32,7 +32,7 @@ neural = [
 # Backend PostgreSQL multi-utente (ERMES_DATABASE_URL). Vedi
 # docs/POSTGRES_MIGRATION_PLAN.md per lo stato della migrazione.
 postgres = [
-    "psycopg[binary]>=3.1",
+    "psycopg[binary]>=3.3.6",
 ]
 # Metriche Prometheus native (/metrics). L'extra resta per compatibilita' con
 # chi lo installava, ma prometheus-client e' una dipendenza obbligatoria sopra:
