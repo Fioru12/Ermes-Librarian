@@ -132,7 +132,7 @@ jobs:
           pip install pytest-cov
           python -m pytest tests/ -v --timeout=30 \
             --cov=api --cov=core --cov=config --cov-report=term --cov-report=xml --cov-fail-under=75
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: coverage-xml
@@ -252,7 +252,7 @@ jobs:
           npm ci
           npx playwright install --with-deps chromium
           npm run e2e
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: playwright-traces
@@ -284,7 +284,7 @@ jobs:
           # `cp config.py` con || true non copiava nulla, silenziosamente.
           cp -r config/ deploy-backup/ 2>/dev/null || true
           tar czf deploy-backup.tar.gz deploy-backup/
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: pre-deploy-backup
           path: deploy-backup.tar.gz
