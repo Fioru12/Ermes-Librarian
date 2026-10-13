@@ -49,7 +49,7 @@ httpx==0.28.1
 # Verifica firma dei token OIDC (core/oidc_keys.py). L'extra [crypto] non e'
 # opzionale: senza `cryptography` PyJWT non sa validare RS256/ES256, cioe'
 # esattamente gli algoritmi che i provider OIDC usano.
-PyJWT[crypto]==2.13.0
+PyJWT[crypto]==2.15.1
 
 # Driver PostgreSQL, per ERMES_DATABASE_URL. Mancava, quindi il backend
 # PostgreSQL — dichiarato nel README come funzionalita' enterprise — non
