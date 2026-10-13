@@ -3,7 +3,7 @@
 # Build: docker build -t ermes-ai-hub .
 # Run: docker compose up
 
-FROM python:3.11-slim AS builder
+FROM python:3.14-slim AS builder
 
 WORKDIR /app
 
@@ -28,7 +28,7 @@ COPY frontend/ ./frontend/
 RUN cd frontend && npm ci && npm run build && rm -rf node_modules
 
 # Stage finale
-FROM python:3.11-slim
+FROM python:3.14-slim
 
 WORKDIR /app
 
