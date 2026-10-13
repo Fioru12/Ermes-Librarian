@@ -12,7 +12,7 @@
 [![Docker](https://img.shields.io/badge/Docker-Compose%20Ready-2496ED?logo=docker&logoColor=white)](docker-compose.yml)
 [![CI](https://img.shields.io/badge/CI-pytest%20%7C%20vitest%20%7C%20compose--smoke-brightgreen)](.github/workflows/ci.yml)
 [![Security](https://img.shields.io/badge/Security-Fail--Closed%20%7C%20Audit%20SHA--256-blueviolet)](docs/THREAT_MODEL.md)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![License: GPL-3.0](https://img.shields.io/badge/License-GPL--3.0-blue.svg)](LICENSE)
 
 <p align="center">
   <a href="#quick-start-windows"><b>Quick Start</b></a> •
@@ -331,7 +331,7 @@ The historical WinSarp formula engine, kept frozen under `legacy_winsarp/` behin
 
 ## License
 
-MIT — see [LICENSE](LICENSE) and [NOTICE](NOTICE). Almost every dependency is
+GPL-3.0 — see [LICENSE](LICENSE) and [NOTICE](NOTICE). Almost every dependency is
 permissive (MIT, BSD, Apache-2.0, ISC). The exceptions are named rather than
 averaged away: `psycopg` is LGPL-3.0, and it is the optional PostgreSQL driver —
 the product runs on SQLite without it, so an organisation whose policy forbids

@@ -123,17 +123,14 @@ def test_the_sbom_covers_the_declared_dependencies():
     )
 
 
-def test_the_project_license_and_the_copyright_holder_agree():
-    """LICENSE e NOTICE devono nominare la stessa persona: un titolare del
-    copyright diverso fra i due file e' un'ambiguita' su chi detiene i
-    diritti."""
+def test_the_project_license_and_the_notice_agree():
+    """LICENSE (testo GPL-3.0) e NOTICE devono dichiarare la stessa licenza e
+    NOTICE deve nominare il titolare del copyright: una licenza diversa fra i
+    due file e' un'ambiguita' su cosa si puo' fare con il codice."""
     licenza = (RADICE / "LICENSE").read_text(encoding="utf-8")
     notice = (RADICE / "NOTICE").read_text(encoding="utf-8")
 
-    assert "MIT License" in licenza
-    titolare_licenza = re.search(r"Copyright \(c\) \d{4} (.+)", licenza)
-    titolare_notice = re.search(r"Copyright \(c\) \d{4} (.+)", notice)
-    assert titolare_licenza and titolare_notice, "manca la riga di copyright in LICENSE o NOTICE"
-    assert titolare_licenza.group(1).strip() == titolare_notice.group(1).strip(), (
-        f"LICENSE dice {titolare_licenza.group(1)!r}, NOTICE dice {titolare_notice.group(1)!r}"
-    )
+    assert "GNU GENERAL PUBLIC LICENSE" in licenza
+    assert "Version 3" in licenza
+    assert "GNU General Public License v3.0" in notice
+    assert re.search(r"Copyright \(c\) \d{4} \S+", notice), "manca la riga di copyright in NOTICE"

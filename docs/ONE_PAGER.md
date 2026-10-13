@@ -43,4 +43,4 @@ FastAPI · React + TypeScript · SQLite · Tailwind · Ollama (embedding locali)
 - Cosa e' cambiato e perche', release per release: [CHANGELOG.md](../CHANGELOG.md)
 - Audit completo (architettura, sicurezza, design): [docs/AUDIT_2026-08-19.md](AUDIT_2026-08-19.md)
 
-Licenza MIT.
+Licenza GPL-3.0.

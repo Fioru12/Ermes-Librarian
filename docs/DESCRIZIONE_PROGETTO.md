@@ -3,7 +3,7 @@
 > **Versione:** 2.2.5  
 > **Stato:** Produzione / On-Premise & Cloud Privato  
 > **Repository:** `c:\Progetti\ProgettoRAG_DEV`  
-> **Licenza:** Open Source / MIT con conformità Enterprise  
+> **Licenza:** Open Source / GPL-3.0  
 
 ---
 

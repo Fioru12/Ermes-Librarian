@@ -113,7 +113,7 @@ def main() -> int:
     righe = [
         "# Third-party notices",
         "",
-        "Ermes Knowledge is distributed under the MIT License (see `LICENSE`). It bundles",
+        "Ermes Knowledge is distributed under the GNU General Public License v3.0 (see `LICENSE`). It bundles",
         "no third-party source code, but depends on the open-source packages listed here.",
         "Each remains under its own license, held by its respective authors.",
         "",
