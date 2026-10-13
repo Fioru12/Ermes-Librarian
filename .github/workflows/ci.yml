@@ -144,7 +144,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: "20"
           cache: "npm"
@@ -239,7 +239,7 @@ jobs:
       # un'istanza avviata con credenziali note — cioe' sempre, in CI.
       # Qui l'istanza c'e' (il container), il corpus demo e' appena stato
       # caricato dal passo sopra, e la password e' quella del job.
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: "20"
           cache: "npm"
