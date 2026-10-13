@@ -12,6 +12,7 @@ Registro leggibile del lavoro su questo progetto. Per i finding tecnici completi
 - **UI**: badge di evidenza più chiaro, pannello laterale per ispezionare la fonte citata, uso da telefono, italiano semplice sul percorso principale, primo avvio in un passo.
 - **CI**: copertura minima 75% (misurata 77%, 798 test), mypy anche su `scripts/`, E2E nel container.
 - **Licenza**: passaggio a GPL-3.0, allineata in README, NOTICE, notices di terze parti e test.
+- **Monitoraggio opzionale**: `docker-compose.monitoring.yml` avvia Prometheus, Alertmanager e Grafana con la dashboard già collegata e sette regole di alert (indisponibilità, errori 5xx, latenza, verificatore di evidenza non raggiungibile, errori nelle domande, ingestione fallita, troppi rifiuti). Token e password obbligatori, porte solo sul loopback. Guida in [docs/MONITORING.md](docs/MONITORING.md); un test impedisce che regole e dashboard citino metriche inesistenti.
 - **Repository**: template per issue e PR, `CODEOWNERS`, codice di condotta, dependabot raggruppato (solo minor/patch), tre ADR e guida di integrazione allineata alle API reali. Il materiale della tesina è stato tolto dall'albero pubblico.
 
 ## 2026-09-22 — Antivirus ClamAV, streaming SIEM e chart Helm, recuperati da un ramo divergente

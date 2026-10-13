@@ -352,10 +352,11 @@ false "every dependency is permissive" claim were found.
 
 ## Documentation
 
-Thirteen documents, each written for a reader with a job to do. Start with the first three.
+Fourteen documents, each written for a reader with a job to do. Start with the first three.
 
 - [One-pager](docs/ONE_PAGER.md) — the short version, for someone evaluating this project in two minutes
 - [Runbook](docs/RUNBOOK.md) — install, back up, upgrade and diagnose, written for whoever operates it
+- [Monitoring](docs/MONITORING.md) — Prometheus metrics, ready-made Grafana dashboard and alert rules, an optional one-command stack, SIEM forwarding
 - [Threat Model](docs/THREAT_MODEL.md) — assets, trust boundaries, what is defended and what is not, with automated CI verification
 - [Retrieval Evaluation](docs/RETRIEVAL_EVALUATION.md) — golden set, abstention analysis, the three fixes that were measured and rejected
 - [Architecture decisions](docs/adr/) — why evidence-first with a lexical default, why permissions filter inside retrieval, why SQLite and no RAG framework
