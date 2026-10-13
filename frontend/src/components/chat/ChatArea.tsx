@@ -288,7 +288,7 @@ export default function ChatArea({
                     ) : (
                       <>
                         <AlertTriangle className="h-3.5 w-3.5 text-amber-400" />
-                        <span>Risposta con astensione (Zero Allucinazioni)</span>
+                        <span>Nessuna fonte sufficiente nei documenti</span>
                       </>
                     )}
                     {m.evidence.reason ? <span className="text-slate-400 font-normal"> - {m.evidence.reason}</span> : ''}
