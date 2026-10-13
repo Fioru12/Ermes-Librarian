@@ -1,4 +1,4 @@
-import { Sun, Moon, MessageSquare, FileText, Activity, Settings, Users, Shield, RefreshCw, Sparkles, BarChart2, HardDrive, LogOut } from 'lucide-react'
+import { Sun, Moon, MessageSquare, BookOpen, FileText, Activity, Settings, Users, Shield, RefreshCw, Sparkles, BarChart2, HardDrive, LogOut } from 'lucide-react'
 import { useTheme } from '../../hooks/useTheme'
 import type { TabId } from '../../types'
 
@@ -10,25 +10,39 @@ interface SidebarProps {
   isAdmin?: boolean
   username?: string
   onLogout?: () => void
+  /** Solo sotto i 768 px: il menu e' un pannello a scomparsa. */
+  mobileOpen?: boolean
+  onMobileClose?: () => void
 }
 
 const navItems: { tab: TabId; icon: typeof MessageSquare; label: string; admin?: boolean }[] = [
   { tab: 'chat', icon: MessageSquare, label: 'Assistente' },
+  { tab: 'studio', icon: BookOpen, label: 'Studio' },
   { tab: 'docs', icon: FileText, label: 'Biblioteche e documenti' },
-  { tab: 'connectors', icon: HardDrive, label: 'Connettori & Automazioni' },
-  { tab: 'health', icon: Activity, label: 'Stato Sistema' },
+  // Solo amministratori: le operazioni di queste pagine richiedono admin o
+  // editor lato server, e a un utente semplice mostravano schermate inutili.
+  { tab: 'connectors', icon: HardDrive, label: 'Collegamenti esterni', admin: true },
+  { tab: 'health', icon: Activity, label: 'Stato del sistema', admin: true },
   { tab: 'settings', icon: Settings, label: 'Impostazioni' },
-  { tab: 'admin-analytics', icon: BarChart2, label: 'Analytics & Gaps', admin: true },
+  { tab: 'admin-analytics', icon: BarChart2, label: 'Domande senza risposta', admin: true },
   { tab: 'admin-users', icon: Users, label: 'Accessi e chiavi API', admin: true },
-  { tab: 'admin-audit', icon: Shield, label: 'Audit Log', admin: true },
+  { tab: 'admin-audit', icon: Shield, label: 'Registro attività', admin: true },
 ]
 
-export default function Sidebar({ activeTab, onTabChange, healthStatus, onRefresh, isAdmin = false, username, onLogout }: SidebarProps) {
+export default function Sidebar({ activeTab, onTabChange, healthStatus, onRefresh, isAdmin = false, username, onLogout, mobileOpen = false, onMobileClose }: SidebarProps) {
   const { isDark, toggle, t } = useTheme()
   const visibleNavItems = navItems.filter(item => !item.admin || isAdmin)
 
+  // Sotto i 768 px la barra occupava tre quarti del telefono e schiacciava
+  // il contenuto fuori dallo schermo. Li' diventa un pannello sopra la
+  // pagina, aperto dal pulsante menu dell'intestazione.
   return (
-    <aside className={`w-[17.5rem] border-r flex flex-col z-10 transition-colors duration-200 ${t.sidebar}`}>
+    <>
+    {mobileOpen && <div className="fixed inset-0 z-30 bg-slate-950/60 md:hidden" onClick={onMobileClose} aria-hidden="true" />}
+    <aside
+      id="ermes-menu"
+      className={`fixed inset-y-0 left-0 z-40 w-[17.5rem] max-w-[85vw] border-r flex flex-col transition-transform duration-200 md:static md:z-10 md:translate-x-0 ${mobileOpen ? 'translate-x-0' : '-translate-x-full'} ${t.sidebar}`}
+    >
       {/* Title */}
       <div className="px-5 pt-6 pb-5 flex items-center gap-3">
         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-400 via-blue-600 to-indigo-700 flex items-center justify-center shadow-lg shadow-blue-500/30 ring-1 ring-white/10">
@@ -47,13 +61,13 @@ export default function Sidebar({ activeTab, onTabChange, healthStatus, onRefres
           <label className={`text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5 ${t.sidebarLabel}`}>
             <Shield className="w-3.5 h-3.5 text-purple-400" /> Assistente IA
           </label>
-          <p className="text-xs leading-5 text-slate-400">La biblioteca scelta decide se usare solo evidenze, Ollama locale o un provider cloud approvato.</p>
+          <p className="text-xs leading-5 text-slate-400">Ogni biblioteca decide se l’assistente usa l’intelligenza artificiale e se i documenti restano su questo server.</p>
         </div>
 
         {/* Navigation */}
         <nav className="flex flex-col gap-1 pt-1">
           {visibleNavItems.map((item) => (
-            <button key={item.tab} onClick={() => onTabChange(item.tab)} aria-current={activeTab === item.tab ? 'page' : undefined}
+            <button key={item.tab} onClick={() => { onTabChange(item.tab); onMobileClose?.() }} aria-current={activeTab === item.tab ? 'page' : undefined}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${activeTab === item.tab ? t.navButtonActive : t.navButtonInactive}`}>
               <item.icon className={`w-4 h-4 ${activeTab === item.tab ? '' : 'opacity-70 group-hover:opacity-100 transition-opacity'}`} />
               {item.label}
@@ -88,5 +102,6 @@ export default function Sidebar({ activeTab, onTabChange, healthStatus, onRefres
         </div>
       </div>
     </aside>
+    </>
   )
 }

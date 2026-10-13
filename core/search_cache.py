@@ -8,6 +8,15 @@ Invalidazione:
 - Per libreria: se cambia il numero di documenti (nuovo upload o delete)
 - Per TTL: scadenza configurabile (default 5 minuti)
 - Manuale: invalidate(library_id) o invalidate_all()
+- Fra repliche: il chiamante passa la generazione della biblioteca, un
+  contatore sul database condiviso che LibraryStore incrementa nella stessa
+  transazione che modifica documenti o permessi. Una voce creata con una
+  generazione diversa da quella attuale non viene servita.
+
+Perche' la generazione: la cache vive nel processo, e il chart Helm parte con
+due repliche. invalidate() svuota solo la replica che riceve la modifica;
+senza il contatore, revocato l'accesso a un documento, sull'altra replica
+l'utente escluso ne riceveva ancora gli estratti fino al TTL.
 
 Thread-safe, memory-bound (max configurabile), con hit/miss stats.
 """
@@ -36,6 +45,7 @@ class _CacheEntry:
     doc_count: int
     query_hash: str
     library_id: str
+    generation: int | None = None
 
 
 @dataclass
@@ -77,7 +87,12 @@ class SemanticSearchCache:
         return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:32]
 
     def get(
-        self, library_id: str, query: str, current_doc_count: int, scope: str = ""
+        self,
+        library_id: str,
+        query: str,
+        current_doc_count: int,
+        scope: str = "",
+        generation: int | None = None,
     ) -> tuple[list[dict], dict] | None:
         """Ritorna i risultati in cache se validi, altrimenti None."""
         if not self._enabled:
@@ -97,8 +112,9 @@ class SemanticSearchCache:
                 self._stats.misses += 1
                 return None
 
-            # Verifica che il numero di documenti non sia cambiato
-            if entry.doc_count != current_doc_count:
+            # Verifica che il numero di documenti non sia cambiato, e che
+            # nessuna replica abbia modificato la biblioteca nel frattempo.
+            if entry.doc_count != current_doc_count or entry.generation != generation:
                 self._evict_key(key)
                 self._stats.misses += 1
                 return None
@@ -111,9 +127,20 @@ class SemanticSearchCache:
             return copy.deepcopy(entry.results), dict(entry.profile)
 
     def put(
-        self, library_id: str, query: str, current_doc_count: int, results: list[dict], profile: dict, scope: str = ""
+        self,
+        library_id: str,
+        query: str,
+        current_doc_count: int,
+        results: list[dict],
+        profile: dict,
+        scope: str = "",
+        generation: int | None = None,
     ) -> None:
-        """Memoizza i risultati per la query."""
+        """Memoizza i risultati; `generation` va letta PRIMA di calcolarli.
+
+        Letta dopo, una modifica arrivata durante la ricerca risulterebbe gia'
+        vista, e il risultato calcolato sui permessi vecchi resterebbe in cache.
+        """
         if not self._enabled:
             return
 
@@ -131,6 +158,7 @@ class SemanticSearchCache:
                 doc_count=current_doc_count,
                 query_hash=key,
                 library_id=library_id,
+                generation=generation,
             )
             # Update library index
             self._library_index.setdefault(library_id, set()).add(key)

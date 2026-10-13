@@ -11,13 +11,13 @@ progetto sul serio.
 
 Come e' misurato
 ----------------
-La variabile isolata e' una sola: la dimensione del corpus. Stesse 27
-domande, stesse risposte attese, stesso codice di recupero. Cambia solo
-quanto rumore c'e' intorno alla risposta corretta.
+La variabile isolata e' una sola: la dimensione del corpus. Stesse domande,
+stesse risposte attese, stesso codice di recupero. Cambia solo quanto rumore
+c'e' intorno alla risposta corretta.
 
-Il rumore non e' inventato: sono paragrafi reali presi dalla documentazione
-di questo repository. Testo vero, con la struttura irregolare del testo vero,
-e per giunta a tema tecnico-aziendale — quindi non rumore facile da scartare.
+Il rumore non e' inventato: sono paragrafi reali della documentazione di
+questo repository, a tema tecnico-aziendale — quindi non rumore facile da
+scartare — congelati in evaluation/noise_corpus.json.
 
 Quello che questo strumento NON dimostra: che il sistema funzioni sui
 documenti di una specifica azienda. Le domande restano scritte da noi. Misura
@@ -49,25 +49,15 @@ from evaluation.run_library_eval import (  # noqa: E402
     build_demo_store,
 )
 
-# Sorgenti del rumore: la documentazione del progetto. Esclusa evaluation/
-# stessa, per non inserire nel corpus il testo che descrive le risposte attese.
-_DOC_GLOBS = ("docs/**/*.md", "*.md")
-_MIN_PARAGRAFO = 200
+# Congelato: vedi build_noise_corpus.py. Letto dal vivo dai .md, cambiava a
+# ogni modifica della documentazione e conteneva l'analisi delle domande
+# stesse (due delle tre di astensione).
+NOISE_CORPUS_PATH = Path(__file__).resolve().parent / "noise_corpus.json"
 
 
-def paragrafi_reali(radice: Path) -> list[str]:
-    """Paragrafi di prosa vera, deduplicati e in ordine deterministico."""
-    visti: set[str] = set()
-    fuori: list[str] = []
-    percorsi = sorted({p for glob in _DOC_GLOBS for p in radice.glob(glob) if p.is_file()})
-    for percorso in percorsi:
-        testo = percorso.read_text(encoding="utf-8", errors="ignore")
-        for paragrafo in testo.split("\n\n"):
-            pulito = " ".join(paragrafo.split())
-            if len(pulito) >= _MIN_PARAGRAFO and pulito not in visti:
-                visti.add(pulito)
-                fuori.append(pulito)
-    return fuori
+def paragrafi_reali(radice: Path | None = None) -> list[str]:
+    """Il rumore congelato, nell'ordine in cui e' stato generato."""
+    return [item["text"] for item in json.loads(NOISE_CORPUS_PATH.read_text(encoding="utf-8"))]
 
 
 def aggiungi_rumore(store, library_id: str, paragrafi: list[str], semantic: bool) -> int:

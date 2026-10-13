@@ -387,7 +387,7 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
   const changeAssistantMode = async (mode: LibraryItem['assistant_mode'], providerName = '') => {
     if (!selectedLibrary) return
     const providerLabel = mode === 'approved_provider' ? providerName : 'OpenRouter'
-    if ((mode === 'approved_openrouter' || mode === 'approved_provider') && !(await confirm({ title: 'Inviare passaggi a un provider cloud?', message: `I passaggi recuperati da questa biblioteca potranno essere inviati a ${providerLabel} per generare le risposte. Solo gli estratti autorizzati escono dal perimetro, mai i documenti interi.`, confirmLabel: 'Attiva' }))) return
+    if ((mode === 'approved_openrouter' || mode === 'approved_provider') && !(await confirm({ title: 'Inviare parti dei documenti a un servizio esterno?', message: `I passaggi recuperati da questa biblioteca potranno essere inviati a ${providerLabel} per generare le risposte. Solo gli estratti autorizzati escono dal perimetro, mai i documenti interi.`, confirmLabel: 'Attiva' }))) return
     try {
       const response = await fetch(`/api/libraries/${selectedLibrary.id}/assistant-policy`, {
         method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mode, provider_name: providerName }),
@@ -658,8 +658,10 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
   }
 
   return (
-    <div className="flex h-full">
-      <aside className={`w-80 border-r p-6 flex flex-col gap-4 bg-slate-950/20 ermes-glass ${t.documentsBg}`}>
+    // Sotto i 768 px le due colonne si impilano: affiancate, su un telefono la
+    // seconda (i documenti) finiva tagliata fuori dallo schermo.
+    <div className="flex h-full flex-col overflow-y-auto md:flex-row md:overflow-hidden">
+      <aside className={`w-full shrink-0 border-b p-4 flex flex-col gap-4 bg-slate-950/20 ermes-glass max-h-[45vh] overflow-y-auto md:max-h-none md:w-80 md:border-b-0 md:border-r md:p-6 ${t.documentsBg}`}>
         <div className="flex items-center justify-between gap-3">
           <CardTitle><Library className="w-4 h-4 text-blue-400" />Biblioteche</CardTitle>
           <button onClick={fetchLibraries} aria-label="Aggiorna biblioteche" className="text-slate-400 hover:text-blue-400 transition">
@@ -682,7 +684,7 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
 
         <label className="flex cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-dashed border-purple-500/40 bg-purple-500/10 px-3 py-2 text-xs font-medium text-purple-300 transition hover:bg-purple-500/20">
           <PackageOpen className="w-3.5 h-3.5" />
-          <span>Importa .ermes</span>
+          <span>Importa una biblioteca esportata</span>
           <input type="file" className="hidden" accept=".ermes,.tar.gz" onChange={importKnowledgePack} />
         </label>
 
@@ -699,22 +701,31 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
                 className={`w-full rounded-xl border p-3 text-left text-sm transition ${selectedLibraryId === library.id ? t.docSelected : t.card}`}
               >
                 <span className="block truncate font-medium">{library.name}</span>
-                <span className="mt-1 block text-xs text-slate-400">{library.document_count} documenti · {library.visibility === 'shared' ? 'Condivisa' : 'Privata'}</span>
+                <span className="mt-1 block text-xs text-slate-400">{library.document_count} {library.document_count === 1 ? 'documento' : 'documenti'} · {library.visibility === 'shared' ? 'Condivisa' : 'Privata'}</span>
               </button>
             ))}
           </div>
         )}
       </aside>
 
-      <section className="flex flex-1 flex-col overflow-hidden">
+      <section className="flex min-h-[60vh] flex-1 flex-col md:min-h-0 md:overflow-hidden">
         {selectedLibrary ? (
           <>
-            <header className={`flex items-center justify-between gap-4 border-b bg-slate-950/15 px-7 py-5 ermes-glass ${t.documentsBg}`}>
-              <div>
+            <header className={`flex flex-wrap items-center justify-between gap-4 border-b bg-slate-950/15 px-4 py-4 md:px-7 md:py-5 ermes-glass ${t.documentsBg}`}>
+              <div className="min-w-0">
                 <CardTitle><Library className="w-4 h-4 text-blue-400" />{selectedLibrary.name}</CardTitle>
                 {selectedLibrary.description && <p className="mt-1 text-xs text-slate-400">{selectedLibrary.description}</p>}
               </div>
-              <div className="flex items-center gap-3">
+              {/* Va a capo invece di uscire dallo schermo: su un portatile da
+                  1280 px l'ultimo pulsante, "Carica documento", finiva oltre il
+                  bordo destro. Ora e' anche il primo: e' l'azione principale. */}
+              <div className="flex flex-wrap items-center gap-3">
+                {canEditLibrary && <label className="cursor-pointer rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-blue-900/30 transition hover:bg-blue-500 focus-within:ring-2 focus-within:ring-blue-300">
+                  <span className="flex items-center gap-1.5"><Upload className="w-3.5 h-3.5" />Carica documento</span>
+                  {/* sr-only e non hidden: un input nascosto con display:none non
+                      riceve il focus, e il pulsante non era raggiungibile da tastiera. */}
+                  <input type="file" className="sr-only" accept=".pdf,.docx,.xlsx,.csv,.rtf,.txt,.md" onChange={uploadDocument} />
+                </label>}
                 {selectedLibrary.access_role && <span className={`rounded-full px-2 py-1 text-[11px] font-medium ${canEditLibrary ? 'bg-emerald-500/10 text-emerald-300' : 'bg-slate-500/10 text-slate-400'}`}>
                   {selectedLibrary.access_role === 'owner' ? 'Proprietario' : selectedLibrary.access_role === 'admin' ? 'Admin' : selectedLibrary.access_role === 'editor' ? 'Editor' : 'Sola lettura'}
                 </span>}
@@ -722,7 +733,7 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
                   <span className="flex items-center gap-1.5"><Users className="h-3.5 w-3.5" />Collaboratori{members.length > 1 ? ` (${members.length - 1})` : ''}</span>
                 </button>}
                 {canManageLibrary && <button onClick={() => setShowSources(current => !current)} className={`rounded-xl border px-3 py-2 text-xs font-medium transition ${showSources ? 'border-blue-500/60 bg-blue-500/10 text-blue-300' : 'border-white/10 text-slate-300 hover:bg-white/5'}`}>
-                  <span className="flex items-center gap-1.5"><FolderCog className="h-3.5 w-3.5" />Sorgenti{sources.length > 0 ? ` (${sources.length})` : ''}</span>
+                  <span className="flex items-center gap-1.5"><FolderCog className="h-3.5 w-3.5" />Cartelle collegate{sources.length > 0 ? ` (${sources.length})` : ''}</span>
                 </button>}
                 {canManageLibrary && <button onClick={deleteLibrary} disabled={deletingLibrary} aria-label="Elimina biblioteca" title="Elimina biblioteca" className="rounded-xl border border-rose-500/30 px-3 py-2 text-xs font-medium text-rose-300 transition hover:bg-rose-500/10 disabled:cursor-not-allowed disabled:opacity-40">
                   <Trash2 className="h-3.5 w-3.5" />
@@ -731,37 +742,33 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
                   <button
                     onClick={() => setShowDLQ(true)}
                     className="flex items-center gap-1.5 rounded-xl border border-rose-500/40 bg-rose-500/15 px-3 py-2 text-xs font-semibold text-rose-300 transition hover:bg-rose-500/25 animate-pulse"
-                    title="Documenti con errori di elaborazione in Dead-Letter Queue"
+                    title="Documenti che non e' stato possibile elaborare"
                   >
                     <AlertTriangle className="h-3.5 w-3.5" />
-                    <span>DLQ ({deadLetterJobs.length})</span>
+                    <span>Documenti con errori ({deadLetterJobs.length})</span>
                   </button>
                 )}
                 <button
                   onClick={() => window.open(`/api/libraries/${selectedLibrary.id}/export`, '_blank', 'noopener,noreferrer')}
                   className="rounded-xl border border-blue-500/30 bg-blue-500/10 px-3 py-2 text-xs font-medium text-blue-300 transition hover:bg-blue-500/20"
-                  title="Esporta Knowledge Pack (.ermes)"
+                  title="Scarica tutta la biblioteca in un file, per copiarla su un'altra installazione"
                 >
-                  <span className="flex items-center gap-1.5"><Download className="h-3.5 w-3.5" />Esporta .ermes</span>
+                  <span className="flex items-center gap-1.5"><Download className="h-3.5 w-3.5" />Esporta</span>
                 </button>
                 {canEditLibrary && <div className="flex items-center gap-2">
                   <select value={selectedLibrary.assistant_mode ?? 'evidence_only'} onChange={event => {
                     const mode = event.target.value as LibraryItem['assistant_mode']
                     changeAssistantMode(mode, mode === 'approved_provider' ? approvedProviders[0]?.name ?? '' : '')
-                  }} className={`rounded-xl border px-3 py-2 text-xs outline-none ${t.sidebarInput}`} aria-label="Modalità assistente biblioteca">
-                    <option value="evidence_only">Solo evidenze locali</option>
-                    <option value="local_ollama">Ollama locale</option>
-                    <option value="approved_openrouter">OpenRouter (cloud)</option>
-                    <option value="approved_provider" disabled={!approvedProviders.length}>Provider approvato (cloud)</option>
+                  }} className={`rounded-xl border px-3 py-2 text-xs outline-none ${t.sidebarInput}`} aria-label="Come risponde l'assistente in questa biblioteca" title="Come risponde l'assistente in questa biblioteca">
+                    <option value="evidence_only">Solo i passaggi dei documenti (nessuna IA)</option>
+                    <option value="local_ollama">IA su questo server (i documenti non escono)</option>
+                    <option value="approved_openrouter">IA cloud OpenRouter (i passaggi escono)</option>
+                    <option value="approved_provider" disabled={!approvedProviders.length}>IA cloud approvata (i passaggi escono)</option>
                   </select>
                   {selectedLibrary.assistant_mode === 'approved_provider' && <select value={selectedLibrary.assistant_provider ?? ''} onChange={event => changeAssistantMode('approved_provider', event.target.value)} className={`max-w-44 rounded-xl border px-3 py-2 text-xs outline-none ${t.sidebarInput}`} aria-label="Provider cloud biblioteca">
                     {approvedProviders.map(provider => <option key={provider.name} value={provider.name}>{provider.name} · {provider.default_model}</option>)}
                   </select>}
                 </div>}
-                {canEditLibrary && <label className="cursor-pointer rounded-xl border border-white/10 px-4 py-2 text-sm font-semibold text-slate-300 transition hover:bg-white/5">
-                  <span className="flex items-center gap-1.5"><Upload className="w-3.5 h-3.5" />Carica documento</span>
-                  <input type="file" className="hidden" accept=".pdf,.docx,.xlsx,.csv,.rtf,.txt,.md" onChange={uploadDocument} />
-                </label>}
               </div>
             </header>
             {showMembers && canManageMembers && (
@@ -791,10 +798,10 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
               </section>
             )}
             {showSources && canManageLibrary && (
-              <section className={`border-b px-6 py-5 ${t.documentsBg}`} aria-label="Sorgenti cartella">
+              <section className={`border-b px-6 py-5 ${t.documentsBg}`} aria-label="Cartelle collegate">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div>
-                    <h2 className="text-sm font-semibold text-slate-200">Sorgenti cartella</h2>
+                    <h2 className="text-sm font-semibold text-slate-200">Cartelle collegate</h2>
                     <p className="mt-1 flex max-w-md items-start gap-1.5 text-xs text-slate-400">
                       <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-400" />
                       <span>Registra un percorso locale o di rete (UNC): i diritti sulla cartella sono quelli dell'account con cui gira Ermes, nessuna credenziale viene salvata. Solo il proprietario o un amministratore possono registrarne; il percorso non può trovarsi dentro la cartella dell'applicazione. Scansionare importa i file .txt/.pdf/.docx nuovi, saltando i duplicati per contenuto.</span>
@@ -856,7 +863,7 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
                   <div className="flex flex-wrap items-center gap-2 text-xs font-medium uppercase tracking-wide text-slate-400">
                     <span>{searchResults.length} risultati</span>
                     {retrievalProfile && <span className={`rounded-full px-2 py-0.5 normal-case tracking-normal ${retrievalProfile.semantic_used ? 'bg-violet-500/10 text-violet-300' : 'bg-slate-500/10 text-slate-400'}`}>
-                      {retrievalProfile.semantic_used ? `Ricerca ibrida locale · ${retrievalProfile.semantic_indexed_chunks} passaggi vettoriali` : 'Ricerca per parole locali'}
+                      {retrievalProfile.semantic_used ? 'Ricerca per significato e per parole' : 'Ricerca per parole'}
                     </span>}
                   </div>
                   {searchResults.length === 0 ? <p className="text-sm text-slate-500">Nessun passaggio trovato.</p> : searchResults.map(result => (
@@ -935,7 +942,14 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
                                 const status = documentStatus(document.status)
                                 return <span className={`mt-3 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${status.className}`}><status.Icon className={`h-3 w-3 ${document.status === 'processing' ? 'animate-spin' : ''}`} />{status.label}</span>
                               })()}
-                              <div className="mt-3 flex flex-wrap gap-3">{isTabularDoc(document.filename) && <button onClick={() => setTabularDoc(document)} className="flex items-center gap-1 text-xs text-blue-400 font-semibold transition hover:text-blue-300" title="Esplora dati e query SQL"><Table className="h-3 w-3" />Dati SQL</button>}<button onClick={() => { setSearchScopeDoc(current => current?.id === document.id ? null : document); setSearchQuery(''); setSearchResults(null); setRetrievalProfile(null) }} className={`flex items-center gap-1 text-xs transition hover:text-blue-400 ${searchScopeDoc?.id === document.id ? 'text-blue-300' : 'text-slate-400'}`}><Search className="h-3 w-3" />{searchScopeDoc?.id === document.id ? 'Scope attivo' : 'Cerca qui'}</button><button onClick={() => showSummary(document)} disabled={summarizing} className="flex items-center gap-1 text-xs text-slate-400 transition hover:text-blue-400 disabled:cursor-not-allowed disabled:opacity-40"><FileText className="h-3 w-3" />{summarizing ? 'Riassumo…' : 'Riassumi'}</button><button onClick={() => downloadDocument(document)} className="flex items-center gap-1 text-xs text-slate-400 transition hover:text-blue-400"><Download className="h-3 w-3" />Apri</button>{canManageMembers && <button onClick={() => openAclPanel(document)} className="flex items-center gap-1 text-xs text-slate-400 transition hover:text-blue-400"><ShieldCheck className="h-3 w-3" />Accessi</button>}{canEditLibrary && <button disabled={document.status === 'queued' || document.status === 'processing'} onClick={() => reindexDocument(document)} className="flex items-center gap-1 text-xs text-slate-400 transition hover:text-blue-400 disabled:cursor-not-allowed disabled:opacity-40"><RefreshCw className="h-3 w-3" />Reindicizza</button>}<button onClick={() => showVersions(document)} className="text-xs text-slate-400 transition hover:text-blue-400">Versioni</button>{canEditLibrary && <button onClick={() => deleteDocument(document)} disabled={deletingDocumentId === document.id} aria-label={`Elimina ${document.filename}`} className="flex items-center gap-1 text-xs text-rose-400/80 transition hover:text-rose-300 disabled:cursor-not-allowed disabled:opacity-40"><Trash2 className="h-3 w-3" />{deletingDocumentId === document.id ? 'Elimino…' : 'Elimina'}</button>}</div>
+                              {/* Tre azioni in vista, le altre in "Altro": sette pulsanti insieme
+                                  su ogni scheda erano troppi per chi usa Ermes solo per consultare. */}
+                              <div className="mt-3 flex flex-wrap items-center gap-3"><button onClick={() => downloadDocument(document)} className="flex items-center gap-1 text-xs text-slate-400 transition hover:text-blue-400"><Download className="h-3 w-3" />Apri</button><button onClick={() => showSummary(document)} disabled={summarizing} className="flex items-center gap-1 text-xs text-slate-400 transition hover:text-blue-400 disabled:cursor-not-allowed disabled:opacity-40"><FileText className="h-3 w-3" />{summarizing ? 'Riassumo…' : 'Riassumi'}</button><button onClick={() => { setSearchScopeDoc(current => current?.id === document.id ? null : document); setSearchQuery(''); setSearchResults(null); setRetrievalProfile(null) }} className={`flex items-center gap-1 text-xs transition hover:text-blue-400 ${searchScopeDoc?.id === document.id ? 'text-blue-300' : 'text-slate-400'}`}><Search className="h-3 w-3" />{searchScopeDoc?.id === document.id ? 'Ricerca limitata a questo' : 'Cerca qui'}</button>
+                                <details className="relative text-xs">
+                                  <summary className="cursor-pointer list-none text-slate-400 transition hover:text-blue-400">Altro…</summary>
+                                  <div className="absolute left-0 z-20 mt-2 flex min-w-44 flex-col gap-2 rounded-xl border border-white/10 bg-slate-900 p-3 shadow-xl">{isTabularDoc(document.filename) && <button onClick={() => setTabularDoc(document)} className="flex items-center gap-1 text-xs text-blue-400 font-semibold transition hover:text-blue-300" title="Esplora i dati della tabella"><Table className="h-3 w-3" />Esplora tabella</button>}{canManageMembers && <button onClick={() => openAclPanel(document)} className="flex items-center gap-1 text-xs text-slate-400 transition hover:text-blue-400"><ShieldCheck className="h-3 w-3" />Chi può vederlo</button>}{canEditLibrary && <button disabled={document.status === 'queued' || document.status === 'processing'} title="Rilegge il file, se le risposte sembrano non aggiornate" onClick={() => reindexDocument(document)} className="flex items-center gap-1 text-xs text-slate-400 transition hover:text-blue-400 disabled:cursor-not-allowed disabled:opacity-40"><RefreshCw className="h-3 w-3" />Rielabora</button>}<button onClick={() => showVersions(document)} className="text-xs text-slate-400 transition hover:text-blue-400">Versioni</button>{canEditLibrary && <button onClick={() => deleteDocument(document)} disabled={deletingDocumentId === document.id} aria-label={`Elimina ${document.filename}`} className="flex items-center gap-1 text-xs text-rose-400/80 transition hover:text-rose-300 disabled:cursor-not-allowed disabled:opacity-40"><Trash2 className="h-3 w-3" />{deletingDocumentId === document.id ? 'Elimino…' : 'Elimina'}</button>}</div>
+                                </details>
+                              </div>
                             </div>
                           </div>
                         </article>

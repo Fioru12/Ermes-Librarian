@@ -50,7 +50,7 @@ async function ask(page: import('@playwright/test').Page, library: string, quest
   // Waiting for "the last banner to be visible" races: a banner from an
   // earlier turn already satisfies it, so the assertion can read the previous
   // answer. Wait for the count to grow instead, which is unambiguous.
-  const banner = page.locator('text=/Basata su \\d+ fonti|Evidenza insufficiente/')
+  const banner = page.locator('text=/Basata su \\d+ font[ei]|Nessuna fonte sufficiente/')
   const before = await banner.count()
 
   const box = page.getByPlaceholder(/domanda/i)
@@ -70,7 +70,7 @@ test('una risposta supportata cita file, versione e sezione', async ({ page }) =
   await login(page)
   const banner = await ask(page, 'Northstar Works Demo', NORTHSTAR_ONLY)
 
-  await expect(banner).toContainText(/Basata su \d+ fonti/)
+  await expect(banner).toContainText(/Basata su \d+ font[ei]/)
   await expect(page.getByText('Fonti').last()).toBeVisible()
 
   // A citation is only useful if it names a retrievable original.
@@ -90,7 +90,7 @@ test('il recupero non attraversa il confine fra biblioteche', async ({ page }) =
   // The very question Northstar answers must find nothing in Meridian:
   // the two corpora are unrelated, so a citation here would mean leakage.
   const banner = await ask(page, 'Meridian Precision Works Demo', NORTHSTAR_ONLY)
-  await expect(banner).toContainText(/Evidenza insufficiente/)
+  await expect(banner).toContainText(/Nessuna fonte sufficiente/)
 
   // Leakage shows up as citations, not as the words of the question: the
   // question itself is echoed in the transcript, so searching the page for

@@ -31,7 +31,7 @@ describe('ChatArea', () => {
       { id: 'u', role: 'user' as const, content: 'Quando ferie?', timestamp: '10:00' },
       { id: 'a', role: 'assistant' as const, content: 'Cinque giorni prima.[1]', timestamp: '10:01', evidence: { coverage: 'supported' as const }, sources: [{ document_id: 'd1', filename: 'ferie.md', version: 2, locator: 'Sezione: Ferie', excerpt: 'Le ferie vanno richieste cinque giorni prima.' }] },
     ] })
-    expect(screen.getByText('Basata su 1 fonti')).toBeInTheDocument()
+    expect(screen.getByText('Basata su 1 fonte')).toBeInTheDocument()
     expect(screen.getByText('ferie.md')).toBeInTheDocument()
   })
 

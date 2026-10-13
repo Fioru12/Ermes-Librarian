@@ -10,10 +10,11 @@ const defaultProps = {
 const renderSidebar = (props = {}) => render(<ThemeProvider><Sidebar {...defaultProps} {...props} /></ThemeProvider>)
 
 describe('Sidebar', () => {
-  it('explains the library-level AI policy instead of a global model selector', () => {
+  it('explains the library-level AI policy in plain words, without a global model selector', () => {
     renderSidebar()
     expect(screen.getByText('Assistente IA')).toBeInTheDocument()
-    expect(screen.getByText(/La biblioteca scelta decide/)).toBeInTheDocument()
+    expect(screen.getByText(/Ogni biblioteca decide/)).toBeInTheDocument()
+    expect(screen.queryByText(/Ollama|provider cloud/)).not.toBeInTheDocument()
     expect(screen.queryByRole('combobox')).not.toBeInTheDocument()
   })
 
@@ -24,10 +25,24 @@ describe('Sidebar', () => {
     expect(onTabChange).toHaveBeenCalledWith('docs')
   })
 
-  it('shows administration only for administrators', () => {
+  it('shows administration pages only to administrators', () => {
     renderSidebar()
-    expect(screen.queryByText('Audit Log')).not.toBeInTheDocument()
+    // Un utente semplice vede solo cio' che puo' usare.
+    for (const adminOnly of ['Registro attività', 'Collegamenti esterni', 'Stato del sistema']) {
+      expect(screen.queryByText(adminOnly)).not.toBeInTheDocument()
+    }
+    expect(screen.getByText('Studio')).toBeInTheDocument()
     renderSidebar({ isAdmin: true })
-    expect(screen.getAllByText('Audit Log').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Registro attività').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Collegamenti esterni').length).toBeGreaterThan(0)
+  })
+
+  it('on phones, choosing a page closes the slide-over menu', () => {
+    const onMobileClose = vi.fn()
+    const onTabChange = vi.fn()
+    renderSidebar({ mobileOpen: true, onMobileClose, onTabChange })
+    fireEvent.click(screen.getByText('Studio'))
+    expect(onTabChange).toHaveBeenCalledWith('studio')
+    expect(onMobileClose).toHaveBeenCalled()
   })
 })

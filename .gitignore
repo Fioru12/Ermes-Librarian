@@ -87,6 +87,7 @@ frontend/node_modules/
 frontend/dist/
 coverage/
 .coverage
+coverage.xml
 
 # ── Script di debug temporanei ──────────────────────────────
 fix_*.py
@@ -107,3 +108,5 @@ scripts/ollama_*.json
 
 # ── Pacchetti di release precompilati (250+ MB, mai nel repo) ──
 release/
+# ── Backup locali di file sorgente ──
+*.original_backup

@@ -93,7 +93,10 @@ def main() -> int:
             f"{base}/ask", json={"question": "Con quale tariffa si calcola il rimborso chilometrico?"}
         ).json()
         reason = answer["evidence"].get("reason") or ""
-        generated = answer["answer"] != "" and not answer["answer"].startswith("Ho trovato questi passaggi")
+        # Le due forme della risposta senza modello (core/evidence_assistant.py::_fallback).
+        generated = answer["answer"] != "" and not answer["answer"].startswith(
+            ("Ho trovato questi passaggi", "In breve: **")
+        )
         step(
             "ask in modalita' cloud: risposta generata O fallback sicuro alle evidenze",
             answer["status"] == "answered" and bool(answer["citations"]),

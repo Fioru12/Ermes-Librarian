@@ -89,3 +89,27 @@ def test_answer_without_valid_citation_marker_falls_back(monkeypatch):
     assert "[1]" in answer
     assert coverage == "supported"
     assert reason is not None
+
+
+def test_evidence_only_answer_highlights_the_sentence_that_answers():
+    from core.evidence_assistant import _fallback
+
+    citations = [
+        {"excerpt": "Gli ordini urgenti si approvano entro 24 ore. Ogni ordine sopra i mille euro richiede tre preventivi."},
+        {"excerpt": "Le fatture vanno registrate entro cinque giorni."},
+    ]
+
+    answer = _fallback(citations, "Quanti preventivi servono per un ordine sopra mille euro?")
+
+    assert answer.startswith("In breve: **Ogni ordine sopra i mille euro richiede tre preventivi.** [1]")
+    # I passaggi interi restano sotto: la frase in evidenza non sostituisce la fonte.
+    assert "[2] Le fatture vanno registrate entro cinque giorni." in answer
+
+
+def test_no_shared_words_means_no_highlight_rather_than_a_random_one():
+    from core.evidence_assistant import _fallback
+
+    answer = _fallback([{"excerpt": "Le fatture vanno registrate entro cinque giorni."}], "Qual e' il menu della mensa?")
+
+    assert answer.startswith("Ho trovato questi passaggi")
+    assert "**" not in answer

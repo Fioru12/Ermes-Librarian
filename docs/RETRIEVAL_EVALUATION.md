@@ -1,5 +1,46 @@
 # Valutazione del retrieval locale
 
+> **Rimisura del 25–26 settembre 2026 — leggere prima di tutto il resto.**
+> Le sezioni successive sono la storia delle misure e restano come erano: i
+> loro numeri vengono da **27 domande** e da un rumore letto dal vivo dalla
+> documentazione. Due difetti di quella base:
+>
+> 1. **Campione troppo piccolo.** Le domande di astensione erano tre: un
+>    errore valeva 33 punti, e l'1.000 pubblicato era fragile. Il gold set ora
+>    ha 52 domande: 16 dirette, 20 parafrasi, 16 di astensione, diverse delle
+>    quali sono trappole lessicali (condividono parole con un passaggio vero
+>    ma non hanno risposta, es. *"le ferie non godute si possono convertire in
+>    denaro?"*). Le domande nuove sono state scritte prima di misurarle.
+> 2. **Rumore non riproducibile e contaminato.** `scale_check.py` leggeva i
+>    `.md` del repository a ogni esecuzione: cambiava a ogni modifica dei
+>    documenti (due misure dello stesso codice davano 0.704 e 0.667) e
+>    includeva questo stesso documento, che cita gli argomenti delle domande di
+>    astensione. Ora il rumore e' congelato in `evaluation/noise_corpus.json`
+>    (245 paragrafi, generato da `build_noise_corpus.py`, esclusi i documenti
+>    che parlano della valutazione).
+>
+> Numeri attuali, corpus demo / con 388 passaggi estranei
+> (`python evaluation/scale_check.py --sizes 0,97 [--semantic] [--verify]`):
+>
+> | | Lessicale | Ibrida | Lessicale + verifica | Ibrida + verifica |
+> |---|---|---|---|---|
+> | Dirette | 1.000 / 0.938 | 1.000 / 1.000 | 1.000 / 0.938 | 1.000 / 0.625 |
+> | Parafrasi | 0.450 / 0.250 | 0.900 / 0.500 | 0.350 / 0.200 | 0.350 / 0.050 |
+> | Astensione | 0.375 / 0.062 | 0.000 / 0.000 | 1.000 / 1.000 | 1.000 / 1.000 |
+>
+> Verificatore `qwen3.5:4b`, temperatura 0. La corsa "ibrida + verifica" ha
+> avuto 3 errori del modello su diverse centinaia di chiamate; una prima corsa
+> con 9 errori dava 1.000 / 0.350 sulle ultime due righe a destra, perche' in
+> caso di errore il verificatore lascia passare i passaggi senza controllo —
+> gli errori gonfiano il recall, non l'astensione.
+>
+> Lettura: la verifica e' l'unica configurazione che si astiene 16/16 a
+> entrambe le taglie senza perdere le domande dirette. Con l'ibrida sotto, il
+> verificatore da 4B scarta anche passaggi corretti sull'archivio grande: il
+> suo 1.000 di astensione e' in parte astenersi da tutto. Le parafrasi restano
+> il punto debole di ogni configurazione che si astiene bene; il prossimo
+> esperimento e' un verificatore piu' forte (`qwen3.5:9b`).
+
 `evaluation/library_gold_set.json` e' il dataset fittizio per verificare il bibliotecario Ermes senza documenti aziendali reali. Copre quattro biblioteche indipendenti: HR, IT, Qualita e Amministrazione, con 27 query in tre categorie (`type`):
 
 - **`direct`** (16 query): la domanda usa parole vicine al testo sorgente — il caso base che qualunque ricerca a parole chiave deve gestire.
@@ -332,6 +373,21 @@ passaggi sarebbero una decina di secondi. La direzione indicata e' limitare i
 candidati usando il ranking dell'indice full-text (`bm25()` su SQLite,
 `ts_rank` su PostgreSQL) invece di prenderli tutti.
 
+**Corretto il 25 settembre 2026.** I candidati lessicali sono ora al massimo
+1.000 per interrogazione (`_MAX_KEYWORD_CANDIDATES`), scelti dal database in
+ordine di rilevanza full-text e filtrati per biblioteca dentro la stessa query:
+
+| Passaggi | Ricerca (mediana) | Peggiore prima | Peggiore dopo |
+|---|---|---|---|
+| 10.000 | 1,9 ms | 261 ms | **58 ms** |
+| 50.000 | 4,6 ms | 3.183 ms | **308 ms** |
+
+Stessa macchina, stessa esecuzione di `archive_scale.py`, prima e dopo. La
+qualita' non cambia: `scale_check.py --sizes 0,25,97` da' valori identici
+con e senza il tetto, che sui corpus di valutazione (al massimo 404
+passaggi) non viene mai raggiunto. Coperto da
+`tests/test_keyword_candidate_cap.py`.
+
 ### Un difetto trovato facendo questa misura
 
 A cinquantamila passaggi la ricerca non rallentava: **falliva**, con
@@ -348,7 +404,7 @@ non cambi i risultati.
 
 ## Gate CI
 
-`tests/test_library_evaluation.py` verifica `recall_at_3_direct >= 0.9` e `citation_coverage >= 0.9` come soglie dure (sempre raggiungibili senza Ollama), piu' due soglie morbide (`recall_at_3_paraphrase > 0`, `abstention_accuracy > 0`) per accorgersi se la qualita' sulle query difficili crolla a zero, senza pretendere che il keyword-only le risolva tutte. Il gate CI resta sulla modalita' keyword-only: la modalita' `--semantic` non e' ancora adatta a un default di prodotto (vedi sopra) e comunque richiederebbe Ollama in CI, non disponibile.
+`tests/test_library_evaluation.py` verifica `recall_at_3_direct >= 0.9` e `citation_coverage >= 0.9`, `recall_at_3_paraphrase >= 0.5` (il valore misurato della configurazione rilasciata: un reranker riattivato senza misura lo porterebbe a 0.375 e farebbe diventare rossa la CI) e `abstention_accuracy == 1.0`, perche' il README la dichiara a 1.000 e la valutazione e' deterministica: se scende, il numero pubblicato e' diventato falso. Il gate CI resta sulla modalita' keyword-only: la modalita' `--semantic` non e' ancora adatta a un default di prodotto (vedi sopra) e comunque richiederebbe Ollama in CI, non disponibile.
 
 ## Cosa NON misura ancora
 
@@ -356,4 +412,4 @@ non cambi i risultati.
 - Il comportamento su versioni ripristinate o casi di accesso negato tra librerie.
 - Una soglia di coseno-similarita' che non sacrifichi l'astensione per guadagnare sulle parafrasi — vedi l'implicazione pratica sopra.
 
-Prima di una release pubblica, il golden set dovrebbe crescere ulteriormente con query derivate dal corpus demo fittizio della Fase D del roadmap (`docs/ROADMAP_V2.md`), non solo dal corpus sintetico qui sopra.
+Prima di una release pubblica, il golden set dovrebbe crescere ulteriormente con query derivate da documenti realistici, non solo dal corpus sintetico qui sopra.

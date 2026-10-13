@@ -1,0 +1,982 @@
+[
+ {
+  "source": "CONTRIBUTING.md",
+  "text": "1. Never commit credentials, customer files, generated databases, logs or `storage/`. 2. Use synthetic documents in tests and examples. 3. Preserve the evidence-first contract: responses must cite authorized sources or abstain. 4. Do not introduce an automatic fallback that can send documents to a cloud provider. 5. Run the relevant checks:"
+ },
+ {
+  "source": "CONTRIBUTING.md",
+  "text": "```powershell .\\.venv-ermes\\Scripts\\python.exe -m pytest -q tests/test_library_store.py tests/test_document_parser.py tests/test_evidence_assistant.py tests/test_library_evaluation.py tests/test_local_auth.py npm.cmd --prefix frontend test -- --run npm.cmd --prefix frontend run build ```"
+ },
+ {
+  "source": "CONTRIBUTING.md",
+  "text": "Describe the user outcome, security implications, test evidence and any migration or configuration change. Keep the legacy WinSarp material isolated from the Ermes Knowledge product flow unless a change explicitly concerns archival compatibility."
+ },
+ {
+  "source": "DEVELOPER.md",
+  "text": "Questa guida descrive il codice **effettivamente eseguito dal prodotto**. Il motore formule WinSarp è materiale storico, isolato sotto `legacy_winsarp/` e non raggiungibile dal percorso di prodotto se non dietro il flag `ENABLE_LEGACY_WINSARP` (vedi `legacy_winsarp/README.md`)."
+ },
+ {
+  "source": "DEVELOPER.md",
+  "text": "api/ # FastAPI — l'app e' `api:app` ├── __init__.py # Composizione app, router, startup, SPA catch-all ├── auth.py # Login locale, API key, RBAC (_require_role) ├── libraries.py # Biblioteche, documenti, versioni, download, ricerca ├── health.py # /health (stato ollama, storage, disco, database) ├── users.py # Gestione account e API key (solo admin) ├── audit.py # Lettura audit log firmato ├── backup.py # Backup e ripristino ├── models.py # Elenco modelli disponibili ├── providers.py # Provider LLM approvati └── shutdown.py # Arresto controllato"
+ },
+ {
+  "source": "DEVELOPER.md",
+  "text": "- **Lint**: `ruff check .` — 0 errori richiesto prima del commit - **Test**: `pytest tests/` — tutti verdi - **Python**: 3.11+, type hints - **Ambiente**: `.venv-ermes` (non `.venv`, che può provenire da un altro profilo Windows) - **Autenticazione**: ogni endpoint deve dipendere da `_verify_api_key` o `_require_role`. `tests/test_api_auth_coverage.py` percorre le route dell'app e fa fallire la CI se un endpoint viene aggiunto senza protezione: l'allowlist dei percorsi pubblici va aggiornata esplicitamente. - **Errori**: non usare `except Exception: pass`. Un errore ingoiato produce un controllo che riporta successo senza aver verificato nulla — logga sempre, o lascia propagare."
+ },
+ {
+  "source": "DEVELOPER.md",
+  "text": "```powershell .\\scripts\\avvia_ermes.ps1 # Tutto (Ollama + backend + frontend) .\\.venv-ermes\\Scripts\\python.exe -m uvicorn api:app --reload --port 8502 # Solo backend npm.cmd --prefix frontend run dev # Solo frontend (porta 3000) .\\.venv-ermes\\Scripts\\python.exe -m pytest tests/ # Test ```"
+ },
+ {
+  "source": "DEVELOPER.md",
+  "text": "Backend su `8502`, frontend di sviluppo su `3000` (il proxy Vite punta a 8502). La build di produzione in `frontend/dist/` è servita direttamente dal backend ed è un artefatto separato: modificare `frontend/index.html` non la aggiorna finché non si riesegue `npm run build`."
+ },
+ {
+  "source": "DEVELOPER.md",
+  "text": "1. Aggiungi la route nel router appropriato sotto `api/`. 2. Dichiara la dipendenza di autenticazione (`_require_role(\"admin\")` o `_verify_api_key`). 3. Se la route tocca una biblioteca, l'ACL va applicata **server-side** prima di servire qualunque contenuto — mai delegarla al frontend. 4. Esegui la suite: `test_api_auth_coverage.py` rifiuta gli endpoint non protetti."
+ },
+ {
+  "source": "docs/AUDIT_2026-08-19.md",
+  "text": "> Copia versionata dell'audit multi-ruolo (architettura, sicurezza, design/UX) condotto su questo repository. Il verbale visivo è pubblicato come artifact esterno; questo file è la fonte di verità permanente, perché il repository non deve dipendere da un link privato per conservare la sua storia."
+ },
+ {
+  "source": "docs/AUDIT_2026-08-19.md",
+  "text": "**Metodo**: due agenti specializzati (architettura, sicurezza) hanno condotto revisioni statiche indipendenti del codice sul branch `codex/ermes-knowledge-v01`; la review design/UX è stata condotta avviando il frontend in locale (`npm run dev`, porta 3000) e ispezionando struttura DOM, sistema di temi e componenti sorgente. Nessun test automatico è stato eseguito in questa sessione."
+ },
+ {
+  "source": "docs/AUDIT_2026-08-19.md",
+  "text": "Il confine tra il nuovo percorso Ermes e il vecchio WinSarp è disegnato meglio del previsto: `api/libraries.py` non importa nulla di WinSarp, e i router legacy sono attivi solo dietro il flag `ENABLE_LEGACY_WINSARP` (`api/__init__.py:241-254`)."
+ },
+ {
+  "source": "docs/AUDIT_2026-08-19.md",
+  "text": "| # | Finding | Severità | File | Confidenza | |---|---|---|---|---| | 1 | `core/rag_engine.py:29` importa `modules.winsarp` a livello di modulo; `HybridRetriever._get_kg` (riga 616) importa `core.winsarp.knowledge_graph.KnowledgeGraph`. Contenuto oggi solo dal flag, non dalla posizione fisica del file — un refactor futuro rischia di reimportare tutto lo stack legacy. | Medio | `core/rag_engine.py:29, 616` | Alta | | 2 | `HybridRetriever.retrieve` ingoia **tutte** le eccezioni del retriever vettoriale (`except Exception: vector_nodes = []`) senza log — un backend di embedding rotto degrada a solo-KG senza visibilità. | Medio | `core/rag_engine.py:688-691` | Alta | | 3 | `api/documents.py` reimplementa l'estrazione testo PDF/DOCX invece di riusare `core/document_parser.py` — due implementazioni indipendenti, rischio di divergenza. | Medio | `api/documents.py:76-99` | Alta | | 4 | `core/ingestion_service.py` (`process_ingestion_job`) non ha alcun test diretto — zero riferimenti in `tests/*.py`. È il modulo che gestisce gli stati di errore visibili all'utente come \"documento non indicizzato\". | Medio | `core/ingestion_service.py` | Alta | | 5 | Due bug di codifica testo (mojibake): \"piÃ¹\"/\"Ã¨\" invece di \"più\"/\"è\" in messaggi utente. | Basso | `api/libraries.py:225`, `core/document_parser.py:197` | Alta | | 6 | Regex che tratta ogni numero di 2-4 cifre in una query come possibile ID formula, potenzialmente falso-positivo-prone (es. \"quante ore nel 2024\" prova a cercare la formula 2024). Innocuo ma silenzioso. | Basso-Medio | `core/rag_engine.py:624-625` | Media | | 7 | `LibraryStore._access_role` ritorna `\"none\"` per una libreria privata non posseduta — dipende dal fatto che i chiamanti verifichino sempre l'accesso prima; accoppiamento fragile tra due funzioni \"trust boundary\" che vanno sempre chiamate insieme. | Basso | `core/library_store.py:211-255` | Media | | 8 | Stemmer italiano fatto in casa nello strato di persistenza, con un docstring che promette un'estensione futura (\"un analizzatore linguistico di produzione può sostituirlo\") ma senza un'interfaccia/hook reale per farlo. | Basso | `core/library_store.py:199-208` | Media |"
+ },
+ {
+  "source": "docs/AUDIT_2026-08-19.md",
+  "text": "**Positivo**: i file del nuovo percorso (`library_store.py`, `evidence_assistant.py`) sono ben documentati, difensivi e onesti sui propri limiti — qualità nettamente superiore rispetto al legacy `rag_engine.py`, che mescola italiano/inglese nei commenti e ha rami di fallback legacy (`_resolve_prompt`, righe 567-603)."
+ },
+ {
+  "source": "docs/AUDIT_2026-08-19.md",
+  "text": "**Duplicazione**: `api/documents.py` (legacy, filesystem puro) e `api/libraries.py` (nuovo, SQLite + RBAC + versioning) non sono duplicati semplici — il nuovo è materialmente più capace. La duplicazione reale è ristretta all'estrazione testo (finding #3). Entrambi i percorsi usano lo stesso pattern di import ritardato per `_verify_api_key` via `Depends()` (`api/documents.py:21,38,54,68,104`; `api/query.py:58`; `api/libraries.py:194,211`) — idioma di progetto coerente, probabilmente per evitare un import circolare, ma vale la pena documentarne o risolverne la causa alla radice."
+ },
+ {
+  "source": "docs/AUDIT_2026-08-19.md",
+  "text": "1. Spostare `core/rag_engine.py` sotto `core/winsarp/` o estrarne una base senza dipendenze WinSarp, prima della Fase A del roadmap. 2. Aggiungere test per `core/ingestion_service.py` — unico modulo core nel perimetro senza copertura diretta. 3. Correggere i due mojibake e fare un grep del repo su `Ã` per trovare eventuali altri casi. 4. Consolidare l'estrazione PDF/DOCX: far chiamare a `api/documents.py` `core/document_parser.py` invece di mantenere una seconda implementazione. 5. Aggiungere logging quando l'eccezione del retriever vettoriale viene ingoiata (`core/rag_engine.py:690`)."
+ },
+ {
+  "source": "docs/AUDIT_2026-08-19.md",
+  "text": "- `api/libraries.py` applica l'ACL lato server correttamente: ogni route chiama `store.get_library(library_id, _auth[, write=True])` **prima** di toccare i dati; `LibraryStore._can_access`/`_access_role` calcolano il ruolo dal database, non dall'input del client. L'endpoint di download (`api/libraries.py:109-130`) verifica libreria e documento **prima** di risolvere `storage_path`, con controllo anti path-traversal sul percorso risolto prima di `FileResponse`. **Confidenza: alta.** - `api/auth.py:64` usa `secrets.compare_digest` (confronto a tempo costante) per la API key di emergenza. Cookie di sessione `httponly`, `samesite=lax`, `secure` salvo binding a localhost. La sessione viene rivalidata contro il file utente corrente a ogni richiesta (righe 75-86), quindi un account disattivato/cambiato di ruolo viene negato immediatamente (fail-closed reale, non solo dichiarato). - **`api/documents.py` non ha alcun controllo ACL per libreria** — richiede solo *un* utente autenticato qualsiasi (`_verify_api_key`, nessun controllo di ruolo su upload/delete, righe 38 e 54). L'accesso è per cartella-modulo, senza concetto di proprietà/membership. Se `ENABLE_LEGACY_WINSARP=1`, qualsiasi utente autenticato può elencare/leggere/caricare/cancellare documenti in **qualunque** cartella modulo, bypassando il modello ACL a librerie. Il router è disattivato di default (`config.py:213-214`), quindi lo sfruttamento richiede una configurazione errata in produzione. **Severità: alta se il flag è attivo, informativa altrimenti. Confidenza: alta.**"
+ },
+ {
+  "source": "docs/AUDIT_2026-08-19.md",
+  "text": "- `core/input_validator.py:sanitize_upload_name` (usato da `api/libraries.py:154`) fa `os.path.basename`, rifiuta `.`/`..`, applica un regex di charset stretto e un allowlist di estensioni (`.txt .md .pdf .docx .xlsx`). Combinato con il controllo magic-bytes e il limite di dimensione (`ADMIN_MAX_UPLOAD_MB`), è una difesa solida contro spoofing di tipo e traversal. - Il path di storage è `library_dir / f\"{document_id}_{safe_name}\"` con `document_id` un `uuid4().hex` fresco — nessun componente di path controllato dall'utente raggiunge il join del filesystem senza sanitizzazione. - `api/documents.py` usa anch'esso `sanitize_upload_name`, ma senza alcun controllo di ruolo — stesso problema dell'AuthZ sopra."
+ },
+ {
+  "source": "docs/AUDIT_2026-08-19.md",
+  "text": "- Nessuna credenziale hardcoded trovata in `core/` o `api/` (grep su pattern tipo chiave, i risultati erano placeholder in `scripts/setup_openrouter.py:47` e fixture di test). - `api/libraries.py:277-309` restituisce solo `name`/`type`/`default_model` per i provider, mai `api_key` — nessuna fuga di segreti nelle risposte API verificata. - Non verificato in modo esaustivo: se i log (`core/ai/providers/*`, percorsi di errore di `evidence_assistant.py`) possano accidentalmente loggare segreti/PII. **Da trattare come non verificato, non come pulito.**"
+ },
+ {
+  "source": "docs/AUDIT_2026-08-19.md",
+  "text": "- Tutto l'accesso SQLite in `core/library_store.py` usa query parametrizzate (`?`), incluso il percorso di ricerca (`search_with_profile`, righe 527-596) — nessuna interpolazione di stringhe con input utente. Nessuna traccia di `subprocess`, `os.system`, `eval`, `exec` in `core/` o `api/`."
+ },
+ {
+  "source": "docs/AUDIT_2026-08-19.md",
+  "text": "- La policy `evidence_only/local_ollama/approved_openrouter` è applicata nel codice, non solo documentata: `evidence_only` non chiama mai un client HTTP; `local_ollama` raggiunge solo `cfg.OLLAMA_HOST`; i modi cloud ri-verificano `cfg.LIBRARY_CLOUD_CONSENT` e le credenziali **al momento della chiamata**, non solo quando la policy viene impostata (`core/evidence_assistant.py:54, 76`). `api/libraries.py:250-274` blocca i modi cloud anche in scrittura dietro consenso + ruolo owner/admin — doppio controllo scrittura/uso. **Nessun fallback generico/legacy raggiungibile da questo modulo.**"
+ },
+ {
+  "source": "docs/AUDIT_2026-08-19.md",
+  "text": "- `api/documents.py` (chiave: `cfg.DOCS_DIR/<module>`) e il sistema a librerie (chiave: `cfg.LIBRARY_STORAGE_DIR/<library_id>`) usano radici diverse, quindi non c'è collisione diretta di path. Ma `_list_available_modules()` (`api/__init__.py:65-71`) esclude esplicitamente a mano una cartella chiamata \"libraries\" — segno che il rischio di sovrapposizione è già noto ma non bloccato da un controllo esplicito nel codice, solo per convenzione."
+ },
+ {
+  "source": "docs/AUDIT_2026-08-19.md",
+  "text": "1. **Alto** — Aggiungere ACL per modulo/libreria (o rimuovere) `api/documents.py`; richiedere almeno `_require_role(\"editor\")` per upload/delete invece di sola autenticazione, e verificare che `ENABLE_LEGACY_WINSARP` resti spento in ogni template/documentazione di deployment. 2. **Medio** — Aggiungere un'asserzione/test runtime che `DOCS_DIR` e `LIBRARY_STORAGE_DIR` non si sovrappongano mai. 3. **Medio** — Auditare i log in `core/ai/providers/*` e nei percorsi di errore di `evidence_assistant.py` per fughe accidentali di segreti/PII. 4. **Basso** — Regola CI/lint che impedisca nuovi endpoint sotto `api/` senza `_require_role`/`_verify_api_key`. 5. **Basso** — Banner di avviso all'avvio quando `ENABLE_LEGACY_WINSARP` è attivo, documentandolo come flag solo-dev."
+ },
+ {
+  "source": "docs/AUDIT_2026-08-19.md",
+  "text": "Il frontend è già a un livello di finitura enterprise-credibile, non da prototipo: un sistema di token di tema coerente (`frontend/src/hooks/useTheme.tsx`) copre correttamente dark e light, l'estetica \"glass\" con accenti blu/indaco comunica un prodotto serio senza eccessi. La UI della chat (`frontend/src/components/chat/ChatArea.tsx`) mostra già il linguaggio di fiducia richiesto dalla strategia di prodotto: *\"Basata su N fonti\"* in verde vs *\"Evidenza insufficiente\"* in ambra, con citazioni che espongono documento, versione, locator ed estratto. Gli stati vuoti di onboarding (crea biblioteca → carica documento → fai una domanda) sono scritti bene."
+ },
+ {
+  "source": "docs/AUDIT_2026-08-19.md",
+  "text": "| # | Finding | Severità | |---|---|---| | 1 | Il download del documento non è collegato alla chat: le citazioni in `ChatArea.tsx` mostrano nome file/versione/locator ma nessun link per aprire l'originale; l'endpoint esiste ed è verificato sicuro, è collegato solo in `DocumentsTab.tsx:274`. | Medio — priorità alta per il prodotto | | 2 | Username \"admin\" precompilato nel form di login (`App.tsx:26`) — segnale di ambiente dev più che di prodotto pronto per una demo esterna. | Basso | | 3 | Nessun `aria-current` sugli item di navigazione attivi nella sidebar (`Sidebar.tsx:53-57`); accessibilità da tastiera non verificata sui flussi principali. | Basso | | 4 | Non è stato possibile ottenere uno screenshot visivo pieno in questa sessione (limite dell'ambiente browser) — la review copre struttura DOM e codice sorgente, non un controllo pixel-per-pixel. | Nota metodologica |"
+ },
+ {
+  "source": "docs/AUDIT_2026-08-19.md",
+  "text": "1. **`api/documents.py`** è insieme un problema di sicurezza (nessuna ACL) e un problema architetturale (duplica logica del nuovo percorso, dipende dallo stesso confine WinSarp) — un solo intervento di isolamento (Fase A del roadmap) chiude entrambi. 2. **Il recupero del documento originale** è, lato sicurezza, già pronto e solido; lato design, l'unico pezzo mancante è collegarlo in UI (Fase C) — non serve nuovo codice di backend."
+ },
+ {
+  "source": "docs/AUDIT_2026-08-19.md",
+  "text": "1. Isolare fisicamente WinSarp e chiudere l'import in `core/rag_engine.py` — risolve insieme il rischio di sicurezza e il debito architetturale. 2. Collegare il download del documento originale nella chat — backend pronto, manca solo la UI. 3. Test di isolamento ACL sul download + copertura di `ingestion_service.py`. 4. Ripulire i dettagli visibili in demo: mojibake, username precompilato, audit dei log per segreti/PII."
+ },
+ {
+  "source": "docs/CODE_REVIEW.md",
+  "text": "Revisione sistematica del codice di prodotto di Ermes Knowledge, condotta dopo che tre bug nello script di avvio si sono rivelati istanze della **stessa causa radice**. Questo documento riporta cosa è stato trovato, cosa è stato corretto, cosa è stato verificato sano e cosa non è stato possibile verificare."
+ },
+ {
+  "source": "docs/CODE_REVIEW.md",
+  "text": "- ricostruzione del **grafo reale degli import** a partire da `api/`, per separare il codice eseguito dal codice presente; - esecuzione della suite (più volte, per escludere intermittenza), del type-check del frontend e della build di produzione; - confronto tra ciò che il repository **dichiara** e ciò che contiene davvero (build Docker, contratto OpenAPI, documentazione, script di avvio); - distinzione esplicita tra `TRACKED` e `untracked`, perché è la differenza tra \"funziona sulla mia macchina\" e \"funziona per chi clona\"."
+ },
+ {
+  "source": "docs/CODE_REVIEW.md",
+  "text": "1. `try { curl.exe ... } catch {}` — `curl.exe` è un processo esterno: una connessione rifiutata imposta un exit code, **non** solleva un'eccezione PowerShell. Il `catch` non si attivava mai e i passi 1–3 riportavano `OK` senza aver verificato nulla. 2. `ConvertFrom-Json` su stringa vuota restituisce `$null` senza sollevare eccezioni, quindi l'health check stampava `Sistema: (ollama= chroma=)` invece di un errore. 3. `Start-Process -FilePath \"npx\"` risolve a `npx.ps1`; su una macchina dove l'estensione `.ps1` è associata a un editor di testo, il comando apriva silenziosamente l'editor invece di avviare Vite."
+ },
+ {
+  "source": "docs/CODE_REVIEW.md",
+  "text": "In tutti e tre i casi il codice *sembrava* corretto e riportava successo senza aver eseguito il controllo. La revisione ha cercato questa categoria — non i tre casi specifici — in tutto il repository, e l'ha ritrovata altrove."
+ },
+ {
+  "source": "docs/CODE_REVIEW.md",
+  "text": "A revisione già conclusa se n'è manifestato un quarto caso, nello stesso script: la riga finale `$Host.UI.RawUI.ReadKey(...)`, protetta da un `try/catch` con il commento «in modalità non interattiva, esci senza attendere». Il `try/catch` non protegge nulla: con stdin rediretto `ReadKey` non solleva un'eccezione, **si blocca**. Due esecuzioni dello script sono rimaste appese oltre un'ora prima che il problema venisse notato. Sostituito con un controllo che distingue davvero i due casi (`[Environment]::UserInteractive` e `[Console]::IsInputRedirected`), e verificato: lo script ora esce da solo con exit 0 in 19 secondi."
+ },
+ {
+  "source": "docs/CODE_REVIEW.md",
+  "text": "Vale la pena notarlo perché è il caso più istruttivo dei quattro. Il commento descriveva l'intenzione corretta, il codice sembrava implementarla, e il difetto si è manifestato solo osservando che due processi non erano mai terminati."
+ },
+ {
+  "source": "docs/CODE_REVIEW.md",
+  "text": "`Dockerfile` conteneva `COPY data/ ./data/`, ma `data/` **non è tracciata**: contiene solo il database SQLite di runtime. La build funzionava in locale, dove la cartella esiste, e falliva per chiunque partisse da un clone pulito — cioè esattamente l'azienda o la persona che valuta il progetto."
+ },
+ {
+  "source": "docs/CODE_REVIEW.md",
+  "text": "In CPython un package vince sempre su un modulo omonimo: `import api` risolveva **sempre** a `api/__init__.py`, quindi il contenuto di `api.py` non poteva mai eseguirsi (verificato con `import api; api.__file__`). Il file si presentava come \"wrapper di retrocompatibilità\" e il suo docstring elencava endpoint WinSarp (`api/formule.py`, `api/graph.py`) come se fossero il prodotto attuale."
+ },
+ {
+  "source": "docs/CODE_REVIEW.md",
+  "text": "`openapi.json` (104 KB, in root) documentava **44 endpoint inesistenti** — inclusi `/api/winsarp/catalog` e `/api/graph` — e **ne ometteva 38 realmente presenti**. Un artefatto generato una volta e mai rigenerato: peggio che assente, perché chi tenta un'integrazione ci si basa. Il contratto reale resta disponibile e sempre aggiornato su `/openapi.json`."
+ },
+ {
+  "source": "docs/CODE_REVIEW.md",
+  "text": "Sei moduli non raggiungibili dal prodotto: `core/utils.py`, `core/error_handler.py`, `core/response_cache.py`, `core/ai/response_cache.py`, `core/ai/semantic_cache.py`, `core/ai/memory.py` (i primi due `response_cache` erano quasi-duplicati fra loro)."
+ },
+ {
+  "source": "docs/CODE_REVIEW.md",
+  "text": "Tre di questi erano usati **solo dai test**. Il risultato è che 25 test su 173 (14%) verificavano codice che il prodotto non esegue mai: una parte del segnale \"tutta la suite è verde\" era falsa sicurezza. La suite è ora 148 test, tutti su codice vivo."
+ },
+ {
+  "source": "docs/CODE_REVIEW.md",
+  "text": "`.github/workflows/ci.yml` eseguiva `mypy ... || true` e `bandit ... || true`. Il `|| true` forza l'exit code a zero: un controllo di sicurezza che fallisce riportava successo senza lasciare alcun segnale — la stessa forma dei bug del launcher, applicata alla pipeline."
+ },
+ {
+  "source": "docs/CODE_REVIEW.md",
+  "text": "Sostituiti con `continue-on-error: true` a livello di step: il comportamento (non bloccare la build) è invariato, ma è **dichiarato** e la run risulta visibilmente gialla invece che verde. Corretta anche l'esclusione `-x core/templates,core/evaluation`, che puntava a cartelle non più esistenti, e rimosso `api.py` dal target della scansione."
+ },
+ {
+  "source": "docs/CODE_REVIEW.md",
+  "text": "- `DEVELOPER.md` — la guida che un valutatore tecnico legge per prima — descriveva l'architettura WinSarp: elencava `rag_engine.py`, `formula_builder.py`, `knowledge_graph.py`, `core/winsarp/`, `modules/`, dichiarava \"871 test\" e indicava `.venv` invece di `.venv-ermes`. Riscritta sul grafo dei moduli verificato. - Quattro documenti WinSarp (`DELIVERABLE_FINALE.md` e `MANUALE_UTENTE.md`, in due versioni diverse ciascuno fra root e `docs/`) spostati sotto `legacy_winsarp/docs/`. Chi apriva `docs/` concludeva che il prodotto fosse un motore di formule."
+ },
+ {
+  "source": "docs/CODE_REVIEW.md",
+  "text": "`README.md` afferma che `scripts/CREA_COLLEGAMENTO_DESKTOP.ps1` crea un collegamento al launcher ufficiale. In realtà lo script **non creava alcun collegamento**: scriveva un altro script in un percorso hardcoded inesistente (`C:\\ProgettoRAG_DEV\\`, mentre il progetto sta in `C:\\Progetti\\ProgettoRAG_DEV`) e nominava il collegamento \"WinSarp AI Hub\". Riscritto perché faccia ciò che il README dichiara."
+ },
+ {
+  "source": "docs/CODE_REVIEW.md",
+  "text": "Rimossi inoltre due duplicati rotti: `crea_shortcut.ps1` (percorso assoluto errato, target non tracciato) e `crea_shortcut_bat.ps1`, la cui catena `AVVIA.vbs → AVVIA_DIRETTO.bat` puntava a un file spostato nel legacy."
+ },
+ {
+  "source": "docs/CODE_REVIEW.md",
+  "text": "`requirements-lock.txt` era codificato in **UTF-16** (il default di `pip freeze >` in PowerShell). `pip install -r` fallisce con `UnicodeDecodeError`: era un lock file inutilizzabile, non referenziato da CI, Docker o documentazione."
+ },
+ {
+  "source": "docs/CODE_REVIEW.md",
+  "text": "`docker-compose.yml` espone `ERMES_SLACK_*`, `ERMES_TEAMS_*` e `ERMES_TELEGRAM_*`, ma l'unica implementazione è in `legacy_winsarp/api/integrations.py` e nessuna route viva le espone (verificato sulle 92 route dell'app). Le variabili sono state lasciate — servono con `ENABLE_LEGACY_WINSARP=1` — ma commentate esplicitamente, per non promettere integrazioni che il prodotto non ha."
+ },
+ {
+  "source": "docs/CODE_REVIEW.md",
+  "text": "Il finding strutturale più grave. I tre installer (`SETUP_INSTALL.bat`, `SETUP_RAPIDO.bat`, `SETUP_INIZIALE.ps1`) creavano tutti un ambiente virtuale chiamato `.venv`. Ma `scripts/avvia_ermes.ps1` cerca `.venv-ermes` ed esce con errore se non lo trova. **Chi seguiva gli script di installazione otteneva un'installazione \"riuscita\" che poi non si avviava.** Gli stessi installer rimandavano inoltre a `AVVIA.bat`, che era stato spostato in `scripts/archive/`."
+ },
+ {
+  "source": "docs/CODE_REVIEW.md",
+  "text": "Consolidato su un solo installer allineato al launcher; i duplicati sono in `legacy_winsarp/scripts/`. Corretti anche `smoke_test.bat`, `test_all.bat` e `VERIFICA_SISTEMA.bat`, che puntavano al venv sbagliato."
+ },
+ {
+  "source": "docs/CODE_REVIEW.md",
+  "text": "- `tests/verify_final.py` era un test WinSarp (chiama `/api/formula/generate`) che viveva nella suite del prodotto e **non veniva mai eseguito**, perché il nome non corrisponde al pattern `test_*.py` di pytest. - `docs/` conteneva `winsarp_grammar.txt`, più due file grafici orfani con zero riferimenti — uno dei quali, `literature_review_reading_read_icon_179858.ico`, con il nome di download da un sito di icone stock. `docs/` ora contiene soltanto documentazione. - `scripts/STOP.ps1` era intitolato \"WinSarp AI Hub\" e fermava **Streamlit**, cioè la UI legacy — non il frontend del prodotto. Riscritto come vera controparte del launcher, e verificato dal vivo: ferma backend e frontend e controlla che le porte siano davvero libere."
+ },
+ {
+  "source": "docs/CODE_REVIEW.md",
+  "text": "`VERIFICA_SISTEMA.bat` stampava «TUTTI I PREREQUISITI SONO SODDISFATTI» incondizionatamente, anche se ogni singolo controllo aveva stampato un errore. Fra le dipendenze \"principali\" che verificava c'era `streamlit`, che non è nemmeno in `requirements.txt`: quel controllo falliva sempre, senza conseguenze. Riscritto con un conteggio reale dei fallimenti, e verificato su entrambi i percorsi — quello di successo e quello di errore, che è poi quello che era rotto."
+ },
+ {
+  "source": "docs/CODE_REVIEW.md",
+  "text": "Metà del repository (173 file tracciati su 339) è `legacy_winsarp/`: è una scelta esplicita, ma vale la pena saperlo prima di giudicare le proporzioni del progetto. I nomi degli script mescolano maiuscole e minuscole, italiano e inglese. Invece di rinominarli in massa — churn e rischio di rotture per un guadagno cosmetico — la convenzione è stata resa esplicita in `scripts/README.md`, che documenta anche a cosa serve ciascuno script."
+ },
+ {
+  "source": "docs/CODE_REVIEW.md",
+  "text": "- **Autorizzazione**: ogni endpoint amministrativo dipende da `_require_role(\"admin\")`. `tests/test_api_auth_coverage.py` percorre le route dell'app e fa fallire la CI se un endpoint viene aggiunto senza protezione, con allowlist esplicita dei percorsi pubblici. Un import di autenticazione inutilizzato in `api/users.py` è risultato un semplice residuo, non un buco. - **Accesso al legacy dal codice vivo**: l'unico caso in codice raggiungibile (`api/models.py:75-80`) è **fatto correttamente** — gated dietro il flag e con l'eccezione loggata, non ingoiata. Le altre fughe verso `legacy_winsarp` erano tutte in moduli morti, ora rimossi. - **Frontend**: `tsc --noEmit` pulito, zero errori di tipo; build di produzione riuscita (1484 moduli, 230 KB JS). - **Suite**: 146 test passati e 2 skipped, stabile su esecuzioni ripetute (~8,2 s). - **Import inutilizzati**: 4 reali su tutto il codice di prodotto, ora rimossi."
+ },
+ {
+  "source": "docs/CODE_REVIEW.md",
+  "text": "La revisione si era chiusa dichiarando `ruff`, `mypy`, `bandit` e la build Docker come **non verificati**, perché `pip install` falliva con `CERTIFICATE_VERIFY_FAILED` dietro la TLS inspection aziendale. Guardando la CI per delegarle quei controlli, è emerso che **falliva a ogni push, in 0 secondi**, da settimane: nessun test e nessun controllo di sicurezza era mai realmente girato."
+ },
+ {
+  "source": "docs/CODE_REVIEW.md",
+  "text": "Il job di deploy usava `if: ${{ secrets.SLACK_WEBHOOK_URL != '' }}`. Il contesto `secrets` non è utilizzabile in una condizione `if`: è un errore di validazione che GitHub rileva prima di eseguire qualunque job, quindi l'intera run falliva istantaneamente. Spostato il segreto in un `env` di job."
+ },
+ {
+  "source": "docs/CODE_REVIEW.md",
+  "text": "`package.json` dichiarava `vite ^5.1.4` e `vitest ^4.1.10`, ma vitest 4 richiede vite `^6 || ^7 || ^8`. Una violazione di peer dependency che npm tollerava in locale, dove `node_modules` esisteva già, ma che rendeva impossibile un lockfile riproducibile: npm 11 risolveva esbuild 0.21.5, npm 10 pretendeva 0.28.2. Rigenerare il lock non bastava — il conflitto era nelle dipendenze dichiarate."
+ },
+ {
+  "source": "docs/CODE_REVIEW.md",
+  "text": "Il finding più serio emerso dalla CI. `test_e2e_no_api_key_rejected` e `test_e2e_invalid_api_key_rejected` interrogavano `/modules`, un endpoint WinSarp rimosso. La catch-all della SPA risponde `200` con l'index HTML a qualunque percorso sconosciuto, e i test asserivano soltanto `status_code == 200`: passavano servendo una pagina HTML, senza toccare un endpoint API. **Due test il cui nome promette di verificare il rifiuto dell'autenticazione non verificavano alcuna autenticazione.** In CI, dove `frontend/dist/` non viene costruito, la catch-all non è montata e i 404 hanno reso visibile l'inganno."
+ },
+ {
+  "source": "docs/CODE_REVIEW.md",
+  "text": "Riscritti su endpoint reali, con il content-type fra le asserzioni, così un `200` servito dalla SPA non può più far passare un test per sbaglio. Verificati riproducendo la condizione della CI in locale, cioè rimuovendo `frontend/dist/`."
+ },
+ {
+  "source": "docs/CODE_REVIEW.md",
+  "text": "Prima esecuzione reale: 616 violazioni, di cui **551 in `legacy_winsarp/`**, che seppellivano le 65 del prodotto. Il legacy è ora escluso dal lint — è codice congelato — e le 65 reali sono state corrette."
+ },
+ {
+  "source": "docs/CODE_REVIEW.md",
+  "text": "L'ostacolo di partenza è stato risolto senza aggirare la sicurezza: il trust store di Windows contiene già la CA aziendale, quindi è stato esportato e passato a `pip --cert`. Verifica reale del certificato, non disabilitata."
+ },
+ {
+  "source": "docs/CODE_REVIEW.md",
+  "text": "Tutti e sei i job della pipeline sono verdi, per la prima volta: `lint`, `test`, `frontend`, `pre-deploy-backup`, `docker`, `deploy`. Il job `docker` costruisce e pubblica l'immagine, il che verifica anche la correzione del finding 1 — la build che in locale non era eseguibile."
+ },
+ {
+  "source": "docs/CODE_REVIEW.md",
+  "text": "Resta un solo disallineamento noto: il venv locale non ha `pytest-timeout`, che la CI usa (`pytest --timeout=30`), quindi in locale la suite gira senza timeout per test. Si risolve con `pip install -r requirements.txt` una volta configurato il certificato aziendale."
+ },
+ {
+  "source": "docs/CODE_REVIEW.md",
+  "text": "| | Prima | Dopo | |---|---|---| | File tracciati in root | 37 | 18 | | Righe Python di prodotto | 10.809 | 9.228 | | Test | 173 (25 su codice morto) | 148 (tutti su codice vivo) | | Moduli `core/` non raggiungibili | 6 | 0 | | Endpoint falsi nel contratto OpenAPI | 44 | contratto generato a runtime |"
+ },
+ {
+  "source": "docs/DELIVERY_AND_OPERATIONS_PLAYBOOK.md",
+  "text": "Questo documento è il **manuale operativo e di delivery aziendale** per ingegneri DevOps, Solution Architects, IT Operation Engineers e Delivery Managers responsabili dell'implementazione, manutenzione e gestione in produzione della piattaforma **ERMES Librarian**."
+ },
+ {
+  "source": "docs/DELIVERY_AND_OPERATIONS_PLAYBOOK.md",
+  "text": "``` ┌─────────────────────────────────────────┐ │ ERMES Delivery Continuum │ └─────────────────────────────────────────┘ │ ┌───────────────────────────────┼──────────────────────────────┐ ▼ ▼ ▼ [Modello 1: Small/Med] [Modello 2: Managed VPC] [Modello 3: Enterprise K8s] Docker Compose On-Prem Private Cloud (AWS/GCP/Azure) Kubernetes Helm Chart • Server Linux Standalone • Istanza EC2/GCE/VM • Multi-replica API + HPA • Zero-config SQLite/Postgres • Managed PostgreSQL (RDS) • Decoupled Worker Ingestion • Setup in 30 minuti • S3 / GCS Storage • OIDC / SCIM + Prometheus ```"
+ },
+ {
+  "source": "docs/DELIVERY_AND_OPERATIONS_PLAYBOOK.md",
+  "text": "- **Stack**: Docker Engine 24+ e Docker Compose V2. - **Componenti containerizzati**: - `ermes-api`: Web server FastAPI con Uvicorn (HTTP port 8000). - `ermes-ui`: Frontend SPA Vite/React servito via NGINX (HTTP port 3000 o 80). - `ermes-worker`: Processo di background ingestion asincrono (`scripts/run_worker.py`). - `postgres` (opzionale): PostgreSQL 16 con estensione pgvector, oppure SQLite su volume persistente. - **Requisiti Hardware Minimi**: - CPU: 4 vCPU - RAM: 8 GB (16 GB consigliati se si utilizzano reranker o embedding locali) - Storage: 100 GB SSD NVMe - SO: Ubuntu 22.04 LTS / Debian 12 / RHEL 9"
+ },
+ {
+  "source": "docs/DELIVERY_AND_OPERATIONS_PLAYBOOK.md",
+  "text": "### Modello 2: Managed Private Cloud / Dedicated VPC (Medium / Large) Ideale per clienti enterprise che richiedono un'istanza dedicata e isolata ospitata su cloud (AWS, Google Cloud o Microsoft Azure) gestita tramite SLA di supporto."
+ },
+ {
+  "source": "docs/DELIVERY_AND_OPERATIONS_PLAYBOOK.md",
+  "text": "- **Architettura**: - Compute: Macchina virtuale dedicata (es. AWS `c6i.xlarge` o GCP `c3-standard-4`) o container group (ECS / Cloud Run). - Database: Managed PostgreSQL (AWS RDS / GCP Cloud SQL) con backup automatizzati Point-In-Time Recovery (PITR). - Storage Documentale: Bucket crittografato (AWS S3 con SSE-KMS o Google Cloud Storage). - Networking: VPC isolata con Security Groups ristretti e certificato TLS/SSL gestito tramite Let's Encrypt o AWS ACM."
+ },
+ {
+  "source": "docs/DELIVERY_AND_OPERATIONS_PLAYBOOK.md",
+  "text": "### Modello 3: Enterprise Kubernetes via Helm (Enterprise / Tier 3) Architettura cloud-native conforme agli standard di sicurezza bancari e corporate IT, con alta affidabilità, autoscaling orizzontale e separazione dei privilegi."
+ },
+ {
+  "source": "docs/DELIVERY_AND_OPERATIONS_PLAYBOOK.md",
+  "text": "- **Helm Chart**: Localizzato in `deploy/helm/ermes-knowledge`. - **Caratteristiche di Sicurezza & Resilienza**: - **Non-root execution**: Tutti i pod girano con UID 10001 (`appuser`), `readOnlyRootFilesystem: false` (o true con mount effimeri), `allowPrivilegeEscalation: false`, `capabilities: drop: [ALL]`. - **Horizontal Pod Autoscaling (HPA)**: Scala da 2 a 10 repliche API in base al carico CPU/Memoria. - **Decoupled Worker Deployment**: L'ingestion asincrona ad alta intensità computazionale è isolata su nodi worker dedicati (`worker-deployment.yaml`), garantendo che il parsing di PDF da centinaia di pagine non degradi la latenza delle risposte agli utenti. - **Ingress TLS**: Supporto nativo per ingress-nginx o traefik con terminazione TLS automatica via `cert-manager`."
+ },
+ {
+  "source": "docs/DELIVERY_AND_OPERATIONS_PLAYBOOK.md",
+  "text": "# 2. Configura i secret (DB credentials, API Keys, JWT, OIDC) kubectl create secret generic ermes-secrets \\ --namespace ermes-system \\ --from-literal=database-url=\"postgresql://ermes_user:SecureP@ss@postgres.internal:5432/ermes_db\" \\ --from-literal=jwt-secret=\"enterprise-secure-jwt-random-token-64-chars\" \\ --from-literal=openai-api-key=\"sk-proj-xxxxxx\""
+ },
+ {
+  "source": "docs/DELIVERY_AND_OPERATIONS_PLAYBOOK.md",
+  "text": "# 4. Esegui il deploy via Helm helm upgrade --install ermes-knowledge ./deploy/helm/ermes-knowledge \\ --namespace ermes-system \\ -f deploy/helm/ermes-knowledge/values.yaml \\ -f deploy/helm/ermes-knowledge/values-enterprise.yaml"
+ },
+ {
+  "source": "docs/DELIVERY_AND_OPERATIONS_PLAYBOOK.md",
+  "text": "| Check | Descrizione | Comando / Verifica | Esito | |---|---|---|---| | **P-01** | Porta 8000 (API) e 3000/443 (UI) raggiungibili | `curl -I http://<host>:8000/api/v1/health` | [ ] PASS | | **P-02** | Security Headers HTTP OWASP presenti | `curl -s -D - http://<host>:8000/api/v1/health \\| grep -E \"X-Content-Type\\|X-Frame\"` | [ ] PASS | | **P-03** | Database backend connesso con successo | Endpoint `/health` riporta `\"database\": \"ok\"` | [ ] PASS | | **P-04** | Storage provider configurato e con quote valide | Endpoint `/health` riporta `\"storage\": \"ok\"` | [ ] PASS | | **P-05** | Credenziali Admin predefinite modificate | Reset password utente default `admin@ermes.local` | [ ] PASS | | **P-06** | Rate Limiting attivo ed effettivo | Eseguiti >60 req/min su `/api/v1/query` restituisce 429 | [ ] PASS | | **P-07** | Corpus Demo / Storico Ingestionato | Eseguito `python scripts/seed_demo_corpus.py` | [ ] PASS | | **P-08** | Smoke Test di Runtime Concluso con 0 Errori | `python scripts/smoke_test_runtime.py --base-url http://<host>:8000` | [ ] PASS | | **P-09** | Validazione Demo & Acceptance Completa | `python scripts/validate_demo_readiness.py --base-url http://<host>:8000` | [ ] PASS | | **P-10** | Backup schedulato e test di ripristino simulato | Snapshot DB e cartella uploads/ archiviati | [ ] PASS |"
+ },
+ {
+  "source": "docs/DELIVERY_AND_OPERATIONS_PLAYBOOK.md",
+  "text": "Per massimizzare il valore percepito dall'acquirente fin dal primo giorno (\"Time-to-Value\"), non consegnare mai un sistema vuoto. Popolare il sistema con i documenti aziendali del cliente o un corpus demo qualificato:"
+ },
+ {
+  "source": "docs/DELIVERY_AND_OPERATIONS_PLAYBOOK.md",
+  "text": "### Opzione A: Popolamento Rapido con Demo Corpus Realistico ```bash # Esegue il seed di documenti tecnici, compliance e policy con account demo python scripts/seed_demo_corpus.py --corpus demo_enterprise --target-files 25 ```"
+ },
+ {
+  "source": "docs/DELIVERY_AND_OPERATIONS_PLAYBOOK.md",
+  "text": "### Opzione B: Importazione Massiva dei Documenti del Cliente 1. Raccogliere la documentazione aziendale (PDF, DOCX, XLSX, TXT, Markdown). 2. Posizionare i file nella directory temporanea di staging del server. 3. Utilizzare le API batch o il Connector Scheduler per importare e indicizzare automaticamente i contenuti con metadata e permessi di dipartimento corretti: ```bash python scripts/run_connector_scheduler.py --once --source-dir /mnt/customer_docs/ingestion ```"
+ },
+ {
+  "source": "docs/DELIVERY_AND_OPERATIONS_PLAYBOOK.md",
+  "text": "#### Backup di PostgreSQL (Tier Medium/Enterprise): ```bash # Dump compresso del database relazionale, vettoriale e audit log pg_dump -h <db-host> -U ermes_user -d ermes_db -F c -b -v -f /backups/ermes_db_$(date +%Y%m%d_%H%M%S).dump"
+ },
+ {
+  "source": "docs/DELIVERY_AND_OPERATIONS_PLAYBOOK.md",
+  "text": "#### Backup di SQLite (Tier Small On-Premise): ```bash # SQLite online safe backup via VACUUM INTO sqlite3 /var/ermes/data/ermes.db \"VACUUM INTO '/backups/ermes_$(date +%Y%m%d_%H%M%S).sqlite';\" tar -czvf /backups/storage_$(date +%Y%m%d_%H%M%S).tar.gz /var/ermes/storage ```"
+ },
+ {
+  "source": "docs/DELIVERY_AND_OPERATIONS_PLAYBOOK.md",
+  "text": "```bash # Esecuzione della migrazione con validazione checksum e report python scripts/migrate_sqlite_to_postgres.py \\ --sqlite-path /var/ermes/data/ermes.db \\ --postgres-url postgresql://ermes_user:SecureP@ss@postgres.internal:5432/ermes_db \\ --verify \\ --report-out /var/ermes/migration_report.json ```"
+ },
+ {
+  "source": "docs/DELIVERY_AND_OPERATIONS_PLAYBOOK.md",
+  "text": "### 4.3 Monitoraggio e Metriche in Produzione ERMES espone metriche Prometheus al path `/api/v1/metrics`: - `ermes_http_requests_total`: Contatore delle richieste HTTP suddiviso per route, metodo e status code. - `ermes_http_request_duration_seconds`: Istogramma delle latenze end-to-end (p50, p95, p99). - `ermes_ingestion_tasks_total`: Conteggio dei documenti processati, completati e falliti. - `ermes_retrieval_latency_seconds`: Tempo speso nel vector search e re-ranking. - `ermes_llm_tokens_total`: Monitoraggio del consumo token (prompt e completion) per controllo costi."
+ },
+ {
+  "source": "docs/DELIVERY_AND_OPERATIONS_PLAYBOOK.md",
+  "text": "Endpoint di controllo salute da configurare in UptimeRobot / Datadog / CloudWatch: - **Liveness probe**: `GET /api/v1/health` (restituisce 200 OK se l'applicazione risponde). - **Readiness probe**: `GET /api/v1/health?deep=true` (verifica connettività DB, vector store e filesystem)."
+ },
+ {
+  "source": "docs/DELIVERY_AND_OPERATIONS_PLAYBOOK.md",
+  "text": "#### In Kubernetes (Rolling Update): ```bash # 1. Aggiorna il tag immagine nei values o via CLI helm upgrade ermes-knowledge ./deploy/helm/ermes-knowledge \\ --namespace ermes-system \\ --reuse-values \\ --set image.tag=v1.1.0"
+ },
+ {
+  "source": "docs/DELIVERY_AND_OPERATIONS_PLAYBOOK.md",
+  "text": "| Sintomo | Causa Probabile | Azione Correttiva Immediata | |---|---|---| | **HTTP 401 Unauthorized persistente** | Token JWT scaduto o `JWT_SECRET` modificato | Rigenerare token con credenziali o riverificare la coerenza di `JWT_SECRET` nelle variabili d'ambiente. | | **HTTP 429 Too Many Requests** | Limite rate limiting superato da IP o utente | Verificare chi sta inviando richieste massive; se legittimo, aumentare temporaneamente `RATE_LIMIT_PER_MINUTE` in `.env`. | | **Incomplete Ingestion / Documenti in Pending** | Worker arrestato o memoria insufficiente | Verificare lo stato del container `ermes-worker` con `docker compose logs -f ermes-worker`; verificare RAM disponibile sul server. | | **Errore connessione LLM (Timeout / 502)** | Rate limit provider AI o credenziali scadute | Controllare quote sul portale OpenAI/Azure o stato del container Ollama locale (`systemctl status ollama`). | | **Database Lock su SQLite** | Concorrenza di scrittura elevata su SQLite | Verificare che WAL mode sia abilitata; consigliare il passaggio a PostgreSQL con `scripts/migrate_sqlite_to_postgres.py`. |"
+ },
+ {
+  "source": "docs/DEMO_GUIDE.md",
+  "text": "1. Avvia Ermes e accedi come amministratore. 2. Apri **Biblioteche e documenti** e seleziona `Northstar Works Demo`. 3. Mantieni la policy **Solo evidenze locali**. In questo stato nessun contenuto viene inviato a un LLM."
+ },
+ {
+  "source": "docs/DEMO_GUIDE.md",
+  "text": "1. Mostra i tre file nella biblioteca: handbook del personale, nota spese e policy accessi IT. 2. Cerca `annual leave` e apri il risultato: il passaggio e il locator fanno capire dove l'informazione e' stata trovata. 3. Dall'assistente chiedi: **“How much notice is required for annual leave?”**. La risposta deve citare `employee-handbook.md`. 4. Chiedi: **“When is an expense report due?”**. La risposta deve citare `expense-policy.md`. 5. Chiedi: **“What is the warranty period for customer hardware?”**. Ermes deve dichiarare di non avere evidenza, senza inventare una risposta. 6. Passa alla seconda biblioteca `Meridian Precision Works Demo` ([examples/demo-corpus-quality](../examples/demo-corpus-quality)) e chiedi **“What is the annual learning budget per employee?”** — una domanda a cui risponde solo `employee-handbook.md`, nell'*altra* biblioteca. Ermes deve astenersi anche qui: è la prova dal vivo che la ricerca non attraversa mai il confine tra biblioteche, non solo un'affermazione nella documentazione."
+ },
+ {
+  "source": "docs/DEMO_GUIDE.md",
+  "text": "- Biblioteca isolata: la ricerca usa solo i documenti della biblioteca selezionata — dimostrato al passo 6 con una domanda a cui un'altra biblioteca potrebbe rispondere, ma questa correttamente si astiene. - Tracciabilita: una risposta e' accompagnata da file, versione, locator ed estratto. - Affidabilita: senza evidenza, il prodotto si astiene. - Controllo dati: la modalita' predefinita non invia contenuto a modelli esterni."
+ },
+ {
+  "source": "docs/DEMO_GUIDE.md",
+  "text": "Con un corpus piccolo e ricerca a parole chiave, una domanda \"fuori biblioteca\" può accidentalmente condividere una parola comune con un chunk della biblioteca sbagliata (es. \"report\", \"work\", \"approve\" ricorrono naturalmente in testi aziendali generici) e ottenere una risposta falsamente positiva — non è una fuga tra biblioteche (la query resta vincolata al `library_id` corretto lato SQL), è un falso positivo del solo keyword matching su una parola generica. La domanda di isolamento in `scripts/run_demo_validation.py` è stata scelta empiricamente (verificata contro il server reale, non assunta) per non condividere alcuna parola con il corpus Meridian — usa lo stesso approccio se aggiungi altre domande di questo tipo."
+ },
+ {
+  "source": "docs/DEMO_GUIDE.md",
+  "text": "Solo dopo la demo evidence-only, un amministratore puo' configurare OpenRouter o un provider compatibile nella sezione **Impostazioni**. Il proprietario della biblioteca seleziona quindi `OpenRouter (cloud)` oppure `Provider approvato (cloud)` e conferma l'avviso di trasferimento dati."
+ },
+ {
+  "source": "docs/DEMO_GUIDE.md",
+  "text": "Per abilitarlo serve anche `ERMES_LIBRARY_CLOUD_CONSENT=1` nel file `.env` locale. Non esiste fallback automatico: Ermes invia soltanto gli estratti autorizzati al provider nominato per quella biblioteca."
+ },
+ {
+  "source": "docs/DESCRIZIONE_PROGETTO.md",
+  "text": "**Ermes Knowledge** è una piattaforma enterprise autonoma e modulare di **Retrieval-Augmented Generation (RAG)**, progettata per consentire ad aziende, enti e organizzazioni di interrogare il proprio patrimonio documentale interno in linguaggio naturale, ottenendo risposte **istantanee, accurate, prive di allucinazioni e rigorosamente supportate da citazioni verificabili alla fonte**."
+ },
+ {
+  "source": "docs/DESCRIZIONE_PROGETTO.md",
+  "text": "A differenza delle soluzioni basate su chatbot cloud commerciali (es. ChatGPT, Copilot generici), Ermes Knowledge è sviluppata seguendo il paradigma **Local-First & Data Sovereignty**: - **Zero data-leakage**: nessun documento o query abbandona il perimetro aziendale a meno che non sia esplicitamente configurato un connettore cloud approvato. - **Evidence-First**: nessuna risposta viene generata senza una prova documentale esplicita; se l'informazione non è presente nei documenti autorizzati, il sistema dichiara con precisione di non poter rispondere. - **Isolamento e Sicurezza Rigorosa**: controllo accessi basato su ruoli (RBAC), integrazione Single Sign-On (SSO / OIDC), mascheramento dati sensibili (DLP) e registro di audit tamper-evident (ogni voce firmata HMAC-SHA256 con chiave per installazione)."
+ },
+ {
+  "source": "docs/DESCRIZIONE_PROGETTO.md",
+  "text": "Nelle moderne organizzazioni, oltre l'80% delle informazioni risiede in **documenti non strutturati** (PDF di procedure, contratti, specifiche tecniche DOCX, schede prodotto XLSX, note e policy interne). Questo genera tre criticità strutturali:"
+ },
+ {
+  "source": "docs/DESCRIZIONE_PROGETTO.md",
+  "text": "1. **Frammentazione e Silos Informativi**: i dipendenti spendono ore a ricercare manuali su cartelle di rete condivise (SMB/NAS), portali SharePoint e allegati email, spesso consultando versioni obsolete. 2. **Inaffidabilità dei Motori di Ricerca Tradizionali**: la classica ricerca per sole parole chiave fallisce di fronte a sinonimi, acronimi aziendali o domande complesse in linguaggio naturale. 3. **Rischi dei Chatbot Cloud e Allucinazioni**: inviare documenti riservati a servizi cloud esterni viola il GDPR e il segreto industriale; inoltre, i modelli LLM generici tendono a \"inventare\" dettagli plausibili ma falsi (allucinazioni), inaccettabili in ambito legale, tecnico o finanziario."
+ },
+ {
+  "source": "docs/DESCRIZIONE_PROGETTO.md",
+  "text": "**La Soluzione Ermes**: unire la precisione della ricerca ibrida (BM25 lessicale + vettori semantici densi + reranking neurale) con un modulo di verifica delle evidenze che garantisce risposte esatte, verificabili con un clic sul documento e sulla pagina d'origine."
+ },
+ {
+  "source": "docs/DESCRIZIONE_PROGETTO.md",
+  "text": "1. **Local-First e Sovranità del Dato**: La piattaforma funziona al 100% offline su server on-premise (con modelli locali come Ollama o vLLM). L'adozione di API esterne è un'opzione esplicita, auditata e configurabile. 2. **Evidence-First (Verificabilità Assoluta)**: Ogni affermazione prodotta dall'assistente è associata a una citazione puntuale (nome documento, numero pagina, frammento testuale). Senza evidenza documentale sufficiente, il sistema si astiene. 3. **Isolamento Rigoroso tra Librerie (Zero Cross-Contamination)**: La ricerca è confinata alla libreria selezionata prima che il contesto raggiunga l'LLM. Una domanda posta nella libreria \"Amministrazione\" non potrà mai visualizzare evidenze della libreria \"Risorse Umane\". 4. **Documenti come Input Non Fidato (Prompt Injection Defense)**: Il testo estratto dai documenti viene trattato rigorosamente come dato in sola lettura, sanificato e confinato per impedire tentativi di prompt injection indiretta. 5. **Tracciabilità Crittografica Immutabile**: Ogni query, upload, modifica o download è registrato in un file di audit in cui ogni voce è firmata HMAC-SHA256 con una chiave generata per installazione. Una voce alterata non verifica più la firma ed è segnalata dall'interfaccia; la cancellazione di una voce non è rilevata (non è una hash-chain: vedi `docs/THREAT_MODEL.md`, T6)."
+ },
+ {
+  "source": "docs/DESCRIZIONE_PROGETTO.md",
+  "text": "Ermes Knowledge applica una rigida separazione tra il **Control Plane** (identità, autorizzazioni, policy, audit e metadati) e il **Data Plane** (file originali, parser, indici vettoriali, motori di ricerca e modelli di linguaggio):"
+ },
+ {
+  "source": "docs/DESCRIZIONE_PROGETTO.md",
+  "text": "``` ┌────────────────────────────────────────────────────────┐ │ Browser Web / SPA (React 18) │ └───────────────────────────┬────────────────────────────┘ │ (HTTPS / SSE / REST) ┌───────────────────────────▼────────────────────────────┐ │ API Gateway & Auth (FastAPI) │ │ OIDC / SSO • RBAC • Rate Limiting • DLP Guardrail │ └──────┬──────────────────────┬───────────────────┬──────┘ │ │ │ ▼ ▼ ▼ ┌──────────────────┐ ┌──────────────────┐ ┌───────────────┐ │ Control Plane │ │ Ingestion & │ │ Governance │ │ SQLite/Postgres │ │ Background │ │ & Audit │ │ Metadati, ACL, │ │ Worker (Docling,│ │ (SHA-256 │ │ Librerie, Utenti │ │ OCR, Watcher) │ │ Hash Chain) │ └──────────────────┘ └─────────┬────────┘ └───────────────┘ │ ▼ ┌─────────────────────────────────────────────────────────────────────────────────────────────┐ │ DATA PLANE (Retrieval & RAG) │ │ │ │ ┌───────────────────────────┐ ┌──────────────────────────┐ │ │ │ BM25 Lexical Index │ │ Dense Vector Index │ │ │ │ (Keyword & Exact Match) │ │ (Cosine Semantic Match) │ │ │ └─────────────┬─────────────┘ └────────────┬─────────────┘ │ │ │ │ │ │ └───────────────┬─────────────────┘ │ │ ▼ │ │ ┌──────────────────────────────────┐ │ │ │ Reciprocal Rank Fusion & Rerank │ │ │ │ (reranker: off di default, misurato) │ │ │ └────────────────┬─────────────────┘ │ │ ▼ │ │ ┌──────────────────────────────────┐ │ │ │ Concurrency Evidence Verifier │ ◄── [ ThreadPoolExecutor ] │ │ │ (Strict Grounding & Threshold) │ │ │ └────────────────┬─────────────────┘ │ │ ▼ │ │ ┌──────────────────────────────────┐ │ │ │ Local LLM (Ollama) / Cloud Model │ │ │ └────────────────┬─────────────────┘ │ └─────────────────────────────────┼───────────────────────────────────────────────────────────┘ │ ▼ Risposta Streaming SSE con Citazioni e Pagine Verificabili ```"
+ },
+ {
+  "source": "docs/DESCRIZIONE_PROGETTO.md",
+  "text": "### Fase 1: Ingestion & Parsing Multi-Formato - Supporto nativo per **PDF** (digitali e scansionati via OCR), **DOCX**, **XLSX**, **TXT**, **Markdown** e **HTML**. - Motore di parsing basato su **Docling** e parser specializzati per fogli di calcolo e documenti d'ufficio. - Estrazione automatica dei metadati: numero di pagina, capitolo, autore, data di creazione e hash SHA-256 del file."
+ },
+ {
+  "source": "docs/DESCRIZIONE_PROGETTO.md",
+  "text": "### Fase 2: Chunking Semantico & Normalizzazione - Segmentazione del testo in frammenti (chunk) con sovrapposizione bilanciata (overlap) per preservare il contesto sintattico. - Mantenimento delle coordinate di origine: ogni chunk conserva l'esatto riferimento alla pagina e al paragrafo."
+ },
+ {
+  "source": "docs/DESCRIZIONE_PROGETTO.md",
+  "text": "### Fase 3: Indicizzazione Ibrida Doppia - **Indice Lessicale BM25**: garantisce l'individuazione di codici prodotto, numeri di articolo, date, codici fiscali e nomi propri. - **Indice Vettoriale Denso**: estrazione dei vettori di embedding semantici tramite modelli all'avanguardia (es. `all-MiniLM-L6-v2` o `bge-m3`), calcolando la somiglianza del coseno."
+ },
+ {
+  "source": "docs/DESCRIZIONE_PROGETTO.md",
+  "text": "### Fase 4: Query Expander & Glossario Aziendale Dinamico - Modulo di espansione terminologica con caricamento dinamico e prioritario di acronimi e sinonimi (`config/synonyms.json`). - Permette all'utente di definire acronimi aziendali (es. \"DURC\", \"SLA\", \"PDR\") che vengono tradotti ed espansi automaticamente durante la ricerca."
+ },
+ {
+  "source": "docs/DESCRIZIONE_PROGETTO.md",
+  "text": "### Fase 7: Sintesi e Streaming SSE Real-Time - Connessione **Server-Sent Events (SSE)** al canale `/api/libraries/{id}/ask/stream`. - La risposta viene trasmessa a schermo token-per-token in tempo reale, accompagnata dai badge cliccabili delle citazioni."
+ },
+ {
+  "source": "docs/DESCRIZIONE_PROGETTO.md",
+  "text": "### Sincronizzazione Automatica Cartelle (Folder Watcher / NAS) Un servizio daemon monitora cartelle locali o condivisioni di rete aziendali (cartelle SMB su Windows/Linux). Ogni nuovo documento inserito viene automaticamente indicizzato e sincronizzato nella libreria associata senza alcun intervento manuale."
+ },
+ {
+  "source": "docs/DESCRIZIONE_PROGETTO.md",
+  "text": "### Gestione Permessi e Multi-Libreria (RBAC & ACL) - **Ruoli di Sistema**: - `Admin`: Configurazione globale, gestione utenti, audit log, connettori e impostazioni. - `Editor`: Creazione librerie, caricamento ed eliminazione documenti, gestione glossario. - `Reader`: Sola lettura, interrogazione delle librerie autorizzate, download documenti citati. - **Isolamento Documentale**: le librerie possono essere pubbliche per l'intera azienda o ristrette a specifici gruppi e utenti."
+ },
+ {
+  "source": "docs/DESCRIZIONE_PROGETTO.md",
+  "text": "### Protezione Dati (DLP & Anti-PII) Filtro automatico in entrata e in uscita per il mascheramento di dati personali e finanziari (Codici Fiscali italiani, numeri di carte di credito, IBAN, numeri di telefono)."
+ },
+ {
+  "source": "docs/DESCRIZIONE_PROGETTO.md",
+  "text": "### Esperienza Utente Moderna e Produttiva - **Export Chat in Markdown**: salvataggio completo della conversazione, comprensivo di fonti e metadati temporali, per report o verbali di riunione. - **Nuova Chat Istantanea**: reset dello stato conversazionale con un clic senza dover ricaricare la pagina web. - **Pannello Citazioni Interattivo**: finestra modale con chiusura rapida (tasto ESC o click esterno), testo completo dell'evidenza e pulsante per copiare la citazione. - **Filtri Documentali**: ricerca rapida per nome e filtri con pillole cliccabili per formato file (PDF, DOCX, XLSX, TXT)."
+ },
+ {
+  "source": "docs/DESCRIZIONE_PROGETTO.md",
+  "text": "| Componente di Sicurezza | Implementazione in Ermes | |---|---| | **Autenticazione** | Supporto nativo OIDC (Microsoft Entra ID, Keycloak, Google Workspace) + credenziali locali con Argon2id (`core/governance.py`); gli hash SHA-256 salati delle versioni precedenti vengono riscritti al primo accesso riuscito. | | **Fail-Closed Authorization** | Un utente non autenticato riceve `401`; una biblioteca a cui non si ha accesso risponde `404 Not Found` come una inesistente, per non rivelarne l'esistenza. Le operazioni negate su risorse note rispondono `403`. | | **Audit Log Tamper-Evident** | Ogni evento scrive un record firmato HMAC-SHA256 con la chiave dell'installazione (`audit.jsonl`). Una pagina dedicata verifica ogni firma e segnala le voci alterate. | | **Protezione RootFS Read-Only** | Compatibilità completa con container Docker immutabili (`read_only: true`): file temporanei e lock di sincronizzazione posizionati in cartelle scrivibili dedicate. | | **Multi-Process FileLock** | Concorrenza di scrittura protetta su Windows e Linux per utenti, audit log e sinonimi. |"
+ },
+ {
+  "source": "docs/DESCRIZIONE_PROGETTO.md",
+  "text": "### Backend - **Linguaggio & Framework**: Python 3.12, FastAPI, Uvicorn, Pydantic v2. - **Database & Persistenza**: SQLite con WAL mode (predefinito zero-config) o PostgreSQL con estensione `pgvector`. - **Retrieval & NLP**: Rank-BM25, Sentence-Transformers (PyTorch), HuggingFace Cross-Encoders, Docling, PyMuPDF, OpenPyXL, python-docx. - **LLM Engine**: Ollama (locale), vLLM, oppure connettori OpenAI-compatible / Azure / Anthropic."
+ },
+ {
+  "source": "docs/DESCRIZIONE_PROGETTO.md",
+  "text": "### Frontend - **Linguaggio & Framework**: TypeScript, React 18, Vite. - **Design & Stile**: Tailwind CSS, Lucide Icons, Dark & Light theme responsive. - **Comunicazione**: Fetch API, EventSource (SSE), Axios per streaming e upload concorrenti."
+ },
+ {
+  "source": "docs/DESCRIZIONE_PROGETTO.md",
+  "text": "### Qualità del Codice & CI/CD - **Testing**: oltre 600 test Pytest (unitari, d'integrazione, concorrenza, sicurezza, parità SQLite/PostgreSQL su database reale in CI), 90 test Vitest, 4 scenari E2E Playwright eseguiti contro il container in CI. Il conteggio esatto lo dà `pytest --collect-only`, non questo documento. - **Linter & Formatter**: Ruff (0 errori, regole PEP8 e type-check rigorosi). - **Validazione OpenAPI**: 185 route con contratti API completamente tipizzati."
+ },
+ {
+  "source": "docs/DESCRIZIONE_PROGETTO.md",
+  "text": "### Opzione A: Docker Compose (Consigliata per Produzione) È sufficiente un singolo comando per avviare l'intero stack (Backend, Frontend e reverse proxy): ```bash docker compose up -d ``` L'applicazione risponderà all'indirizzo `http://localhost:8000` (o porta configurata nel file `.env`)."
+ },
+ {
+  "source": "docs/DESCRIZIONE_PROGETTO.md",
+  "text": "### Opzione B: Installazione Locale Standalone (Windows / Linux) 1. **Configurazione Ambiente Python**: ```powershell python -m venv .venv-ermes .venv-ermes\\Scripts\\activate pip install -r requirements.txt ``` 2. **Avvio Backend**: ```powershell uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload ``` 3. **Avvio Frontend**: ```bash cd frontend npm install npm run dev ```"
+ },
+ {
+  "source": "docs/GITHUB_RELEASE_PLAN.md",
+  "text": "> **Stato (20 agosto 2026)**: la scansione dei segreti sulla history completa richiesta in fondo a questo documento è stata eseguita — nessuna credenziale reale trovata, un documento riservato di terzi trovato e rimosso interamente dalla history (non solo cancellato). La ristrutturazione monorepo proposta qui sotto (`apps/api`, `apps/web`, ecc.) resta un obiettivo aspirazionale per una release pubblica finale, non ancora eseguita — lo scope pragmatico attualmente in corso è quello di `docs/ROADMAP_V2.md` Fase F."
+ },
+ {
+  "source": "docs/GITHUB_RELEASE_PLAN.md",
+  "text": "> **Stato (18 settembre 2026)**: potatura eseguita. Tesina, slide e catalogo asset, `notebooklm/`, registro sessioni, roadmap per fasi, piano e strategia interni, script di generazione pptx/pdf e la cartella `archive/` sono usciti dall'albero pubblico (`docs/` da 22 a 11 file); la cronologia Git li conserva e una copia locale è in `../ProgettoRAG_archive`. Gate ora in CI: gitleaks (bloccante), Trivy (advisory), SBOM e notices verificati dai test, compose su clone pulito, E2E nel container."
+ },
+ {
+  "source": "docs/GITHUB_RELEASE_PLAN.md",
+  "text": "1. eseguire `docker compose up`; 2. entrare in una demo con credenziali esplicite e non riutilizzabili; 3. caricare o indicizzare un corpus fittizio; 4. cercare e ricevere una risposta con pagina/estratto citato; 5. vedere che un utente senza permesso non accede a un documento; 6. passare da modello locale a provider compatibile OpenAI e capire quali dati escono dal perimetro."
+ },
+ {
+  "source": "docs/GITHUB_RELEASE_PLAN.md",
+  "text": "- README in inglese, UTF-8, con scope e limiti chiari, screenshot/GIF e quickstart; - `LICENSE`, `NOTICE`, `THIRD_PARTY_NOTICES`, `SECURITY.md`, `CONTRIBUTING.md` e changelog; - architettura, deployment guide, connector guide, evaluation guide e threat model; - `.env.example` senza segreti; runtime data fuori dal repository; - release semver, immagini container pinning/digest e SBOM."
+ },
+ {
+  "source": "docs/GITHUB_RELEASE_PLAN.md",
+  "text": "Il progetto è personale e può essere evoluto. Prima della pubblicazione, però, vanno rimossi o sostituiti tutti i dati runtime, segreti, log, backup, artefatti, documentazione duplicata e qualsiasi materiale riservato di terzi. WinSarp può restare come esempio o plugin, ma non deve dominare il core né usare corpus non pubblicabile. La history Git va sottoposta a secret scan prima della release."
+ },
+ {
+  "source": "docs/GUIDA_OPERATIVA_AZIENDA.md",
+  "text": "Questa guida fornisce al reparto IT, ai sistemisti e agli amministratori di sistema tutte le istruzioni necessarie per installare, configurare, proteggere e mantenere operativo **Ermes Knowledge** in ambiente aziendale."
+ },
+ {
+  "source": "docs/GUIDA_OPERATIVA_AZIENDA.md",
+  "text": "Ermes Knowledge è una piattaforma documentale enterprise progettata secondo il paradigma **local-first** ed **evidence-first**: - **Backend**: API REST e SSE asincrone su FastAPI / Python 3.11+. - **Frontend**: Single Page Application reattiva in React 18 / TypeScript / Vite con TailwindCSS. - **Motore di Ricerca Ibrido**: BM25/FTS5 (lessicale) integrato con embedding semantici e reranker neuronale/lessicale. - **Motore di Inference (LLM)**: - *Default (Zero-Hardware)*: Modalità `evidence_only` (estrae solo i passaggi documentali verificati con citazioni, senza usare modelli generativi). - *Consigliato Locale (Massima Privacy)*: Istanza [Ollama](https://ollama.com/) on-premise con modello `qwen3.5:9b` o `qwen3.5:4b` + `nomic-embed-text` / `bge-m3`. - *Cloud Approvato*: OpenRouter, Azure OpenAI, Groq (richiede consenso esplicito). - **Persistenza**: - *Singolo Server / On-Premise*: SQLite WAL locale (zero-config, predefinito). - *Cluster Distribuito*: PostgreSQL 16+ (attivabile con `ERMES_DATABASE_URL`)."
+ },
+ {
+  "source": "docs/GUIDA_OPERATIVA_AZIENDA.md",
+  "text": "### Requisiti Minimi (Modalità Evidence-Only o con Cloud LLM) - **CPU**: 4 vCPU - **RAM**: 4–8 GB RAM - **Disco**: 20 GB SSD - **SO**: Linux (Ubuntu 22.04+ / Debian 12 / RHEL 9) oppure Windows Server 2022+ / Windows 11."
+ },
+ {
+  "source": "docs/GUIDA_OPERATIVA_AZIENDA.md",
+  "text": "### Requisiti Consigliati (Inference Locale con Ollama) - **CPU**: 8 vCPU - **RAM**: 16–32 GB RAM - **GPU**: NVIDIA RTX (minimo 8–12 GB VRAM per `qwen3.5:4b` / 16 GB per `qwen3.5:9b`) con CUDA 12+. - **Disco**: 50–100 GB NVMe SSD."
+ },
+ {
+  "source": "docs/GUIDA_OPERATIVA_AZIENDA.md",
+  "text": "1. Assicurarsi di avere Python 3.11+ e Node.js 18+ installati. 2. Installare le dipendenze Python: ```bash pip install -e . ``` 3. Compilare il frontend React: ```bash cd frontend npm install npm run build cd .. ``` 4. Verificare la configurazione: ```bash python -m config.validation ``` 5. Avviare il server applicativo: ```bash uvicorn api:app --host 0.0.0.0 --port 8502 --workers 2 ```"
+ },
+ {
+  "source": "docs/GUIDA_OPERATIVA_AZIENDA.md",
+  "text": "### Autenticazione & Ruoli (RBAC) - **admin**: Accesso completo a gestione utenti, chiavi API, impostazioni DLP, provider LLM e backup. - **editor**: Creazione biblioteche, caricamento/eliminazione documenti, gestione glossario. - **viewer**: Sola consultazione e ricerca documentale sulle biblioteche assegnate."
+ },
+ {
+  "source": "docs/GUIDA_OPERATIVA_AZIENDA.md",
+  "text": "### Protezione Dati Personali (DLP & Filtri PII) In `.env` è possibile abilitare il mascheramento preventivo dei dati sensibili prima di qualsiasi elaborazione: ```env ERMES_PII_FILTER_ENABLED=1 ERMES_DLP_AUDIT_ENABLED=1 ``` Il modulo maschera in tempo reale: - Codici Fiscali italiani - Numeri di carta di credito (con validazione algoritmo di Luhn) - Codici IBAN - Token JWT e API Key - Indirizzi email e numeri di telefono"
+ },
+ {
+  "source": "docs/GUIDA_OPERATIVA_AZIENDA.md",
+  "text": "### Autenticazione Centralizzata SSO / OIDC (Microsoft Entra ID / Azure AD) Per consentire l'accesso aziendale con credenziali Microsoft 365: ```env ERMES_OIDC_ENABLED=1 ERMES_OIDC_ISSUER=https://login.microsoftonline.com/<TENANT_ID>/v2.0 ERMES_OIDC_CLIENT_ID=<CLIENT_ID_APP> ERMES_OIDC_CLIENT_SECRET=<CLIENT_SECRET> ERMES_OIDC_AUDIENCE=<CLIENT_ID_APP> ``` I gruppi di sicurezza Azure AD possono essere mappati direttamente su ruoli e biblioteche tramite il pannello amministrativo."
+ },
+ {
+  "source": "docs/GUIDA_OPERATIVA_AZIENDA.md",
+  "text": "Per far comprendere a Ermes la terminologia interna (sigle, acronimi, gergo contrattuale come *DDT, TFR, CCNL, WFH, DVR*): 1. Accedere a **Impostazioni Sistema** > **Glossario Aziendale & Sinonimi Dinamici**. 2. Inserire il termine e le sue espansioni equivalenti (es. `DDT` -> `documento di trasporto, bolla di consegna`). 3. Il motore espanderà automaticamente le query degli utenti durante la ricerca, massimizzando il ritrovamento dei documenti. 4. Il file è persistito in `config/synonyms.json` (personalizzabile con `ERMES_SYNONYMS_FILE`)."
+ },
+ {
+  "source": "docs/GUIDA_OPERATIVA_AZIENDA.md",
+  "text": "1. **Cartelle Condivise di Rete**: - Nel tab **Connettori**, inserire il percorso UNC o il mount locale (es. `\\\\nas-server\\procedure_aziendali` o `/mnt/nas/procedure`). - Il daemon **Folder Watcher** integrato esegue periodicamente la scansione rilevando nuovi file o revisioni aggiornate in background. 2. **Microsoft SharePoint / OneDrive**: - Configurare in `.env` le credenziali `MS_GRAPH_TENANT_ID`, `MS_GRAPH_CLIENT_ID`, `MS_GRAPH_CLIENT_SECRET` e `MS_GRAPH_DRIVE_ID`."
+ },
+ {
+  "source": "docs/GUIDA_OPERATIVA_AZIENDA.md",
+  "text": "### Backup Automatico Il sistema include uno scheduler di backup automatico configurato in `.env`: ```env ERMES_BACKUP_ENABLED=1 ERMES_BACKUP_INTERVAL_HOURS=24 ``` Gli archivi compressi cifrabili vengono salvati in `data/backups/` e contengono il database SQLite, i metadati, il glossario e la configurazione utenti."
+ },
+ {
+  "source": "docs/INTEGRATION_GUIDE.md",
+  "text": "Come un sistema esterno (script, microservizio, n8n/Zapier, bot di chat, agente AI) parla con Ermes Knowledge. Ogni percorso, campo e variabile qui sotto corrisponde al codice in `api/` e `config/`: se diverge, ha ragione il codice, e questa guida va corretta."
+ },
+ {
+  "source": "docs/INTEGRATION_GUIDE.md",
+  "text": "1. [Autenticazione](#1-autenticazione) 2. [Domande a una biblioteca](#2-domande-a-una-biblioteca) 3. [Streaming SSE](#3-streaming-sse) 4. [Caricamento documenti](#4-caricamento-documenti) 5. [Automazioni: n8n, Zapier, Make](#5-automazioni-n8n-zapier-make) 6. [Bot di chat: Slack, Teams, Telegram](#6-bot-di-chat-slack-teams-telegram) 7. [MCP per agenti AI](#7-mcp-per-agenti-ai) 8. [Connettori custom](#8-connettori-custom) 9. [SCIM 2.0](#9-scim-20)"
+ },
+ {
+  "source": "docs/INTEGRATION_GUIDE.md",
+  "text": "- la chiave di sistema `ERMES_API_KEY` (break-glass, da tenere fuori dal codice); - una chiave personale gestita per utente (ruotabile dall'amministrazione); - un token OIDC, se `ERMES_OIDC_ENABLED` è attivo."
+ },
+ {
+  "source": "docs/INTEGRATION_GUIDE.md",
+  "text": "```bash curl -X POST \"http://localhost:8502/api/libraries/$LIBRARY_ID/ask\" \\ -H \"Authorization: Bearer $ERMES_API_KEY\" \\ -H \"Content-Type: application/json\" \\ -d '{\"question\": \"Entro quando va consegnata la nota spese?\", \"top_k\": 3}' ```"
+ },
+ {
+  "source": "docs/INTEGRATION_GUIDE.md",
+  "text": "| Campo | Tipo | Note | |---|---|---| | `question` | string | 2–2000 caratteri | | `top_k` | int | 1–10, default 3 | | `conversation_id` | string \\| null | opzionale | | `history` | `[{\"question\": \"...\"}]` | al massimo 3 domande precedenti, usate solo per riscrivere una domanda di raffinamento |"
+ },
+ {
+  "source": "docs/INTEGRATION_GUIDE.md",
+  "text": "```json { \"answer_id\": \"…\", \"library\": {\"id\": \"…\", \"name\": \"Amministrazione\"}, \"question\": \"Entro quando va consegnata la nota spese?\", \"answer\": \"…\", \"status\": \"answered\", \"evidence\": {\"coverage\": \"supported\", \"reason\": \"\"}, \"citations\": [ { \"document_id\": \"…\", \"filename\": \"nota-spese.md\", \"version\": 1, \"content_hash\": \"sha256:…\", \"chunk_id\": \"…\", \"locator\": \"Sezione: Scadenze\", \"excerpt\": \"La nota spese va consegnata entro il quinto giorno lavorativo…\", \"marker\": 1, \"relevance_score\": 0.8123, \"injection_suspected\": false } ], \"meta\": {\"assistant_mode\": \"evidence_only\", \"…\": \"…\"} } ```"
+ },
+ {
+  "source": "docs/INTEGRATION_GUIDE.md",
+  "text": "| Evento | `data` | |---|---| | `status` | `{\"step\": \"retrieving\" \\| \"verifying\" \\| \"composing\"}` | | `citations` | `{\"citations\": [...]}` | | `answer` | `{\"chunk\": \"...\"}` | | `done` | la risposta finale, stessa forma di `/ask` | | `error` | `{\"detail\": \"...\"}` |"
+ },
+ {
+  "source": "docs/INTEGRATION_GUIDE.md",
+  "text": "Richiede il ruolo `editor` sulla biblioteca. Il file passa per validazione del tipo, limite di dimensione (`ERMES_ADMIN_MAX_UPLOAD_MB`, oltre il quale risponde `413`) e scansione antivirus prima dell'indicizzazione, che avviene in background: lo stato si segue su `GET /api/libraries/{library_id}/ingestion-jobs`."
+ },
+ {
+  "source": "docs/INTEGRATION_GUIDE.md",
+  "text": "| Rotta | Scopo | |---|---| | `GET /libraries` | elenco delle biblioteche visibili, per popolare le tendine | | `POST /ask` | `{\"library_id\", \"question\"}` → risposta, citazioni e `evidence_found` | | `POST /ingest` | `{\"library_id\", \"filename\", \"content\", \"is_base64\", \"media_type\"}` |"
+ },
+ {
+  "source": "docs/INTEGRATION_GUIDE.md",
+  "text": "| Rotta | Segreto richiesto | |---|---| | `POST /api/integrations/slack` | `ERMES_SLACK_SIGNING_SECRET` | | `POST /api/integrations/teams` | `ERMES_TEAMS_WEBHOOK_SECRET` | | `POST /api/integrations/telegram` | `ERMES_TELEGRAM_BOT_TOKEN`, `ERMES_TELEGRAM_WEBHOOK_SECRET` |"
+ },
+ {
+  "source": "docs/INTEGRATION_GUIDE.md",
+  "text": "Senza il segreto la rotta risponde `503`: non accetta richieste non firmate. Il canale esterno va collegato a una biblioteca con `POST /api/libraries/{library_id}/integrations` (`{\"platform\": \"slack\", \"external_channel_id\": \"...\"}`)."
+ },
+ {
+  "source": "docs/INTEGRATION_GUIDE.md",
+  "text": "| Rotta | Scopo | |---|---| | `GET /api/mcp/info` | metadati del server | | `GET /api/mcp/tools` | strumenti disponibili | | `POST /api/mcp/call` | `{\"name\", \"arguments\"}` → esegue uno strumento | | `POST /api/mcp/rpc` | JSON-RPC 2.0 (`initialize`, `tools/list`, `tools/call`) |"
+ },
+ {
+  "source": "docs/INTEGRATION_GUIDE.md",
+  "text": "I connettori stanno in `core/connectors/` ed estendono `BaseConnector` (`core/connectors/base.py`): implementano `test_connection()` e `fetch_documents()`, che restituisce oggetti `RemoteDocument`; `fetch_delta()` è facoltativo e di default ripiega sulla scansione completa."
+ },
+ {
+  "source": "docs/INTEGRATION_GUIDE.md",
+  "text": "Un connettore aziendale non richiede di modificare Ermes: si scrive in un modulo Python importabile che chiama `core.connectors.registry.register_connector(\"nome_tipo\", Classe)` all'import, e si elenca il modulo in `ERMES_CONNECTOR_PLUGINS` (più moduli separati da virgola). `GET /api/connectors/types` (solo admin) mostra i tipi disponibili, integrati e plugin."
+ },
+ {
+  "source": "docs/INTEGRATION_GUIDE.md",
+  "text": "- si caricano **solo** i moduli elencati, non tutto ciò che è installato: importare un modulo ne esegue il codice con i permessi di Ermes; - un plugin non può sostituire un tipo integrato (`local_folder` ha controlli sui percorsi che un sostituto potrebbe non avere), e un plugin che non si importa o non registra nulla fa rispondere `503` alle rotte dei connettori invece di sparire in silenzio."
+ },
+ {
+  "source": "docs/INTEGRATION_GUIDE.md",
+  "text": "- `GET /scim/v2/ServiceProviderConfig`, `GET /scim/v2/Schemas` - `GET|POST /scim/v2/Users`, `GET|PUT|PATCH|DELETE /scim/v2/Users/{id}` - `GET|POST /scim/v2/Groups`, `GET|PUT|PATCH|DELETE /scim/v2/Groups/{id}`"
+ },
+ {
+  "source": "docs/INTEGRATION_GUIDE.md",
+  "text": "**Come i gruppi danno accesso.** Un gruppo si collega a una biblioteca con le stesse mappature usate per i gruppi OIDC (ruolo `viewer` o `editor`, mai admin), usando il suo `displayName`. Da quel momento i membri del gruppo accedono alla biblioteca qualunque sia il modo in cui entrano (SSO, password, chiave API), e toglierli dal gruppo nell'IdP toglie loro l'accesso alla richiesta successiva, su tutte le repliche. I gruppi del token OIDC e quelli SCIM si sommano; un gruppo non degrada mai una membership diretta."
+ },
+ {
+  "source": "docs/INTEGRATION_GUIDE.md",
+  "text": "- `PATCH` accetta le due forme di rimozione in uso: `path: members[value eq \"id\"]` (Entra ID) e `path: members` con l'elenco in `value` (Okta); - un membro che non corrisponde a un utente esistente viene rifiutato con `400`, non tenuto \"per dopo\": un account creato più tardi con quel nome erediterebbe l'accesso senza che l'IdP lo abbia deciso; - un `PATCH` con un'operazione non valida non applica nemmeno le altre; - eliminare un utente lo toglie da tutti i gruppi."
+ },
+ {
+  "source": "docs/ONE_PAGER.md",
+  "text": "> Versione testuale. La versione visiva, pensata per essere condivisa con un recruiter o un CTO, è pubblicata come artifact: **[Ermes Knowledge — one-pager](https://claude.ai/code/artifact/b04f7270-660a-4501-802e-7d5ab2a691ad)**."
+ },
+ {
+  "source": "docs/ONE_PAGER.md",
+  "text": "La conoscenza aziendale vive sparsa tra cartelle e versioni. Un chatbot generico risponde con sicurezza — a volte in modo sbagliato, senza modo di verificarlo. Ermes Knowledge scommette sul contrario: una risposta vale quanto la citazione che la sostiene, e senza citazione non c'è risposta."
+ },
+ {
+  "source": "docs/ONE_PAGER.md",
+  "text": "1. **Local first** — una chiave API cloud da sola non attiva mai l'elaborazione cloud. 2. **Evidenza prima della generazione** — ogni risposta sostanziale cita un documento accessibile, o l'assistente dichiara di non sapere. 3. **Isolamento tra biblioteche** — la ricerca è vincolata alla biblioteca scelta prima che il contenuto raggiunga l'assistente. Verificato dal vivo, non solo assunto. 4. **I documenti sono input non fidato** — il testo recuperato non può mai autorizzare un'azione. 5. **Gli originali restano raggiungibili** — ogni citazione rimanda alla versione esatta del documento, scaricabile con un click dalla chat."
+ },
+ {
+  "source": "docs/ONE_PAGER.md",
+  "text": "- Repository: [github.com/Fioru12/Ermes-Librarian](https://github.com/Fioru12/Ermes-Librarian) - Cosa e' cambiato e perche', release per release: [CHANGELOG.md](../CHANGELOG.md) - Audit completo (architettura, sicurezza, design): [docs/AUDIT_2026-08-19.md](AUDIT_2026-08-19.md)"
+ },
+ {
+  "source": "docs/POSTGRES_MIGRATION_PLAN.md",
+  "text": "> Stato: **Tutte le Fasi 0-5 completate e verificate.** > - Fasi 0-4 verificate in CI contro Postgres 16 (`tests/test_postgres_parity.py`). > - Fase 3 (concorrenza `SELECT ... FOR UPDATE SKIP LOCKED` per worker multipli) implementata in `core/library_store.py`. > - Fase 5 (script di migrazione dati a blocchi e verifica integrità) implementata in `scripts/migrate_sqlite_to_postgres.py` e testata in `tests/test_postgres_migration.py`. > Ultimo aggiornamento: 2026-09-23"
+ },
+ {
+  "source": "docs/POSTGRES_MIGRATION_PLAN.md",
+  "text": "`core/library_store.py` è ~1250 righe di SQL SQLite-specifico con ~60 metodi: FTS5 per la ricerca full-text, `sqlite3.Row`, PRAGMA WAL, `executescript`, JSON in colonna TEXT, lock `threading.Lock` a livello processo. Una traduzione \"in corsa\" avrebbe rotto la ricerca ibrida (che è il cuore del prodotto) senza modo semplice di accorgersene nei test esistenti, che girano su SQLite. La migrazione è stata quindi eseguita per fasi verificabili."
+ },
+ {
+  "source": "docs/POSTGRES_MIGRATION_PLAN.md",
+  "text": "- `ERMES_DATABASE_URL` (vuoto di default = SQLite, zero-config come oggi). Esempio: `postgresql://ermes:secret@localhost:5432/ermes` - Extra installazione: `pip install .[postgres]` (psycopg 3) - Le due variabili sono esclusive: se `DATABASE_URL` è impostato ha precedenza; `LIBRARY_DB_PATH` resta il fallback di sviluppo."
+ },
+ {
+  "source": "docs/POSTGRES_MIGRATION_PLAN.md",
+  "text": "| Tabella | Note per la compatibilità | |---|---| | `libraries` | semplice; `visibility` CHECK implicito via codice | | `documents` | `extracted_text` gestito nativamente via TOAST in PostgreSQL | | `library_members` | CHECK(role IN viewer/reviewer/editor/manager) identico | | `document_chunks` | `embedding_json` JSONB; `pgvector` HNSW opzionale | | `document_versions` | chiave composta (document_id, version) | | `document_acls` | chiave composta, usato dal filtro per-documento | | `ingestion_jobs` | `claim_next_ingestion_job` usa `SELECT ... FOR UPDATE SKIP LOCKED` atomico in PostgreSQL per scalare su $N$ worker/pod concorrenti senza conflitti | | `import_sources` | UNIQUE(library_id, path) | | `chat_integrations` | UNIQUE(platform, external_channel_id) |"
+ },
+ {
+  "source": "docs/POSTGRES_MIGRATION_PLAN.md",
+  "text": "### 3. Concorrenza & Ingestion Jobs (FATTO) - `claim_next_ingestion_job` su PostgreSQL esegue una singola query atomica: `UPDATE ingestion_jobs SET status = 'processing' WHERE id = (SELECT id FROM ingestion_jobs WHERE status = 'queued' ORDER BY created_at ASC FOR UPDATE SKIP LOCKED LIMIT 1) RETURNING *`. - Permette scalabilità orizzontale a worker e processi multipli senza lock bloccanti."
+ },
+ {
+  "source": "docs/POSTGRES_MIGRATION_PLAN.md",
+  "text": "### 5. Doppio backend & Migrazione Dati (FATTO) - `LibraryStore` opera in modo trasparente sia su SQLite che su PostgreSQL. - Script di migrazione a blocchi: `scripts/migrate_sqlite_to_postgres.py` per migrare archivi esistenti con verifica conteggi e integrità."
+ },
+ {
+  "source": "docs/POSTGRES_MIGRATION_PLAN.md",
+  "text": "- **Fase 0 (fatta)**: config `ERMES_DATABASE_URL`, extra `postgres`. - **Fase 1 (fatta)**: adapter connessione (`PostgresConnectionAdapter`, traduzione `?`→`%s`) + DDL PG (`ensure_schema`) + parity test. - **Fase 2 (fatta)**: `LibraryStore` gira identico su entrambi i backend (`tests/test_postgres_parity.py`). - **Fase 3 (fatta)**: `ingestion_jobs` con `SELECT ... FOR UPDATE SKIP LOCKED` per worker paralleli distribuiti. - **Fase 4 (fatta)**: ricerca ibrida su `tsvector` + GIN (`search_tsv`) e `pgvector`/HNSW. - **Fase 5 (fatta)**: script di migrazione `scripts/migrate_sqlite_to_postgres.py` e test in `tests/test_postgres_migration.py`."
+ },
+ {
+  "source": "docs/POSTGRES_MIGRATION_PLAN.md",
+  "text": "1. Tutti i test passano su SQLite (default, invariato) — ✅ VERIFICATO. 2. Suite parametrica identica passa su PG (docker: `postgres:16-alpine`) — ✅ VERIFICATO in CI. 3. Claim atomico concorrente `SKIP LOCKED` per worker multipli — ✅ IMPLEMENTATO e TESTATO. 4. Script di migrazione con verifica conteggi e parità — ✅ IMPLEMENTATO e TESTATO."
+ },
+ {
+  "source": "docs/RUNBOOK.md",
+  "text": "A document library that answers questions with citations, and abstains when it finds no evidence. One instance serves one organisation: there is no multi-tenancy, and none is planned — separate customers get separate instances."
+ },
+ {
+  "source": "docs/RUNBOOK.md",
+  "text": "In the default configuration no document text leaves the machine. Sending text to a model requires two independent decisions (a global consent flag and a per-library setting), so a configured API key alone changes nothing."
+ },
+ {
+  "source": "docs/RUNBOOK.md",
+  "text": "**Components.** A FastAPI backend, a React frontend, a SQLite or PostgreSQL database, and optionally a local Ollama server for embeddings and generation. Ollama is not required: without it the system runs keyword retrieval and says so."
+ },
+ {
+  "source": "docs/RUNBOOK.md",
+  "text": "Prints every problem with the variable to set and what to do about it, and exits non-zero if any of them would make the application unusable. Run it after editing `.env` and before restarting. The same check runs at startup — a configuration that cannot serve requests stops the application instead of turning into scattered runtime errors."
+ },
+ {
+  "source": "docs/RUNBOOK.md",
+  "text": "| Variable | Why | |---|---| | `ERMES_ADMIN_PASSWORD` | Without it (and without `ERMES_API_KEY` or SSO) every request answers 503 | | `ERMES_HOST` | Leave `127.0.0.1` unless a TLS reverse proxy sits in front |"
+ },
+ {
+  "source": "docs/RUNBOOK.md",
+  "text": "Leave `ERMES_AUDIT_SECRET` unset. The instance generates its own signing key on first run and keeps it in `security/.audit_secret`. Set it explicitly only when several instances must verify the same audit entries, or when a secrets manager owns the key."
+ },
+ {
+  "source": "docs/RUNBOOK.md",
+  "text": "```powershell Copy-Item .env.example .env py -3.11 -m venv .venv-ermes .\\.venv-ermes\\Scripts\\Activate.ps1 pip install -r requirements.txt npm.cmd --prefix frontend install .\\scripts\\avvia_ermes.ps1 ```"
+ },
+ {
+  "source": "docs/RUNBOOK.md",
+  "text": "**What \"degraded\" means here.** A missing model is not a problem by itself — in the default `evidence_only` mode no model is needed, by design. It becomes a problem the moment something has been switched on that relies on it. If the evidence verifier, the conversation memory or semantic search is enabled and its model is unreachable or not installed, the feature silently falls back to the behaviour without it: answers go out unverified, follow-up questions are not rewritten, retrieval is keyword-only. Until 11 September 2026 `/health` reported `healthy` in exactly that situation, with the missing model named only in a secondary field. Now it reports `degraded` and says which feature is affected. The HTTP code stays 200 so a readiness probe does not kill an instance that is still serving."
+ },
+ {
+  "source": "docs/RUNBOOK.md",
+  "text": "```json {\"ts\":\"2026-09-09T17:37:15+00:00\",\"level\":\"INFO\",\"logger\":\"api\", \"message\":\"GET /health -> 200\",\"event\":\"http_request\",\"method\":\"GET\", \"path\":\"/health\",\"status\":200,\"duration_ms\":12.4,\"request_id\":\"proxy-7f3a\"} ```"
+ },
+ {
+  "source": "docs/RUNBOOK.md",
+  "text": "Every line produced while handling a request carries the same `request_id`, and that id is returned to the caller in the `X-Request-ID` header. **When a user reports a problem, ask for that header value** — it takes you straight to their request. If a reverse proxy already sets `X-Request-ID`, Ermes keeps it, so the same id spans both."
+ },
+ {
+  "source": "docs/RUNBOOK.md",
+  "text": "| Path | Contains | Losing it means | |---|---|---| | `data/ermes_knowledge.sqlite3` | Libraries, documents, chunks, sessions | Everything | | `documenti/` and `storage/` | The uploaded files | The originals | | `security/` | Accounts, API key hashes, group mappings, **`.audit_secret`** | Nobody can log in; the audit log stops verifying | | `logs/audit_admin.jsonl` | The audit trail | The record of who did what | | `.env` | Configuration and secrets | The instance's identity |"
+ },
+ {
+  "source": "docs/RUNBOOK.md",
+  "text": "**`security/.audit_secret` is the one people forget.** It is generated per installation, and every audit entry is signed with it. Restore the audit log without it and every entry reports as tampered — indistinguishable, to whoever reads it, from actual tampering."
+ },
+ {
+  "source": "docs/RUNBOOK.md",
+  "text": "| Variable | Default | Effect | |---|---|---| | `ERMES_BACKUP_ENABLED` | `1` | The timer runs at all | | `ERMES_BACKUP_INTERVAL_HOURS` | `24` | How often | | `ERMES_BACKUP_DIR` | `backups` | Where (relative paths resolve under the application directory) | | `ERMES_BACKUP_RETENTION_COUNT` | `10` | How many archives are kept |"
+ },
+ {
+  "source": "docs/RUNBOOK.md",
+  "text": "**Set `ERMES_BACKUP_DIR` to somewhere off this disk.** The default keeps the archives beside the data they protect, which survives a deleted file and not a failed disk. The two settings that place and prune the archives were read by nobody until 10 September 2026: an instance configured before that date wrote to the default location whatever the `.env` said, so check where the archives actually are before trusting them."
+ },
+ {
+  "source": "docs/RUNBOOK.md",
+  "text": "**The archive is not encrypted, and it contains all of `security/`** — the audit signing key and the user file included; without the key a restored audit log could not be verified. It does not contain `.env` (it did until 18 September 2026: admin password, provider keys and the OIDC client secret travelled with every archive), so after a restore recreate `.env` from `.env.example`. Give the backup directory the same protection as `security/` itself, and remember that copying an archive to a share or a USB disk copies the signing key with it."
+ },
+ {
+  "source": "docs/RUNBOOK.md",
+  "text": "The first archive after the timer starts is written one interval later, not at startup: a container restarted more often than the interval never takes one. Use `/backup/create` after a deployment rather than assuming."
+ },
+ {
+  "source": "docs/RUNBOOK.md",
+  "text": "**Restoring over a running instance is not supported.** The endpoint replaces the SQLite file under the open connection. Use the dry run (`?dry_run=true`) to see the contents, then stop the application, restore, and start it again."
+ },
+ {
+  "source": "docs/RUNBOOK.md",
+  "text": "Stop the application, put the files back in the same relative positions, start it. Then open the administrative audit view and confirm the signatures verify: that is the check that tells you the restore was complete."
+ },
+ {
+  "source": "docs/RUNBOOK.md",
+  "text": "Erasure removes the account, its API key, sessions, library memberships, document ACLs and analytics events (the questions the person wrote). Libraries the person owned are **not deleted** — they hold the organisation's documents — and pass to the administrator who runs the erasure, as do any chat integrations and folder sources they registered."
+ },
+ {
+  "source": "docs/RUNBOOK.md",
+  "text": "**Audit entries are kept, and the report says so.** They are a security record under a legal obligation, and each entry is signed over the author field: rewriting the author would make the entry indistinguishable from a tampered one. Give the person the export first; that includes the audit entries. An administrator cannot erase their own account or the one named in `ERMES_ADMIN_USERNAME`."
+ },
+ {
+  "source": "docs/RUNBOOK.md",
+  "text": "1. Back up as above. 2. Pull the new version. 3. **Reinstall the dependencies**: `.\\.venv-ermes\\Scripts\\python.exe -m pip install -r requirements.txt`. Skipping this is the most common way to break the instance — a new release adds a package, the virtual environment still has the old set, and the backend dies on an import before it can log anything useful. 4. `python -m config.validation` — new versions may require new settings. 5. Restart."
+ },
+ {
+  "source": "docs/RUNBOOK.md",
+  "text": "**The backend does not come up and the launcher blames the port.** Read `logs/backend-avvio.log`: the launcher starts uvicorn in a hidden window, so its output goes there rather than to the console. A `ModuleNotFoundError` means the virtual environment is behind `requirements.txt` — see step 3 of the upgrade procedure. The launcher now prints the last lines of that log itself."
+ },
+ {
+  "source": "docs/RUNBOOK.md",
+  "text": "**The application refuses to start.** Read the first line of output: it names the variable and the fix. This is deliberate; a configuration that cannot serve requests stops the instance rather than failing one request at a time."
+ },
+ {
+  "source": "docs/RUNBOOK.md",
+  "text": "**Nobody can log in via SSO.** Almost always the provider's keys cannot be fetched. Check `ERMES_OIDC_ISSUER` (or `ERMES_OIDC_JWKS_URL`) and that the instance can reach the discovery URL. Tokens are rejected with a logged reason — search the logs for `OIDC:`."
+ },
+ {
+  "source": "docs/RUNBOOK.md",
+  "text": "**A user is locked out after failed passwords.** Expected: repeated failures from one address are blocked for `ERMES_LOGIN_LOCKOUT_MINUTES` (default 15). A correct password does not lift the block early; waiting does. The count is per IP and per IP+username, never by username alone, so one person cannot lock out another."
+ },
+ {
+  "source": "docs/RUNBOOK.md",
+  "text": "**Answers say there is no evidence.** That is the designed behaviour when retrieval finds nothing, not a fault. Check that the documents are in the library being queried, and remember that semantic search is off by default — questions worded very differently from the source text are the known weak case (see [RETRIEVAL_EVALUATION.md](RETRIEVAL_EVALUATION.md))."
+ },
+ {
+  "source": "docs/RUNBOOK.md",
+  "text": "**One particular search is slow, the rest are fast.** Expected, and measured: a term that appears in most documents makes every matching passage load and score in memory. At 50,000 passages that is about three seconds, against three milliseconds for a normal search. Indexing runs at roughly 1.5 s per thousand passages, so a fifty-thousand-passage archive takes about a minute to load, once. Reproduce on your own hardware with `python evaluation/archive_scale.py --sizes 1000,10000,50000`."
+ },
+ {
+  "source": "docs/THREAT_MODEL.md",
+  "text": "Scope: Ermes Knowledge as it exists today — a single-tenant, local-first document library. This describes what the current implementation actually defends against and what it does not. Where a defence is claimed, the test that proves it is named; where there is none, that is stated rather than omitted."
+ },
+ {
+  "source": "docs/THREAT_MODEL.md",
+  "text": "The frozen WinSarp engine that used to sit under `legacy_winsarp/` behind a dev-only flag — and that this document listed as out of scope because it had no per-library ACL — was removed from the repository on 18 September 2026. Nothing in the threat model below depends on it any more."
+ },
+ {
+  "source": "docs/THREAT_MODEL.md",
+  "text": "| Asset | Why it matters | |---|---| | Uploaded documents and their extracted chunks | The confidential material the product exists to hold | | Library membership and visibility | Determines who may read what | | Local account passwords and API keys | Grant access to everything above | | Audit log | The record of who did what; its value depends on being tamper-evident | | `.env` (admin password, provider keys, audit secret) | Compromise grants full control |"
+ },
+ {
+  "source": "docs/THREAT_MODEL.md",
+  "text": "① Untrusted. Anything from the browser is attacker-controlled input. ② Trusted, but only because the API enforces access control *before* reading. ③ Egress boundary: the only point where document content can leave the machine."
+ },
+ {
+  "source": "docs/THREAT_MODEL.md",
+  "text": "*Posture:* the library is resolved and access-checked in `core/library_store.py` before any chunk is read; retrieval is scoped by `library_id` in SQL rather than filtered afterwards. Covered by `tests/test_library_store.py`, by `scripts/run_demo_validation.py` against two live corpora, and end-to-end through the browser in `frontend/e2e/evidence-and-isolation.spec.ts`."
+ },
+ {
+  "source": "docs/THREAT_MODEL.md",
+  "text": "*Posture:* `tests/test_api_auth_coverage.py` walks every route on the app and fails the build unless the auth dependency is present, with an explicit allowlist of public paths. Adding an unprotected endpoint requires deliberately editing that allowlist."
+ },
+ {
+  "source": "docs/THREAT_MODEL.md",
+  "text": "*Found 10 September 2026.* The defence under T2 has a blind spot, and the Telegram webhook fell straight into it. Three chat routes sit on the allowlist in `tests/test_api_auth_coverage.py` because their authentication is the platform's signature, not an Ermes session — that is correct, and the allowlist is the right place for them. But the allowlist only records that these routes authenticate *some other way*; nothing checked that the other way actually runs."
+ },
+ {
+  "source": "docs/THREAT_MODEL.md",
+  "text": "With the header **absent**, the comparison never happens. Anyone who could reach the port could ask questions of the bound library and read the answers with their citations — no session, no API key, no signature. The single existing test always sent the header, so the open branch was covered by nothing. The exposure is the same one the comment on `slack_webhook` describes having found and closed on that route; the third sibling reintroduced it."
+ },
+ {
+  "source": "docs/THREAT_MODEL.md",
+  "text": "Two further defects in the same three lines. The expected value was the **bot token** — the credential that can post as the bot and read every update — so enabling the integration as documented meant registering that token as the webhook secret and having Telegram echo it in a header on every request, where any proxy that logs headers would keep it. And the comparison used `!=` instead of `hmac.compare_digest`, which both siblings use: a byte-by-byte comparison leaks the secret through response timing, and it was the only thing protecting the route."
+ },
+ {
+  "source": "docs/THREAT_MODEL.md",
+  "text": "*Posture:* the route now fails closed on a missing `ERMES_TELEGRAM_WEBHOOK_SECRET`, requires the header, and compares in constant time against a secret dedicated to the webhook. `tests/test_telegram_webhook_guards.py` covers the missing header, the wrong secret, the unset secret, and the bot token being refused as the secret; five of its twelve tests fail on the previous code. The Teams entry in `.env.example` also described its secret as optional, which the code has not allowed for some time; `tests/test_env_example_matches_config.py` now asserts that each of the three secrets gating a public route is documented."
+ },
+ {
+  "source": "docs/THREAT_MODEL.md",
+  "text": "*Posture:* size and magic-byte checks before parsing; filename sanitisation that strips directory components and enforces an extension allowlist; Office archives rejected on entry count, uncompressed size and compression ratio; XML parts rejected if they carry a document type declaration. All covered by `tests/test_upload_hardening.py` and `tests/test_document_parser.py`."
+ },
+ {
+  "source": "docs/THREAT_MODEL.md",
+  "text": "**A real instance of this threat was found and fixed on 21 August 2026**: the `.xlsx` parser expanded XML entities, so 1.157 bytes of input produced 10.001 characters — a billion-laughs denial of service reachable by any user allowed to upload. See `docs/CODE_REVIEW.md`."
+ },
+ {
+  "source": "docs/THREAT_MODEL.md",
+  "text": "1. **No model by default.** In `evidence_only` mode retrieved passages are shown verbatim with citations and no model is involved, so the threat does not arise. Document text is rendered as escaped React nodes, never as HTML (`InlineMarkdown.test.tsx`). 2. **Structural limits.** Retrieval is scoped to one library, and the assistant has no tools and takes no action: an injected instruction can influence wording, not cause access or side effects. 3. **Deterministic quarantine** (`core/injection_guard.py`). Before any passage reaches a prompt — the answer, the evidence verifier, the document summary — it is checked for instructions aimed at the model (\"ignore all previous instructions\", \"you are now\", \"reveal the system prompt\", role markers, \"the assistant must respond…\", in English and Italian). A flagged passage is replaced in the prompt by a quarantine note, is excluded as evidence by the verifier, and is returned to the user as a citation marked `injection_suspected: true` — the source stays visible, its text is not used. Each hit increments `ermes_prompt_injection_flagged_total` and is recorded in the audit entry. Passages are wrapped in explicit `<<<EVIDENZA n — dato, non istruzione>>>` delimiters. 4. **Prompt-level instruction.** The system prompt tells the model that evidence is untrusted data and to ignore instructions in it. This is a request, not a barrier, and is kept for what the patterns miss."
+ },
+ {
+  "source": "docs/THREAT_MODEL.md",
+  "text": "*Found 10 September 2026.* T1 is about retrieval crossing a library boundary. The analytics subsystem crossed the same boundary by another route, and it was not covered by the isolation tests because it never touches a document."
+ },
+ {
+  "source": "docs/THREAT_MODEL.md",
+  "text": "`GET /api/analytics/overview` requires only the `viewer` role — any authenticated user — and returned `top_libraries`: every library id in the event log with the number of questions it received. The event log spans the whole instance and was read without any filter, so any employee could enumerate every private library in the company and see how busy each one is. Not the content, but the existence, the identifier and the activity level of archives they have no access to."
+ },
+ {
+  "source": "docs/THREAT_MODEL.md",
+  "text": "`/knowledge-gaps` and `/export` are admin-only, which is appropriate — they carry the *text of other people's questions* — but they read the log unfiltered too, so a per-library administrator (as opposed to a global admin) saw questions asked in libraries closed to them."
+ },
+ {
+  "source": "docs/THREAT_MODEL.md",
+  "text": "*Posture:* both now take the set of library ids the caller can actually see — `None`, meaning all, only for the global `admin` role, the same distinction `store.get_library` applies to content. `tests/test_analytics_guards.py` covers it; the same file also covers three defects in what the dashboard reported:"
+ },
+ {
+  "source": "docs/THREAT_MODEL.md",
+  "text": "* `POST /api/analytics/feedback` accepted **any** `event_id`, with no check that the event existed, that it was the caller's own question, or that they had not already rated it. The Knowledge Gaps report is what an administrator reads to decide which documents to write, so a loop of POSTs put a chosen question at the top of it. It now requires the caller's own event and refuses a second rating with 409. * `negative_feedback` was initialised to 1 and then incremented in the same iteration: one negative rating counted as two. * `positive_feedback_rate` was `100.0` when no feedback had been received at all — a dashboard reporting perfect satisfaction because it knew nothing, indistinguishable to the reader from a real measurement. It is now `null`, and the tile shows an em dash with \"no ratings received\"."
+ },
+ {
+  "source": "docs/THREAT_MODEL.md",
+  "text": "One more, in the same pass: the CSV export wrote the users' question text straight into the file, so a question beginning `=` was executed as a formula when the administrator opened it in Excel. Those cells are now prefixed."
+ },
+ {
+  "source": "docs/THREAT_MODEL.md",
+  "text": "*Remaining gap:* recorded questions are not passed through the PII filter, so a question containing a name or an account number is stored in `ANALYTICS_FILE` in the clear, and reaches administrators through the export. That file needs the protection given to the audit log."
+ },
+ {
+  "source": "docs/THREAT_MODEL.md",
+  "text": "*Posture:* fixed on 10 September 2026, after being demonstrated. `POST /api/integrations/automation/ingest` exists so n8n, Zapier and similar tools can push documents in. It required only `_verify_api_key` — any authenticated user — while the browser upload requires the `editor` role, and it applied none of that path's four guards: filename sanitisation with an extension allowlist, the upload size ceiling, and a magic-byte check against the declared type."
+ },
+ {
+  "source": "docs/THREAT_MODEL.md",
+  "text": "Demonstrated: the same `viewer` account refused with 403 by the normal upload ingested a document here and received 200. That is worse than ordinary privilege escalation, because ingested documents become the evidence the librarian cites to other users as authoritative — a read-only account could put arbitrary content into the system's mouth. An unsupported extension also produced a 500 rather than a refusal, because the parser's exception escaped."
+ },
+ {
+  "source": "docs/THREAT_MODEL.md",
+  "text": "All four guards now apply, reused from `upload_document` rather than rewritten. `tests/test_webhook_ingest_guards.py` fails five ways on the previous code and confirms that an editor pushing a document through the gateway — the reason the route exists — still works."
+ },
+ {
+  "source": "docs/THREAT_MODEL.md",
+  "text": "*Posture:* fixed on 10 September 2026, after being demonstrated. `POST /api/connectors/sync` pulls documents into a library by reading the server's filesystem — exactly what a registered folder source does. That twin path in `api/libraries.py` carries two deliberate guards with explanatory comments: owner-or-admin (because filesystem read access is a larger blast radius than a browser upload) and a refusal of paths inside the application's own tree (because pointing a source at `storage/libraries/<other-id>` imports another library's documents verbatim — a complete bypass of T1, reached without touching the read path the isolation tests cover)."
+ },
+ {
+  "source": "docs/THREAT_MODEL.md",
+  "text": "The connector route honoured **neither**. Demonstrated: a user holding the global `editor` role and *not* owning the target library pointed it at an arbitrary server folder, imported a payslip file, and read salary, tax code and IBAN back through search. Both guards now apply, and `tests/test_connector_sync_authorization.py` fails on the previous code while confirming the legitimate case — an owner importing an external network folder — still works."
+ },
+ {
+  "source": "docs/THREAT_MODEL.md",
+  "text": "Residual risk, stated rather than fixed: an owner or admin can still point a source at any external folder the server process can read. There is no allowlist of permitted roots. That is the feature working as designed, but a deployment handling sensitive filesystems should consider constraining it."
+ },
+ {
+  "source": "docs/THREAT_MODEL.md",
+  "text": "*Posture:* `core/pii_filter.py` is genuinely wired into `evidence_assistant.py` at three points — the question, every excerpt entering the prompt, and the answer coming back. But three other modules also send text to a model and none applied the filter: `document_summary.py` (the passages of a document being summarised), `hyde.py` (the user's question, which a person types and may contain a tax code or an IBAN), and `evidence_verifier.py` (the retrieved excerpts). The last of those was written on 9 September 2026 during this work and shipped without the filter — a new path around an existing control."
+ },
+ {
+  "source": "docs/THREAT_MODEL.md",
+  "text": "All three now apply it. Covered by `tests/test_evidence_verifier.py::test_the_text_sent_to_the_model_is_pii_filtered`, which fails on the previous code. The general lesson is the one this project keeps repeating: a control is only as wide as the paths that call it, and adding a path is how you get around it without noticing."
+ },
+ {
+  "source": "docs/THREAT_MODEL.md",
+  "text": "*Added 11 September 2026, with the feature.* Follow-up questions (\"and for managers?\") are now rewritten into standalone questions before retrieval, using the previous questions in the conversation (`core/question_rewriter.py`, `ERMES_CONVERSATION_MEMORY`). This is a new flow of text to a model, so it is described here rather than left implicit."
+ },
+ {
+  "source": "docs/THREAT_MODEL.md",
+  "text": "What reaches the model: the user's last three **questions** and the new one, after the PII filter. What does not: the previous **answers**. The first implementation sent them, and the trial with the real model showed two things at once — the small model let a long previous answer dominate the rewrite, and, more importantly, answers contain document passages, so sending them would have moved document content to a model even in `evidence_only` mode, which promises the opposite. Questions are the user's own text; answers are the library's. The client sends only questions, and the server ignores any answer field."
+ },
+ {
+  "source": "docs/THREAT_MODEL.md",
+  "text": "*Known limit:* the small model can add words that were not in the conversation — in one trial it turned an Italian follow-up into a question \"according to Italian regulation\". That is a wrong *question*, and the evidence pipeline still gates the answer (in that trial it abstained), but it is the reason the rewrite is shown rather than hidden. The server keeps no conversation state: nothing new to protect, export or erase."
+ },
+ {
+  "source": "docs/THREAT_MODEL.md",
+  "text": "*Posture:* cloud processing requires two independent decisions: the global `ERMES_LIBRARY_CLOUD_CONSENT` flag, and an administrator selecting the mode for that specific library. A configured API key alone changes nothing. There is no automatic fallback from local to cloud, nor between providers: a failure surfaces as an error rather than silently rerouting data. Approved endpoints are checked against an allowlist over safe transport (`tests/test_provider_endpoint_policy.py`, which also rejects the cloud metadata address and `file://`)."
+ },
+ {
+  "source": "docs/THREAT_MODEL.md",
+  "text": "**This section previously described a caveat that did not exist, and omitted the one that did.** It said that with `ERMES_AUDIT_SECRET` unset a fresh key would be generated at each restart, so older entries would stop verifying. Neither half was true: the setting was never unset, because `AUDIT_SECRET` carried a non-empty default, and the unreachable fallback behind it persisted its key to `security/.audit_secret` rather than regenerating one. What actually happened is worse than the documented caveat: every installation signed its audit log with `ermes-audit-secret-change-in-production` — a string committed to this repository — or, for anyone who copied `.env.example`, with `CHANGE_ME_TO_AUDIT_SECRET`. Both are public, so anyone holding the repository could forge an entry that verified as authentic. Demonstrated before the fix by signing a fabricated `library_deleted` entry with the repository key alone; it verified."
+ },
+ {
+  "source": "docs/THREAT_MODEL.md",
+  "text": "The default is now empty, which makes the existing per-installation key generation reachable, and known placeholder values are refused rather than used. Set `ERMES_AUDIT_SECRET` explicitly only when several instances must verify the same entries, or when a secrets manager owns the key. Covered by `tests/test_audit_secret.py`."
+ },
+ {
+  "source": "docs/THREAT_MODEL.md",
+  "text": "*Posture:* passwords are hashed, API keys stored hashed and shown once at creation. `.env`, `LOCAL_LOGIN.txt` and runtime data are excluded from Git; the ignore rules were tightened on 20 August 2026 after `.env.test` was found to be trackable. The full Git history has been scanned for secrets, and one confidential third-party document was purged from it entirely."
+ },
+ {
+  "source": "docs/THREAT_MODEL.md",
+  "text": "Residual risk: the session cookie is not marked `Secure` when the host is `0.0.0.0` or localhost, because local development is served over plain HTTP. **A deployment reachable beyond localhost must terminate TLS in front of the application**; the `public` Compose profile provides Caddy for this."
+ },
+ {
+  "source": "docs/THREAT_MODEL.md",
+  "text": "*Found 10 September 2026, in the automatic-backup subsystem.* `core/backup_manager.py` restored each member with `target = os.path.join(cfg.BASE_DIR, member.name)`. An absolute member name makes `os.path.join` discard the base entirely, and `../..` walks out of it — the classic tar-slip. The usual mitigation does not apply here: the code does not call `extractall`, so tarfile's own extraction filter never runs."
+ },
+ {
+  "source": "docs/THREAT_MODEL.md",
+  "text": "It did not need a hostile archive to be reached. Member names come from `os.path.relpath(path, cfg.BASE_DIR)`, so a legitimate configuration — the document storage on a network share, the database on another disk — produces names beginning `../`, and restoring wrote outside the application directory. The archive name was also unvalidated, arriving straight from the route path `POST /backup/restore/{backup_name}`; on Windows a backslash is a separator, so `..\\..\\elsewhere\\archive` selected an arbitrary `.tar.gz` from anywhere on disk. Restore is admin-only, so this is privilege *escalation* from admin to arbitrary file write as the server account, not a hole open to any user."
+ },
+ {
+  "source": "docs/THREAT_MODEL.md",
+  "text": "*Posture:* every member's resolved target must now sit inside `BASE_DIR` (checked before the dry-run branch too, so a dry run does not list what the real restore refuses), and the archive name must match `ermes_backup_<...>` with no separators. Items genuinely outside `BASE_DIR` are archived under `external/` and the metadata says so, rather than entering the archive with a name the restore would reject. Covered by `tests/test_backup_guards.py`."
+ },
+ {
+  "source": "docs/THREAT_MODEL.md",
+  "text": "*Unchanged and worth stating plainly:* the archive is a plain `.tar.gz` that contains `.env` and the whole `security/` directory — that is, the audit signing key and the user file. It is not encrypted. Anyone who can read the backup directory holds those secrets, so the backup directory needs the same protection as `security/` itself, and a backup copied to a network share or a USB disk carries them along."
+ },
+ {
+  "source": "docs/THREAT_MODEL.md",
+  "text": "*Posture:* this section once described per-identifier rate limiting as an active defence, citing `tests/test_rate_limiter.py`. The limiter was real and those tests passed, but it was applied to no route at all: the tests exercise the class, not the server, so nothing went red while the server was unprotected."
+ },
+ {
+  "source": "docs/THREAT_MODEL.md",
+  "text": "It is now wired to the three routes where abuse costs real resources — document upload, search and ask — and `tests/test_rate_limiting_applied.py` exercises the endpoints rather than the class, so removing the wiring turns it red. Cheap routes are deliberately excluded: rate limiting `/health` would let a readiness probe declare a healthy instance dead."
+ },
+ {
+  "source": "docs/THREAT_MODEL.md",
+  "text": "Requests are counted **per authenticated user**, with the client address only as a fallback. Counting by address alone — as the unused version did — is wrong for this product's deployment model: behind a company NAT the whole office shares one address, so the first person to upload something would block their colleagues."
+ },
+ {
+  "source": "docs/THREAT_MODEL.md",
+  "text": "*Correction, 10 September 2026.* \"The three routes where abuse costs real resources\" was wrong when written: the same two expensive operations are also exposed by the MCP server (`api/mcp_server.py`), on `POST /api/mcp/call` and `POST /api/mcp/rpc`, and neither was limited. That is the worst place to miss it — the intended caller of those routes is not a person clicking but an agent in a loop, which is precisely the traffic the limiter exists for. Both are now limited; `/info` and `/tools` deliberately are not, because a client queries discovery on every connection and throttling it would break the handshake while protecting nothing. On the JSON-RPC route the limiter is applied to `tools/call` only, for the same reason: `initialize` and `tools/list` are the handshake."
+ },
+ {
+  "source": "docs/THREAT_MODEL.md",
+  "text": "The same two omissions held for the three chat webhooks (Slack, Teams, Telegram), which call the same expensive operation with no Ermes session at all — so the per-user limiter cannot cover them. They now count per bound channel, which is the unit of traffic that exists there, and the question is capped at the same 2000 characters. A Telegram reply is also truncated to 4096 characters: beyond that Telegram refuses the message outright, so a long answer was not delivered at all and the failure was visible only in the channel."
+ },
+ {
+  "source": "docs/THREAT_MODEL.md",
+  "text": "The MCP path also skipped the argument limits that the HTTP routes get from their Pydantic models. A question is capped at 2000 characters on `/ask`; through MCP a question of any length went whole into the model prompt, and a non-numeric `top_k` raised `ValueError`, so a malformed agent argument became a server error. Covered by `tests/test_mcp_server_guards.py`, which fails on the previous code."
+ },
+ {
+  "source": "docs/THREAT_MODEL.md",
+  "text": "Also holding: an upload size ceiling, the archive limits under T3, and a per-IP block on repeated failed logins (`core/login_guard.py`). No protection against a distributed attack, and none is intended at this scale. The counters live on the shared store since 11 September 2026, so several instances share each threshold. process, so several instances multiply every threshold."
+ },
+ {
+  "source": "docs/THREAT_MODEL.md",
+  "text": "1. **No prompt-injection mitigation** in the modes that involve a model (T4). 2. **OIDC identity is verified but minimal.** ID tokens are checked against the provider's published JWKS (`core/oidc_keys.py`): asymmetric algorithms only, `exp` required, `iss`/`aud` enforced, and no code path that falls back to an unverified decode. This replaced an earlier implementation that decoded the payload without checking the signature at all — a hand-written token was enough to obtain an administrator, demonstrated before the fix and now held shut by `tests/test_oidc_signature.py`. What is still missing: no token revocation or introspection (a stolen token stays usable until `exp`), no refresh flow, and a single configured audience per instance. 3. **Rate limiting covers only the expensive routes.** Upload, search, ask, the MCP tools, the automation gateway and the chat webhooks are limited (T8); repeated failed logins are blocked separately (`core/login_guard.py`) — before that change 50 wrong passwords in a row all returned 401, never 429. Everything else is unlimited. Since 11 September 2026 the counters live on the shared store (`core/shared_rate_limiter.py`, default; `ERMES_RATE_LIMIT_BACKEND=memory` opts out), so N instances share one threshold instead of multiplying it — `tests/test_shared_rate_limiter.py` shows two limiters over the same store refusing the fourth request that two in-memory ones would both accept. 4. **Horizontal scaling is only partly real.** Sessions and login attempts now live on the shared store, so a second instance recognises them (`core/session_store.py`, `core/login_guard.py`), and so do the rate-limit counters since 11 September 2026. The search cache remains per process: each instance keeps its own, which costs repeated work, not correctness. Until 10 September 2026 the shared *database* was also an illusion: `psycopg` was absent from `requirements.txt` and `create_backend` answered a missing driver by falling back to SQLite with a log line, so an operator who configured PostgreSQL for a multi-instance deployment got one local database per instance. It now refuses to start instead, and the parity tests run against a real PostgreSQL in CI. 5. **Deleting a library removes its rows, not its history.** `DELETE /api/libraries/{id}` exists and cascades to documents, chunks, ACLs, import sources and chat integrations (`tests/test_library_deletion.py`). (This entry previously claimed no deletion path existed at all; that stopped being true and nobody updated it.)"
+ },
+ {
+  "source": "docs/THREAT_MODEL.md",
+  "text": "**Data-subject rights, since 11 September 2026** (`api/privacy.py`, `tests/test_privacy_export_erase.py`): `GET /api/privacy/users/{u}/export` returns everything referable to an account — the account record, API keys, sessions, library ownerships and memberships, document ACLs, analytics events (the questions the person wrote), and their audit entries. `DELETE /api/privacy/users/{u}` (admin only) removes the account, keys, sessions, memberships, ACLs and analytics events; reassigns owned libraries, chat integrations and import sources to the administrator performing the erasure, because documents are the organisation's and not the person's; and **retains the audit entries**, saying so in the report. The audit log is a security record kept under a legal obligation and each entry is signed over the actor field — pseudonymising it would make the entry indistinguishable from a tampered one (art. 17(3)(b)). What is still missing is retention *by time*: nothing expires analytics events or audit entries automatically except the 90-day audit rotation at startup. 6. **Logs carry no tamper protection.** Application logs are now structured and correlated by request id (`core/logging_setup.py`), which makes them usable in an aggregator, but they are ordinary output: unlike the audit log they are not signed, and an operator with host access can edit them. 7. **Type debt is fenced, not paid off.** `mypy` and `bandit` now block the build instead of reporting advisories nobody could triage — 92 findings with no way to tell new from old were, in practice, ignored. `legacy_winsarp` was excluded (out of scope; it produced 40 of them by itself, and has since been removed), and the 18 product modules that still carry findings are listed by name in `pyproject.toml`. Everything else must stay clean, so new code starts clean; that list can only shrink. `pip-audit` stays advisory on purpose: it depends on an external vulnerability feed that can go red overnight without anything changing here. 8. **The full Compose stack has never been started end to end** on a clean machine, and [RUNBOOK.md](RUNBOOK.md) marks that step unverified rather than implying otherwise. The image builds in CI and the Compose file validates, but `docker compose up` remains unverified."
+ },
+ {
+  "source": "SECURITY.md",
+  "text": "Ermes Knowledge processes files that may contain confidential business information. Security issues affecting authentication, library isolation, document access, uploads, secrets, audit data or the LLM/provider boundary are in scope."
+ },
+ {
+  "source": "SECURITY.md",
+  "text": "- Keep `.env`, uploaded documents, `storage/`, backups and logs out of source control. - Use a secret manager for production credentials and rotate credentials exposed to a terminal, commit or ticket. - Keep local LLM endpoints bound to localhost or a private authenticated network. - Enable an external provider only after an administrator has approved the library's data policy. - Treat every imported document as untrusted input."
+ },
+ {
+  "source": "SECURITY.md",
+  "text": "The current MVP is designed for a controlled local or single-tenant deployment. Before a multi-user production rollout, complete OIDC integration, enforce server-side ACL propagation during retrieval, perform a threat-model review and run external security testing."
+ },
+ {
+  "source": "THIRD_PARTY_NOTICES.md",
+  "text": "Ermes Knowledge is distributed under the MIT License (see `LICENSE`). It bundles no third-party source code, but depends on the open-source packages listed here. Each remains under its own license, held by its respective authors."
+ },
+ {
+  "source": "THIRD_PARTY_NOTICES.md",
+  "text": "Generated from installed package metadata and `frontend/package-lock.json` by `scripts/generate_third_party_notices.py`. Do not edit by hand: regenerate it. `tests/test_third_party_notices.py` fails when it no longer matches `requirements.txt`, which is how four missing entries were found."
+ },
+ {
+  "source": "THIRD_PARTY_NOTICES.md",
+  "text": "Most dependencies are permissive (MIT, BSD, Apache-2.0, ISC). The exceptions are listed here rather than averaged away, because an organisation with a policy on copyleft needs to see them before adopting the product."
+ },
+ {
+  "source": "THIRD_PARTY_NOTICES.md",
+  "text": "| Package | License | Where it applies | |---|---|---| | `psycopg` (Python) | GNU Lesser General Public License v3 (LGPLv3) | see the note below | | `caniuse-lite` (JavaScript) | CC-BY-4.0 | build time only, not shipped in the bundle | | `lightningcss`, `lightningcss-android-arm64`, `lightningcss-darwin-arm64` (+9 more) (JavaScript) | MPL-2.0 | build time only, not shipped in the bundle |"
+ },
+ {
+  "source": "THIRD_PARTY_NOTICES.md",
+  "text": "**`psycopg` (LGPL-3.0) is optional.** It is the PostgreSQL driver: the product runs entirely on SQLite without it, and `ERMES_DATABASE_URL` is what turns the PostgreSQL backend on. Used unmodified as an imported library, the LGPL does not extend its terms to Ermes; it does require that whoever receives the software can replace that library, which a `pip install` already allows. An organisation that forbids (L)GPL outright can drop the line from `requirements.txt` and stay on SQLite — nothing else depends on it."
+ },
+ {
+  "source": "THIRD_PARTY_NOTICES.md",
+  "text": "**MPL-2.0 and CC-BY-4.0 on the JavaScript side** come from build tooling (`lightningcss`, pulled in by Tailwind, and the `caniuse-lite` data set). They are not modified and not redistributed in the built frontend."
+ },
+ {
+  "source": "THIRD_PARTY_NOTICES.md",
+  "text": "| Package | Version | License | |---|---|---| | `@eslint/js` | 10.0.1 | MIT | | `@playwright/test` | 1.62.1 | Apache-2.0 | | `@testing-library/jest-dom` | 6.9.1 | MIT | | `@testing-library/react` | 16.3.2 | MIT | | `@testing-library/user-event` | 14.6.1 | MIT | | `@types/react` | 18.3.31 | MIT | | `@types/react-dom` | 18.3.7 | MIT | | `@vitejs/plugin-react` | 4.7.0 | MIT | | `autoprefixer` | 10.5.0 | MIT | | `eslint` | 10.8.1 | MIT | | `eslint-plugin-react-hooks` | 7.1.1 | MIT | | `eslint-plugin-react-refresh` | 0.5.4 | MIT | | `globals` | 17.11.0 | MIT | | `jsdom` | 29.1.1 | MIT | | `lucide-react` | 0.344.0 | ISC | | `openapi-typescript` | 7.13.0 | MIT | | `postcss` | 8.5.20 | MIT | | `react` | 18.3.1 | MIT | | `react-dom` | 18.3.1 | MIT | | `tailwindcss` | 3.4.19 | MIT | | `typescript` | 5.9.3 | Apache-2.0 | | `typescript-eslint` | 8.67.0 | MIT | | `vite` | 7.3.6 | MIT | | `vitest` | 4.1.10 | MIT |"
+ },
+ {
+  "source": "THIRD_PARTY_NOTICES.md",
+  "text": "Licenses across the full resolved tree: MIT (352), Apache-2.0 (24), ISC (19), MPL-2.0 (12), BSD-2-Clause (8), BlueOak-1.0.0 (4), BSD-3-Clause (3), MIT-0 (2), Python-2.0 (1), CC-BY-4.0 (1), CC0-1.0 (1), 0BSD (1), (MIT OR CC0-1.0) (1)."
+ },
+ {
+  "source": "THIRD_PARTY_NOTICES.md",
+  "text": "The generator warns about any dependency without an exact version, which is how two unpinned requirements (`httpx`, `langfuse`) were found: `langfuse>=2.60.0` was resolving to 4.14.4, two major versions past the declared floor, so CI and a developer machine could install different code with nothing reporting it. Both are now pinned."
+ },
+ {
+  "source": "THIRD_PARTY_NOTICES.md",
+  "text": "- **Ollama** — local model server, contacted only for embeddings, evidence verification, question rewriting or `local_ollama` answers. - **OpenRouter and approved cloud providers** — contacted only when both the global consent flag and the per-library policy authorise it. - **Slack, Microsoft Teams, Telegram** — contacted only for libraries with a registered chat integration."
+ }
+]

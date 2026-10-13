@@ -63,6 +63,12 @@ def _resolve_backend(database_path: str | Path | None, database_url: str | None 
 # nelle build recenti e 999 in quelle storiche: 900 e' sotto entrambi.
 _MAX_SQL_VARIABILI = 900
 
+# Candidati lessicali per interrogazione, scelti dal ranking full-text del
+# database prima del punteggio in Python. Sui corpus di valutazione (fino a
+# 404 passaggi) non viene mai raggiunto, quindi i numeri pubblicati non
+# cambiano; su un archivio grande taglia la coda dei candidati irrilevanti.
+_MAX_KEYWORD_CANDIDATES = 1000
+
 
 _QUERY_STOPWORDS = {
     "sempre",
@@ -255,6 +261,11 @@ class LibraryStore:
                 """
                 PRAGMA foreign_keys = ON;
 
+                CREATE TABLE IF NOT EXISTS search_cache_generations (
+                    library_id TEXT PRIMARY KEY,
+                    generation INTEGER NOT NULL
+                );
+
                 CREATE TABLE IF NOT EXISTS libraries (
                     id TEXT PRIMARY KEY,
                     name TEXT NOT NULL,
@@ -325,6 +336,19 @@ class LibraryStore:
                 );
                 CREATE INDEX IF NOT EXISTS versions_by_document
                     ON document_versions(document_id, version DESC);
+
+                CREATE TABLE IF NOT EXISTS library_notes (
+                    id TEXT PRIMARY KEY,
+                    library_id TEXT NOT NULL REFERENCES libraries(id) ON DELETE CASCADE,
+                    owner TEXT NOT NULL,
+                    title TEXT NOT NULL,
+                    body TEXT NOT NULL,
+                    sources_json TEXT NOT NULL DEFAULT '[]',
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                );
+                CREATE INDEX IF NOT EXISTS library_notes_by_owner
+                    ON library_notes(library_id, owner);
 
                 CREATE TABLE IF NOT EXISTS document_acls (
                     document_id TEXT NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
@@ -520,19 +544,30 @@ class LibraryStore:
         return row["role"] if row else None
 
     @staticmethod
-    def _effective_member_role(direct_role: str | None, library_id: str, actor: dict | None) -> str | None:
-        """Ruolo efficace = max(membership diretta, gruppi OIDC mappati).
+    def _effective_member_role(
+        direct_role: str | None, library_id: str, actor: dict | None, groups: list[str] | None = None
+    ) -> str | None:
+        """Ruolo efficace = max(membership diretta, gruppi mappati).
 
-        I gruppi SSO NON possono mai degradare una membership esplicita:
-        se il proprietario ha dato editor a un utente, resta editor anche
-        se il suo gruppo mappa solo viewer. Il valore admin non deriva mai
-        dai gruppi (solo dai ruoli del token o da account espliciti).
+        I gruppi vengono dal token OIDC e dal provisioning SCIM
+        (core/scim_groups.py::effective_groups). Non possono mai degradare una
+        membership esplicita: se il proprietario ha dato editor a un utente,
+        resta editor anche se il suo gruppo mappa solo viewer. Il valore admin
+        non deriva mai dai gruppi (solo dai ruoli del token o da account
+        espliciti). `groups` si passa gia' calcolato quando si valutano molte
+        biblioteche per lo stesso utente, per non rileggerli a ogni biblioteca.
         """
-        if actor is None or actor.get("provider") != "oidc":
+        if actor is None:
+            return direct_role
+        if groups is None:
+            from core.scim_groups import effective_groups
+
+            groups = effective_groups(actor)
+        if not groups:
             return direct_role
         from core.governance import resolve_oidc_group_role
 
-        group_role = resolve_oidc_group_role(actor.get("groups"), library_id)
+        group_role = resolve_oidc_group_role(groups, library_id)
         if group_role is None:
             return direct_role
         hierarchy = {"manager": 4, "editor": 3, "reviewer": 2, "viewer": 1}
@@ -575,18 +610,22 @@ class LibraryStore:
                 """
             ).fetchall()
         memberships = self._membership_roles(actor["username"]) if actor and actor.get("role") != "admin" else {}
-        # Propagazione ACL: le biblioteche raggiungibili SOLO via gruppi SSO
-        # appaiono nell'elenco anche senza membership diretta (scoperta via OIDC).
+        # Propagazione ACL: le biblioteche raggiungibili SOLO via gruppi (token
+        # OIDC o provisioning SCIM) appaiono nell'elenco anche senza
+        # membership diretta.
         group_roles: dict[str, str] = {}
-        if actor and actor.get("provider") == "oidc" and actor.get("role") != "admin":
+        groups: list[str] = []
+        if actor and actor.get("role") != "admin":
             from core.governance import oidc_group_roles_for_user
+            from core.scim_groups import effective_groups
 
-            group_roles = oidc_group_roles_for_user(actor.get("groups"))
+            groups = effective_groups(actor)
+            group_roles = oidc_group_roles_for_user(groups)
         visible: list[dict] = []
         for row in rows:
             library = self._row(row)
             member_role = memberships.get(library["id"])
-            effective_role = self._effective_member_role(member_role, library["id"], actor)
+            effective_role = self._effective_member_role(member_role, library["id"], actor, groups=groups)
             if group_roles.get(library["id"]) and effective_role is None:
                 effective_role = group_roles[library["id"]]
             if self._can_access(library, actor, member_role=member_role) or (
@@ -659,7 +698,10 @@ class LibraryStore:
         with self._connection() as connection:
             row = connection.execute(
                 """
-                SELECT libraries.*, COUNT(documents.id) AS document_count
+                SELECT libraries.*, COUNT(documents.id) AS document_count,
+                       COALESCE(
+                           (SELECT g.generation FROM search_cache_generations g WHERE g.library_id = libraries.id), 0
+                       ) AS cache_generation
                 FROM libraries
                 LEFT JOIN documents ON documents.library_id = libraries.id
                 WHERE libraries.id = ?
@@ -731,12 +773,126 @@ class LibraryStore:
 
 
     # ============================================================
+    # Note personali (come le note di NotebookLM)
+    # ============================================================
+    # Private: le vede solo chi le ha scritte, e solo finche' puo' ancora
+    # aprire la biblioteca. Le fonti sono salvate con la nota, cosi' una nota
+    # presa da una risposta resta verificabile anche dopo che la risposta non
+    # e' piu' a schermo.
+
+    _NOTE_MAX_TITLE = 200
+    _NOTE_MAX_BODY = 20_000
+    _NOTE_MAX_SOURCES = 20
+
+    def _clean_note_sources(self, sources: list[dict] | None) -> list[dict]:
+        keys = ("document_id", "filename", "version", "locator", "excerpt")
+        cleaned: list[dict] = []
+        for source in (sources or [])[: self._NOTE_MAX_SOURCES]:
+            if isinstance(source, dict):
+                item = {k: source.get(k) for k in keys if source.get(k) is not None}
+                if "excerpt" in item:
+                    item["excerpt"] = str(item["excerpt"])[:2000]
+                cleaned.append(item)
+        return cleaned
+
+    def _note_row(self, row) -> dict:
+        note = self._row(row)
+        note["sources"] = json.loads(note.pop("sources_json") or "[]")
+        return note
+
+    def list_notes(self, library_id: str, actor: dict) -> list[dict]:
+        self.get_library(library_id, actor)
+        with self._connection() as connection:
+            rows = connection.execute(
+                "SELECT * FROM library_notes WHERE library_id = ? AND owner = ? ORDER BY updated_at DESC",
+                (library_id, actor["username"]),
+            ).fetchall()
+        return [self._note_row(r) for r in rows]
+
+    def create_note(
+        self, library_id: str, actor: dict, title: str, body: str, sources: list[dict] | None = None
+    ) -> dict:
+        self.get_library(library_id, actor)
+        title, body = title.strip()[: self._NOTE_MAX_TITLE], body.strip()[: self._NOTE_MAX_BODY]
+        if not title and not body:
+            raise ValueError("Nota vuota")
+        now = self._timestamp()
+        note_id = str(uuid.uuid4())
+        with self._lock, self._connection() as connection:
+            connection.execute(
+                """
+                INSERT INTO library_notes (id, library_id, owner, title, body, sources_json, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    note_id,
+                    library_id,
+                    actor["username"],
+                    title or body[:60],
+                    body,
+                    json.dumps(self._clean_note_sources(sources), ensure_ascii=False),
+                    now,
+                    now,
+                ),
+            )
+        return self.get_note(library_id, note_id, actor)
+
+    def get_note(self, library_id: str, note_id: str, actor: dict) -> dict:
+        self.get_library(library_id, actor)
+        with self._connection() as connection:
+            row = connection.execute(
+                "SELECT * FROM library_notes WHERE id = ? AND library_id = ? AND owner = ?",
+                (note_id, library_id, actor["username"]),
+            ).fetchone()
+        # Stessa risposta per "non esiste" e "e' di un altro": non si rivela
+        # che una nota altrui esiste.
+        if row is None:
+            raise LibraryNotFoundError(note_id)
+        return self._note_row(row)
+
+    def update_note(self, library_id: str, note_id: str, actor: dict, title: str | None, body: str | None) -> dict:
+        current = self.get_note(library_id, note_id, actor)
+        new_title = (current["title"] if title is None else title.strip())[: self._NOTE_MAX_TITLE]
+        new_body = (current["body"] if body is None else body.strip())[: self._NOTE_MAX_BODY]
+        if not new_title and not new_body:
+            raise ValueError("Nota vuota")
+        with self._lock, self._connection() as connection:
+            connection.execute(
+                "UPDATE library_notes SET title = ?, body = ?, updated_at = ? WHERE id = ? AND owner = ?",
+                (new_title, new_body, self._timestamp(), note_id, actor["username"]),
+            )
+        return self.get_note(library_id, note_id, actor)
+
+    def delete_note(self, library_id: str, note_id: str, actor: dict) -> None:
+        self.get_note(library_id, note_id, actor)
+        with self._lock, self._connection() as connection:
+            connection.execute(
+                "DELETE FROM library_notes WHERE id = ? AND owner = ?", (note_id, actor["username"])
+            )
+
+    # ============================================================
     # Document-level ACL
     # ============================================================
     # Un documento senza righe in document_acls segue le regole di accesso
     # della libreria. Un documento CON righe e' visibile solo ad admin, al
     # proprietario della libreria e agli utenti elencati: la lista e' una
     # allow-list esplicita, non un'aggiunta ai permessi base.
+
+    @staticmethod
+    def _bump_cache_generation(connection, library_id: str) -> None:
+        """Da chiamare dentro la transazione che modifica documenti o permessi.
+
+        Invalida la cache di ricerca su tutte le repliche, non solo su quella
+        che serve la richiesta: vedi core/search_cache.py. Nella stessa
+        transazione, quindi senza connessioni ne' commit in piu'.
+        """
+        connection.execute(
+            """
+            INSERT INTO search_cache_generations (library_id, generation) VALUES (?, 1)
+            ON CONFLICT (library_id) DO UPDATE SET generation = search_cache_generations.generation + 1
+            """,
+            (library_id,),
+        )
 
     @staticmethod
     def _actor_bypasses_document_acl(library: dict, actor: dict | None) -> bool:
@@ -778,6 +934,12 @@ class LibraryStore:
                 "INSERT INTO document_acls (document_id, username, created_at) VALUES (?, ?, ?)",
                 [(document_id, username, now) for username in cleaned],
             )
+            self._bump_cache_generation(connection, library_id)
+        # La cache si invalida da sola solo quando cambia il numero di
+        # documenti, e una restrizione non lo cambia: senza questa riga chi
+        # era appena stato escluso riceveva gli estratti riservati dalla
+        # propria cache fino alla scadenza del TTL.
+        get_search_cache().invalidate(library_id)
         return {"document_id": document_id, "usernames": cleaned}
 
     def list_documents(self, library_id: str, actor: dict | None = None) -> list[dict]:
@@ -1336,6 +1498,7 @@ class LibraryStore:
                     """,
                     (str(uuid.uuid4()), document_id, ordinal, text, locator, now),
                 )
+            self._bump_cache_generation(connection, library_id)
         # Il conteggio dei documenti non cambia, quindi la cache non se ne
         # accorgerebbe: i chunk si', e sono cio' che viene citato.
         get_search_cache().invalidate(library_id)
@@ -1357,6 +1520,13 @@ class LibraryStore:
         if not tokens:
             return set()
 
+        # Il ranking finale e' calcolato in Python su ogni candidato: con una
+        # parola presente quasi ovunque erano decine di migliaia di righe, e
+        # 3,2 s a 50.000 passaggi (evaluation/archive_scale.py). Il database
+        # ordina gia' per rilevanza full-text, quindi si prendono solo i primi,
+        # piu' quanti potrebbero essere scartati come nascosti.
+        tetto = _MAX_KEYWORD_CANDIDATES + len(hidden)
+
         if self._is_postgres:
             # Stessa semantica del ramo SQLite: la frase intera OPPURE uno
             # qualunque dei token (prefisso). Fino al 18 settembre 2026 la
@@ -1371,13 +1541,22 @@ class LibraryStore:
             token_query = " | ".join(f"{t}:*" for t in clean_tokens if t)
             rows = connection.execute(
                 """
-                SELECT c.id AS chunk_id FROM document_chunks c
+                SELECT c.id AS chunk_id, c.document_id AS document_id FROM document_chunks c
                 JOIN documents d ON d.id = c.document_id
                 WHERE d.library_id = ?
                   AND (c.search_tsv @@ to_tsquery('simple', ?)
                        OR (? <> '' AND c.search_tsv @@ phraseto_tsquery('simple', ?)))
+                ORDER BY ts_rank(c.search_tsv, to_tsquery('simple', ?)) DESC
+                LIMIT ?
                 """,
-                (library_id, token_query, clean_phrase if len(clean_phrase.split()) > 1 else "", clean_phrase),
+                (
+                    library_id,
+                    token_query,
+                    clean_phrase if len(clean_phrase.split()) > 1 else "",
+                    clean_phrase,
+                    token_query,
+                    tetto,
+                ),
             ).fetchall()
         else:
             # SQLite: FTS5
@@ -1394,11 +1573,16 @@ class LibraryStore:
             if not fts_match_query:
                 return set()
             rows = connection.execute(
-                "SELECT chunk_id FROM document_chunks_fts WHERE document_chunks_fts MATCH ?",
-                (fts_match_query,),
+                "SELECT chunk_id, document_id FROM document_chunks_fts "
+                "WHERE document_chunks_fts MATCH ? AND library_id = ? "
+                "ORDER BY bm25(document_chunks_fts) LIMIT ?",
+                (fts_match_query, library_id, tetto),
             ).fetchall()
 
-        return {row["chunk_id"] for row in rows if row["chunk_id"] not in hidden}
+        # Il confronto era fra chunk_id e l'insieme `hidden`, che contiene id
+        # di documento: non filtrava mai niente. Innocuo finche' il filtro vero
+        # restava a valle, sbagliato da leggere e da ereditare.
+        return {row["chunk_id"] for row in rows if row["document_id"] not in hidden}
 
     def search_documents(self, library_id: str, query: str, limit: int = 20) -> list[dict]:
         """Return only the result list for callers that do not need retrieval metadata."""
@@ -1421,7 +1605,10 @@ class LibraryStore:
         cache = get_search_cache()
         doc_count = library.get("document_count", 0)
         scope = actor.get("username", "") if actor else ""
-        cached = cache.get(library_id, normalized, doc_count, scope)
+        # Letta da get_library, quindi prima della ricerca: vedi
+        # SemanticSearchCache.put().
+        generation = library.get("cache_generation", 0)
+        cached = cache.get(library_id, normalized, doc_count, scope, generation=generation)
         if cached is not None:
             return cached
 
@@ -1617,7 +1804,7 @@ class LibraryStore:
             "semantic_used": semantic_used,
         }
         # Store in semantic cache (per-user scope, come sopra)
-        cache.put(library_id, normalized, doc_count, results, profile, scope)
+        cache.put(library_id, normalized, doc_count, results, profile, scope, generation=generation)
         return results, profile
 
     def store_chunk_embeddings(
@@ -1642,6 +1829,7 @@ class LibraryStore:
                     for row, embedding in zip(rows, embeddings)
                 ],
             )
+            self._bump_cache_generation(connection, library_id)
         # Una ricerca memorizzata prima degli embedding era lessicale; con
         # la semantica accesa deve essere rifatta.
         get_search_cache().invalidate(library_id)
@@ -1685,6 +1873,7 @@ class LibraryStore:
                 "DELETE FROM documents WHERE id = ? AND library_id = ?",
                 (document_id, library_id),
             )
+            self._bump_cache_generation(connection, library_id)
         # Invalidate search cache (document count changed)
         get_search_cache().invalidate(library_id)
         return paths
@@ -1796,7 +1985,9 @@ class LibraryStore:
             connection.execute("DELETE FROM chat_integrations WHERE library_id = ?", (library_id,))
             connection.execute("DELETE FROM library_members WHERE library_id = ?", (library_id,))
             connection.execute("DELETE FROM documents WHERE library_id = ?", (library_id,))
+            connection.execute("DELETE FROM library_notes WHERE library_id = ?", (library_id,))
             connection.execute("DELETE FROM libraries WHERE id = ?", (library_id,))
+            connection.execute("DELETE FROM search_cache_generations WHERE library_id = ?", (library_id,))
         # Invalidate search cache (library deleted)
         get_search_cache().invalidate(library_id)
         return paths
@@ -1888,6 +2079,7 @@ class LibraryStore:
                     """,
                     (str(uuid.uuid4()), document["id"], ordinal, text, locator, now),
                 )
+            self._bump_cache_generation(connection, library_id)
         # Invalidate search cache (document count changed)
         get_search_cache().invalidate(library_id)
         return document

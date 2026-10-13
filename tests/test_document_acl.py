@@ -141,3 +141,30 @@ def test_acl_api_is_owner_admin_only_and_validates_usernames(tmp_path, monkeypat
     assert [item["username"] for item in items] == ["maria"]
     listed = maria.get(f"/api/libraries/{library['id']}/documents", headers=headers).json()["items"]
     assert [item["filename"] for item in listed] == ["contratto.txt"]
+
+
+def test_restricting_a_document_takes_effect_on_the_next_search_not_after_cache_ttl(tmp_path):
+    """La cache di ricerca e' per utente e si invalida quando cambia il numero
+    di documenti. Restringere un documento non cambia quel numero: senza
+    un'invalidazione esplicita, chi era appena stato escluso continuava a
+    ricevere gli estratti riservati dalla propria cache per tutto il TTL
+    (5 minuti di default)."""
+    store = _make_store(tmp_path)
+    library = store.create_library("Riservate", "", "private", owner_id="alice")
+    library_id = library["id"]
+    riservato = _add_doc(store, library_id, "stipendi.txt", "Gli stipendi vengono erogati il ventisette.")
+    store.set_library_member(library_id, "bob", "viewer")
+    bob = {"username": "bob", "role": "viewer"}
+
+    def filenames(actor):
+        results, _ = store.search_with_profile(library_id, "stipendi ventisette", actor=actor)
+        return {r["filename"] for r in results}
+
+    assert filenames(bob) == {"stipendi.txt"}  # popola la cache di bob
+
+    store.set_document_acl(library_id, riservato["id"], ["carol"])
+    assert filenames(bob) == set()
+
+    # E al contrario: togliere la restrizione rende subito visibile il documento.
+    store.set_document_acl(library_id, riservato["id"], [])
+    assert filenames(bob) == {"stipendi.txt"}

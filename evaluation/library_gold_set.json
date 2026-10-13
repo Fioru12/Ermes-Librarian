@@ -214,5 +214,205 @@
     "query": "Qual e il processo disciplinare in caso di violazione del codice etico?",
     "expected_filename": null,
     "expected_locator": null
+  },
+  {
+    "id": "hr-permessi-paraphrase",
+    "library": "HR",
+    "type": "paraphrase",
+    "query": "Devo assentarmi un paio d'ore per una visita medica, come lo comunico?",
+    "expected_filename": "policy-ferie.md",
+    "expected_locator": "Sezione: Permessi"
+  },
+  {
+    "id": "hr-onboarding-paraphrase",
+    "library": "HR",
+    "type": "paraphrase",
+    "query": "Un nuovo collega inizia lunedi: chi gli da' nome utente e password?",
+    "expected_filename": "policy-ferie.md",
+    "expected_locator": "Sezione: Onboarding"
+  },
+  {
+    "id": "hr-malattia-paraphrase-2",
+    "library": "HR",
+    "type": "paraphrase",
+    "query": "Mi sono svegliato con la febbre, a chi lo dico e quando?",
+    "expected_filename": "policy-ferie.md",
+    "expected_locator": "Sezione: Assenze"
+  },
+  {
+    "id": "it-accessi-paraphrase",
+    "library": "IT",
+    "type": "paraphrase",
+    "query": "Ogni quanto si controlla chi puo' ancora entrare nei gestionali?",
+    "expected_filename": "runbook-backup.md",
+    "expected_locator": "Sezione: Accessi"
+  },
+  {
+    "id": "it-ripristino-paraphrase",
+    "library": "IT",
+    "type": "paraphrase",
+    "query": "Ho cancellato per errore un foglio di lavoro dalla cartella condivisa, come lo riavrei?",
+    "expected_filename": "runbook-backup.md",
+    "expected_locator": "Sezione: Ripristino"
+  },
+  {
+    "id": "it-ransomware-paraphrase-2",
+    "library": "IT",
+    "type": "paraphrase",
+    "query": "Lo schermo mostra un messaggio che chiede bitcoin per sbloccare i file: stacco la spina?",
+    "expected_filename": "runbook-backup.md",
+    "expected_locator": "Sezione: Incidente"
+  },
+  {
+    "id": "qualita-formazione-paraphrase",
+    "library": "Qualita",
+    "type": "paraphrase",
+    "query": "Dove resta traccia che il personale e' stato istruito su un metodo di lavoro nuovo?",
+    "expected_filename": "procedura-qualita.md",
+    "expected_locator": "Sezione: Formazione"
+  },
+  {
+    "id": "qualita-registri-paraphrase",
+    "library": "Qualita",
+    "type": "paraphrase",
+    "query": "Per quanti anni vanno tenute le carte dei controlli di qualita'?",
+    "expected_filename": "procedura-qualita.md",
+    "expected_locator": "Sezione: Conservazione registri"
+  },
+  {
+    "id": "qualita-revisione-paraphrase-2",
+    "library": "Qualita",
+    "type": "paraphrase",
+    "query": "Ho riscritto un'istruzione operativa: posso pubblicarla subito?",
+    "expected_filename": "procedura-qualita.md",
+    "expected_locator": "Sezione: Revisione documenti"
+  },
+  {
+    "id": "amm-allegati-paraphrase",
+    "library": "Amministrazione",
+    "type": "paraphrase",
+    "query": "Che giustificativi devo attaccare quando chiedo il rimborso di un pranzo di lavoro?",
+    "expected_filename": "nota-spese.md",
+    "expected_locator": "Sezione: Allegati"
+  },
+  {
+    "id": "amm-anticipi-paraphrase",
+    "library": "Amministrazione",
+    "type": "paraphrase",
+    "query": "Parto per un cliente all'estero fra tre settimane, posso avere dei soldi prima?",
+    "expected_filename": "nota-spese.md",
+    "expected_locator": "Sezione: Anticipi"
+  },
+  {
+    "id": "amm-approvazioni-paraphrase-2",
+    "library": "Amministrazione",
+    "type": "paraphrase",
+    "query": "Devo comprare un'attrezzatura da ottocento euro, chi deve dire di si' prima?",
+    "expected_filename": "nota-spese.md",
+    "expected_locator": "Sezione: Approvazioni"
+  },
+  {
+    "id": "hr-straordinari-abstention",
+    "library": "HR",
+    "type": "abstention",
+    "query": "Come vengono pagate le ore di straordinario nel weekend?",
+    "expected_filename": null,
+    "expected_locator": null
+  },
+  {
+    "id": "hr-buoni-pasto-abstention",
+    "library": "HR",
+    "type": "abstention",
+    "query": "A quanti buoni pasto ho diritto al mese?",
+    "expected_filename": null,
+    "expected_locator": null
+  },
+  {
+    "id": "hr-ferie-trap-abstention",
+    "library": "HR",
+    "type": "abstention",
+    "query": "Le ferie non godute si possono convertire in denaro?",
+    "expected_filename": null,
+    "expected_locator": null
+  },
+  {
+    "id": "hr-malattia-trap-abstention",
+    "library": "HR",
+    "type": "abstention",
+    "query": "Quanti giorni di malattia retribuita ho all'anno?",
+    "expected_filename": null,
+    "expected_locator": null
+  },
+  {
+    "id": "it-vpn-abstention",
+    "library": "IT",
+    "type": "abstention",
+    "query": "Come configuro la VPN sul telefono personale?",
+    "expected_filename": null,
+    "expected_locator": null
+  },
+  {
+    "id": "it-password-abstention",
+    "library": "IT",
+    "type": "abstention",
+    "query": "Ogni quanti giorni scade la password di dominio?",
+    "expected_filename": null,
+    "expected_locator": null
+  },
+  {
+    "id": "it-backup-trap-abstention",
+    "library": "IT",
+    "type": "abstention",
+    "query": "Quanto costa lo spazio cloud usato per i backup?",
+    "expected_filename": null,
+    "expected_locator": null
+  },
+  {
+    "id": "qualita-iso-abstention",
+    "library": "Qualita",
+    "type": "abstention",
+    "query": "Quando e' prevista la prossima visita dell'ente di certificazione ISO?",
+    "expected_filename": null,
+    "expected_locator": null
+  },
+  {
+    "id": "qualita-fornitori-abstention",
+    "library": "Qualita",
+    "type": "abstention",
+    "query": "Con quali criteri si qualifica un nuovo fornitore?",
+    "expected_filename": null,
+    "expected_locator": null
+  },
+  {
+    "id": "qualita-formazione-trap-abstention",
+    "library": "Qualita",
+    "type": "abstention",
+    "query": "Chi paga i corsi di formazione esterni?",
+    "expected_filename": null,
+    "expected_locator": null
+  },
+  {
+    "id": "amm-auto-abstention",
+    "library": "Amministrazione",
+    "type": "abstention",
+    "query": "Quanto viene rimborsato al chilometro se uso la mia auto?",
+    "expected_filename": null,
+    "expected_locator": null
+  },
+  {
+    "id": "amm-fatture-abstention",
+    "library": "Amministrazione",
+    "type": "abstention",
+    "query": "Entro quanti giorni vengono pagate le fatture dei fornitori?",
+    "expected_filename": null,
+    "expected_locator": null
+  },
+  {
+    "id": "amm-spese-trap-abstention",
+    "library": "Amministrazione",
+    "type": "abstention",
+    "query": "Le spese per il taxi di notte sono ammesse?",
+    "expected_filename": null,
+    "expected_locator": null
   }
 ]

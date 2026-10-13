@@ -16,11 +16,13 @@ Endpoints:
 - PUT  /scim/v2/Users/{id}
 - PATCH /scim/v2/Users/{id}
 - DELETE /scim/v2/Users/{id}
+- GET|POST /scim/v2/Groups, GET|PUT|PATCH|DELETE /scim/v2/Groups/{id}
 """
 
 from __future__ import annotations
 
 import logging
+import re
 import secrets
 from typing import Any
 
@@ -31,12 +33,14 @@ from api.auth import _invalidate_sessions_for_user
 from config import cfg
 from core.governance import append_audit, create_or_update_user, delete_user, list_users
 from core.input_validator import sanitize_username
+from core.scim_groups import scim_group_store
 
 _logger = logging.getLogger("ermes.scim")
 
 router = APIRouter(prefix="/scim/v2", tags=["SCIM 2.0 Directory Sync"])
 
 USER_SCHEMA_URI = "urn:ietf:params:scim:schemas:core:2.0:User"
+GROUP_SCHEMA_URI = "urn:ietf:params:scim:schemas:core:2.0:Group"
 LIST_SCHEMA_URI = "urn:ietf:params:scim:api:messages:2.0:ListResponse"
 PATCH_SCHEMA_URI = "urn:ietf:params:scim:api:messages:2.0:PatchOp"
 ERROR_SCHEMA_URI = "urn:ietf:params:scim:api:messages:2.0:Error"
@@ -145,8 +149,8 @@ def get_schemas(_auth: dict = Depends(_verify_scim_auth)) -> dict[str, Any]:
     """Discovery degli schemi SCIM disponibili."""
     return {
         "schemas": [LIST_SCHEMA_URI],
-        "totalResults": 1,
-        "itemsPerPage": 1,
+        "totalResults": 2,
+        "itemsPerPage": 2,
         "startIndex": 1,
         "Resources": [
             {
@@ -158,7 +162,16 @@ def get_schemas(_auth: dict = Depends(_verify_scim_auth)) -> dict[str, Any]:
                     {"name": "active", "type": "boolean", "required": False},
                     {"name": "roles", "type": "complex", "multiValued": True},
                 ],
-            }
+            },
+            {
+                "id": GROUP_SCHEMA_URI,
+                "name": "Group",
+                "description": "Gruppo Ermes: il displayName si mappa sulle biblioteche",
+                "attributes": [
+                    {"name": "displayName", "type": "string", "required": True},
+                    {"name": "members", "type": "complex", "multiValued": True},
+                ],
+            },
         ],
     }
 
@@ -377,6 +390,9 @@ def delete_scim_user(
     deleted = delete_user(cfg.USERS_FILE, target)
     if not deleted:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Utente non trovato")
+    # Un account ricreato piu' tardi con lo stesso nome non deve ritrovarsi
+    # nei gruppi di quello eliminato.
+    scim_group_store.remove_user_everywhere(target)
 
     append_audit(
         cfg.AUDIT_FILE,
@@ -384,4 +400,205 @@ def delete_scim_user(
         "scim_idp",
         {"username": target},
     )
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+# ==========================================
+# Group Resource (RFC 7643 §4.2)
+# ==========================================
+#
+# Vedi core/scim_groups.py per il perche'. Il `displayName` e' il nome che le
+# mappature gruppo -> biblioteca usano; i membri sono gli `id` degli utenti
+# SCIM, cioe' i loro username.
+
+_MEMBER_FILTER = re.compile(r'^members\[\s*value\s+eq\s+"([^"]+)"\s*\]$', re.IGNORECASE)
+
+
+class SCIMGroupCreate(BaseModel):
+    schemas: list[str] = Field(default_factory=lambda: [GROUP_SCHEMA_URI])
+    displayName: str = Field(..., min_length=1, max_length=200)  # noqa: N815
+    members: list[dict[str, Any]] | None = None
+
+
+def _format_scim_group(group: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "schemas": [GROUP_SCHEMA_URI],
+        "id": group["id"],
+        "displayName": group["display_name"],
+        "members": [
+            {"value": username, "display": username, "$ref": f"/scim/v2/Users/{username}"}
+            for username in group.get("members", [])
+        ],
+        "meta": {
+            "resourceType": "Group",
+            "created": group["created_at"],
+            "location": f"/scim/v2/Groups/{group['id']}",
+        },
+    }
+
+
+def _as_list(value: Any) -> list[Any]:
+    if value is None:
+        return []
+    return value if isinstance(value, list) else [value]
+
+
+def _member_value(item: Any) -> str:
+    return str(item.get("value") if isinstance(item, dict) else item).strip()
+
+
+def _known_usernames(values: list[Any]) -> list[str]:
+    """Username esistenti per i membri indicati; 400 se uno non esiste.
+
+    Un membro sconosciuto non si accetta "per dopo": il primo account locale
+    creato con quel nome erediterebbe l'accesso del gruppo senza che l'IdP
+    lo abbia mai deciso per lui.
+    """
+    by_lower = {u.get("username", "").lower(): u.get("username", "") for u in list_users(cfg.USERS_FILE)}
+    out: list[str] = []
+    for item in values:
+        raw = _member_value(item)
+        username = by_lower.get(raw.lower())
+        if not username:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Membro sconosciuto: {raw!r}")
+        out.append(username)
+    return out
+
+
+def _group_or_404(group_id: str) -> dict[str, Any]:
+    group = scim_group_store.get(group_id)
+    if not group:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Gruppo non trovato")
+    return group
+
+
+def _conflict_if_name_taken(display_name: str, except_id: str | None = None) -> None:
+    existing = scim_group_store.find_by_display_name(display_name)
+    if existing and existing["id"] != except_id:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"Gruppo {display_name!r} gia' esistente")
+
+
+@router.get("/Groups")
+def list_scim_groups(
+    filter: str | None = Query(default=None, description='Filtro SCIM es. displayName eq "Finanza"'),
+    start_index: int = Query(default=1, ge=1, alias="startIndex"),
+    count: int = Query(default=50, ge=1, le=100),
+    _auth: dict = Depends(_verify_scim_auth),
+) -> dict[str, Any]:
+    groups = scim_group_store.all()
+    if filter:
+        parts = filter.split(" eq ")
+        if len(parts) == 2 and parts[0].strip().lower() == "displayname":
+            wanted = parts[1].strip(" '\"")
+            groups = [g for g in groups if g["display_name"] == wanted]
+    page = groups[start_index - 1 : start_index - 1 + count]
+    return {
+        "schemas": [LIST_SCHEMA_URI],
+        "totalResults": len(groups),
+        "startIndex": start_index,
+        "itemsPerPage": len(page),
+        "Resources": [_format_scim_group(g) for g in page],
+    }
+
+
+@router.post("/Groups", status_code=status.HTTP_201_CREATED)
+def create_scim_group(body: SCIMGroupCreate, _auth: dict = Depends(_verify_scim_auth)) -> dict[str, Any]:
+    display_name = body.displayName.strip()
+    _conflict_if_name_taken(display_name)
+    members = _known_usernames(body.members or [])
+    group = scim_group_store.create(display_name, members)
+    append_audit(cfg.AUDIT_FILE, "scim_group_provisioned", "scim_idp", {"group": display_name, "members": members})
+    return _format_scim_group(group)
+
+
+@router.get("/Groups/{group_id}")
+def get_scim_group(group_id: str, _auth: dict = Depends(_verify_scim_auth)) -> dict[str, Any]:
+    return _format_scim_group(_group_or_404(group_id))
+
+
+@router.put("/Groups/{group_id}")
+def replace_scim_group(
+    group_id: str,
+    body: SCIMGroupCreate,
+    _auth: dict = Depends(_verify_scim_auth),
+) -> dict[str, Any]:
+    _group_or_404(group_id)
+    display_name = body.displayName.strip()
+    _conflict_if_name_taken(display_name, except_id=group_id)
+    members = _known_usernames(body.members or [])
+    scim_group_store.rename(group_id, display_name)
+    scim_group_store.replace_members(group_id, members)
+    append_audit(cfg.AUDIT_FILE, "scim_group_replaced", "scim_idp", {"group": display_name, "members": members})
+    return _format_scim_group(_group_or_404(group_id))
+
+
+@router.patch("/Groups/{group_id}")
+def patch_scim_group(
+    group_id: str,
+    body: SCIMUserPatch,
+    _auth: dict = Depends(_verify_scim_auth),
+) -> dict[str, Any]:
+    """Operazioni add/remove/replace sui membri e sul nome.
+
+    Copre le due forme di rimozione che si incontrano: Entra ID manda
+    `path: members[value eq "id"]`, Okta `path: members` con l'elenco in
+    `value`. Un'operazione non riconosciuta e' un errore, non un no-op: un
+    IdP che crede di aver tolto un membro deve saperlo se non e' successo.
+    """
+    group = _group_or_404(group_id)
+    added: list[str] = []
+    removed: list[str] = []
+    new_name: str | None = None
+    for op in body.Operations:
+        kind = str(op.get("op", "")).lower()
+        path = str(op.get("path", "") or "").strip()
+        value = op.get("value")
+        member_filter = _MEMBER_FILTER.match(path)
+
+        if kind == "add" and path.lower() == "members":
+            added += _known_usernames(_as_list(value))
+        elif kind == "remove" and member_filter:
+            removed.append(member_filter.group(1))
+        elif kind == "remove" and path.lower() == "members":
+            removed += list(group["members"]) if value is None else [_member_value(v) for v in _as_list(value)]
+        elif kind == "replace" and path.lower() == "members":
+            members = _known_usernames(_as_list(value))
+            removed += [m for m in group["members"] if m not in members]
+            added += members
+        elif kind == "replace" and path.lower() == "displayname":
+            new_name = str(value or "").strip()
+        elif kind == "replace" and not path and isinstance(value, dict) and "displayName" in value:
+            new_name = str(value["displayName"] or "").strip()
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Operazione PATCH non supportata: {kind} {path}".strip(),
+            )
+
+    # Tutto validato prima di scrivere: un PATCH con un'operazione sbagliata
+    # in fondo non deve lasciare applicate a meta' quelle prima.
+    if new_name is not None:
+        if not new_name:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="displayName vuoto")
+        _conflict_if_name_taken(new_name, except_id=group_id)
+        scim_group_store.rename(group_id, new_name)
+    by_lower = {m.lower(): m for m in group["members"]}
+    scim_group_store.remove_members(group_id, [by_lower.get(r.lower(), r) for r in removed])
+    scim_group_store.add_members(group_id, added)
+
+    updated = _group_or_404(group_id)
+    append_audit(
+        cfg.AUDIT_FILE,
+        "scim_group_patched",
+        "scim_idp",
+        {"group": updated["display_name"], "added": added, "removed": removed},
+    )
+    return _format_scim_group(updated)
+
+
+@router.delete("/Groups/{group_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_scim_group(group_id: str, _auth: dict = Depends(_verify_scim_auth)) -> Response:
+    group = _group_or_404(group_id)
+    scim_group_store.delete(group_id)
+    append_audit(cfg.AUDIT_FILE, "scim_group_deleted", "scim_idp", {"group": group["display_name"]})
     return Response(status_code=status.HTTP_204_NO_CONTENT)
