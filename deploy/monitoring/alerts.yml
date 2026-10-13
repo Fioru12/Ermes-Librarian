@@ -1,0 +1,73 @@
+# Ogni alert indica un'azione, non un semplice numero: vedi docs/RUNBOOK.md
+# e docs/MONITORING.md. Le metriche usate sono quelle di core/metrics.py;
+# tests/test_monitoring_assets.py fallisce se una regola cita una metrica
+# che non esiste piu.
+groups:
+  - name: ermes-availability
+    rules:
+      - alert: ErmesDown
+        expr: up{job="ermes"} == 0
+        for: 2m
+        labels: { severity: critical }
+        annotations:
+          summary: "Ermes non risponde alle metriche"
+          description: "Prometheus non riesce a leggere /metrics da {{ $labels.instance }} da 2 minuti. Controlla il container e /health."
+
+  - name: ermes-errors-and-latency
+    rules:
+      - alert: ErmesHighErrorRate
+        expr: |
+          sum(rate(ermes_http_requests_total{status=~"5.."}[5m]))
+            / clamp_min(sum(rate(ermes_http_requests_total[5m])), 0.001) > 0.05
+        for: 10m
+        labels: { severity: critical }
+        annotations:
+          summary: "Oltre il 5% delle richieste fallisce con errore 5xx"
+          description: "Controlla i log dell'applicazione (JSON) e lo stato di database e storage."
+      - alert: ErmesSlowRequests
+        expr: |
+          histogram_quantile(0.95, sum by (le) (rate(ermes_http_request_duration_seconds_bucket[5m]))) > 3
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: "Il 95% delle richieste supera i 3 secondi"
+          description: "Verifica se il modello locale è sovraccarico o se l'archivio è cresciuto molto."
+
+  - name: ermes-rag-quality
+    rules:
+      - alert: ErmesEvidenceVerifierDegraded
+        expr: |
+          sum(increase(ermes_evidence_verifier_total{outcome="unavailable"}[15m])) > 0
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: "Il verificatore di evidenza è indisponibile"
+          description: "Il modello di verifica non risponde: le risposte non vengono controllate e l'astensione non è garantita. Controlla che Ollama sia attivo e il modello installato."
+      - alert: ErmesHighAbstentionRate
+        expr: |
+          sum(rate(ermes_rag_questions_total{outcome="abstained"}[1h]))
+            / clamp_min(sum(rate(ermes_rag_questions_total[1h])), 0.001) > 0.5
+        for: 1h
+        labels: { severity: info }
+        annotations:
+          summary: "Più della metà delle domande riceve un rifiuto"
+          description: "Gli utenti non trovano risposte: mancano documenti o il glossario aziendale va esteso. Guarda le lacune di conoscenza nell'interfaccia."
+      - alert: ErmesQuestionErrors
+        expr: |
+          sum(increase(ermes_rag_questions_total{outcome="error"}[15m])) > 5
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: "Domande terminate con errore"
+          description: "Più di 5 domande in 15 minuti sono finite in errore. Controlla i log e la raggiungibilità del modello."
+
+  - name: ermes-ingestion
+    rules:
+      - alert: ErmesIngestionFailures
+        expr: |
+          sum(increase(ermes_ingestion_jobs_total{status="failed"}[30m])) > 3
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: "Più di 3 documenti non sono stati indicizzati in 30 minuti"
+          description: "Controlla i file caricati (PDF protetti o corrotti) e il worker di ingestione."

@@ -1,0 +1,101 @@
+# Profilo di monitoraggio OPZIONALE: Prometheus + Alertmanager + Grafana.
+# L'installazione normale non cambia: questo file si aggiunge solo se serve.
+#
+#   export ERMES_METRICS_TOKEN=$(openssl rand -hex 24)
+#   export GRAFANA_ADMIN_PASSWORD=...
+#   export ALERT_WEBHOOK_URL=https://hooks.slack.com/...   # facoltativo
+#   docker compose -f docker-compose.yml -f docker-compose.monitoring.yml up -d
+#
+# Grafana: http://localhost:3001  (utente "admin")
+# Prometheus: http://localhost:9090   Alertmanager: http://localhost:9093
+# Guida completa: docs/MONITORING.md
+#
+# Nessun segreto ha un valore di default: senza le variabili obbligatorie
+# Compose si ferma, invece di avviare un monitoraggio con una password nota.
+
+services:
+  app:
+    environment:
+      # /metrics e' raggiungibile da un altro container solo con un token
+      # (da fuori dal loopback l'app rifiuta altrimenti: vedi api/__init__.py).
+      - ERMES_METRICS_TOKEN=${ERMES_METRICS_TOKEN:?imposta ERMES_METRICS_TOKEN (es. openssl rand -hex 24)}
+
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    container_name: ermes-prometheus
+    # Prometheus non espande variabili nei file di configurazione: il token
+    # viene scritto in un file all'avvio e letto da credentials_file.
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        printf '%s' "$$ERMES_METRICS_TOKEN" > /tmp/ermes_metrics_token
+        exec /bin/prometheus \
+          --config.file=/etc/prometheus/prometheus.yml \
+          --storage.tsdb.path=/prometheus \
+          --storage.tsdb.retention.time=$${PROMETHEUS_RETENTION:-30d}
+    environment:
+      - ERMES_METRICS_TOKEN=${ERMES_METRICS_TOKEN:?imposta ERMES_METRICS_TOKEN (es. openssl rand -hex 24)}
+      - PROMETHEUS_RETENTION=${PROMETHEUS_RETENTION:-30d}
+    volumes:
+      - ./deploy/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./deploy/monitoring/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "127.0.0.1:9090:9090"
+    depends_on:
+      - app
+      - alertmanager
+    restart: unless-stopped
+    networks:
+      - ermes-network
+
+  alertmanager:
+    image: prom/alertmanager:v0.28.1
+    container_name: ermes-alertmanager
+    # Come per Prometheus: l'URL del webhook e' un segreto, quindi entra da
+    # variabile d'ambiente e viene scritto in un file (url_file).
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        printf '%s' "$$ALERT_WEBHOOK_URL" > /tmp/webhook_url
+        exec /bin/alertmanager \
+          --config.file=/etc/alertmanager/alertmanager.yml \
+          --storage.path=/alertmanager
+    environment:
+      # Senza URL reale gli alert restano visibili in Alertmanager e Grafana
+      # ma non vengono inviati da nessuna parte.
+      - ALERT_WEBHOOK_URL=${ALERT_WEBHOOK_URL:-http://127.0.0.1:9/not-configured}
+    volumes:
+      - ./deploy/monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager_data:/alertmanager
+    ports:
+      - "127.0.0.1:9093:9093"
+    restart: unless-stopped
+    networks:
+      - ermes-network
+
+  grafana:
+    image: grafana/grafana:12.1.0
+    container_name: ermes-grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:?imposta GRAFANA_ADMIN_PASSWORD}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_ANALYTICS_REPORTING_ENABLED=false
+      - GF_ANALYTICS_CHECK_FOR_UPDATES=false
+    volumes:
+      - ./deploy/monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./deploy/monitoring/grafana-dashboard.json:/var/lib/grafana/dashboards/ermes.json:ro
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "127.0.0.1:3001:3000"
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+    networks:
+      - ermes-network
+
+volumes:
+  prometheus_data:
+  alertmanager_data:
+  grafana_data:
