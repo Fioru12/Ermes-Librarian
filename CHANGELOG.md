@@ -2,6 +2,15 @@
 
 Registro leggibile del lavoro su questo progetto. Per i finding tecnici completi, [docs/AUDIT_2026-08-19.md](docs/AUDIT_2026-08-19.md) e [docs/CODE_REVIEW.md](docs/CODE_REVIEW.md). La roadmap per fasi e il registro delle sessioni (`ROADMAP_V2.md`, `WORK_PROGRESS.md`) sono stati tolti dall'albero pubblico il 18 settembre 2026: la cronologia Git li conserva.
 
+## 2026-10-14 — Modello di embedding predefinito aggiornato a BGE-M3 (ottimizzazione multilingua/italiano)
+
+- **Adozione di `bge-m3:latest` come modello di embedding predefinito**: il precedente modello predefinito `nomic-embed-text` mostrava forti limiti nel recupero semantico in lingua italiana, degradando di fronte a sinonimi complessi o trappole lessicali (score 0/4 nei benchmark aziendali su distrazioni lessicali contro 3/4 di BGE-M3).
+- **Allineamento configurazione e container**:
+  - `config/integrations.py` imposta `EMBED_MODEL_ID` di default a `bge-m3:latest`.
+  - `.env.example`, `docker-compose.yml` e `docker-compose.verified.yml` aggiornati per dichiarare e scaricare `bge-m3:latest`.
+  - `README.md` e `docs/GUIDA_OPERATIVA_AZIENDA.md` allineati per documentare BGE-M3 come embedding consigliato e predefinito.
+  - Test di salute e degradazione aggiornati per includere e convalidare `bge-m3:latest`.
+
 ## 2026-10-13 — v2.3.0: Studio, note, SCIM Groups, GPL-3.0 e repository pronto per i contributori
 
 - **Studio** (briefing, FAQ, guida di studio, domande suggerite) e **note personali per libreria** con le relative fonti.

@@ -46,7 +46,10 @@ def istanza(tmp_path, monkeypatch):
 def ollama(monkeypatch):
     """Sostituisce Ollama al confine HTTP di api.health: raggiungibile o no,
     e con quali modelli installati."""
-    stato = SimpleNamespace(raggiungibile=True, modelli={"qwen3.5:9b", "qwen3.5:4b", "nomic-embed-text:latest"})
+    stato = SimpleNamespace(
+        raggiungibile=True,
+        modelli={"qwen3.5:9b", "qwen3.5:4b", "nomic-embed-text:latest", "bge-m3:latest"},
+    )
 
     def finto_get(url, timeout=None, **_):
         if not stato.raggiungibile:
@@ -127,7 +130,7 @@ def test_everything_enabled_and_available_is_healthy(istanza, ollama):
         EVIDENCE_VERIFIER_MODEL="qwen3.5:4b",
         CONVERSATION_MEMORY_ENABLED=True,
         LIBRARY_SEMANTIC_SEARCH_ENABLED=True,
-        EMBED_MODEL_ID="nomic-embed-text:latest",
+        EMBED_MODEL_ID="bge-m3:latest",
     )
 
     corpo = TestClient(app).get("/health").json()

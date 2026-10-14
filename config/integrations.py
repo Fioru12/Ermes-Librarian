@@ -46,7 +46,7 @@ class IntegrationsConfig:
     # citazione al passaggio sulle ferie.
     DEFAULT_MODEL_ID: str = field(default_factory=lambda: os.environ.get("ERMES_DEFAULT_MODEL_ID", "qwen3.5:9b"))
     EMBED_MODEL_ID: str = field(
-        default_factory=lambda: os.environ.get("ERMES_EMBED_MODEL_ID", "nomic-embed-text:latest")
+        default_factory=lambda: os.environ.get("ERMES_EMBED_MODEL_ID", "bge-m3:latest")
     )
 
     # Cloud LLM (opt-in esplicito)

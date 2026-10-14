@@ -12,7 +12,7 @@ Ermes Knowledge è una piattaforma documentale enterprise progettata secondo il 
 - **Motore di Ricerca Ibrido**: BM25/FTS5 (lessicale) integrato con embedding semantici e reranker neuronale/lessicale.
 - **Motore di Inference (LLM)**:
   - *Default (Zero-Hardware)*: Modalità `evidence_only` (estrae solo i passaggi documentali verificati con citazioni, senza usare modelli generativi).
-  - *Consigliato Locale (Massima Privacy)*: Istanza [Ollama](https://ollama.com/) on-premise con modello `qwen3.5:9b` o `qwen3.5:4b` + `nomic-embed-text` / `bge-m3`.
+  - *Consigliato Locale (Massima Privacy)*: Istanza [Ollama](https://ollama.com/) on-premise con modello `qwen3.5:9b` o `qwen3.5:4b` + `bge-m3` (predefinito per embedding multilingua/italiano).
   - *Cloud Approvato*: OpenRouter, Azure OpenAI, Groq (richiede consenso esplicito).
 - **Persistenza**:
   - *Singolo Server / On-Premise*: SQLite WAL locale (zero-config, predefinito).

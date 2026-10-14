@@ -244,7 +244,7 @@ The default's abstention degrades as a library grows (see above). The fix that w
 docker compose -f docker-compose.yml -f docker-compose.verified.yml up --build
 ```
 
-The first start downloads about 3 GB (`qwen3.5:4b` and `nomic-embed-text`); a small model is enough, the 4B and 9B variants scored identically on the golden set. On CPU expect several seconds per question. See [docker-compose.verified.yml](docker-compose.verified.yml) for what it changes.
+The first start downloads about 4 GB (`qwen3.5:4b` and `bge-m3`); a small model is enough, the 4B and 9B variants scored identically on the golden set. On CPU expect several seconds per question. See [docker-compose.verified.yml](docker-compose.verified.yml) for what it changes.
 
 Runtime documents and the SQLite library database are mounted in `storage/` and are intentionally ignored by Git. The container runs as a non-root user (UID 10001); on native Linux, Docker creates a bind-mounted host directory that doesn't exist yet as `root`, which that user then can't write into — `/health` stays `degraded` forever. Create and own the mounted directories before the first `up` on Linux (Docker Desktop on macOS/Windows doesn't need this — its VM handles the translation):
 

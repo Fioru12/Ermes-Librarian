@@ -11,7 +11,7 @@
 # Uso:
 #   docker compose -f docker-compose.yml -f docker-compose.verified.yml up --build
 #
-# Il primo avvio scarica ~3 GB (qwen3.5:4b + nomic-embed-text). Sul golden set
+# Il primo avvio scarica ~4 GB (qwen3.5:4b + bge-m3). Sul golden set
 # qwen3.5:4b e qwen3.5:9b danno lo stesso risultato (config/rag.py), quindi il
 # piccolo basta.
 
@@ -28,7 +28,7 @@ services:
     command:
       - |
         set -e
-        for m in "${ERMES_EVIDENCE_VERIFIER_MODEL:-qwen3.5:4b}" "${ERMES_EMBED_MODEL_ID:-nomic-embed-text:latest}"; do
+        for m in "${ERMES_EVIDENCE_VERIFIER_MODEL:-qwen3.5:4b}" "${ERMES_EMBED_MODEL_ID:-bge-m3:latest}"; do
           echo "pull $$m"
           ollama pull "$$m"
         done
