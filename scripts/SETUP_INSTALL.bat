@@ -5,7 +5,7 @@ setlocal EnableExtensions EnableDelayedExpansion
 set "VER=1.0"
 set "REQUIRED_PYTHON=3.11"
 set "MAIN_MODEL=qwen2.5:7b"
-set "EMBED_MODEL=bge-m3"
+set "EMBED_MODEL=embeddinggemma"
 
 :MENU
 cls

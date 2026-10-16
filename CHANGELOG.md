@@ -2,6 +2,15 @@
 
 Registro leggibile del lavoro su questo progetto. Per i finding tecnici completi, [docs/AUDIT_2026-08-19.md](docs/AUDIT_2026-08-19.md) e [docs/CODE_REVIEW.md](docs/CODE_REVIEW.md). La roadmap per fasi e il registro delle sessioni (`ROADMAP_V2.md`, `WORK_PROGRESS.md`) sono stati tolti dall'albero pubblico il 18 settembre 2026: la cronologia Git li conserva.
 
+## 2026-10-16 — Embedding predefinito: EmbeddingGemma al posto di BGE-M3, misurato
+
+Quattro modelli di embedding confrontati con lo stesso strumento (`python evaluation/scale_check.py --sizes 0,97 --semantic`, 52 domande, corpus piccolo / con 388 passaggi di rumore intorno). Dettagli e numeri in [docs/RETRIEVAL_EVALUATION.md](docs/RETRIEVAL_EVALUATION.md).
+
+- **`embeddinggemma:latest` diventa il predefinito** (`config/integrations.py`, `.env.example`, i due compose, `scripts/SETUP_INSTALL.bat`, guide). Pesa circa 0,6 GB contro 1,2 GB di `bge-m3`. Senza verifica trova 0,950 delle parafrasi col corpus grande (bge-m3: 0,700, nomic-embed-text: 0,500); con la verifica dell'evidenza 0,550 contro 0,400, con 16 rifiuti corretti su 16 per entrambi.
+- **Chi aggiorna deve reindicizzare le biblioteche con ricerca semantica attiva**: i vettori già salvati sono di un altro modello. `docker compose exec ollama ollama pull embeddinggemma` scarica il modello.
+- **`bge-m3` resta una scelta supportata**: basta `ERMES_EMBED_MODEL_ID=bge-m3:latest`. Un'avvertenza: EmbeddingGemma ha una finestra di 2048 token contro gli 8192 di bge-m3, quindi i passaggi molto lunghi vengono troncati.
+- **`evaluation/scale_check.py` non nasconde più il verificatore caduto**: prima, se il modello di verifica non rispondeva, le domande venivano contate come verificate. Ora lo script conta le verifiche saltate, avvisa ed esce con codice 2: una tabella con verifiche saltate non e' valida. Trovato perché un confronto aveva prodotto numeri identici per due modelli diversi. Per misurare con la verifica serve `ERMES_EVIDENCE_VERIFIER_MODEL=qwen3.5:4b`.
+
 ## 2026-10-14 — Modello di embedding predefinito aggiornato a BGE-M3 (ottimizzazione multilingua/italiano)
 
 - **Adozione di `bge-m3:latest` come modello di embedding predefinito**: il precedente modello predefinito `nomic-embed-text` mostrava forti limiti nel recupero semantico in lingua italiana, degradando di fronte a sinonimi complessi o trappole lessicali (score 0/4 nei benchmark aziendali su distrazioni lessicali contro 3/4 di BGE-M3).

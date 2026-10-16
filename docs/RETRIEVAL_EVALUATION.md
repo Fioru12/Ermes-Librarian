@@ -413,3 +413,25 @@ non cambi i risultati.
 - Una soglia di coseno-similarita' che non sacrifichi l'astensione per guadagnare sulle parafrasi — vedi l'implicazione pratica sopra.
 
 Prima di una release pubblica, il golden set dovrebbe crescere ulteriormente con query derivate da documenti realistici, non solo dal corpus sintetico qui sopra.
+
+## Confronto fra modelli di embedding (16 ottobre 2026)
+
+Stessi dati, stesso codice, cambia solo `ERMES_EMBED_MODEL_ID`. Comando: `python evaluation/scale_check.py --sizes 0,97 --semantic [--verify]`, con Ollama locale e, per la verifica, `ERMES_EVIDENCE_VERIFIER_MODEL=qwen3.5:4b`. Ogni cella è "corpus da 16 passaggi / con 388 passaggi di rumore".
+
+**Solo ricerca semantica (ibrida)**
+
+| Modello | Dirette | Parafrasi | Rifiuti corretti |
+|---|---|---|---|
+| embeddinggemma | 1.000 / 1.000 | 1.000 / 0.950 | 0.062 / 0.000 |
+| bge-m3 | 1.000 / 1.000 | 1.000 / 0.700 | 0.000 / 0.000 |
+| qwen3-embedding:0.6b | 1.000 / 1.000 | 0.900 / 0.700 | 0.312 / 0.062 |
+| nomic-embed-text | 1.000 / 1.000 | 0.900 / 0.500 | 0.000 / 0.000 |
+
+**Semantica + verifica dell'evidenza** (nessuna verifica saltata)
+
+| Modello | Dirette | Parafrasi | Rifiuti corretti | recall@3 |
+|---|---|---|---|---|
+| embeddinggemma | 1.000 / 1.000 | 0.650 / 0.550 | 1.000 / 1.000 | 0.865 / 0.827 |
+| bge-m3 | 1.000 / 1.000 | 0.650 / 0.400 | 1.000 / 1.000 | 0.865 / 0.769 |
+
+Lettura onesta: nessun modello rifiuta da solo; la verifica porta i rifiuti a 16/16 a prescindere dal modello. EmbeddingGemma perde meno parafrasi quando l'archivio cresce. È una sola esecuzione su 52 domande scritte da noi, con un verificatore da 4 miliardi di parametri: la differenza con la verifica (0.55 contro 0.40) vale circa tre domande su venti. Un primo tentativo di questo confronto aveva dato numeri identici per i due modelli perché il verificatore era caduto senza che lo script lo dichiarasse; lo script ora lo segnala.

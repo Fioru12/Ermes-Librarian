@@ -49,7 +49,7 @@ services:
       # quindi va comunque eseguito `docker compose exec ollama ollama pull
       # <modello>` per ciascuno dei due prima del primo uso.
       - ERMES_DEFAULT_MODEL_ID=${ERMES_DEFAULT_MODEL_ID:-llama3.2:latest}
-      - ERMES_EMBED_MODEL_ID=${ERMES_EMBED_MODEL_ID:-bge-m3:latest}
+      - ERMES_EMBED_MODEL_ID=${ERMES_EMBED_MODEL_ID:-embeddinggemma:latest}
       - OLLAMA_HOST=http://ollama:11434
       - ERMES_SCORE_LOW=${ERMES_SCORE_LOW:-0.60}
       - ERMES_SCORE_MED=${ERMES_SCORE_MED:-0.70}
@@ -167,7 +167,7 @@ services:
       - ERMES_DATABASE_URL=${ERMES_DATABASE_URL:-}
       - OLLAMA_HOST=http://ollama:11434
       - ERMES_DEFAULT_MODEL_ID=${ERMES_DEFAULT_MODEL_ID:-llama3.2:latest}
-      - ERMES_EMBED_MODEL_ID=${ERMES_EMBED_MODEL_ID:-bge-m3:latest}
+      - ERMES_EMBED_MODEL_ID=${ERMES_EMBED_MODEL_ID:-embeddinggemma:latest}
       - ERMES_STORAGE_BACKEND=${ERMES_STORAGE_BACKEND:-local}
       - ERMES_STORAGE_ENCRYPTION_ENABLED=${ERMES_STORAGE_ENCRYPTION_ENABLED:-0}
       - ERMES_STORAGE_ENCRYPTION_KEY=${ERMES_STORAGE_ENCRYPTION_KEY:-}
