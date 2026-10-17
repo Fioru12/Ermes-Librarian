@@ -20,10 +20,13 @@ $shell    = New-Object -ComObject WScript.Shell
 $shortcut = $shell.CreateShortcut($shortcutPath)
 
 $shortcut.TargetPath       = "powershell.exe"
-$shortcut.Arguments        = "-ExecutionPolicy Bypass -File `"$launcher`""
+# -WindowStyle Hidden: la finestra di PowerShell non deve restare davanti all'app.
+$shortcut.Arguments        = "-ExecutionPolicy Bypass -WindowStyle Hidden -File `"$launcher`""
 $shortcut.WorkingDirectory = $projectPath
 $shortcut.Description      = "Avvia Ermes Knowledge"
-$shortcut.IconLocation     = "C:\Windows\System32\shell32.dll,25"
+$icona = Join-Path $projectPath "Ermes.ico"
+if (Test-Path -LiteralPath $icona) { $shortcut.IconLocation = "$icona,0" } else { $shortcut.IconLocation = "C:\Windows\System32\shell32.dll,25" }
+$shortcut.WindowStyle      = 7  # ridotta a icona, per chi la vedesse comunque comparire
 $shortcut.Save()
 
 Write-Host "Collegamento creato sul Desktop: $shortcutPath" -ForegroundColor Green
