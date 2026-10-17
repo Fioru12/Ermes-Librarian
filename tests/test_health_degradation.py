@@ -48,7 +48,7 @@ def ollama(monkeypatch):
     e con quali modelli installati."""
     stato = SimpleNamespace(
         raggiungibile=True,
-        modelli={"qwen3.5:9b", "qwen3.5:4b", "nomic-embed-text:latest", "bge-m3:latest"},
+        modelli={"qwen3.5:9b", "qwen3.5:4b", "nomic-embed-text:latest", "embeddinggemma:latest"},
     )
 
     def finto_get(url, timeout=None, **_):
@@ -130,7 +130,7 @@ def test_everything_enabled_and_available_is_healthy(istanza, ollama):
         EVIDENCE_VERIFIER_MODEL="qwen3.5:4b",
         CONVERSATION_MEMORY_ENABLED=True,
         LIBRARY_SEMANTIC_SEARCH_ENABLED=True,
-        EMBED_MODEL_ID="bge-m3:latest",
+        EMBED_MODEL_ID="embeddinggemma:latest",
     )
 
     corpo = TestClient(app).get("/health").json()

@@ -97,10 +97,17 @@ def misura(
             aggiunti += aggiungi_rumore(store, library_id, campione, semantic)
 
         dettagli = []
+        verifiche_saltate = 0
         for item in gold:
             tipo = item.get("type", "direct")
             risultati, _ = store.search_with_profile(libraries[item["library"]], item["query"], limit=3)
-            risultati, _verificato = verify_citations(item["query"], risultati)
+            candidati = bool(risultati)
+            risultati, verificato = verify_citations(item["query"], risultati)
+            # Se la verifica e' richiesta ma non e' stata eseguita (modello
+            # non raggiungibile), il risultato e' quello SENZA verifica: va
+            # contato, altrimenti la tabella dichiara un controllo mai fatto.
+            if verify and candidati and not verificato:
+                verifiche_saltate += 1
             if tipo == "abstention":
                 superato = len(risultati) == 0
             else:
@@ -118,6 +125,7 @@ def misura(
         "dirette": _recall(dettagli, "direct"),
         "parafrasi": _recall(dettagli, "paraphrase"),
         "astensione": _recall(dettagli, "abstention"),
+        "verifiche_saltate": verifiche_saltate,
     }
 
 
@@ -157,9 +165,16 @@ def main() -> int:
 
     print()
     print(tabella(righe))
+    saltate = sum(r.get("verifiche_saltate", 0) for r in righe)
+    if argomenti.verify and saltate:
+        print(
+            f"\nATTENZIONE: {saltate} verifiche non sono state eseguite (modello di verifica "
+            "non raggiungibile). Quelle domande sono misurate SENZA verifica: la tabella non e' valida.",
+            file=sys.stderr,
+        )
     if argomenti.output:
         argomenti.output.write_text(json.dumps(righe, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    return 0
+    return 2 if (argomenti.verify and saltate) else 0
 
 
 if __name__ == "__main__":
