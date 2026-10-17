@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useDialog } from '../../hooks/useDialog'
 import { AlertTriangle, CheckCircle2, Clock3, Download, FileText, FolderCog, FolderPlus, Library, PackageOpen, RefreshCw, Search, ShieldCheck, Table, Trash2, Upload, UserPlus, Users, XCircle } from 'lucide-react'
 import { useTheme } from '../../hooks/useTheme'
 import { CardTitle } from '../../components/ui'
@@ -244,6 +245,10 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
 
   const [deadLetterJobs, setDeadLetterJobs] = useState<DeadLetterJob[]>([])
   const [showDLQ, setShowDLQ] = useState(false)
+  const aclDialogRef = useDialog<HTMLDivElement>(!!aclPanel, () => setAclPanel(null))
+  const summaryDialogRef = useDialog<HTMLDivElement>(!!summaryPanel, () => setSummaryPanel(null))
+  const versionsDialogRef = useDialog<HTMLDivElement>(!!versionHistory, () => setVersionHistory(null))
+  const dlqDialogRef = useDialog<HTMLDivElement>(showDLQ, () => setShowDLQ(false))
   const [reprocessingJobId, setReprocessingJobId] = useState<string | null>(null)
 
   const fetchDeadLetterJobs = async (libraryId: string) => {
@@ -977,7 +982,7 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
         )}
       </section>
       {aclPanel && (
-        <div className="absolute inset-0 z-20 flex items-center justify-center bg-slate-950/70 p-6">
+        <div ref={aclDialogRef} role="dialog" aria-modal="true" aria-label="Accessi documento" tabIndex={-1} className="absolute inset-0 z-20 flex items-center justify-center bg-slate-950/70 p-6 outline-none">
           <section className={`w-full max-w-lg rounded-2xl border p-6 shadow-2xl ${t.card}`} aria-label="Accessi documento">
             <div className="flex items-start justify-between gap-4"><div><h2 className="font-semibold">Chi può vedere questo documento</h2><p className="mt-1 text-sm text-slate-400">{aclPanel.document.filename}</p></div><button onClick={() => setAclPanel(null)} className="text-slate-400 hover:text-white">Chiudi</button></div>
             <p className="mt-4 rounded-lg border border-white/10 bg-white/[0.02] p-3 text-xs leading-5 text-slate-400">Senza restrizioni il documento è visibile a chi accede alla biblioteca. Con una lista, solo l'amministratore, il proprietario e gli utenti elencati possono vederlo — anche nelle risposte dell'assistente.</p>
@@ -1003,7 +1008,7 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
         </div>
       )}
       {summaryPanel && (
-        <div className="absolute inset-0 z-20 flex items-center justify-center bg-slate-950/70 p-6">
+        <div ref={summaryDialogRef} role="dialog" aria-modal="true" aria-label="Riassunto documento" tabIndex={-1} className="absolute inset-0 z-20 flex items-center justify-center bg-slate-950/70 p-6 outline-none">
           <section className={`w-full max-w-lg rounded-2xl border p-6 shadow-2xl ${t.card}`} aria-label="Riassunto documento">
             <div className="flex items-start justify-between gap-4">
               <div>
@@ -1029,7 +1034,7 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
         </div>
       )}
       {versionHistory && (
-        <div className="absolute inset-0 z-20 flex items-center justify-center bg-slate-950/70 p-6">
+        <div ref={versionsDialogRef} role="dialog" aria-modal="true" aria-label="Storico versioni" tabIndex={-1} className="absolute inset-0 z-20 flex items-center justify-center bg-slate-950/70 p-6 outline-none">
           <section className={`w-full max-w-lg rounded-2xl border p-6 shadow-2xl ${t.card}`}>
             <div className="flex items-start justify-between gap-4"><div><h2 className="font-semibold">Storico versioni</h2><p className="mt-1 text-sm text-slate-400">{versionHistory.document.filename}</p></div><button onClick={() => setVersionHistory(null)} className="text-slate-400 hover:text-white">Chiudi</button></div>
             <div className="mt-5 space-y-2">{versionHistory.items.map(item => <article key={item.version} className="flex items-center justify-between rounded-lg border border-white/10 p-3"><div><p className="text-sm font-medium">Versione {item.version}{item.version === versionHistory.document.version ? ' · corrente' : ''}</p><p className="text-xs text-slate-400">{formatSize(item.size_bytes)} · {new Date(item.created_at).toLocaleString()}</p></div>{item.version !== versionHistory.document.version && <button onClick={() => restoreVersion(item.version)} className="rounded-md border border-blue-500/40 px-2 py-1 text-xs text-blue-300 hover:bg-blue-500/10">Ripristina</button>}</article>)}</div>
@@ -1037,7 +1042,7 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
         </div>
       )}
       {showDLQ && (
-        <div className="absolute inset-0 z-20 flex items-center justify-center bg-slate-950/70 p-6">
+        <div ref={dlqDialogRef} role="dialog" aria-modal="true" aria-label="Documenti non indicizzati (coda degli errori)" tabIndex={-1} className="absolute inset-0 z-20 flex items-center justify-center bg-slate-950/70 p-6 outline-none">
           <section className={`w-full max-w-2xl rounded-2xl border p-6 shadow-2xl ${t.card}`} aria-label="Dead-Letter Queue">
             <div className="flex items-start justify-between gap-4">
               <div>

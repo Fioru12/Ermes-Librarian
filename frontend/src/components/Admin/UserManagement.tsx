@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useDialog } from '../../hooks/useDialog';
 import { Check, Copy, KeyRound, Trash2, UserPlus, X } from 'lucide-react';
 import { useConfirm } from '../ui/ConfirmDialog'
 
@@ -33,6 +34,7 @@ export default function UserManagement({ showNotif }: { showNotif: (m: string, t
   const [accountDrafts, setAccountDrafts] = useState<Record<string, LocalAccountDraft>>({});
   const [updatingAccount, setUpdatingAccount] = useState<string | null>(null);
   const [revealedKey, setRevealedKey] = useState<{ username: string; value: string } | null>(null);
+  const keyDialogRef = useDialog<HTMLDivElement>(!!revealedKey, () => setRevealedKey(null))
   const [copied, setCopied] = useState(false);
 
   const fetchUsers = async () => {
@@ -227,7 +229,7 @@ export default function UserManagement({ showNotif }: { showNotif: (m: string, t
         </tbody>
       </table>
       {revealedKey && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-6" role="dialog" aria-modal="true" aria-label="Nuova chiave API">
+        <div ref={keyDialogRef} tabIndex={-1} className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-6 outline-none" role="dialog" aria-modal="true" aria-label="Nuova chiave API">
           <section className="w-full max-w-xl rounded-2xl border border-amber-400/30 bg-white dark:bg-slate-900 p-6 text-slate-100 shadow-2xl">
             <div className="flex items-start justify-between gap-4"><div><h3 className="flex items-center gap-2 text-lg font-semibold"><KeyRound className="h-5 w-5 text-amber-300" />Nuova chiave API</h3><p className="mt-2 text-sm text-slate-400">Questa chiave per <strong className="text-slate-200">{revealedKey.username}</strong> sarà mostrata solo ora. Conservala in un password manager o secret manager, mai in un documento o in Git.</p></div><button onClick={() => setRevealedKey(null)} aria-label="Chiudi chiave API" className="rounded-md p-1 text-slate-400 hover:bg-white/10 hover:text-white"><X className="h-5 w-5" /></button></div>
             <code className="mt-5 block break-all rounded-lg border border-white/10 bg-slate-100 dark:bg-black/30 p-3 text-sm text-amber-100">{revealedKey.value}</code>

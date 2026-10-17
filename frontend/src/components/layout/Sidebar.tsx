@@ -92,7 +92,7 @@ export default function Sidebar({ activeTab, onTabChange, healthStatus, onRefres
           <span className="font-medium text-slate-400">{healthStatus?.status === 'healthy' ? 'Attivo' : 'Pronto'}</span>
         </div>
         {username && <span className="max-w-20 truncate text-slate-500" title={username}>{username}</span>}
-        <button onClick={onRefresh} title="Aggiorna stato" className="hover:text-blue-500 transition">
+        <button onClick={onRefresh} title="Aggiorna stato" aria-label="Aggiorna stato" className="hover:text-blue-500 transition">
           <RefreshCw className="w-3.5 h-3.5" />
         </button>
         {onLogout && (

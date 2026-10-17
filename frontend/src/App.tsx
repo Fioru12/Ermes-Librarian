@@ -401,6 +401,7 @@ function AppInner() {
   }
 
   return <div className={`ermes-app-shell flex h-screen overflow-hidden font-sans antialiased ${t.bg}`}>
+    <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[100] focus:rounded-lg focus:bg-blue-600 focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white focus:shadow-lg">Vai al contenuto</a>
     {showOnboarding && currentUser && (
       <Suspense fallback={null}>
       <OnboardingWizard
@@ -418,7 +419,7 @@ function AppInner() {
       </Suspense>
     )}
     <Sidebar activeTab={activeTab} onTabChange={setActiveTab} healthStatus={health ? { status: health.status } : undefined} onRefresh={fetchData} isAdmin={currentUser?.role === 'admin'} username={currentUser?.username} onLogout={handleLogout} mobileOpen={mobileMenuOpen} onMobileClose={() => setMobileMenuOpen(false)} />
-    <main className="relative flex flex-1 flex-col overflow-hidden">
+    <main id="main-content" tabIndex={-1} className="relative flex flex-1 flex-col overflow-hidden outline-none">
       {notif && <div className={`absolute right-4 top-4 z-50 flex items-center gap-2.5 rounded-xl border px-4 py-3 shadow-lg ${notif.type === 'error' ? 'border-rose-800 bg-rose-950/90 text-rose-200' : 'border-emerald-800 bg-emerald-950/90 text-emerald-200'}`}>{notif.type === 'error' ? <AlertTriangle className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}<span className="text-sm font-medium">{notif.message}</span></div>}
       <header className={`z-10 flex h-[4.5rem] items-center justify-between gap-3 border-b px-4 md:px-7 ${t.header}`}><div className="flex min-w-0 items-center gap-3"><button type="button" onClick={() => setMobileMenuOpen(true)} aria-label="Apri il menu" aria-controls="ermes-menu" aria-expanded={mobileMenuOpen} className="rounded-lg border border-white/10 p-2 text-slate-300 md:hidden"><Menu className="h-5 w-5" /></button><div className="min-w-0"><p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">Spazio di lavoro</p><h2 className={`mt-0.5 text-sm font-semibold ${t.cardTitle}`}>{tabHeaders[activeTab]}</h2></div></div><p className={`hidden text-xs md:block ${t.cardDesc}`}>Ogni biblioteca decide come usare l’IA</p></header>
       <div className="flex-1 overflow-hidden">

@@ -29,10 +29,10 @@ from pathlib import Path
 import httpx
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, Response
+from fastapi.responses import FileResponse, HTMLResponse, Response
 
 from api.security_headers import content_security_policy
-from api.static_assets import assets_app
+from api.static_assets import assets_app, media_type_for, resolve_frontend_file
 from config import cfg
 from core.governance import append_audit
 
@@ -223,7 +223,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="Ermes - Enterprise Knowledge Hub API",
     description="API REST per query RAG su documentazione aziendale",
-    version="2.3.0",
+    version="2.3.1",
     lifespan=lifespan,
 )
 
@@ -447,6 +447,9 @@ if os.path.isdir(_frontend_dist):
         first = full_path.split("/", 1)[0].lower()
         if first in {"api", "v1", "metrics", "docs", "redoc", "openapi.json", "health"}:
             raise HTTPException(status_code=404, detail="Endpoint non trovato")
+        reale = resolve_frontend_file(_frontend_dist, full_path)
+        if reale is not None:
+            return FileResponse(reale, media_type=media_type_for(reale))
         idx = os.path.join(_frontend_dist, "index.html")
         if os.path.isfile(idx):
             return HTMLResponse(Path(idx).read_text(encoding="utf-8"))
