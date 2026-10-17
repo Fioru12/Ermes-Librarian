@@ -10,11 +10,29 @@ html {
   color-scheme: dark;
 }
 
+/* Titoli senza righe orfane; numeri in colonna allineati; tocco senza ritardo del doppio tap. */
+h1, h2, h3 { text-wrap: balance; }
+p, li { text-wrap: pretty; }
+table, .tabular { font-variant-numeric: tabular-nums; }
+button, a, [role="button"], select, summary { touch-action: manipulation; }
+[role="dialog"] { overscroll-behavior: contain; }
+html { -webkit-tap-highlight-color: transparent; }
+
+/* La voce del documento: cio' che dice un file si distingue da cio' che dice il sistema. */
+.doc-voice {
+  font-family: 'Source Serif 4 Variable', Georgia, Cambria, serif;
+  font-optical-sizing: auto;
+  line-height: 1.6;
+}
+.data-voice {
+  font-family: 'JetBrains Mono Variable', ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
 body {
   margin: 0;
   min-width: 320px;
-  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
-  text-rendering: optimizeLegibility;
+    text-rendering: optimizeLegibility;
 }
 
 .ermes-app-shell {

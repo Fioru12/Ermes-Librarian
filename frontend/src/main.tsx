@@ -1,7 +1,10 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
-import '@fontsource-variable/inter/wght.css'
+import '@fontsource-variable/instrument-sans/wght.css'
+import '@fontsource-variable/source-serif-4/wght.css'
+import '@fontsource-variable/source-serif-4/wght-italic.css'
+import '@fontsource-variable/jetbrains-mono/wght.css'
 import './index.css'
 
 // ── Global fetch wrapper ──────────────────────────────────────────────

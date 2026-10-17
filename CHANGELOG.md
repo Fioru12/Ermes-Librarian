@@ -2,6 +2,16 @@
 
 Registro leggibile del lavoro su questo progetto. Per i finding tecnici completi, [docs/AUDIT_2026-08-19.md](docs/AUDIT_2026-08-19.md) e [docs/CODE_REVIEW.md](docs/CODE_REVIEW.md). La roadmap per fasi e il registro delle sessioni (`ROADMAP_V2.md`, `WORK_PROGRESS.md`) sono stati tolti dall'albero pubblico il 18 settembre 2026: la cronologia Git li conserva.
 
+## 2026-10-19 — Una voce per il documento, una per il sistema: nuova identità visiva
+
+Rivista l'interfaccia con due criteri: le linee guida web (audit meccanico del codice) e una direzione di design legata al prodotto invece del "kit SaaS" (schede identiche arrotondate, etichette in maiuscolo spaziato sopra ogni titolo, gradienti blu-indaco, Inter).
+
+- **La voce del documento.** Ermes serve a fidarsi di una risposta perche' si vede da quale documento arriva, quindi la tipografia lo dice. Ciò che scrive il documento (i passaggi recuperati, la frase "In breve", il passaggio nella finestra di una citazione) è in *Source Serif 4* con un filetto a sinistra; ciò che dice il sistema è in *Instrument Sans*; i dati (nome del file, versione, sezione) in *JetBrains Mono*. Tutti e tre sono inclusi nel pacchetto, nessuna richiesta esterna. Nel corpo della risposta ogni passaggio ha il suo numero cliccabile (ora annunciato come "Fonte 1: manuale.pdf" e non solo "1").
+- **Schermata iniziale** ripensata: al posto della scheda centrata con tre riquadri e quattro schede uguali, una colonna a sinistra con la promessa del prodotto ("Ogni risposta indica il documento da cui arriva. Se i documenti non bastano, Ermes te lo dice invece di inventare.") e i suggerimenti come righe semplici.
+- **Meno scena, più contenuto**: tolte le etichette in maiuscolo spaziato sopra i titoli ("SPAZIO DI LAVORO", "ASSISTENTE DOCUMENTALE", i titoli di sezione, le etichette delle statistiche), il Title Case all'inglese ("Query Totali" → "Query totali"), il gradiente del pulsante di accesso e l'etichetta "Accesso protetto". Le sigle dei tipi di file (PDF, DOCX) restano maiuscole. L'elenco delle fonti non ripete più il passaggio già mostrato nella risposta. "Estratto documentale *certificato*" diventa "Passaggio nel documento": niente è certificato.
+- **Linee guida web**: `…` al posto di `...` nei testi; numeri in colonna allineati (`tabular-nums`); `text-wrap: balance` sui titoli; `touch-action: manipulation`; `overscroll-behavior: contain` nelle finestre; `transition-all` sostituito da transizioni con proprietà elencate; letter-spacing dei titoli corretto per il nuovo carattere. La tabella del registro di audit, che scorre, ora è raggiungibile da tastiera (l'audit axe in CI l'ha segnalata appena la tabella è diventata più lunga).
+- Nuovi screenshot e animazione nel README.
+
 ## 2026-10-18 (3) — v2.3.1: app installabile, uso da tastiera, favicon che finalmente c'è
 
 Questa release raccoglie tutto il lavoro dal 16 ottobre; le voci qui sotto (dal 16 al 18 ottobre) ne danno i dettagli. In sintesi: EmbeddingGemma come embedding predefinito (misurato), schede che si aprono in 10-40 ms invece di 2-6 s, tema chiaro completo, zero violazioni di accessibilità controllate in CI, nessuna richiesta verso l'esterno (font locale, Content-Security-Policy), README e documenti allineati al codice, e tre affermazioni che il prodotto non poteva sostenere corrette.

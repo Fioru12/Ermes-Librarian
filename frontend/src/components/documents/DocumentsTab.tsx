@@ -368,7 +368,7 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
     const formData = new FormData()
     formData.append('file', file)
     try {
-      showNotif(`Importazione pacchetto “${file.name}”...`)
+      showNotif(`Importazione pacchetto “${file.name}”…`)
       const response = await fetch('/api/libraries/import-pack', {
         method: 'POST',
         body: formData,
@@ -865,7 +865,7 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
               )}
               {searchResults !== null && (
                 <div className="mb-6 space-y-3">
-                  <div className="flex flex-wrap items-center gap-2 text-xs font-medium uppercase tracking-wide text-slate-400">
+                  <div className="flex flex-wrap items-center gap-2 text-xs font-medium text-slate-400">
                     <span>{searchResults.length} risultati</span>
                     {retrievalProfile && <span className={`rounded-full px-2 py-0.5 normal-case tracking-normal ${retrievalProfile.semantic_used ? 'bg-violet-500/10 text-violet-300' : 'bg-slate-500/10 text-slate-400'}`}>
                       {retrievalProfile.semantic_used ? 'Ricerca per significato e per parole' : 'Ricerca per parole'}

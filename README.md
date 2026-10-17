@@ -116,8 +116,8 @@ and their trade-offs are in [docs/adr/](docs/adr/); what is defended and what is
 
 ### What leaves your machine
 
-Nothing, by default. Ermes has no telemetry and the interface loads no third-party fonts, scripts or images (Inter is
-bundled; a Content-Security-Policy forbids other origins). The connections that exist are the ones you configure:
+Nothing, by default. Ermes has no telemetry and the interface loads no third-party fonts, scripts or images (the three typefaces
+are bundled; a Content-Security-Policy forbids other origins). The connections that exist are the ones you configure:
 your Ollama host, an identity provider for SSO, the data sources you connect, and — only when an administrator
 explicitly approves a provider for a library — that cloud model.
 

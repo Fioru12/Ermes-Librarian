@@ -228,7 +228,7 @@ export function TabularExplorerModal({
                 <>
                   {/* Columns Grid */}
                   <div>
-                    <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">
+                    <h3 className="text-xs font-semibold text-slate-400 mb-3">
                       Struttura Colonne ({schema.columns.length})
                     </h3>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
@@ -259,7 +259,7 @@ export function TabularExplorerModal({
                   {/* Sample Rows Table */}
                   <div>
                     <div className="flex items-center justify-between mb-3">
-                      <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                      <h3 className="text-xs font-semibold text-slate-400">
                         Anteprima Dati (Prime {schema.sample_rows.length} righe)
                       </h3>
                       <button

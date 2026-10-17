@@ -16,7 +16,7 @@ describe('ChatArea', () => {
   it('shows the selected library and evidence-first welcome state', () => {
     renderChat()
     expect(screen.getAllByText('Procedure HR').length).toBeGreaterThan(0)
-    expect(screen.getByText('Fonti verificate')).toBeInTheDocument()
+    expect(screen.getByText(/Ogni risposta indica il documento da cui arriva/)).toBeInTheDocument()
   })
 
   it('sends a suggested document question', () => {
@@ -82,7 +82,7 @@ describe('ChatArea', () => {
     })
 
     // Clicca sul marcatore citazione [1]
-    fireEvent.click(screen.getByRole('button', { name: '1' }))
+    fireEvent.click(screen.getByRole('button', { name: /^Fonte 1/ }))
     expect(screen.getByRole('dialog', { name: 'Dettaglio citazione' })).toBeInTheDocument()
     expect(screen.getByText('Citazione [1]')).toBeInTheDocument()
     expect(screen.getByText('Copia estratto')).toBeInTheDocument()
