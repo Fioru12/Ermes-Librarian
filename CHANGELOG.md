@@ -15,6 +15,12 @@ Richiesta: far sentire a casa chi usa Windows. Si segue Fluent (il linguaggio di
 
 Non fatto: i controlli nativi (menu a tendina, interruttori) restano quelli del browser; una resa completa di Fluent richiederebbe una libreria di componenti, che per ora non vale il peso aggiunto. Provato in Chromium su schermate chiare e scure; non provato dentro Edge installato come app, dove la barra del titolo integrata si vede solo.
 
+## 2026-10-19 (3) — Il monitoraggio e' stato provato su Docker vero
+
+- **Verificato**, finalmente: con Docker Desktop 29.7.2 su Windows 11, in una copia isolata del progetto, l'immagine si costruisce, i quattro container partono, Prometheus legge `/metrics` con il token, Grafana ha sorgente dati e dashboard gia' collegate, e un avviso arriva davvero: fermata l'app, `ErmesDown` scatta dopo 2 minuti, Alertmanager lo consegna al webhook e al rientro arriva anche `RESOLVED`. Dettagli e limiti in `docs/MONITORING.md`.
+- **Trovato provandolo**: `ermes_system_info` riportava sempre `version="unknown"`, perche' cercava un pacchetto installato chiamato "ermes" che non esiste quando si esegue dai sorgenti o in Docker. Ora usa la versione dichiarata dall'applicazione. Test aggiunto.
+- **Docker Desktop su Windows non partiva** per un file-socket rimasto su disco dopo una chiusura brusca ("initializing Inference manager" / "Secrets Engine"); la procedura per sbloccarlo senza perdere immagini e volumi e' in `docs/RUNBOOK.md`.
+
 ## 2026-10-19 (2) — Segno e palette: Ermes ha un logo e un colore suoi
 
 - **Il segno**: una "E" i cui bracci sono righe di testo, come un documento, con un puntino accanto al braccio centrale: il segnaposto di una citazione. Il primo tentativo (tre righe senza costola) somigliava all'icona di un menu; la costola verticale lo rende una E. Sostituisce il quadratino sfumato con una "E" qualunque nella barra laterale, nell'accesso, nella favicon, nelle icone dell'app installabile e nel README (`components/ui/BrandMark.tsx`, stessa geometria di `public/favicon.svg`).
