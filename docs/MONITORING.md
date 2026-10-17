@@ -64,6 +64,17 @@ Le soglie sono un punto di partenza: adattale ai tuoi volumi. Per i passi da far
 
 Alertmanager invia un JSON generico. Per Slack, Teams o Discord usa un relay (n8n, Zapier o un piccolo servizio) che traduce il formato, oppure il receiver nativo di Alertmanager: modifica `deploy/monitoring/alertmanager.yml` aggiungendo `slack_configs` o `msteams_configs`.
 
+## Verificato su un'istanza reale (17 ottobre 2026)
+
+Con Docker Desktop 29.7.2 su Windows 11, in una copia isolata del progetto (porte, dati e volumi propri):
+
+- l'immagine dell'app si costruisce e i quattro container (app, Prometheus 3.5.0, Alertmanager 0.28.1, Grafana 12.1.0) partono;
+- Prometheus legge `/metrics` con il token (target `ermes` in stato `up`) e carica le sette regole;
+- Grafana 12.1.0 ha già la sorgente dati Prometheus (predefinita) e la dashboard "Ermes Knowledge - Enterprise Monitoring"; una query passa dalla sorgente dati;
+- **un avviso arriva davvero**: fermato il container dell'app, `ErmesDown` scatta dopo i 2 minuti previsti, Alertmanager lo consegna al webhook (`FIRING`, gravità `critical`, "Ermes non risponde alle metriche") e, riavviata l'app, arriva anche `RESOLVED`.
+
+Non verificato: l'invio verso un servizio reale (Slack, Teams) invece di un ricevitore HTTP di prova, e il comportamento con carichi veri. Le soglie degli alert sono un punto di partenza, non misurate su un'installazione in produzione.
+
 ## Se l'azienda ha già un proprio stack
 
 Non serve il profilo qui sopra.
