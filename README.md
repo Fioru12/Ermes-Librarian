@@ -1,177 +1,125 @@
 <div align="center">
 
-<img src="docs/assets/ermes-knowledge-icon.png" alt="Ermes Knowledge Logo" width="130" style="border-radius: 24px; margin-bottom: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.15);" />
+<img src="docs/assets/ermes-knowledge-icon.png" alt="Ermes Knowledge logo" width="120" />
 
-# Ermes Knowledge (Ermes-Librarian)
+# Ermes Knowledge
 
-### *Enterprise-Grade, Evidence-First & Sovereign Document Intelligence Platform*
+### Ask your company's documents. Get answers that cite the source — or an honest "I don't know".
 
-[![Python](https://img.shields.io/badge/Python-3.11%20%7C%203.12-3776AB?logo=python&logoColor=white)](https://www.python.org/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
-[![React](https://img.shields.io/badge/React-18%20%7C%20TypeScript-61DAFB?logo=react&logoColor=black)](https://react.dev/)
-[![Docker](https://img.shields.io/badge/Docker-Compose%20Ready-2496ED?logo=docker&logoColor=white)](docker-compose.yml)
-[![CI](https://img.shields.io/badge/CI-pytest%20%7C%20vitest%20%7C%20compose--smoke-brightgreen)](.github/workflows/ci.yml)
-[![Security](https://img.shields.io/badge/Security-Fail--Closed%20%7C%20Audit%20SHA--256-blueviolet)](docs/THREAT_MODEL.md)
 [![License: GPL-3.0](https://img.shields.io/badge/License-GPL--3.0-blue.svg)](LICENSE)
+[![CI](https://github.com/Fioru12/Ermes-Librarian/actions/workflows/ci.yml/badge.svg)](https://github.com/Fioru12/Ermes-Librarian/actions/workflows/ci.yml)
+[![Python](https://img.shields.io/badge/Python-3.11%20%7C%203.12-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![React](https://img.shields.io/badge/React%20%2B%20TypeScript-61DAFB?logo=react&logoColor=black)](https://react.dev/)
+[![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)](docker-compose.yml)
+[![Accessibility](https://img.shields.io/badge/axe-0%20violations-brightgreen)](frontend/e2e/accessibility.spec.ts)
 
 <p align="center">
-  <a href="#quick-start-windows"><b>Quick Start</b></a> •
-  <a href="#architecture"><b>Architecture</b></a> •
-  <a href="#measured-not-claimed"><b>Benchmarks</b></a> •
-  <a href="#current-capabilities"><b>Capabilities</b></a> •
-  <a href="docs/INTEGRATION_GUIDE.md"><b>Integrazioni & API</b></a> •
-  <a href="#documentation"><b>Documentation</b></a> •
-  <a href="docs/DESCRIZIONE_PROGETTO.md"><b>Descrizione Completa (IT)</b></a>
+  <a href="#quick-start-windows"><b>Quick start</b></a> ·
+  <a href="docs/FEATURES.md"><b>Features</b></a> ·
+  <a href="docs/BENCHMARKS.md"><b>Benchmarks</b></a> ·
+  <a href="#how-it-compares"><b>Comparison</b></a> ·
+  <a href="docs/INTEGRATION_GUIDE.md"><b>API & integrations</b></a> ·
+  <a href="#documentation"><b>Docs</b></a> ·
+  <a href="docs/DESCRIZIONE_PROGETTO.md"><b>Italiano</b></a>
 </p>
+
+<img src="docs/assets/demo.gif" alt="Ermes in use: sign in, ask a question that is answered with a cited source, ask one the documents cannot answer and get an honest refusal, browse libraries, switch to the light theme" width="860" />
 
 </div>
 
 ---
 
-Ermes Knowledge is an enterprise-ready, local-first document library and RAG platform. It turns company files (PDF — scanned pages included, via OCR — DOCX, XLSX, PPTX, TXT, Markdown) into a governed, searchable knowledge base: users upload documents, ask questions in natural language, and receive real-time answers backed by traceable citations with zero ungrounded hallucinations.
+Ermes Knowledge is a **local-first document library with a question-answering layer**. Upload PDFs, Word, Excel,
+PowerPoint, text and Markdown files; ask in plain language; every answer names the file, version, section and exact
+passage it relied on. When the documents do not support an answer, Ermes **says so** instead of inventing one.
 
-> **Where is the vector search?** Off by default, on purpose. Ermes ships with lexical retrieval because on its own golden set semantic search doubles paraphrase recall *and* destroys abstention (1.000 → 0.000), and the neural reranker made every configuration worse. Both are implemented and one flag away (`ERMES_LIBRARY_SEMANTIC_SEARCH=1`, `ERMES_RERANKER_ENABLED=1`); the mechanism that was measured to keep abstention at scale is evidence verification, enabled by the [verified profile](#verified-profile-ollama-required). The numbers, and the three rejected fixes, are below.
+|  |  |
+|---|---|
+| **Evidence first** | Every answer cites an accessible source or abstains. With evidence verification on, correct refusals are **16/16** on the project's own test set, at both corpus sizes — [measured, not claimed](docs/BENCHMARKS.md). |
+| **Private by construction** | Runs on your server. No telemetry, no fonts or scripts from other domains: a browser test finds **zero external requests** on every screen, and a strict Content-Security-Policy enforces it. A cloud model is used only if an administrator turns it on for a library. |
+| **Built for teams** | Per-library isolation and roles, OIDC/SSO, SCIM provisioning, a hash-chained audit log, GDPR export and erasure, an MCP server for AI agents, webhooks for n8n/Zapier/Slack/Teams/Telegram. |
+| **Held to a standard** | 860+ automated tests, 248 API operations with a unique, typed OpenAPI contract, **0 accessibility violations** (axe, WCAG 2.1 AA, every screen, light and dark — checked in CI), gitleaks, mypy, ≥75% coverage. |
 
-The product is designed to be fully useful before any cloud AI is enabled. Its default mode is **evidence-first**: documents remain strictly on-premise and the application returns verified passages with tamper-evident audit logs. Administrators can selectively enable local models (Ollama, vLLM) or approved enterprise LLM providers.
+> **Where is the vector search?** Off by default, on purpose. On the project's golden set, semantic search doubles
+> paraphrase recall *and* destroys abstention (1.000 → 0.000); the neural reranker made every configuration worse.
+> Both are one flag away (`ERMES_LIBRARY_SEMANTIC_SEARCH=1`, `ERMES_RERANKER_ENABLED=1`); the mechanism that keeps
+> abstention at scale is evidence verification, enabled by the [verified profile](#verified-profile-ollama-required).
+> The numbers, the embedding-model comparison and the rejected fixes are in [docs/BENCHMARKS.md](docs/BENCHMARKS.md).
 
-> **Enterprise Ready**: Multi-library isolation, fine-grained RBAC, OIDC/SSO integration, streaming SSE, dynamic company glossaries, and cryptographic SHA-256 audit trails.
+## A look inside
 
-## Measured, not claimed
+<table>
+<tr>
+<td width="50%"><img src="docs/screenshots/assistant-dark.png" alt="Answer with a cited source" /><br/><sub><b>Answers that show their source</b> — file, version, section, exact excerpt, one click to the original.</sub></td>
+<td width="50%"><img src="docs/screenshots/abstention-dark.png" alt="Honest refusal when the documents do not contain the answer" /><br/><sub><b>Honest refusal</b> — no passage supports it, so Ermes says so and suggests what to do.</sub></td>
+</tr>
+<tr>
+<td><img src="docs/screenshots/citation-dark.png" alt="Citation inspector" /><br/><sub><b>Citation inspector</b> — the supporting passage, copy or download the original.</sub></td>
+<td><img src="docs/screenshots/knowledge-gaps-dark.png" alt="Questions the documents could not answer" /><br/><sub><b>Knowledge gaps</b> — the questions nobody could answer show you which documents are missing.</sub></td>
+</tr>
+<tr>
+<td><img src="docs/screenshots/libraries-light.png" alt="Libraries and documents, light theme" /><br/><sub><b>Libraries</b> — separate boundaries, each with its own collaborators and assistant policy. Light theme shown.</sub></td>
+<td><img src="docs/screenshots/studio-dark.png" alt="Studio: briefing, FAQ, study guide" /><br/><sub><b>Studio</b> — briefing, FAQ, study guide and suggested questions, every point tied to a source.</sub></td>
+</tr>
+<tr>
+<td><img src="docs/screenshots/audit-light.png" alt="Audit log with verified hash chain" /><br/><sub><b>Audit log</b> — every entry is hash-chained and signed; the interface verifies the chain and reports tampering.</sub></td>
+<td><img src="docs/screenshots/health-dark.png" alt="System status with the reasons for any warning" /><br/><sub><b>System status</b> — says what needs attention and why, not just a colour.</sub></td>
+</tr>
+</table>
 
-Every number below was produced by a command in this repository, and every
-command can be re-run by anyone who clones it. The unflattering results are
-here too — they are the reason several features are switched off.
+## How it compares
 
-**Retrieval quality** — 52 questions over a demo corpus: 16 direct, 20
-paraphrased, 16 with no answer in the corpus (several of them lexical traps
-that share words with a real passage). Recall@3 for the first two, correct
-refusals for the third. Left: the 16-passage demo corpus. Right: the same
-corpus with 388 unrelated passages of real prose around it
-(`python evaluation/scale_check.py --sizes 0,97`, add `--semantic` /
-`--verify`):
+Ermes is a small project and does not try to be everything. This table is built from each project's own README as of
+October 2026; check them for the current state. It states where Ermes is different **and where it is not**.
 
-| | Shipped default | Semantic search | Evidence verification | Semantic + verification |
-|---|---|---|---|---|
-| Direct | 1.000 / 0.938 | 1.000 / 1.000 | 1.000 / 0.938 | 1.000 / 0.625 |
-| Paraphrased | 0.450 / 0.250 | **0.900 / 0.500** | 0.350 / 0.200 | 0.350 / 0.050 |
-| Correct refusals | 0.375 / 0.062 | 0.000 / 0.000 | **1.000 / 1.000** | 1.000 / 1.000 |
+| | **Ermes** | Open WebUI | AnythingLLM | Onyx | OpenJarvis |
+|---|---|---|---|---|---|
+| Main idea | Governed document library with cited or refused answers | General chat UI with built-in RAG | Document workspaces + agents | Enterprise search over many sources | Local-first personal AI agents |
+| Published, reproducible abstention measurement | **Yes** ([how](docs/BENCHMARKS.md)) | Not in README | Not in README | Not in README | Not its focus |
+| Source citations in answers | Yes: file, version, section, excerpt | Yes | Yes | Yes | n/a |
+| Per-library access control, SSO, SCIM | Yes | Roles, OIDC | Multi-user (Docker) | Yes, SSO + SCIM | n/a |
+| Tamper-evident audit log | Yes (hash chain + HMAC) | — | — | Enterprise features | — |
+| Data connectors | 3 (network folders, web, Microsoft 365) | Via integrations | Many | **50+** | — |
+| Agents / deep research | **No** | Yes | Yes | **Yes** | **Yes (8 built in)** |
+| Native desktop app | **No** (Windows launcher, browser UI) | No | **Yes** | **Yes** | **Yes** |
+| Interface language | Italian | Many | Many | Many | English |
+| Community size | Small | **Very large** | **Large** | **Large** | Growing |
 
-Until 25 September 2026 this table read "1.000" for refusals. That number
-came from **three** questions, so one error was worth 33 points; on sixteen
-the shipped default refuses correctly 6 times, and with a large archive
-around it once. Evidence verification (a local model checks each cited
-passage) is the only configuration that keeps refusals at 16/16 at both
-sizes without losing direct questions. Semantic + verification refuses just
-as well, but on the large archive it also rejects correct passages, so its
-perfect refusal score is partly refusing everything. Verification uses
-`qwen3.5:4b`; the semantic + verification run hit 3 model errors out of
-several hundred calls.
+Pick Ermes if you need to *prove* what an answer rests on and what the system refuses to answer, with per-library
+control and an audit trail, on your own hardware. Pick one of the others if you need broad connectors, agents or a
+large ecosystem today.
 
-**Same corpus, RAGAS definitions** (`python evaluation/ragas_report.py`), so the
-numbers can sit next to other projects' — shipped default, k=3:
+## Architecture
 
-| context_precision | context_recall | MRR | abstention precision | false abstention |
-|---|---|---|---|---|
-| 0.653 | 0.694 | 0.653 | 0.375 | 0.167 |
+```mermaid
+flowchart LR
+    U[Browser<br/>React + TypeScript] -->|same origin only<br/>strict CSP| A[FastAPI]
+    A --> S[(Library store<br/>SQLite or PostgreSQL)]
+    A --> F[(Original files<br/>local or S3-compatible)]
+    A --> P[Parser + chunker<br/>OCR for scanned PDFs]
+    A --> R[Retrieval<br/>library-scoped, full-text + optional embeddings]
+    R --> V{Evidence verification<br/>optional}
+    V -->|supported| C[Answer with citations]
+    V -->|not supported| X[Explicit refusal]
+    A --> L[Audit log<br/>SHA-256 chain + HMAC]
+    A -. optional .-> O[Ollama<br/>local models]
+    A -. only if approved per library .-> Q[Cloud LLM provider]
+    A --> M[/metrics<br/>Prometheus/]
+```
 
-Direct questions: precision 0.938 / recall 1.000 (one question finds its citation at rank 2, not 1). Paraphrased: 0.425 / 0.450. Faithfulness and answer relevancy are *not* reported: in the default evidence-only mode there is no generated answer to judge, and reporting them would require a generator plus a judge model — a different measurement, kept separate rather than decorated in.
+Principles: **local first** (a cloud key alone never enables cloud processing) · **evidence before generation** ·
+**library isolation inside retrieval** (not as an after-filter) · **documents are untrusted data** (retrieved text can
+never authorise an action) · **versions matter** (a citation stays linked to the version that supported it). Decisions
+and their trade-offs are in [docs/adr/](docs/adr/); what is defended and what is not is in
+[docs/THREAT_MODEL.md](docs/THREAT_MODEL.md).
 
-**Speed on an office-sized archive** (`python evaluation/archive_scale.py`):
+### What leaves your machine
 
-| Passages | Indexing | Typical search | Worst-case search |
-|---|---|---|---|
-| 10.000 | 15,1 s | 1,9 ms | 58 ms |
-| 50.000 | 79,6 s | **4,6 ms** | **308 ms** |
-
-The worst case was 3,2 s at 50.000 passages until 25 September 2026: every
-row matching a common word was scored in Python. Candidates are now capped by
-the database's own full-text rank (`bm25()` / `ts_rank`) — ten times faster,
-and the retrieval-quality numbers above are unchanged.
-
-### What does not work, stated here rather than discovered later
-
-- **Without a model, the shipped default does not reliably say "I don't
-  know".** 6 correct refusals out of 16 on the demo corpus, 1 out of 16 with a
-  large archive around it: any single shared term is enough to be cited as
-  evidence. Evidence verification brings it to 16/16 at both sizes, but needs
-  a model running, so it is off by default. For libraries beyond a demo
-  corpus, run the [verified profile](#verified-profile-ollama-required), which
-  makes the model a declared requirement.
-- **The neural reranker is disabled**, because measuring it showed it makes
-  every configuration worse — the previously shipped default was the worst of
-  the five.
-- **Paraphrases are the weak spot of every configuration that refuses
-  correctly** (0.200–0.450). Semantic search finds twice as many but never
-  refuses; with verification on top, the 4B verifier rejects correct passages
-  too. A stronger verifier model is the next thing to measure.
-- **Semantic search is disabled**, because it doubles paraphrase recall and
-  destroys abstention. Four score-based signals were measured looking for a
-  cutoff that keeps both; none separates the two populations, and the analysis
-  is written up rather than glossed over.
-- **The corpus is synthetic.** These numbers are honest for it and prove
-  nothing about yours. `evaluation/scale_check.py` is the starting point for
-  measuring on real documents.
-
-The full analysis, including three attempted fixes that were measured and
-rejected, is in [docs/RETRIEVAL_EVALUATION.md](docs/RETRIEVAL_EVALUATION.md).
-What the system defends against, and what it does not, is in
-[docs/THREAT_MODEL.md](docs/THREAT_MODEL.md). How to install, back up and
-operate it is in [docs/RUNBOOK.md](docs/RUNBOOK.md).
-
-![Walkthrough: login, browsing a library's documents, asking a question that gets cited, and honest abstention on two different out-of-scope questions — including one that only a different library could answer](docs/assets/demo.gif)
-
-*The full sequence from [docs/DEMO_GUIDE.md](docs/DEMO_GUIDE.md), recorded end-to-end against a running instance: two answered questions with real citations, then two correct abstentions — the second one proving retrieval never crosses a library boundary, not just asserting it.*
-
-![The assistant answering from a document library, with every passage tied to a file, version and section](docs/screenshots/assistant-with-citations.png)
-
-*Every substantive answer names its sources: file, version, section and the exact excerpt it relied on — and the original document is one click away. When the library cannot support an answer, the assistant says so instead of inventing one.*
-
-## Why it exists
-
-Teams often have procedures, policies, manuals, contracts and internal know-how spread across folders. Finding the right version is slow and unreliable. Ermes Knowledge provides one controlled entry point where the answer is tied to the source document instead of presented as unexplained AI output.
-
-## Current capabilities
-
-- Separate libraries with private or shared visibility.
-- Upload, parse and index PDF, DOCX, TXT, Markdown, XLSX, PPTX, CSV and RTF documents — with per-cell and per-slide locators for precise citations.
-- Version history, restore and protected download of original files.
-- Chunk-level retrieval scoped to the selected library, hybrid (full-text + embeddings). A neural cross-encoder reranker is implemented and available, but **off by default**: measured on the project's own gold set it makes every configuration worse (recall@3 0.815 vs 0.852, paraphrases 0.375 vs 0.500). The comparison that decided it is reproducible with `python evaluation/run_library_eval.py --compare` — see [docs/RETRIEVAL_EVALUATION.md](docs/RETRIEVAL_EVALUATION.md).
-- Per-user semantic search cache (TTL + LRU) with automatic invalidation on writes — scoped per user so ACL boundaries are never cached across.
-- Evidence-first answers with citations, document version, locator and excerpt.
-- Clear abstention when the selected library does not contain enough evidence.
-- Optional evidence verification: a model is asked whether each retrieved passage actually answers the question, and passages that do not are dropped before the answer is composed. It is the only mechanism measured that improves paraphrased questions **without** destroying abstention — recall@3 0.889 with abstention still at 1.000, against 0.852 for the shipped default. Off by default because it costs a model call per candidate passage; see [docs/RETRIEVAL_EVALUATION.md](docs/RETRIEVAL_EVALUATION.md) for the four score-based signals that were measured first and did not work.
-- Conversation memory for follow-up questions: "and for managers?" is rewritten into a standalone question using the last few questions **before** retrieval, so the evidence pipeline — retrieval, verification, abstention — runs on the rewritten question exactly as on a new one. The conversation never enters the answer prompt, and the rewritten question is shown to the user and recorded in the audit entry. Off by default (needs a model); see [docs/THREAT_MODEL.md, T5c](docs/THREAT_MODEL.md).
-- Prompt-injection quarantine: before any passage reaches a model, a deterministic check flags instructions aimed at the assistant ("ignore previous instructions", "reveal the system prompt", role markers, in English and Italian). A flagged passage is replaced by a quarantine note in the prompt, dropped as evidence by the verifier, and returned to the user as a citation marked *not used* — the source stays visible, its text does not reach the model. It is pattern-based and says so: a novel paraphrase gets through to the structural limits (retrieval scoped to one library, an assistant with no tools). See [docs/THREAT_MODEL.md, T4](docs/THREAT_MODEL.md).
-- Data-subject export and erasure (GDPR art. 15 and 17): `GET /api/privacy/users/{u}/export` returns everything referable to an account; `DELETE /api/privacy/users/{u}` removes the person's data, reassigns the organisation's libraries to the administrator, and retains the signed audit entries — stating so, because rewriting a signed record would make it indistinguishable from a tampered one.
-- OIDC/SSO group-to-library ACL propagation: mapped groups grant viewer/editor roles (never admin), direct memberships always win, and SSO-only reachable libraries appear in the user's list.
-- Dual database backend: SQLite by default, PostgreSQL via `ERMES_DATABASE_URL` (psycopg 3, jsonb embeddings, tsvector full-text, `SKIP LOCKED` job claims) — see [docs/POSTGRES_MIGRATION_PLAN.md](docs/POSTGRES_MIGRATION_PLAN.md). Eight parity tests compare the two backends and now run against a real PostgreSQL in CI; until 10 September 2026 they skipped themselves everywhere, the driver was missing from `requirements.txt`, and setting `ERMES_DATABASE_URL` silently fell back to SQLite — so every instance kept its own local database while the configuration said otherwise.
-- Prometheus metrics at `/metrics` (auth required): request latency, RAG questions, rerank mode, ingestion outcomes, and counters for the features that fail silently — evidence verification that could not run, question rewrites that fell back, passages quarantined for injection. `/health` reports `degraded` (not just `healthy`/down) with a reason when an enabled feature cannot work because its model is unreachable.
-- Rate-limit counters on the shared store by default (`ERMES_RATE_LIMIT_BACKEND`), so instances behind a load balancer share one threshold instead of multiplying it — like sessions and login attempts, without a separate component.
-- Enterprise Connectors: Local NAS / Network Shared Folders (`local_folder`), Web Scraper, and Microsoft Graph (SharePoint / OneDrive) — all configurable from the React UI, with a folder-watcher status bar and one-click sync.
-- Model Context Protocol (MCP) Server: native JSON-RPC 2.0 (`/api/mcp/rpc`) and REST (`/api/mcp/tools`) for AI agents (Claude Desktop, Cursor, Antigravity, LangChain).
-- Automation Webhook Gateway: API Key-authenticated REST endpoints (`/api/integrations/automation/ask` and `/ingest`) tailored for n8n, Zapier, Make, and microservices.
-- Multi-channel Chat Integrations: Slack Slash Commands / Events, Microsoft Teams Outgoing Webhooks, and Telegram Bot API.
-- Real-time Server-Sent Events (SSE) Streaming: `/api/libraries/{library_id}/ask/stream` streams live status steps (`retrieving`, `verifying`, `composing`), verified citations, and generated answers directly to the React UI with zero polling.
-- Dynamic Enterprise Glossary & Synonym Disambiguation: configurable corporate acronyms, abbreviations and domain glossaries (`/api/synonyms`, `config/synonyms.json`), with multi-word phrase prioritization and interactive management in the Settings tab.
-- Advanced Chat & Document Actions: export full conversations with citations to Markdown (`.md`), reset active chat session without page reload, copy answers and citations with visual feedback, and real-time document filtering by extension (`PDF`, `DOCX`, `PPTX`, `XLSX`, `TXT`, `MD`) and filename.
-- Enterprise Documentation: Italian operational and deployment manual in [docs/GUIDA_OPERATIVA_AZIENDA.md](docs/GUIDA_OPERATIVA_AZIENDA.md) and English administrator guide in [docs/RUNBOOK.md](docs/RUNBOOK.md).
-- Dedicated React Interface with real-time streaming feedback, first-access onboarding wizard, Connectors & Automations tab, FastAPI backend, automated test suite (backend `pytest`, frontend `vitest`, Locust load scenarios, pytest performance benchmarks).
-
-![Libraries and documents, each with version, indexing state and a per-library assistant policy](docs/screenshots/libraries-and-documents.png)
-
-*Each library is a separate boundary: its own documents, its own collaborators, and its own assistant policy. Retrieval is constrained to the selected library before any context reaches the assistant — the demo corpus ships with a check that proves it, rather than asserting it.*
-
-## Product principles
-
-1. **Local first.** A cloud API key alone never enables cloud processing.
-2. **Evidence before generation.** Every substantive answer must cite an accessible document or abstain.
-3. **Library isolation.** Retrieval is constrained to the chosen library before context reaches the assistant.
-4. **Documents are untrusted data.** Retrieved text cannot authorize tools or actions.
-5. **Originals and versions matter.** Citations remain linked to the document version that supported the answer.
-
-![Administrative audit log reporting that the HMAC signature on every entry verifies](docs/screenshots/audit-log-integrity.png)
-
-*Library operations are recorded in an append-only audit log, each entry signed with HMAC. The interface verifies every signature and reports tampering rather than assuming the record is intact. Each installation generates and keeps its own signing key on first run — earlier versions shipped a default key that was committed to this repository, which made the signature forgeable by anyone holding a copy (see [threat model, T6](docs/THREAT_MODEL.md)). Set `ERMES_AUDIT_SECRET` yourself only when several instances must verify the same entries.*
+Nothing, by default. Ermes has no telemetry and the interface loads no third-party fonts, scripts or images (Inter is
+bundled; a Content-Security-Policy forbids other origins). The connections that exist are the ones you configure:
+your Ollama host, an identity provider for SSO, the data sources you connect, and — only when an administrator
+explicitly approves a provider for a library — that cloud model.
 
 ## Quick start (Windows)
 
@@ -265,46 +213,6 @@ Cloud AI is optional. Before enabling it, set `ERMES_LIBRARY_CLOUD_CONSENT=1` in
 
 Never commit `.env`, document uploads, storage data, API keys or customer content. Rotate any key that may have been exposed in terminal history or source control.
 
-## Architecture
-
-```text
-Browser
-  -> React UI
-  -> FastAPI
-       -> Library store (metadata, versions, jobs, audit)
-       -> Local storage (original documents)
-       -> Parser and chunker
-       -> Retrieval limited to the selected library
-       -> Evidence answer / explicit local or approved-cloud LLM
-```
-
-The security principles are in [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md); what changed and why, release by release, is in [CHANGELOG.md](CHANGELOG.md).
-
-### Why abstention is the hard part
-
-The number that degrades with corpus size is abstention, and it is the
-product's central claim. `evaluation/scale_check.py` isolates that single
-variable — same 52 questions, same expected answers, only the amount of
-surrounding text changes, using real prose from this repository as noise
-(frozen in `evaluation/noise_corpus.json`, without the documents that discuss
-the evaluation itself).
-
-Direct questions hold up as the archive grows; abstention falls from 6/16 to
-1/16 as soon as the library contains other text. The cause is not statistical: a
-question about a colleague working *sempre da casa senza mai* venire in sede
-matched an unrelated technical paragraph on *sempre*, *senza* and *mai* alone —
-three words that carry no meaning — because any single shared term is enough to
-be returned as evidence. A question about the *codice etico* matched a sentence
-about source code, which is a genuine ambiguity rather than a bug.
-
-Three fixes were tried and measured: a lexical-coverage floor, term-rarity
-(IDF) weighting, and a wider stopword list. None restores abstention; the
-weighting was kept anyway because it improves ranking at scale, the other two
-were dropped. Evidence verification is the only mechanism that works, and its
-advantage grows with the corpus. All of it, including the numbers for the
-rejected attempts, is in
-[docs/RETRIEVAL_EVALUATION.md](docs/RETRIEVAL_EVALUATION.md).
-
 ## Demo corpus
 
 Two fictional demo libraries, safe to upload and screenshot: [Northstar Works](examples/demo-corpus/README.md) (HR/IT/expense policies) and [Meridian Precision Works](examples/demo-corpus-quality/README.md) (manufacturing quality procedures). Loading both and asking a question that only the *other* library can answer is the fastest way to show that retrieval never crosses a library boundary — it is not just a design principle, the demo validation script checks it.
@@ -352,21 +260,23 @@ false "every dependency is permissive" claim were found.
 
 ## Documentation
 
-Fourteen documents, each written for a reader with a job to do. Start with the first three.
+Each document is written for a reader with a job to do. Start with the first three.
 
-- [One-pager](docs/ONE_PAGER.md) — the short version, for someone evaluating this project in two minutes
+- [Features and principles](docs/FEATURES.md) — the complete list of what Ermes does
+- [Benchmarks](docs/BENCHMARKS.md) — every number, including the unflattering ones, and how to reproduce it
 - [Runbook](docs/RUNBOOK.md) — install, back up, upgrade and diagnose, written for whoever operates it
-- [Monitoring](docs/MONITORING.md) — Prometheus metrics, ready-made Grafana dashboard and alert rules, an optional one-command stack, SIEM forwarding
+- [Monitoring](docs/MONITORING.md) — Prometheus metrics, a ready-made Grafana dashboard, alert rules, an optional one-command stack, SIEM forwarding
 - [Threat Model](docs/THREAT_MODEL.md) — assets, trust boundaries, what is defended and what is not, with automated CI verification
-- [Retrieval Evaluation](docs/RETRIEVAL_EVALUATION.md) — golden set, abstention analysis, the three fixes that were measured and rejected
+- [Retrieval Evaluation](docs/RETRIEVAL_EVALUATION.md) — golden set, abstention analysis, the embedding-model comparison, the fixes that were measured and rejected
 - [Architecture decisions](docs/adr/) — why evidence-first with a lexical default, why permissions filter inside retrieval, why SQLite and no RAG framework
 - [Integration Guide](docs/INTEGRATION_GUIDE.md) (IT) — REST, SSE, n8n/Zapier, Slack/Teams/Telegram, MCP, SCIM, with [client examples](examples/integrations/)
-- [Demo Guide](docs/DEMO_GUIDE.md) — the walkthrough behind the GIF above, step by step
+- [One-pager](docs/ONE_PAGER.md) — the short version, for someone evaluating this project in two minutes
+- [Demo Guide](docs/DEMO_GUIDE.md) — the walkthrough behind the animation above, step by step
 - [Changelog](CHANGELOG.md) — a readable log of this work, not a raw commit list
 - [Descrizione del progetto](docs/DESCRIZIONE_PROGETTO.md) (IT) — architecture, RAG flow, security and enterprise modules
 - [Guida operativa aziendale](docs/GUIDA_OPERATIVA_AZIENDA.md) (IT) — for the IT team: Docker, Windows, OIDC, backup, NAS
 - [Code Review](docs/CODE_REVIEW.md) and [Audit 2026-08-19](docs/AUDIT_2026-08-19.md) — the findings that shaped the current code, kept because several comments in the code point at them
-- [Postgres Migration Plan](docs/POSTGRES_MIGRATION_PLAN.md) — status of the dual SQLite/PostgreSQL backend
-- [Release Plan](docs/GITHUB_RELEASE_PLAN.md) — the publishing checklist this repository follows (historical)
+- [Postgres Migration Plan](docs/POSTGRES_MIGRATION_PLAN.md) and [Release Plan](docs/GITHUB_RELEASE_PLAN.md) — historical planning documents
 
-Course material (thesis, slides, presentation assets) and superseded internal plans were removed from the public tree on 18 September 2026; Git history keeps them.
+Course material (thesis, slides, presentation assets) and superseded internal plans were removed from the public tree on
+18 September 2026; Git history keeps them.

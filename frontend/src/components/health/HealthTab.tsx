@@ -10,6 +10,8 @@ interface HealthStatus {
   library_db_ok?: boolean
   library_storage_ok?: boolean
   modules_available?: string[]
+  warnings?: string[]
+  ollama_message?: string
 }
 
 interface ConsistencyReport {
@@ -21,6 +23,21 @@ interface ConsistencyReport {
   ready_without_chunks: string[]
   partially_embedded_documents: string[]
   embedding_model_mismatch_documents: string[]
+}
+
+/** Il valore dell'API ("healthy", "degraded") non va mostrato com'e': e' inglese e non dice cosa fare. */
+function statusLabel(status?: string): string {
+  switch ((status ?? '').toLowerCase()) {
+    case 'healthy':
+    case 'ok':
+      return 'Operativo'
+    case 'degraded':
+      return 'Funziona, con avvisi'
+    case '':
+      return 'Sconosciuto'
+    default:
+      return 'Non disponibile'
+  }
 }
 
 export default function HealthTab() {
@@ -71,7 +88,7 @@ export default function HealthTab() {
             <span className="text-sm font-bold">API Server</span>
             {statusIcon(health.status)}
           </div>
-          <p className={`text-xs ${t.cardDesc}`}>Stato: <span className="font-medium text-slate-300 capitalize">{health.status || 'unknown'}</span></p>
+          <p className={`text-xs ${t.cardDesc}`}>Stato: <span className="font-medium text-slate-300">{statusLabel(health.status)}</span></p>
         </Card>
         <Card>
           <div className="flex items-center gap-2 mb-3">
@@ -103,9 +120,19 @@ export default function HealthTab() {
             <span className="text-sm font-bold">Generale</span>
             {statusIcon(health.status)}
           </div>
-          <p className={`text-xs ${t.cardDesc}`}>Stato: <span className="font-medium text-slate-300 capitalize">{health.status || 'unknown'}</span></p>
+          <p className={`text-xs ${t.cardDesc}`}>Stato: <span className="font-medium text-slate-300">{statusLabel(health.status)}</span></p>
         </Card>
       </div>
+
+      {((health.warnings?.length ?? 0) > 0 || (health.ollama_message && !health.ollama_ok)) && (
+        <section aria-labelledby="health-warnings" className="mt-6 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-5">
+          <h2 id="health-warnings" className="mb-2 text-sm font-bold text-amber-700 dark:text-amber-200">Cosa richiede attenzione</h2>
+          <ul className="list-disc space-y-1 pl-5 text-sm text-slate-700 dark:text-slate-300">
+            {health.warnings?.map(warning => <li key={warning}>{warning}</li>)}
+            {health.ollama_message && !health.ollama_ok && <li>{health.ollama_message}</li>}
+          </ul>
+        </section>
+      )}
 
       {health.modules_available && health.modules_available.length > 0 && (
         <div className="mt-8">

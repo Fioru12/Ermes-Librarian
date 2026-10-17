@@ -226,3 +226,19 @@ def test_audit_rest_endpoints(audit_env):
     c_data = comp_resp.json()
     assert c_data["organization"] == "ACME Enterprise"
     assert c_data["compliance_attestation"]["overall_status"] == "COMPLIANT"
+
+
+def test_the_report_states_that_it_is_integrity_evidence_not_a_certification(audit_env):
+    """Il registro integro non e' conformita': il report deve dirlo, accanto a 'COMPLIANT'.
+
+    `overall_status` resta per compatibilita' con i client esistenti, ma un lettore che
+    vede solo quel valore potrebbe credere di avere una certificazione SOC 2.
+    """
+    audit_file = audit_env["audit_file"]
+    AuditChainManager.append_record(audit_file, "scim_user_created", "okta-scim", {"user": "david"})
+
+    report = AuditChainManager.generate_compliance_report(audit_file=audit_file, organization="ACME")
+
+    avviso = report["disclaimer"].lower()
+    assert "integrit" in avviso
+    assert "non" in avviso and "certificazione" in avviso

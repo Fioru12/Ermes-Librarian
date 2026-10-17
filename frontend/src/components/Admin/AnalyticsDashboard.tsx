@@ -39,6 +39,13 @@ interface AnalyticsDashboardProps {
   showNotif: (msg: string, type?: 'success' | 'error') => void
 }
 
+/** 7061.26 ms diventa "7,1 s"; sotto il secondo resta in millisecondi interi. */
+export function formatLatency(ms: number): string {
+  if (!Number.isFinite(ms)) return '—'
+  if (ms < 1000) return `${Math.round(ms)} ms`
+  return `${(ms / 1000).toLocaleString('it-IT', { maximumFractionDigits: 1 })} s`
+}
+
 export default function AnalyticsDashboard({ showNotif }: AnalyticsDashboardProps) {
   const { t } = useTheme()
   const [days, setDays] = useState<number>(30)
@@ -84,7 +91,7 @@ export default function AnalyticsDashboard({ showNotif }: AnalyticsDashboardProp
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className={`text-2xl font-bold tracking-tight ${t.cardTitle}`}>
-            Analytics & Knowledge Gaps
+            Analisi e lacune di conoscenza
           </h2>
           <p className={`text-sm mt-1 ${t.cardDesc}`}>
             Monitora le query, la latenza e individua proattivamente le informazioni mancanti nei documenti.
@@ -144,7 +151,7 @@ export default function AnalyticsDashboard({ showNotif }: AnalyticsDashboardProp
             <Clock className="w-5 h-5 text-amber-400" />
           </div>
           <p className="text-3xl font-bold mt-3 text-slate-900 dark:text-white">
-            {summary ? `${summary.avg_latency_ms} ms` : '—'}
+            {summary ? formatLatency(summary.avg_latency_ms) : '—'}
           </p>
           <span className="text-xs text-slate-500 dark:text-slate-400 mt-1 block">Tempo ricerca + sintesi</span>
         </div>
@@ -173,7 +180,7 @@ export default function AnalyticsDashboard({ showNotif }: AnalyticsDashboardProp
         <div className={`p-5 rounded-2xl border ${t.card} relative overflow-hidden shadow-sm`}>
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wider text-rose-400">
-              Knowledge Gaps
+              Lacune di conoscenza
             </span>
             <AlertCircle className="w-5 h-5 text-rose-400" />
           </div>
@@ -190,7 +197,7 @@ export default function AnalyticsDashboard({ showNotif }: AnalyticsDashboardProp
           <div className="flex items-center gap-2">
             <HelpCircle className="w-5 h-5 text-purple-400" />
             <h3 className="text-base font-semibold text-slate-900 dark:text-white">
-              Buchi di Conoscenza Rilevati ({filteredGaps.length})
+              Lacune di conoscenza rilevate ({filteredGaps.length})
             </h3>
           </div>
           <div className="relative w-full sm:w-64">
