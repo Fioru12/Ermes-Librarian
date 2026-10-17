@@ -10,7 +10,6 @@ Moduli:
     backup      → Backup management
     users       → User management (admin)
     audit       → Audit log
-    formule     → Formula WinSarp generation, catalog, validation
     documents   → Document upload/delete/reindex
     models      → Models listing
     providers   → Provider management

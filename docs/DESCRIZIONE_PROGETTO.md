@@ -185,9 +185,9 @@ La sicurezza di Ermes Knowledge è progettata secondo i principi di **Defense in
 - **Comunicazione**: Fetch API, EventSource (SSE), Axios per streaming e upload concorrenti.
 
 ### Qualità del Codice & CI/CD
-- **Testing**: oltre 600 test Pytest (unitari, d'integrazione, concorrenza, sicurezza, parità SQLite/PostgreSQL su database reale in CI), 90 test Vitest, 4 scenari E2E Playwright eseguiti contro il container in CI. Il conteggio esatto lo dà `pytest --collect-only`, non questo documento.
+- **Testing**: oltre 850 test Pytest (unitari, d'integrazione, concorrenza, sicurezza, parità SQLite/PostgreSQL su database reale in CI), 90 test Vitest, 4 scenari E2E Playwright eseguiti contro il container in CI. Il conteggio esatto lo dà `pytest --collect-only`, non questo documento.
 - **Linter & Formatter**: Ruff (0 errori, regole PEP8 e type-check rigorosi).
-- **Validazione OpenAPI**: 185 route con contratti API completamente tipizzati.
+- **Validazione OpenAPI**: 248 operazioni (139 più gli alias `/v1`) con contratti API tipizzati; `tests/test_openapi_contract.py` impedisce identificatori duplicati.
 
 ---
 

@@ -285,7 +285,11 @@ def sync_connector_delta(
 # Cloud Webhooks Gateway
 # ============================================================
 
-@router.api_route("/webhooks/microsoft-graph", methods=["GET", "POST"], summary="Ricevitore webhook per Microsoft Graph")
+# Due decoratori e non `api_route(methods=[GET, POST])`: con piu' metodi FastAPI
+# genera UN solo operationId per entrambi, e un id duplicato rende ambigui i
+# client generati dallo schema OpenAPI.
+@router.get("/webhooks/microsoft-graph", summary="Convalida (handshake) del webhook Microsoft Graph")
+@router.post("/webhooks/microsoft-graph", summary="Ricevitore notifiche webhook per Microsoft Graph")
 async def microsoft_graph_webhook(
     request: Request,
     validation_token: str | None = Query(default=None, alias="validationToken"),

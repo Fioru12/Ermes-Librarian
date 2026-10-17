@@ -2,6 +2,13 @@
 
 Registro leggibile del lavoro su questo progetto. Per i finding tecnici completi, [docs/AUDIT_2026-08-19.md](docs/AUDIT_2026-08-19.md) e [docs/CODE_REVIEW.md](docs/CODE_REVIEW.md). La roadmap per fasi e il registro delle sessioni (`ROADMAP_V2.md`, `WORK_PROGRESS.md`) sono stati tolti dall'albero pubblico il 18 settembre 2026: la cronologia Git li conserva.
 
+## 2026-10-18 — Giro di coerenza: documenti allineati al codice, contratto OpenAPI senza ambiguità
+
+- **OpenAPI**: il webhook di Microsoft Graph era registrato con `api_route(methods=["GET", "POST"])`, che genera un solo `operationId` per due operazioni (FastAPI lo segnalava con un avviso a ogni generazione dello schema). Un client generato dallo schema non sa quale funzione chiamare. Ora sono due decoratori, e `tests/test_openapi_contract.py` trasforma l'avviso in un errore.
+- **Documenti che descrivevano cose non più esistenti**: `DEVELOPER.md`, `NOTICE` e `CONTRIBUTING.md` parlavano di `legacy_winsarp/` e del flag `ENABLE_LEGACY_WINSARP`, rimossi il 18 settembre. `DEVELOPER.md` dichiarava 148 test, `DESCRIZIONE_PROGETTO.md` "oltre 600" e "185 route": i test sono 862 e le operazioni 248 (139 più gli alias `/v1`).
+- **Descrizione di `/health`** nello schema OpenAPI: parlava di ChromaDB, che non c'è più, e di controlli che non esistono. Ora elenca quelli reali e dice che `modules_available` e `chroma_ok` restano solo per compatibilità (costanti).
+- **Analisi di sicurezza**: `pip-audit` nessuna vulnerabilità nota; `npm audit --omit=dev` zero. Restano 7 avvisi (5 alti) in strumenti di sola compilazione di Tailwind 3 (`chokidar`, `micromatch`, `postcss-nested`, `postcss-selector-parser`), non presenti nel pacchetto spedito; la correzione richiede la migrazione a Tailwind 4.
+
 ## 2026-10-17 (3) — Nessuna richiesta verso l'esterno: font locale e Content-Security-Policy
 
 - **Il font veniva scaricato da Google Fonts a ogni apertura.** Per un prodotto che promette "i documenti restano nella tua azienda" era una contraddizione: ogni utente mandava il proprio indirizzo IP a Google (un problema GDPR noto) e in una rete senza accesso a internet il font non si caricava. Inter e' ora incluso nell'applicazione (`@fontsource-variable/inter`). Verificato con Playwright: nessuna richiesta verso origini esterne in nessuna scheda, in chiaro e scuro.

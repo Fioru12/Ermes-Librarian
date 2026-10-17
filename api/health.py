@@ -125,13 +125,14 @@ class HealthResponse(BaseModel):
     description=(
         "Esegue un controllo completo dello stato di salute del sistema.\n\n"
         "**Verifiche eseguite:**\n"
-        "- **Ollama**: Connessione e disponibilità modelli (LLM + Embeddings)\n"
-        "- **ChromaDB**: Esistenza directory + funzionalità lettura/scrittura collezioni\n"
-        "- **Disco**: Spazio libero su disco (GB)\n"
-        "- **Moduli**: Elenco moduli documentali disponibili\n\n"
+        "- **Ollama**: raggiungibilità e modelli installati (risposta memorizzata 10 secondi)\n"
+        "- **Database delle biblioteche** e **storage dei documenti**\n"
+        "- **Disco**: spazio libero (GB)\n"
+        "- **Cloud autorizzato**: solo se l'uso è stato consentito esplicitamente\n\n"
         "**Stati possibili:**\n"
-        "- `healthy`: Tutti i sistemi operativi\n"
-        "- `degraded`: Alcuni componenti degradati (es. Ollama lento, ChromaDB read-only)"
+        "- `healthy`: database e storage rispondono e non ci sono avvisi\n"
+        "- `degraded`: un componente non risponde, oppure è attiva una funzione che non può funzionare (es. verifica dell'evidenza con modello non installato); la ragione è in `warnings`\n\n"
+        "`modules_available` e `chroma_ok` restano nella risposta solo per compatibilità con i client esistenti: sono costanti (`[]` e `true`)."
     ),
 )
 def health_check():
