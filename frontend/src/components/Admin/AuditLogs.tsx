@@ -81,7 +81,7 @@ export default function AuditLogs({ showNotif }: { showNotif: (m: string, t: 'su
     <Card>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <CardTitle>
-          <ShieldCheck className="w-5 h-5 text-emerald-400" /> Audit Log Crittografico (SHA-256 Chained)
+          <ShieldCheck className="w-5 h-5 text-emerald-400" /> Registro di audit a catena (SHA-256)
         </CardTitle>
         <div className="flex items-center gap-2">
           <button

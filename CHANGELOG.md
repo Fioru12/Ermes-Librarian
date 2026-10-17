@@ -2,6 +2,13 @@
 
 Registro leggibile del lavoro su questo progetto. Per i finding tecnici completi, [docs/AUDIT_2026-08-19.md](docs/AUDIT_2026-08-19.md) e [docs/CODE_REVIEW.md](docs/CODE_REVIEW.md). La roadmap per fasi e il registro delle sessioni (`ROADMAP_V2.md`, `WORK_PROGRESS.md`) sono stati tolti dall'albero pubblico il 18 settembre 2026: la cronologia Git li conserva.
 
+## 2026-10-19 (2) — Segno e palette: Ermes ha un logo e un colore suoi
+
+- **Il segno**: una "E" i cui bracci sono righe di testo, come un documento, con un puntino accanto al braccio centrale: il segnaposto di una citazione. Il primo tentativo (tre righe senza costola) somigliava all'icona di un menu; la costola verticale lo rende una E. Sostituisce il quadratino sfumato con una "E" qualunque nella barra laterale, nell'accesso, nella favicon, nelle icone dell'app installabile e nel README (`components/ui/BrandMark.tsx`, stessa geometria di `public/favicon.svg`).
+- **Oltremare**: il blu predefinito di Tailwind è sostituito da una scala propria (`#3552f5` al 600) per tutto ciò che è interattivo e per le citazioni. La semantica resta quella che già funzionava: verde = supportato da un documento, ambra = nessuna fonte, blu = azione o fonte. I contrasti in chiaro e scuro passano l'audit axe.
+- **Fondo sobrio**: via la fotografia di carte al neon (1,4 MB, e un'aria da prodotto IA qualunque); al suo posto un fondo piatto con un solo bagliore. L'applicazione compilata passa da 2,6 a 1,0 MB. Rimossi anche i file del modello iniziale mai usati (`hero.png`, `react.svg`, `vite.svg`, `icons.svg`).
+- "Audit Log Crittografico (SHA-256 Chained)" diventa "Registro di audit a catena (SHA-256)".
+
 ## 2026-10-19 — Una voce per il documento, una per il sistema: nuova identità visiva
 
 Rivista l'interfaccia con due criteri: le linee guida web (audit meccanico del codice) e una direzione di design legata al prodotto invece del "kit SaaS" (schede identiche arrotondate, etichette in maiuscolo spaziato sopra ogni titolo, gradienti blu-indaco, Inter).

@@ -21,6 +21,12 @@ export default {
         mono: ['"JetBrains Mono Variable"', 'ui-monospace', 'SFMono-Regular', 'Consolas', 'monospace'],
       },
       colors: {
+        // Oltremare: il colore di cio' che e' interattivo e delle citazioni.
+        // (Il verde resta "supportato da un documento", l'ambra "nessuna fonte".)
+        blue: {
+          50: '#eef1ff', 100: '#dfe5ff', 200: '#c3ccff', 300: '#9aa8ff', 400: '#6e82ff',
+          500: '#4a61ff', 600: '#3552f5', 700: '#2a40d6', 800: '#2536ab', 900: '#232f87', 950: '#151b50',
+        },
         brand: {
           dark: '#0f1225',
           darker: '#0a0c16',

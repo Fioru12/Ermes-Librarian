@@ -1,3 +1,4 @@
+import { BrandMark } from '../ui/BrandMark'
 import { Sun, Moon, MessageSquare, BookOpen, FileText, Activity, Settings, Users, Shield, RefreshCw, Sparkles, BarChart2, HardDrive, LogOut } from 'lucide-react'
 import { useTheme } from '../../hooks/useTheme'
 import type { TabId } from '../../types'
@@ -46,9 +47,7 @@ export default function Sidebar({ activeTab, onTabChange, healthStatus, onRefres
     >
       {/* Title */}
       <div className="px-5 pt-6 pb-5 flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-400 via-blue-600 to-indigo-700 flex items-center justify-center shadow-lg shadow-blue-500/30 ring-1 ring-white/10">
-          <span className="text-white font-bold text-base">E</span>
-        </div>
+        <BrandMark className="h-10 w-10 shrink-0 drop-shadow-sm" />
         <div>
           <h1 className={`text-base font-semibold tracking-tight ${t.sidebarTitle}`}>ERMES</h1>
           <p className={`text-xs mt-0.5 ${t.sidebarLabel} font-medium `}>Knowledge</p>

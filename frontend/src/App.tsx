@@ -20,6 +20,7 @@ import type { HealthStatus, Message, TabId } from './types'
 import { beginLogin, completeLogin, isCallback, type OidcConfig } from './lib/oidc'
 import { errorMessage } from './lib/errors'
 import { PanelSkeleton } from './components/ui/Skeleton'
+import { BrandMark } from './components/ui/BrandMark'
 
 type LibrarySummary = { id: string; name: string; document_count?: number }
 
@@ -375,7 +376,7 @@ function AppInner() {
     return <main className={`ermes-app-shell ermes-grid flex min-h-screen items-center justify-center p-6 ${t.bg}`}>
       <div className="grid w-full max-w-5xl overflow-hidden rounded-3xl border border-slate-200 bg-white/90 shadow-2xl shadow-slate-300/50 dark:border-white/10 dark:bg-[#121722]/85 dark:shadow-slate-950/40 ermes-glass lg:grid-cols-[1.05fr_.95fr]">
         <section className="hidden min-h-[34rem] flex-col justify-between border-r border-slate-200 dark:border-white/[0.08] bg-gradient-to-br from-blue-600/10 via-slate-100/40 to-indigo-500/10 dark:from-blue-600/20 dark:via-slate-950/20 dark:to-indigo-500/10 p-10 lg:flex">
-          <div><div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-400 to-indigo-600 text-xl font-bold text-white shadow-lg shadow-blue-500/30">E</div><p className="mt-12 text-xs font-bold text-blue-300">ERMES Knowledge</p><h1 className="mt-4 max-w-md text-4xl font-semibold leading-tight tracking-tight text-slate-900 dark:text-white">La conoscenza aziendale, finalmente consultabile.</h1><p className="mt-5 max-w-md text-sm leading-6 text-slate-300">Organizza documenti, cerca passaggi e ottieni risposte legate alle fonti originali.</p></div>
+          <div><BrandMark className="h-12 w-12" /><p className="mt-12 text-xs font-bold text-blue-300">ERMES Knowledge</p><h1 className="mt-4 max-w-md text-4xl font-semibold leading-tight tracking-tight text-slate-900 dark:text-white">La conoscenza aziendale, finalmente consultabile.</h1><p className="mt-5 max-w-md text-sm leading-6 text-slate-300">Organizza documenti, cerca passaggi e ottieni risposte legate alle fonti originali.</p></div>
           <div className="space-y-3 text-sm text-slate-300"><p className="flex items-center gap-3"><ShieldCheck className="h-4 w-4 text-emerald-400" />I documenti restano nella tua azienda</p><p className="flex items-center gap-3"><Sparkles className="h-4 w-4 text-blue-300" />Ogni risposta dice da quale documento viene</p></div>
         </section>
         <form onSubmit={handleLogin} className="flex min-h-[34rem] w-full flex-col justify-center p-7 sm:p-10">
