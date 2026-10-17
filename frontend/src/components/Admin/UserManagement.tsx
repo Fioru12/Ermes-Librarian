@@ -220,7 +220,7 @@ export default function UserManagement({ showNotif }: { showNotif: (m: string, t
               <td className="p-2">{u.username}</td>
               <td className="p-2 capitalize">{u.role}</td>
               <td className="p-2 flex gap-2">
-                <button onClick={() => deleteUser(u.username)} className="text-red-500"><Trash2 size={18} /></button>
+                <button onClick={() => deleteUser(u.username)} aria-label={`Elimina la chiave API di ${u.username}`} title="Elimina" className="text-red-500"><Trash2 size={18} /></button>
               </td>
             </tr>
           ))}

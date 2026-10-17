@@ -45,7 +45,7 @@ export default function OnboardingWizard({ onLibraryCreated, showNotif }: Onboar
     <div className='fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4'>
       <div className='bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-2xl w-full max-w-lg max-h-[90vh] flex flex-col'>
         <div className='p-4 border-b'>
-          <div className='flex justify-between'><h3>Configurazione iniziale</h3><button onClick={() => window.dispatchEvent(new CustomEvent('closeOnboarding'))} className='text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'><X className='w-4 h-4' /></button></div>
+          <div className='flex justify-between'><h3>Configurazione iniziale</h3><button onClick={() => window.dispatchEvent(new CustomEvent('closeOnboarding'))} aria-label='Chiudi la configurazione iniziale' className='text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'><X className='w-4 h-4' /></button></div>
         </div>
         <div className='p-4 overflow-y-auto flex-1'>{renderStep()}</div>
       </div>

@@ -254,7 +254,7 @@ export default function PiiSettingsPanel({ showNotif, isAdmin = false }: PiiSett
                   <span className="ml-2 font-mono text-xs text-amber-400">→ {rule.replacement}</span>
                 </div>
                 {isAdmin && (
-                  <Button variant="danger" className="px-2 py-1 text-xs" onClick={() => handleDeleteCustomRule(rule.id)}>
+                  <Button variant="danger" className="px-2 py-1 text-xs" aria-label={`Elimina la regola ${rule.name}`} title="Elimina la regola" onClick={() => handleDeleteCustomRule(rule.id)}>
                     <Trash2 className="w-3.5 h-3.5" />
                   </Button>
                 )}
