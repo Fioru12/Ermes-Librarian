@@ -2,6 +2,10 @@
 
 Registro leggibile del lavoro su questo progetto. Per i finding tecnici completi, [docs/AUDIT_2026-08-19.md](docs/AUDIT_2026-08-19.md) e [docs/CODE_REVIEW.md](docs/CODE_REVIEW.md). La roadmap per fasi e il registro delle sessioni (`ROADMAP_V2.md`, `WORK_PROGRESS.md`) sono stati tolti dall'albero pubblico il 18 settembre 2026: la cronologia Git li conserva.
 
+## 2026-10-19 (5) — Il collegamento sul Desktop
+
+Il collegamento "Ermes Knowledge" esisteva gia' e usa lo stesso `avvia_ermes.ps1`, quindi si apre gia' come app (finestra propria, senza barra degli indirizzi). Restavano due rifiniture: aveva l'icona generica di Windows e lasciava la finestra di PowerShell in vista. Ora usa l'icona di Ermes (`Ermes.ico`, rigenerata dal segno nuovo a 7 misure, da 16 a 256 px) e parte con la console nascosta. Chi ha gia' il collegamento lo aggiorna rieseguendo `CREA_COLLEGAMENTO_DESKTOP.bat`.
+
 ## 2026-10-19 (4) — Stile app Windows 11
 
 Richiesta: far sentire a casa chi usa Windows. Si segue Fluent (il linguaggio di Windows 11) per il sistema e si lascia alla "voce del documento" il carattere con le grazie, che e' cio' che distingue Ermes.
