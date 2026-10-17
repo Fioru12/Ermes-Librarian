@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState } from 'react'
-import { Send, Square, HelpCircle, ArrowRight, BookOpen, Files, ShieldCheck, Download, X, ThumbsUp, ThumbsDown, Copy, Check, RotateCcw, FileDown, History, Plus, Table, Trash2, AlertTriangle, Maximize2, PanelRightOpen } from 'lucide-react'
+import { Send, Square, ShieldCheck, Download, X, ThumbsUp, ThumbsDown, Copy, Check, RotateCcw, FileDown, History, Plus, Table, Trash2, AlertTriangle, Maximize2, PanelRightOpen } from 'lucide-react'
 import { useTheme } from '../../hooks/useTheme'
 import { useDialog } from '../../hooks/useDialog'
 import { InlineMarkdown } from './InlineMarkdown'
@@ -24,19 +24,67 @@ function CitationText({ text, sources, onCitation }: {
         const marker = Number(match[1])
         const source = sources.find(candidate => (candidate.marker ?? index) === marker)
         if (!source) return <span key={index}>{part}</span>
-        return (
-          <button
-            key={index}
-            type="button"
-            onClick={() => onCitation(source, marker)}
-            title={`${source.filename} · ${source.locator}`}
-            className="mx-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full border border-blue-400/40 bg-blue-500/15 px-1 align-super text-[10px] font-semibold text-blue-300 transition hover:bg-blue-500/30 hover:text-blue-200"
-          >
-            {marker}
-          </button>
-        )
+        return <CitationChip key={index} marker={marker} source={source} onCitation={onCitation} />
       })}
     </span>
+  )
+}
+
+/** Il numero cliccabile che porta dal testo al passaggio da cui viene. */
+function CitationChip({ marker, source, onCitation }: { marker: number; source: Source; onCitation: (source: Source, marker: number) => void }) {
+  return (
+    <button
+      type="button"
+      onClick={() => onCitation(source, marker)}
+      title={`${source.filename} · ${source.locator}`}
+      aria-label={`Fonte ${marker}: ${source.filename}`}
+      className="mx-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full border border-blue-400/40 bg-blue-500/15 px-1 align-super text-[10px] font-semibold text-blue-300 transition hover:bg-blue-500/30 hover:text-blue-200"
+    >
+      {marker}
+    </button>
+  )
+}
+
+/**
+ * Il corpo di una risposta con due voci distinte.
+ *
+ * Quello che dice il documento (i passaggi recuperati, la frase in evidenza) e' composto
+ * in carattere con grazie e con un filetto a sinistra: e' una citazione, non un'opinione
+ * del sistema. Quello che dice il sistema resta in sans. Cosi' si vede a colpo d'occhio
+ * che cosa e' stato scritto da chi, che e' il punto di tutto il prodotto.
+ */
+function AnswerBody({ text, sources, onCitation }: {
+  text: string
+  sources: Source[]
+  onCitation: (source: Source, marker: number) => void
+}) {
+  const blocks = text.split(/\n{2,}/)
+  return (
+    <div className="space-y-3">
+      {blocks.map((block, index) => {
+        const passage = block.match(/^\[(\d+)\]\s+([\s\S]+)$/)
+        if (passage) {
+          const marker = Number(passage[1])
+          const source = sources.find(candidate => (candidate.marker ?? 0) === marker)
+          return (
+            <blockquote key={index} className="doc-voice border-l-2 border-blue-400/50 pl-4 text-[15px]">
+              {source && <CitationChip marker={marker} source={source} onCitation={onCitation} />}
+              <InlineMarkdown text={passage[2]} />
+            </blockquote>
+          )
+        }
+        const brief = block.match(/^In breve:\s*([\s\S]+)$/)
+        if (brief) {
+          return (
+            <div key={index}>
+              <p className="text-xs font-medium text-slate-400">In breve</p>
+              <p className="doc-voice mt-1 text-xl leading-snug"><CitationText text={brief[1]} sources={sources} onCitation={onCitation} /></p>
+            </div>
+          )
+        }
+        return <p key={index} className="text-slate-400"><CitationText text={block} sources={sources} onCitation={onCitation} /></p>
+      })}
+    </div>
   )
 }
 
@@ -216,7 +264,7 @@ export default function ChatArea({
       {messages.length === 0 && (needsLibrary || needsDocuments) ? (
         <div className="flex-1 overflow-y-auto px-8 py-8 flex flex-col items-center justify-center max-w-2xl mx-auto space-y-6 w-full text-center">
           <div className="rounded-2xl border border-blue-500/20 bg-blue-500/5 p-7">
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-blue-400">Primo avvio</p>
+            <p className="text-xs font-bold text-blue-400">Primo avvio</p>
             <h1 className={`mt-3 text-2xl font-bold tracking-tight ${t.welcomeTitle}`}>{onboardingTitle}</h1>
             <p className="mx-auto mt-3 max-w-lg text-sm leading-6 text-slate-400">{onboardingDescription}</p>
             <ol className="mx-auto mt-6 max-w-md space-y-3 text-left text-sm text-slate-300">
@@ -231,35 +279,25 @@ export default function ChatArea({
           <p className="text-xs text-slate-500">Di norma Ermes lavora solo su questo server: nessun documento viene inviato su internet.</p>
         </div>
       ) : messages.length === 0 ? (
-        <div className="flex-1 overflow-y-auto px-6 py-8 flex flex-col items-center max-w-5xl mx-auto w-full">
-          <div className="my-auto w-full rounded-[2rem] border border-slate-200 bg-white/85 shadow-xl shadow-slate-300/40 dark:border-white/[0.09] dark:bg-slate-950/40 dark:shadow-2xl dark:shadow-slate-950/30 px-6 py-7 ermes-glass sm:px-9 sm:py-8">
-          <div className="text-center space-y-3">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl border border-blue-400/20 bg-blue-500/10 text-lg font-bold text-blue-300 shadow-lg shadow-blue-500/10">E</div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-blue-400">Assistente documentale</p>
-            <h1 className={`text-3xl font-semibold tracking-tight ${t.welcomeTitle}`}>Cosa vuoi trovare?</h1>
-            <p className="text-sm text-slate-400 max-w-md mx-auto leading-relaxed">Chiedi informazioni sui documenti presenti nelle tue biblioteche.</p>
-          </div>
-          <div className="mt-7 grid gap-3 sm:grid-cols-3">
-            <div className="rounded-xl border border-slate-200 bg-white dark:border-white/[0.07] dark:bg-white/[0.035] p-3 text-left"><BookOpen className="h-4 w-4 text-blue-400" /><p className="mt-2 truncate text-xs font-semibold text-slate-200">{selectedLibraryName}</p><p className="mt-1 text-[11px] text-slate-500">Biblioteca selezionata</p></div>
-            <div className="rounded-xl border border-slate-200 bg-white dark:border-white/[0.07] dark:bg-white/[0.035] p-3 text-left"><Files className="h-4 w-4 text-violet-400" /><p className="mt-2 text-xs font-semibold text-slate-200">{selectedLibraryDocumentCount} documenti</p><p className="mt-1 text-[11px] text-slate-500">Disponibili per la ricerca</p></div>
-            <div className="rounded-xl border border-emerald-200 bg-emerald-50 dark:border-emerald-400/10 dark:bg-emerald-400/[0.035] p-3 text-left"><ShieldCheck className="h-4 w-4 text-emerald-400" /><p className="mt-2 text-xs font-semibold text-slate-200">Fonti verificate</p><p className="mt-1 text-[11px] text-slate-500">Risposte ancorate ai documenti</p></div>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full mt-7">
-            {suggestions.map((s, idx) => (
-              <button key={idx} onClick={() => onSend(s.prompt)}
-                className={`min-h-32 p-5 rounded-2xl border text-left flex flex-col justify-between transition-all group ${t.card}`}>
-                <div className="space-y-1">
-                  <h2 className={`text-sm font-bold flex items-center gap-1.5 ${t.cardTitle}`}>
-                    <HelpCircle className="w-3.5 h-3.5 text-blue-500" /> {s.title}
-                  </h2>
-                  <p className={`text-xs leading-normal ${t.cardDesc}`}>{s.desc}</p>
-                </div>
-                <div className="mt-3 flex items-center gap-1 text-[11px] font-semibold text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity">
-                  Invia suggerimento <ArrowRight className="w-3 h-3" />
-                </div>
-              </button>
-            ))}
-          </div>
+        <div className="flex-1 overflow-y-auto px-6 py-10 md:px-12">
+          <div className="mx-auto w-full max-w-2xl pt-4 md:pt-16">
+            <h1 className={`text-4xl font-semibold leading-[1.1] tracking-tight ${t.welcomeTitle}`}>Cosa vuoi trovare nei tuoi documenti?</h1>
+            <p className="mt-5 max-w-xl text-base leading-relaxed text-slate-500 dark:text-slate-400">
+              Ogni risposta indica il documento da cui arriva. Se i documenti non bastano, Ermes te lo dice invece di inventare.
+            </p>
+            <p className="mt-6 text-sm text-slate-500 dark:text-slate-400">
+              Stai consultando <span className="font-medium text-slate-800 dark:text-slate-200">{selectedLibraryName}</span>, con {selectedLibraryDocumentCount} {selectedLibraryDocumentCount === 1 ? 'documento' : 'documenti'}.
+            </p>
+            <ul className="mt-8 divide-y divide-slate-200 border-y border-slate-200 dark:divide-white/10 dark:border-white/10">
+              {suggestions.map((s, idx) => (
+                <li key={idx}>
+                  <button type="button" onClick={() => onSend(s.prompt)} className="group w-full py-4 text-left">
+                    <span className={`block font-medium group-hover:underline group-hover:underline-offset-4 ${t.cardTitle}`}>{s.title}</span>
+                    <span className={`mt-0.5 block text-sm ${t.cardDesc}`}>{s.desc}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
       ) : (
@@ -267,7 +305,7 @@ export default function ChatArea({
           {messages.map(m => (
             <div key={m.id} className={`flex flex-col max-w-[85%] ${m.role === 'user' ? 'ml-auto items-end' : 'mr-auto items-start'}`}>
               <div className="text-[10px] text-slate-500 font-medium mb-1 px-1 flex items-center gap-1.5">
-                <span className="font-bold uppercase tracking-wider">{m.role === 'user' ? 'Tu' : 'Ermes AI'}</span>
+                <span className="font-bold ">{m.role === 'user' ? 'Tu' : 'Ermes AI'}</span>
                 <span>•</span>
                 <span>{m.timestamp}</span>
               </div>
@@ -298,7 +336,7 @@ export default function ChatArea({
                   </div>
                 )}
                 <div className="whitespace-pre-wrap">{m.role === 'assistant' && m.sources && m.sources.length > 0
-                  ? <CitationText text={m.content} sources={m.sources} onCitation={(source, marker) => setActiveCitation({ source, marker })} />
+                  ? <AnswerBody text={m.content} sources={m.sources} onCitation={(source, marker) => setActiveCitation({ source, marker })} />
                   : <InlineMarkdown text={m.content} />}</div>
                 {m.role === 'assistant' && m.sources && m.sources.length > 0 && <div className="mt-4 border-t border-white/10 pt-3"><p className="text-xs font-semibold text-slate-400">Fonti</p><div className="mt-2 space-y-2">{m.sources.map((source, index) => {
                     const isTabular = ['csv', 'tsv', 'xlsx'].includes(source.filename.split('.').pop()?.toLowerCase() || '')
@@ -311,7 +349,7 @@ export default function ChatArea({
                             className="font-medium text-blue-300 hover:underline text-left"
                             title="Visualizza estratto completo"
                           >
-                            {source.filename}<span className="font-normal text-slate-400"> · v{source.version} · {source.locator}</span>
+                            <span className="data-voice text-[11px]">{source.filename}</span><span className="data-voice text-[11px] font-normal text-slate-400"> · v{source.version} · {source.locator}</span>
                             {source.library_name && <span className="ml-2 rounded border border-indigo-500/30 bg-indigo-500/15 px-1.5 py-0.5 text-[10px] font-medium text-indigo-300" title={`Biblioteca: ${source.library_name}`}>{source.library_name}</span>}
                             {source.injection_suspected && <span className="ml-2 rounded border border-amber-400/40 bg-amber-400/10 px-1.5 py-0.5 text-[10px] font-semibold text-amber-300" title="Il passaggio contiene istruzioni rivolte al modello: la fonte e' mostrata, il suo testo non e' stato usato per rispondere">non usata</span>}
                           </button>
@@ -336,7 +374,7 @@ export default function ChatArea({
                             </button>
                           </div>
                         </div>
-                        <p className="mt-1 text-slate-400"><InlineMarkdown text={source.excerpt} /></p>
+                        {!m.content.includes(source.excerpt) && <p className="doc-voice mt-1 text-[13px] text-slate-400"><InlineMarkdown text={source.excerpt} /></p>}
                       </div>
                     )
                   })}</div></div>}
@@ -485,7 +523,7 @@ export default function ChatArea({
                       type="text"
                       value={historyFilter}
                       onChange={e => setHistoryFilter(e.target.value)}
-                      placeholder="Cerca conversazioni..."
+                      placeholder="Cerca conversazioni…"
                       className="w-full rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-slate-200 placeholder-slate-500 outline-none focus:border-blue-500/50"
                       onClick={e => e.stopPropagation()}
                     />
@@ -598,7 +636,7 @@ export default function ChatArea({
                 {(() => {
                   const badge = getFileBadge(activeCitation.source.filename)
                   return (
-                    <span className={`rounded-full border px-2 py-0.5 text-[9px] font-bold tracking-wider ${badge.color}`}>
+                    <span className={`rounded-full border px-2 py-0.5 text-[9px] font-bold ${badge.color}`}>
                       {badge.label}
                     </span>
                   )
@@ -633,8 +671,8 @@ export default function ChatArea({
           </div>
 
           <div className="mt-4 flex-1">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Estratto Documentale Certificato:</p>
-            <blockquote className={`rounded-xl border border-amber-500/25 bg-amber-500/[0.04] p-3.5 text-xs leading-relaxed ${isDark ? 'text-slate-200' : 'text-slate-800'} border-l-4 border-l-amber-400/80 shadow-inner`}>
+            <p className="text-xs font-medium text-slate-400 mb-1.5">Passaggio nel documento</p>
+            <blockquote className={`rounded-xl border border-amber-500/25 bg-amber-500/[0.04] doc-voice p-3.5 text-[13px] leading-relaxed ${isDark ? 'text-slate-200' : 'text-slate-800'} border-l-4 border-l-amber-400/80 shadow-inner`}>
               <InlineMarkdown text={activeCitation.source.excerpt} />
             </blockquote>
           </div>
@@ -698,7 +736,7 @@ export default function ChatArea({
                   {(() => {
                     const badge = getFileBadge(activeCitation.source.filename)
                     return (
-                      <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold tracking-wider ${badge.color}`}>
+                      <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${badge.color}`}>
                         {badge.label}
                       </span>
                     )
@@ -741,8 +779,8 @@ export default function ChatArea({
               </div>
             </div>
             <div className="mt-4">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-2">Estratto documentale collegato:</p>
-              <blockquote className="max-h-[50vh] overflow-y-auto rounded-xl border border-amber-500/20 bg-amber-500/[0.03] p-4 text-sm leading-relaxed text-slate-200 border-l-4 border-l-amber-400/70 shadow-inner">
+              <p className="text-xs font-medium text-slate-400 mb-2">Passaggio nel documento</p>
+              <blockquote className="max-h-[50vh] overflow-y-auto doc-voice rounded-xl border border-amber-500/20 bg-amber-500/[0.03] p-4 text-[15px] leading-relaxed text-slate-200 border-l-4 border-l-amber-400/70 shadow-inner">
                 <InlineMarkdown text={activeCitation.source.excerpt} />
               </blockquote>
             </div>

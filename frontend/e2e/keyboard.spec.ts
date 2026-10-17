@@ -47,7 +47,7 @@ test('la finestra di una citazione prende il focus, lo trattiene, si chiude con 
   await page.keyboard.press('Enter')
   await expect(page.locator('text=/Basata su \\d+ font[ei]/').first()).toBeVisible({ timeout: 45_000 })
 
-  const citazione = page.getByRole('button', { name: /^\[?\d\]?$/ }).first()
+  const citazione = page.getByRole('button', { name: /^Fonte \d/ }).first()
   await citazione.focus()
   await page.keyboard.press('Enter')
 

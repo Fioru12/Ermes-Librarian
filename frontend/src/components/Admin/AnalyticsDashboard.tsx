@@ -131,8 +131,8 @@ export default function AnalyticsDashboard({ showNotif }: AnalyticsDashboardProp
         {/* Total Queries */}
         <div className={`p-5 rounded-2xl border ${t.card} relative overflow-hidden shadow-sm`}>
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              Query Totali
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+              Query totali
             </span>
             <Activity className="w-5 h-5 text-blue-400" />
           </div>
@@ -145,8 +145,8 @@ export default function AnalyticsDashboard({ showNotif }: AnalyticsDashboardProp
         {/* Avg Latency */}
         <div className={`p-5 rounded-2xl border ${t.card} relative overflow-hidden shadow-sm`}>
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              Latenza Media
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+              Latenza media
             </span>
             <Clock className="w-5 h-5 text-amber-400" />
           </div>
@@ -159,8 +159,8 @@ export default function AnalyticsDashboard({ showNotif }: AnalyticsDashboardProp
         {/* Satisfaction Rate */}
         <div className={`p-5 rounded-2xl border ${t.card} relative overflow-hidden shadow-sm`}>
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              Feedback Positivi
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+              Feedback positivi
             </span>
             <ThumbsUp className="w-5 h-5 text-emerald-400" />
           </div>
@@ -179,7 +179,7 @@ export default function AnalyticsDashboard({ showNotif }: AnalyticsDashboardProp
         {/* Knowledge Gaps */}
         <div className={`p-5 rounded-2xl border ${t.card} relative overflow-hidden shadow-sm`}>
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-rose-400">
+            <span className="text-xs font-semibold text-rose-400">
               Lacune di conoscenza
             </span>
             <AlertCircle className="w-5 h-5 text-rose-400" />
@@ -204,7 +204,7 @@ export default function AnalyticsDashboard({ showNotif }: AnalyticsDashboardProp
             <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-500 dark:text-slate-400" />
             <input
               type="text"
-              placeholder="Filtra domande..."
+              placeholder="Filtra domande…"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className={`w-full text-xs rounded-xl pl-9 pr-3 py-2 border outline-none ${t.sidebarInput}`}
@@ -225,10 +225,10 @@ export default function AnalyticsDashboard({ showNotif }: AnalyticsDashboardProp
             <table className="w-full text-left text-xs">
               <thead className={`border-b ${t.tableHeader}`}>
                 <tr>
-                  <th className="py-3 px-4 font-semibold text-slate-600 dark:text-slate-300">Domanda Frequente</th>
+                  <th className="py-3 px-4 font-semibold text-slate-600 dark:text-slate-300">Domanda frequente</th>
                   <th className="py-3 px-4 font-semibold text-slate-600 dark:text-slate-300">Frequenza</th>
-                  <th className="py-3 px-4 font-semibold text-slate-600 dark:text-slate-300">Motivo Esito</th>
-                  <th className="py-3 px-4 font-semibold text-slate-600 dark:text-slate-300">Feedback Negativi</th>
+                  <th className="py-3 px-4 font-semibold text-slate-600 dark:text-slate-300">Motivo dell'esito</th>
+                  <th className="py-3 px-4 font-semibold text-slate-600 dark:text-slate-300">Feedback negativi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/[0.04]">

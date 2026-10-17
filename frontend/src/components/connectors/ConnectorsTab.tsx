@@ -350,7 +350,7 @@ export default function ConnectorsTab({ showNotif }: ConnectorsTabProps) {
       {/* Target Library Selector */}
       <div className="rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900/60 p-4 flex flex-col md:flex-row md:items-center gap-4 justify-between shadow-lg">
         <div>
-          <label className="text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300 block mb-1">
+          <label className="text-xs font-semibold text-slate-600 dark:text-slate-300 block mb-1">
             Biblioteca di destinazione per le sincronizzazioni
           </label>
           <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -376,7 +376,7 @@ export default function ConnectorsTab({ showNotif }: ConnectorsTabProps) {
         <div className="flex items-center gap-3">
           <Layers className="w-6 h-6 text-indigo-400" />
           <div>
-            <label className="text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300 block mb-1">
+            <label className="text-xs font-semibold text-slate-600 dark:text-slate-300 block mb-1">
               Folder Watcher — Monitoraggio automatico cartelle registrate
             </label>
             <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -399,7 +399,7 @@ export default function ConnectorsTab({ showNotif }: ConnectorsTabProps) {
       {/* Grid Connectors */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* NAS / Local Folder Connector */}
-        <div className="rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-900/50 p-6 flex flex-col justify-between space-y-5 hover:border-blue-500/30 transition-all shadow-md">
+        <div className="rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-900/50 p-6 flex flex-col justify-between space-y-5 hover:border-blue-500/30 transition shadow-md">
           <div className="space-y-3">
             <div className="flex items-center gap-3 text-blue-400 font-semibold text-lg">
               <FolderCheck className="w-6 h-6" /> NAS & Cartella Locale
@@ -451,7 +451,7 @@ export default function ConnectorsTab({ showNotif }: ConnectorsTabProps) {
         </div>
 
         {/* Web Scraper / Intranet Connector */}
-        <div className="rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-900/50 p-6 flex flex-col justify-between space-y-5 hover:border-purple-500/30 transition-all shadow-md">
+        <div className="rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-900/50 p-6 flex flex-col justify-between space-y-5 hover:border-purple-500/30 transition shadow-md">
           <div className="space-y-3">
             <div className="flex items-center gap-3 text-purple-400 font-semibold text-lg">
               <Globe className="w-6 h-6" /> Web Scraper / Intranet Wiki
@@ -503,7 +503,7 @@ export default function ConnectorsTab({ showNotif }: ConnectorsTabProps) {
         </div>
 
         {/* M365 / SharePoint / OneDrive Connector */}
-        <div className="rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-900/50 p-6 flex flex-col justify-between space-y-5 hover:border-sky-500/30 transition-all shadow-md">
+        <div className="rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-900/50 p-6 flex flex-col justify-between space-y-5 hover:border-sky-500/30 transition shadow-md">
           <div className="space-y-3">
             <div className="flex items-center gap-3 text-sky-400 font-semibold text-lg">
               <Cloud className="w-6 h-6" /> Microsoft 365 (SharePoint / OneDrive)
@@ -595,7 +595,7 @@ export default function ConnectorsTab({ showNotif }: ConnectorsTabProps) {
             <div className="flex items-center gap-3 text-emerald-400 font-semibold text-lg">
               <Bot className="w-6 h-6" /> Server MCP (Model Context Protocol)
             </div>
-            <span className="text-[10px] font-mono uppercase bg-emerald-950 text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/30">
+            <span className="text-[10px] font-mono bg-emerald-950 text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/30">
               JSON-RPC 2.0
             </span>
           </div>
@@ -623,7 +623,7 @@ export default function ConnectorsTab({ showNotif }: ConnectorsTabProps) {
             <div className="flex items-center gap-3 text-amber-400 font-semibold text-lg">
               <Zap className="w-6 h-6" /> Webhook Automazioni (n8n / Zapier)
             </div>
-            <span className="text-[10px] font-mono uppercase bg-amber-950 text-amber-400 px-2 py-0.5 rounded border border-amber-500/30">
+            <span className="text-[10px] font-mono bg-amber-950 text-amber-400 px-2 py-0.5 rounded border border-amber-500/30">
               REST Webhooks
             </span>
           </div>

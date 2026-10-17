@@ -32,7 +32,7 @@ function buildTheme(dark: boolean): ThemeClasses {
     header: dark ? 'border-b border-white/[0.08] bg-slate-950/50 ermes-glass' : 'border-b border-slate-200 bg-white/80 ermes-glass',
     chatBg: dark ? 'bg-transparent' : 'bg-transparent',
     welcomeTitle: dark ? 'text-slate-100' : 'text-slate-800',
-    card: dark ? 'bg-slate-800/30 border border-slate-700/50 hover:border-blue-500/40 hover:bg-slate-800/50 transition-all duration-200' : 'bg-white border border-slate-200 hover:border-blue-400/50 hover:shadow-md transition-all duration-200',
+    card: dark ? 'bg-slate-800/30 border border-slate-700/50 hover:border-blue-500/40 hover:bg-slate-800/50 transition duration-200' : 'bg-white border border-slate-200 hover:border-blue-400/50 hover:shadow-md transition duration-200',
     cardTitle: dark ? 'text-slate-200' : 'text-slate-800',
     cardDesc: dark ? 'text-slate-400' : 'text-slate-500',
     chatBubbleUser: 'bg-blue-600 text-white rounded-tr-sm shadow-sm',

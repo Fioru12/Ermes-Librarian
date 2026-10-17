@@ -178,7 +178,7 @@ export default function PiiSettingsPanel({ showNotif, isAdmin = false }: PiiSett
             <div
               key={item.id}
               onClick={event => { if ((event.target as HTMLElement).tagName !== 'INPUT') handleTogglePattern(item.id) }}
-              className={`flex items-center justify-between p-4 rounded-xl border transition-all cursor-pointer ${
+              className={`flex items-center justify-between p-4 rounded-xl border transition cursor-pointer ${
                 enabledPatterns[item.id] !== false
                   ? 'bg-amber-500/10 border-amber-500/30 text-amber-200'
                   : 'bg-slate-50 dark:bg-white/[0.02] border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400 hover:border-slate-600'

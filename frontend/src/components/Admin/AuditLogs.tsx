@@ -91,7 +91,7 @@ export default function AuditLogs({ showNotif }: { showNotif: (m: string, t: 'su
             title="Report sull'integrità del registro: evidenza utile per SOC 2, ISO 27001 e GDPR, non una certificazione"
           >
             <FileCheck className="h-3.5 w-3.5" />
-            <span>{downloadingReport ? 'Generazione...' : 'Scarica report di integrità'}</span>
+            <span>{downloadingReport ? 'Generazione…' : 'Scarica report di integrità'}</span>
           </button>
           <button
             onClick={fetchLogs}
@@ -136,7 +136,7 @@ export default function AuditLogs({ showNotif }: { showNotif: (m: string, t: 'su
         </div>
       )}
 
-      <div className="mt-4 max-h-96 overflow-y-auto overflow-x-auto rounded-xl border border-slate-200 dark:border-white/5">
+      <div role="region" aria-label="Voci del registro di audit" tabIndex={0} className="mt-4 max-h-96 overflow-y-auto overflow-x-auto rounded-xl border border-slate-200 dark:border-white/5">
         <table className="w-full text-left text-xs">
           <thead>
             <tr className={t.tableHeader}>
@@ -170,7 +170,7 @@ export default function AuditLogs({ showNotif }: { showNotif: (m: string, t: 'su
                 <td className="p-2.5 font-mono text-[10px] text-slate-500">
                   {entry.entry_hash ? (
                     <span className="text-slate-500 dark:text-slate-400" title={`SHA256: ${entry.entry_hash}`}>
-                      {entry.entry_hash.slice(0, 12)}...
+                      {entry.entry_hash.slice(0, 12)}…
                     </span>
                   ) : (
                     <span className="italic text-slate-600">legacy</span>

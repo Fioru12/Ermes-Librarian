@@ -143,7 +143,7 @@ export default function SynonymsSettingsPanel({ showNotif, isAdmin = false }: Sy
       {/* Form Aggiunta Sinonimo (Admin/Editor) */}
       {isAdmin ? (
         <form onSubmit={handleAddSynonym} className="mb-6 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.02] p-4 space-y-4">
-          <div className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+          <div className="text-xs font-semibold text-slate-500 dark:text-slate-400">
             Aggiungi nuovo termine o acronimo
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -189,7 +189,7 @@ export default function SynonymsSettingsPanel({ showNotif, isAdmin = false }: Sy
 
       {/* Lista Termini Personalizzati */}
       <div className="space-y-3">
-        <div className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
+        <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2">
           Termini Personalizzati ({customEntries.length})
         </div>
         {loading ? (
@@ -207,7 +207,7 @@ export default function SynonymsSettingsPanel({ showNotif, isAdmin = false }: Sy
               >
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <span className="font-semibold text-indigo-300 uppercase tracking-wide text-xs">{term}</span>
+                    <span className="font-semibold text-indigo-300 text-xs">{term}</span>
                     <span className="text-[10px] rounded bg-indigo-500/20 px-1.5 py-0.5 text-indigo-300 font-mono">custom</span>
                   </div>
                   <div className="mt-2 flex flex-wrap gap-1.5">
@@ -242,7 +242,7 @@ export default function SynonymsSettingsPanel({ showNotif, isAdmin = false }: Sy
         <button
           type="button"
           onClick={() => setShowBuiltin(!showBuiltin)}
-          className="flex items-center justify-between w-full text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 hover:text-white transition cursor-pointer"
+          className="flex items-center justify-between w-full text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-white transition cursor-pointer"
         >
           <span>Termini Standard Predefiniti di Sistema ({builtinEntries.length})</span>
           {showBuiltin ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -256,7 +256,7 @@ export default function SynonymsSettingsPanel({ showNotif, isAdmin = false }: Sy
                 className="rounded-xl border border-slate-200 dark:border-white/5 bg-white/[0.01] p-3 transition hover:border-white/10"
               >
                 <div className="flex items-center gap-2">
-                  <span className="font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wide text-xs">{term}</span>
+                  <span className="font-semibold text-slate-600 dark:text-slate-300 text-xs">{term}</span>
                   <span className="text-[10px] rounded bg-slate-100 dark:bg-white/5 px-1.5 py-0.5 text-slate-500 dark:text-slate-400 font-mono">built-in</span>
                 </div>
                 <div className="mt-2 flex flex-wrap gap-1.5">

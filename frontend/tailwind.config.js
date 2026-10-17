@@ -7,10 +7,18 @@ export default {
   ],
   theme: {
     extend: {
+      // Instrument Sans e' gia' serrato: -0.025em (il valore standard di `tracking-tight`)
+      // faceva toccare le lettere dei titoli grandi.
+      letterSpacing: { tight: '-0.012em', tighter: '-0.02em' },
       fontFamily: {
-        // Inter e' incluso nel pacchetto (nessuna richiesta a Google Fonts):
-        // l'interfaccia funziona anche in una rete senza accesso a internet.
-        sans: ['"Inter Variable"', 'Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        // Tre voci con tre ruoli, tutte incluse nel pacchetto (nessuna richiesta a
+        // Google Fonts: l'interfaccia funziona anche in una rete senza internet).
+        //   sans  = la voce del sistema: interfaccia, titoli, pulsanti
+        //   serif = la voce del documento: i passaggi citati, cio' che dice il file
+        //   mono  = i dati: nomi di file, sezioni, hash, identificatori
+        sans: ['"Instrument Sans Variable"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        serif: ['"Source Serif 4 Variable"', 'Georgia', 'Cambria', 'serif'],
+        mono: ['"JetBrains Mono Variable"', 'ui-monospace', 'SFMono-Regular', 'Consolas', 'monospace'],
       },
       colors: {
         brand: {

@@ -213,7 +213,7 @@ export default function ProvidersTab({ showNotif }: ProvidersTabProps) {
                       <span className="font-bold text-sm">{p.name}</span>
                       {p.is_active && <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20">ATTIVO</span>}
                     </div>
-                    <span className="text-[10px] uppercase tracking-wider text-slate-500 bg-slate-100 dark:bg-white/5 px-2 py-0.5 rounded-full">{p.type}</span>
+                    <span className="text-[10px] text-slate-500 bg-slate-100 dark:bg-white/5 px-2 py-0.5 rounded-full">{p.type}</span>
                   </div>
                   <div className="text-xs text-slate-500 dark:text-slate-400 space-y-1">
                     {p.base_url && <div>URL: <span className="text-slate-600 dark:text-slate-300">{p.base_url}</span></div>}

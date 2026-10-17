@@ -221,7 +221,7 @@ ${item.text}` : item.text,
         <aside className={`h-fit rounded-2xl border p-4 ${t.card}`} aria-label="Fonte">
           {openSource ? (
             <>
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-blue-300">Fonte {openSource.marker}</p>
+              <p className="text-[11px] font-semibold text-blue-300">Fonte {openSource.marker}</p>
               <p className="mt-1 text-sm font-semibold">{openSource.filename} <span className={`font-normal ${t.cardDesc}`}>v{openSource.version}</span></p>
               <p className={`text-xs ${t.cardDesc}`}>{openSource.locator}</p>
               <blockquote className={`mt-3 border-l-2 border-blue-500/40 pl-3 text-sm leading-6 ${t.cardDesc}`}>{openSource.excerpt}</blockquote>
