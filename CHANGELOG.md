@@ -2,6 +2,13 @@
 
 Registro leggibile del lavoro su questo progetto. Per i finding tecnici completi, [docs/AUDIT_2026-08-19.md](docs/AUDIT_2026-08-19.md) e [docs/CODE_REVIEW.md](docs/CODE_REVIEW.md). La roadmap per fasi e il registro delle sessioni (`ROADMAP_V2.md`, `WORK_PROGRESS.md`) sono stati tolti dall'albero pubblico il 18 settembre 2026: la cronologia Git li conserva.
 
+## 2026-10-17 (3) — Nessuna richiesta verso l'esterno: font locale e Content-Security-Policy
+
+- **Il font veniva scaricato da Google Fonts a ogni apertura.** Per un prodotto che promette "i documenti restano nella tua azienda" era una contraddizione: ogni utente mandava il proprio indirizzo IP a Google (un problema GDPR noto) e in una rete senza accesso a internet il font non si caricava. Inter e' ora incluso nell'applicazione (`@fontsource-variable/inter`). Verificato con Playwright: nessuna richiesta verso origini esterne in nessuna scheda, in chiaro e scuro.
+- **Content-Security-Policy**: mancava del tutto (c'erano le altre intestazioni di sicurezza). `api/security_headers.py` limita script, font, stili, immagini e connessioni a questo server; `frame-ancestors 'none'`, `object-src 'none'`. `/docs` e `/redoc` (Swagger UI e ReDoc di FastAPI) hanno una politica piu' larga, perche' caricano da jsDelivr, limitata a quelle due pagine. Provata su tutte le schede e su una domanda con citazione: zero violazioni. 3 test.
+- **Animazioni**: `animate-fadeIn` era usata in molti componenti ma non definita da nessuna parte, quindi schede e finestre non hanno mai avuto l'entrata prevista. Ora esiste (180 ms) e rispetta `prefers-reduced-motion`.
+- **Attesa**: uno scheletro con la forma della pagina al posto della riga "Caricamento…" (il testo resta per i lettori di schermo).
+
 ## 2026-10-17 (2) — Accessibilità verificata, file statici compressi e in cache
 
 - **Accessibilità**: audit axe (WCAG 2.1 A/AA e buone pratiche) su ogni scheda, in chiaro e scuro. Trovati e corretti: otto menu a tendina senza nome, nove interruttori PII senza etichetta (e non azionabili da tastiera), due barre laterali con lo stesso nome di landmark, livelli di titolo saltati (h1 seguito da h4) e contrasti sotto 4.5:1. Ora zero violazioni. `frontend/e2e/accessibility.spec.ts` lo verifica in CI. axe trova circa un terzo dei problemi: tastiera e lettori di schermo restano da provare a mano.
