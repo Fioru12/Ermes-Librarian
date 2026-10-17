@@ -18,4 +18,4 @@ npm.cmd --prefix frontend run build
 
 ## Pull request expectations
 
-Describe the user outcome, security implications, test evidence and any migration or configuration change. Keep the legacy WinSarp material isolated from the Ermes Knowledge product flow unless a change explicitly concerns archival compatibility.
+Describe the user outcome, security implications, test evidence and any migration or configuration change.

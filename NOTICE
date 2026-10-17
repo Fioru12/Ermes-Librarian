@@ -18,7 +18,6 @@ explicitly enables that mode for a specific library.
 The demo corpora under examples/ describe fictional companies. Any
 resemblance to real organisations, documents or people is unintended.
 
-The legacy WinSarp formula engine under legacy_winsarp/ is historical
-personal material, frozen and excluded from the product path. It is not
-covered by the demo corpora statement above and must not be used as a
-public demonstration dataset.
+The historical WinSarp formula engine the project started from was removed
+from the repository on 18 September 2026; it is preserved only in Git
+history and is not part of this distribution.

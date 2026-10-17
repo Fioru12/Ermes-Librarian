@@ -1,9 +1,9 @@
 # Guida per Sviluppatori — Ermes Knowledge
 
 Questa guida descrive il codice **effettivamente eseguito dal prodotto**. Il motore
-formule WinSarp è materiale storico, isolato sotto `legacy_winsarp/` e non
-raggiungibile dal percorso di prodotto se non dietro il flag `ENABLE_LEGACY_WINSARP`
-(vedi `legacy_winsarp/README.md`).
+formule WinSarp, da cui il progetto è partito, è stato rimosso dal repository il
+18 settembre 2026 (la cronologia Git lo conserva); nessun percorso di codice lo
+raggiunge più.
 
 ## Struttura del progetto
 
@@ -48,8 +48,7 @@ frontend/               # UI React + TypeScript + Vite + Tailwind
 evaluation/             # Golden set e harness di valutazione del retrieval
 examples/               # Corpus demo (Northstar Works, Meridian Precision Works)
 scripts/                # Launcher e utility operative
-tests/                  # 148 test (pytest)
-legacy_winsarp/         # Motore formule storico, congelato
+tests/                  # oltre 850 test (pytest); il numero esatto: `pytest --collect-only -q`
 ```
 
 ## Convenzioni
