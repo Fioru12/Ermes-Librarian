@@ -1,6 +1,7 @@
 import { useRef, useEffect, useState } from 'react'
 import { Send, Square, HelpCircle, ArrowRight, BookOpen, Files, ShieldCheck, Download, X, ThumbsUp, ThumbsDown, Copy, Check, RotateCcw, FileDown, History, Plus, Table, Trash2, AlertTriangle, Maximize2, PanelRightOpen } from 'lucide-react'
 import { useTheme } from '../../hooks/useTheme'
+import { useDialog } from '../../hooks/useDialog'
 import { InlineMarkdown } from './InlineMarkdown'
 import { TabularExplorerModal } from '../documents/TabularExplorerModal'
 import type { Message } from '../../types'
@@ -108,6 +109,8 @@ export default function ChatArea({
       setTimeout(() => setCopiedCitation(false), 2000)
     }).catch(() => {})
   }
+
+  const citationDialogRef = useDialog<HTMLDivElement>(!!activeCitation && !isCitationDocked, () => setActiveCitation(null))
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -674,7 +677,10 @@ export default function ChatArea({
       {/* Modal dettaglio citazione */}
       {activeCitation && !isCitationDocked && (
         <div
-          className="absolute inset-0 z-30 flex items-center justify-center bg-slate-950/80 p-4 sm:p-6 backdrop-blur-sm animate-fadeIn"
+          ref={citationDialogRef}
+          tabIndex={-1}
+          aria-modal="true"
+          className="absolute inset-0 z-30 flex items-center justify-center bg-slate-950/80 p-4 sm:p-6 backdrop-blur-sm animate-fadeIn outline-none"
           role="dialog"
           aria-label="Dettaglio citazione"
           onClick={e => {

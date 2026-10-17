@@ -12,6 +12,7 @@ Senza queste intestazioni ogni apertura dell'applicazione riscaricava circa
 from __future__ import annotations
 
 import re
+from pathlib import Path
 
 from starlette.middleware.gzip import GZipMiddleware
 from starlette.staticfiles import StaticFiles
@@ -34,3 +35,31 @@ class HashedAssets(StaticFiles):
 def assets_app(directory: str):
     """App ASGI pronta da montare su /assets: file statici, cache e gzip."""
     return GZipMiddleware(HashedAssets(directory=directory), minimum_size=1024)
+
+
+_MEDIA_TYPES = {".webmanifest": "application/manifest+json"}
+
+
+def resolve_frontend_file(dist: str, full_path: str) -> Path | None:
+    """File reale dentro `dist` che corrisponde a `full_path`, oppure None.
+
+    La catch-all della SPA rispondeva con index.html a QUALUNQUE percorso non
+    API, quindi `/favicon.svg` e `/manifest.webmanifest` restituivano HTML con
+    stato 200: icona rotta e app non installabile. Qui si risolvono i file
+    veri; l'uscita da `dist` (`..`, percorsi assoluti, link simbolici) non e'
+    mai consentita.
+    """
+    if not full_path or full_path.endswith("/"):
+        return None
+    radice = Path(dist).resolve()
+    try:
+        candidato = (radice / full_path).resolve()
+    except (OSError, ValueError):
+        return None
+    if candidato.is_file() and candidato.is_relative_to(radice) and candidato.name != "index.html":
+        return candidato
+    return None
+
+
+def media_type_for(path: Path) -> str | None:
+    return _MEDIA_TYPES.get(path.suffix.lower())
