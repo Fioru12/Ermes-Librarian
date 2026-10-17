@@ -1,5 +1,6 @@
 import { BrandMark } from '../ui/BrandMark'
-import { Sun, Moon, MessageSquare, BookOpen, FileText, Activity, Settings, Users, Shield, RefreshCw, Sparkles, BarChart2, HardDrive, LogOut } from 'lucide-react'
+import { useInstallPrompt } from '../../hooks/useInstallPrompt'
+import { Sun, Moon, MessageSquare, BookOpen, FileText, Activity, Settings, Users, Shield, Download, RefreshCw, Sparkles, BarChart2, HardDrive, LogOut } from 'lucide-react'
 import { useTheme } from '../../hooks/useTheme'
 import type { TabId } from '../../types'
 
@@ -32,6 +33,7 @@ const navItems: { tab: TabId; icon: typeof MessageSquare; label: string; admin?:
 
 export default function Sidebar({ activeTab, onTabChange, healthStatus, onRefresh, isAdmin = false, username, onLogout, mobileOpen = false, onMobileClose }: SidebarProps) {
   const { isDark, toggle, t } = useTheme()
+  const { canInstall, install } = useInstallPrompt()
   const visibleNavItems = navItems.filter(item => !item.admin || isAdmin)
 
   // Sotto i 768 px la barra occupava tre quarti del telefono e schiacciava
@@ -68,7 +70,7 @@ export default function Sidebar({ activeTab, onTabChange, healthStatus, onRefres
         <nav className="flex flex-col gap-1 pt-1">
           {visibleNavItems.map((item) => (
             <button key={item.tab} onClick={() => { onTabChange(item.tab); onMobileClose?.() }} aria-current={activeTab === item.tab ? 'page' : undefined}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition duration-200 ${activeTab === item.tab ? t.navButtonActive : t.navButtonInactive}`}>
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition duration-150 ${activeTab === item.tab ? t.navButtonActive : t.navButtonInactive}`}>
               <item.icon className={`w-4 h-4 ${activeTab === item.tab ? '' : 'opacity-70 group-hover:opacity-100 transition-opacity'}`} />
               {item.label}
             </button>
@@ -91,6 +93,11 @@ export default function Sidebar({ activeTab, onTabChange, healthStatus, onRefres
           <span className="font-medium text-slate-400">{healthStatus?.status === 'healthy' ? 'Attivo' : 'Pronto'}</span>
         </div>
         {username && <span className="max-w-20 truncate text-slate-500" title={username}>{username}</span>}
+        {canInstall && (
+          <button onClick={install} title="Installa Ermes come app" aria-label="Installa Ermes come app" className="hover:text-blue-500 transition">
+            <Download className="w-3.5 h-3.5" />
+          </button>
+        )}
         <button onClick={onRefresh} title="Aggiorna stato" aria-label="Aggiorna stato" className="hover:text-blue-500 transition">
           <RefreshCw className="w-3.5 h-3.5" />
         </button>

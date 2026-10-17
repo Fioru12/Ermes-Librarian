@@ -36,32 +36,18 @@ body {
 }
 
 .ermes-app-shell {
-  background-color: #0c0f17;
-  background-image: radial-gradient(1000px circle at 6% -14%, rgba(53, 82, 245, 0.16), transparent 46%);
+  background-color: #202020; /* Mica scuro */
 }
 
 /* Variante chiara: senza questa regola lo sfondo scuro qui sopra restava anche
    con il tema chiaro, e il testo scuro di t.bg finiva su fondo scuro. */
 html:not(.dark) .ermes-app-shell {
-  background-color: #f6f8fc;
-  background-image:
-    radial-gradient(1000px circle at 6% -14%, rgba(53, 82, 245, 0.08), transparent 46%),
-    linear-gradient(180deg, #fbfcfe 0%, #f3f5fa 100%);
+  background-color: #f3f3f3; /* Mica chiaro */
 }
 
-html:not(.dark) .ermes-grid {
-  background-image: linear-gradient(rgba(100, 116, 139, 0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(100, 116, 139, 0.07) 1px, transparent 1px);
-}
+.ermes-grid { background-image: none; }
 
-.ermes-grid {
-  background-image: linear-gradient(rgba(148, 163, 184, 0.045) 1px, transparent 1px), linear-gradient(90deg, rgba(148, 163, 184, 0.045) 1px, transparent 1px);
-  background-size: 32px 32px;
-}
-
-.ermes-glass {
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
-}
+.ermes-glass { /* piatto: in Windows 11 il Mica non sfoca */ }
 
 .ermes-surface {
   box-shadow: 0 20px 60px rgba(2, 6, 23, 0.22);
@@ -114,9 +100,11 @@ html:not(.dark) .ermes-grid {
 
 /* Base focus styles for better accessibility without ugly rings */
 *:focus-visible {
-  outline: 2px solid #3b82f6;
+  /* Windows 11: anello esterno scuro/chiaro + anello interno di contrasto */
+  outline: 2px solid #0f6cbd;
   outline-offset: 2px;
 }
+.dark *:focus-visible { outline-color: #60cdff; }
 
 /* ── Tema chiaro: compatibilità per le classi pensate per lo sfondo scuro ──
    I colori pastello (xxx-200/300/400) e i bianchi trasparenti sono leggibili su
@@ -126,7 +114,7 @@ html:not(.dark) .text-blue-200,
 html:not(.dark) .hover\:text-blue-200:hover,
 html:not(.dark) .text-blue-300,
 html:not(.dark) .hover\:text-blue-300:hover,
-html:not(.dark) .text-blue-400 { color: #2a40d6; }
+html:not(.dark) .text-blue-400 { color: #115ea3; }
 html:not(.dark) .text-emerald-200,
 html:not(.dark) .hover\:text-emerald-200:hover,
 html:not(.dark) .text-emerald-300,
@@ -208,26 +196,44 @@ html:not(.dark) .text-lime-300,
 html:not(.dark) .hover\:text-lime-300:hover,
 html:not(.dark) .text-lime-400 { color: #4d7c0f; }
 html:not(.dark) .text-slate-100,
-html:not(.dark) .text-slate-200 { color: #1e293b; }
-html:not(.dark) .text-slate-300 { color: #475569; }
-html:not(.dark) .hover\:text-slate-300:hover { color: #1e293b; }
+html:not(.dark) .text-slate-200 { color: #242424; }
+html:not(.dark) .text-slate-300 { color: #424242; }
+html:not(.dark) .hover\:text-slate-300:hover { color: #242424; }
 html:not(.dark) .hover\:text-white:hover { color: #0f172a; }
 
 /* Bianchi trasparenti (bordi e riempimenti): su fondo chiaro diventano grigi sottili. */
 html:not(.dark) [class~="border-white/5"],
 html:not(.dark) [class~="border-white/10"],
 html:not(.dark) [class~="border-white/20"],
-html:not(.dark) [class~="divide-white/10"] > * { border-color: rgba(15, 23, 42, 0.12); }
+html:not(.dark) [class~="divide-white/10"] > * { border-color: rgba(0, 0, 0, 0.10); }
 html:not(.dark) [class~="bg-white/5"],
 html:not(.dark) [class~="bg-white/[0.02]"],
 html:not(.dark) [class~="bg-white/[0.03]"],
-html:not(.dark) [class~="bg-white/[0.04]"] { background-color: rgba(15, 23, 42, 0.04); }
+html:not(.dark) [class~="bg-white/[0.04]"] { background-color: rgba(0, 0, 0, 0.04); }
 html:not(.dark) [class~="bg-white/10"],
 html:not(.dark) .hover\:bg-white\/5:hover,
-html:not(.dark) .hover\:bg-white\/10:hover { background-color: rgba(15, 23, 42, 0.07); }
+html:not(.dark) .hover\:bg-white\/10:hover { background-color: rgba(0, 0, 0, 0.07); }
 
 /* Varianti con opacita' e grigio di servizio: stessi principi, contrasto >= 4.5:1. */
 html:not(.dark) .text-rose-300\/80,
 html:not(.dark) .text-rose-400\/80 { color: #be123c; }
 html:not(.dark) .text-slate-400,
-html:not(.dark) .text-slate-500 { color: #526072; }
+html:not(.dark) .text-slate-500 { color: #5a5a5a; }
+
+/* App installata (Edge/Chrome su Windows): i pulsanti della finestra stanno sopra la pagina e
+   l'intestazione fa da barra del titolo. Si trascina dalle zone libere; i controlli restano
+   cliccabili. Fuori dall'app installata queste regole non fanno nulla. */
+@media (display-mode: window-controls-overlay) {
+  .app-titlebar {
+    -webkit-app-region: drag;
+    app-region: drag;
+    padding-right: calc(100vw - env(titlebar-area-x, 0px) - env(titlebar-area-width, 100vw) + 1rem);
+  }
+  .app-titlebar button,
+  .app-titlebar a,
+  .app-titlebar select,
+  .app-titlebar input {
+    -webkit-app-region: no-drag;
+    app-region: no-drag;
+  }
+}

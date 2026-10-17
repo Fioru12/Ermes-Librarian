@@ -15,7 +15,7 @@ export default function SettingsTab({ showNotif, isAdmin = false }: SettingsTabP
     <div className="p-8 h-full overflow-y-auto space-y-8">
       <div className="flex items-center gap-3 mb-6">
         <Settings className="w-6 h-6 text-blue-400" />
-        <h1 className="text-xl font-bold">Impostazioni Sistema</h1>
+        <h1 className="text-xl font-bold">Impostazioni di sistema</h1>
       </div>
 
       {/* Informazioni affidabili */}
@@ -27,7 +27,7 @@ export default function SettingsTab({ showNotif, isAdmin = false }: SettingsTabP
         </div>
       </Card>
 
-      {/* Glossario Aziendale & Sinonimi Dinamici */}
+      {/* Glossario aziendale e sinonimi */}
       <SynonymsSettingsPanel showNotif={showNotif} isAdmin={isAdmin} />
 
       {/* Pannello Protezione Dati PII & DLP */}

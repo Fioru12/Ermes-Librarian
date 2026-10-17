@@ -29,8 +29,8 @@ describe('SynonymsSettingsPanel', () => {
 
     renderWithTheme(<SynonymsSettingsPanel showNotif={showNotif} isAdmin={true} />)
 
-    expect(await screen.findByText('1 Termini Personalizzati')).toBeInTheDocument()
-    expect(screen.getByText('2 Totale Termini Attivi')).toBeInTheDocument()
+    expect(await screen.findByText('1 Termini personalizzati')).toBeInTheDocument()
+    expect(screen.getByText('2 Termini attivi in totale')).toBeInTheDocument()
     expect(screen.getByText('ddt')).toBeInTheDocument()
     expect(screen.getByText('documento di trasporto')).toBeInTheDocument()
   })

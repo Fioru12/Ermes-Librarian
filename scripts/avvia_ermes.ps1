@@ -135,8 +135,29 @@ if (-not $backendOk) {
 }
 
 Write-Host ""
-Write-Host "Apertura browser su http://localhost:$frontendPort ..." -ForegroundColor Gray
-Start-Process "http://localhost:$frontendPort"
+# Si apre come un'applicazione (finestra propria, senza barra degli indirizzi né schede) quando
+# c'è Edge o Chrome: è il modo più vicino a un'app Windows senza installare niente. Se non ci
+# sono, o con ERMES_APRI_NEL_BROWSER=1, si apre nel browser predefinito come prima.
+$urlApp = "http://localhost:$frontendPort"
+function Get-BrowserApp {
+    $candidati = @(
+        "${env:ProgramFiles(x86)}\Microsoft\Edge\Application\msedge.exe",
+        "${env:ProgramFiles}\Microsoft\Edge\Application\msedge.exe",
+        "${env:ProgramFiles}\Google\Chrome\Application\chrome.exe",
+        "${env:ProgramFiles(x86)}\Google\Chrome\Application\chrome.exe",
+        "${env:LOCALAPPDATA}\Google\Chrome\Application\chrome.exe"
+    )
+    foreach ($percorso in $candidati) { if ($percorso -and (Test-Path -LiteralPath $percorso)) { return $percorso } }
+    return $null
+}
+$browserApp = if ($env:ERMES_APRI_NEL_BROWSER -eq "1") { $null } else { Get-BrowserApp }
+if ($browserApp) {
+    Write-Host "Apertura di Ermes come applicazione ($urlApp) ..." -ForegroundColor Gray
+    Start-Process -FilePath $browserApp -ArgumentList "--app=$urlApp"
+} else {
+    Write-Host "Apertura browser su $urlApp ..." -ForegroundColor Gray
+    Start-Process $urlApp
+}
 
 Write-Host ""
 # Attendi un tasto solo se c'e' davvero qualcuno a premerlo.

@@ -82,7 +82,7 @@ October 2026; check them for the current state. It states where Ermes is differe
 | Tamper-evident audit log | Yes (hash chain + HMAC) | — | — | Enterprise features | — |
 | Data connectors | 3 (network folders, web, Microsoft 365) | Via integrations | Many | **50+** | — |
 | Agents / deep research | **No** | Yes | Yes | **Yes** | **Yes (8 built in)** |
-| Native desktop app | **No** (Windows launcher, browser UI) | No | **Yes** | **Yes** | **Yes** |
+| Native desktop app | **Partly**: opens in its own window and installs as an app (Edge/Chrome); no native installer | No | **Yes** | **Yes** | **Yes** |
 | Interface language | Italian | Many | Many | Many | English |
 | Community size | Small | **Very large** | **Large** | **Large** | Growing |
 
@@ -116,8 +116,8 @@ and their trade-offs are in [docs/adr/](docs/adr/); what is defended and what is
 
 ### What leaves your machine
 
-Nothing, by default. Ermes has no telemetry and the interface loads no third-party fonts, scripts or images (the three typefaces
-are bundled; a Content-Security-Policy forbids other origins). The connections that exist are the ones you configure:
+Nothing, by default. Ermes has no telemetry and the interface loads no third-party fonts, scripts or images (the document typeface
+is bundled; a Content-Security-Policy forbids other origins). The connections that exist are the ones you configure:
 your Ollama host, an identity provider for SSO, the data sources you connect, and — only when an administrator
 explicitly approves a provider for a library — that cloud model.
 

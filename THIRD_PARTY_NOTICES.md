@@ -20,7 +20,7 @@ policy on copyleft needs to see them before adopting the product.
 | `psycopg` (Python) | GNU Lesser General Public License v3 (LGPLv3) | see the note below |
 | `caniuse-lite` (JavaScript) | CC-BY-4.0 | build time only, not shipped in the bundle |
 | `@axe-core/playwright`, `axe-core` (JavaScript) | MPL-2.0 | build time only, not shipped in the bundle |
-| `@fontsource-variable/instrument-sans`, `@fontsource-variable/jetbrains-mono`, `@fontsource-variable/source-serif-4` (JavaScript) | OFL-1.1 | build time only, not shipped in the bundle |
+| `@fontsource-variable/jetbrains-mono`, `@fontsource-variable/source-serif-4` (JavaScript) | OFL-1.1 | build time only, not shipped in the bundle |
 
 **`psycopg` (LGPL-3.0) is optional.** It is the PostgreSQL driver: the product
 runs entirely on SQLite without it, and `ERMES_DATABASE_URL` is what turns the
@@ -65,13 +65,12 @@ Declared in `requirements.txt`.
 
 ## JavaScript — application and build dependencies
 
-Declared in `frontend/package.json` (28 direct, 403 resolved in the lock file).
+Declared in `frontend/package.json` (27 direct, 402 resolved in the lock file).
 
 | Package | Version | License |
 |---|---|---|
 | `@axe-core/playwright` | 4.10.2 | MPL-2.0 |
 | `@eslint/js` | 10.0.1 | MIT |
-| `@fontsource-variable/instrument-sans` | 5.3.0 | OFL-1.1 |
 | `@fontsource-variable/jetbrains-mono` | 5.3.0 | OFL-1.1 |
 | `@fontsource-variable/source-serif-4` | 5.3.1 | OFL-1.1 |
 | `@playwright/test` | 1.64.0 | Apache-2.0 |
@@ -98,7 +97,7 @@ Declared in `frontend/package.json` (28 direct, 403 resolved in the lock file).
 | `vite` | 7.3.7 | MIT |
 | `vitest` | 4.1.11 | MIT |
 
-Licenses across the full resolved tree: MIT (335), Apache-2.0 (23), ISC (19), BSD-2-Clause (8), BlueOak-1.0.0 (4), OFL-1.1 (3), BSD-3-Clause (3), MPL-2.0 (2), MIT-0 (2), Python-2.0 (1), CC-BY-4.0 (1), CC0-1.0 (1), (MIT OR CC0-1.0) (1).
+Licenses across the full resolved tree: MIT (335), Apache-2.0 (23), ISC (19), BSD-2-Clause (8), BlueOak-1.0.0 (4), BSD-3-Clause (3), MPL-2.0 (2), MIT-0 (2), OFL-1.1 (2), Python-2.0 (1), CC-BY-4.0 (1), CC0-1.0 (1), (MIT OR CC0-1.0) (1).
 
 ## Machine-readable SBOM
 
