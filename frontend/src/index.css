@@ -36,14 +36,8 @@ body {
 }
 
 .ermes-app-shell {
-  background-color: #0b0e16;
-  background-image:
-    linear-gradient(115deg, rgba(7, 10, 20, 0.88) 0%, rgba(10, 14, 27, 0.76) 48%, rgba(8, 11, 21, 0.9) 100%),
-    radial-gradient(900px circle at 8% -10%, rgba(37, 99, 235, 0.2), transparent 42%),
-    url('/assets/ermes-knowledge-atmosphere.png');
-  background-position: center;
-  background-size: cover;
-  background-attachment: fixed;
+  background-color: #0c0f17;
+  background-image: radial-gradient(1000px circle at 6% -14%, rgba(53, 82, 245, 0.16), transparent 46%);
 }
 
 /* Variante chiara: senza questa regola lo sfondo scuro qui sopra restava anche
@@ -51,9 +45,8 @@ body {
 html:not(.dark) .ermes-app-shell {
   background-color: #f6f8fc;
   background-image:
-    radial-gradient(1100px circle at 6% -12%, rgba(59, 130, 246, 0.10), transparent 46%),
-    radial-gradient(900px circle at 100% 0%, rgba(139, 92, 246, 0.06), transparent 42%),
-    linear-gradient(180deg, #fbfcfe 0%, #f1f5fa 100%);
+    radial-gradient(1000px circle at 6% -14%, rgba(53, 82, 245, 0.08), transparent 46%),
+    linear-gradient(180deg, #fbfcfe 0%, #f3f5fa 100%);
 }
 
 html:not(.dark) .ermes-grid {
@@ -133,7 +126,7 @@ html:not(.dark) .text-blue-200,
 html:not(.dark) .hover\:text-blue-200:hover,
 html:not(.dark) .text-blue-300,
 html:not(.dark) .hover\:text-blue-300:hover,
-html:not(.dark) .text-blue-400 { color: #1d4ed8; }
+html:not(.dark) .text-blue-400 { color: #2a40d6; }
 html:not(.dark) .text-emerald-200,
 html:not(.dark) .hover\:text-emerald-200:hover,
 html:not(.dark) .text-emerald-300,
