@@ -2,6 +2,10 @@
 
 Registro leggibile del lavoro su questo progetto. Per i finding tecnici completi, [docs/AUDIT_2026-08-19.md](docs/AUDIT_2026-08-19.md) e [docs/CODE_REVIEW.md](docs/CODE_REVIEW.md). La roadmap per fasi e il registro delle sessioni (`ROADMAP_V2.md`, `WORK_PROGRESS.md`) sono stati tolti dall'albero pubblico il 18 settembre 2026: la cronologia Git li conserva.
 
+## 2026-10-19 (6) — Tema chiaro meno abbagliante, sfondo scuro con profondita'
+
+Dalle schermate dell'app installata: il chiaro era un bianco pieno su un fondo quasi bianco, e lo scuro un piano uniforme. Chiaro: fondo grigio freddo (`#e2e5ea`), pannello `#eff1f4`, barra di scrittura semitrasparente; le schede restano bianche e si staccano. Scuro: pannello `#252525` con una luce d'accento (blu, 16%) molto tenue in alto e un leggero scurirsi verso il basso (classe `.ermes-panel`). Controllato in Chromium su tutte le schede; nessun colore del testo cambiato.
+
 ## v2.4.0 — Stile app Windows 11, monitoraggio provato, collegamento rifinito
 
 Raccoglie le voci del 19 ottobre qui sotto: interfaccia in stile Windows 11 (Fluent, fondo Mica, Segoe UI Variable), apertura come app in finestra propria, monitoraggio Prometheus/Alertmanager/Grafana verificato su Docker reale, collegamento sul Desktop con l'icona di Ermes.
