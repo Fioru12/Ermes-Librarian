@@ -358,6 +358,7 @@ export default function ConnectorsTab({ showNotif }: ConnectorsTabProps) {
           </p>
         </div>
         <select
+          aria-label="Biblioteca di destinazione"
           value={selectedLibrary}
           onChange={(e) => setSelectedLibrary(e.target.value)}
           className="bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 text-sm rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"

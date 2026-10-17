@@ -246,9 +246,9 @@ export default function ChatArea({
               <button key={idx} onClick={() => onSend(s.prompt)}
                 className={`min-h-32 p-5 rounded-2xl border text-left flex flex-col justify-between transition-all group ${t.card}`}>
                 <div className="space-y-1">
-                  <h4 className={`text-sm font-bold flex items-center gap-1.5 ${t.cardTitle}`}>
+                  <h2 className={`text-sm font-bold flex items-center gap-1.5 ${t.cardTitle}`}>
                     <HelpCircle className="w-3.5 h-3.5 text-blue-500" /> {s.title}
-                  </h4>
+                  </h2>
                   <p className={`text-xs leading-normal ${t.cardDesc}`}>{s.desc}</p>
                 </div>
                 <div className="mt-3 flex items-center gap-1 text-[11px] font-semibold text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -434,7 +434,7 @@ export default function ChatArea({
         <div className="mb-3 flex max-w-5xl items-center justify-between gap-2 mx-auto">
           <div className="flex items-center gap-2">
             <span className="rounded-full border border-blue-500/15 bg-blue-500/5 px-2.5 py-1 text-[11px] font-medium text-blue-300">Stai consultando</span>
-            <select value={selectedLibraryId} onChange={event => onLibraryChange?.(event.target.value)} className={`min-w-0 rounded-lg border px-3 py-1.5 text-xs outline-none ${t.sidebarInput}`}>
+            <select aria-label="Biblioteca da consultare" value={selectedLibraryId} onChange={event => onLibraryChange?.(event.target.value)} className={`min-w-0 rounded-lg border px-3 py-1.5 text-xs outline-none ${t.sidebarInput}`}>
               <option value="">Seleziona una biblioteca</option>
               {libraries.map(library => <option key={library.id} value={library.id}>{library.name}</option>)}
             </select>

@@ -2,6 +2,11 @@
 
 Registro leggibile del lavoro su questo progetto. Per i finding tecnici completi, [docs/AUDIT_2026-08-19.md](docs/AUDIT_2026-08-19.md) e [docs/CODE_REVIEW.md](docs/CODE_REVIEW.md). La roadmap per fasi e il registro delle sessioni (`ROADMAP_V2.md`, `WORK_PROGRESS.md`) sono stati tolti dall'albero pubblico il 18 settembre 2026: la cronologia Git li conserva.
 
+## 2026-10-17 (2) — Accessibilità verificata, file statici compressi e in cache
+
+- **Accessibilità**: audit axe (WCAG 2.1 A/AA e buone pratiche) su ogni scheda, in chiaro e scuro. Trovati e corretti: otto menu a tendina senza nome, nove interruttori PII senza etichetta (e non azionabili da tastiera), due barre laterali con lo stesso nome di landmark, livelli di titolo saltati (h1 seguito da h4) e contrasti sotto 4.5:1. Ora zero violazioni. `frontend/e2e/accessibility.spec.ts` lo verifica in CI. axe trova circa un terzo dei problemi: tastiera e lettori di schermo restano da provare a mano.
+- **File statici**: `api/static_assets.py` serve `/assets` con gzip (JavaScript 224 kB -> 69 kB, CSS 54 kB -> 9,6 kB) e `Cache-Control` di un anno e immutabile per i file con hash di Vite; le immagini senza hash si rivalidano. Prima ogni apertura riscaricava tutto non compresso. Quattro test.
+
 ## 2026-10-17 — Interfaccia: schede istantanee, tema chiaro completo, schermata di accesso
 
 Trovato guardando l'app con Playwright in chiaro e scuro, desktop e telefono (non a occhio sulla sola lettura del codice).

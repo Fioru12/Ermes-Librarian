@@ -177,7 +177,7 @@ export default function PiiSettingsPanel({ showNotif, isAdmin = false }: PiiSett
           {standardMeta.map(item => (
             <div
               key={item.id}
-              onClick={() => handleTogglePattern(item.id)}
+              onClick={event => { if ((event.target as HTMLElement).tagName !== 'INPUT') handleTogglePattern(item.id) }}
               className={`flex items-center justify-between p-4 rounded-xl border transition-all cursor-pointer ${
                 enabledPatterns[item.id] !== false
                   ? 'bg-amber-500/10 border-amber-500/30 text-amber-200'
@@ -191,7 +191,8 @@ export default function PiiSettingsPanel({ showNotif, isAdmin = false }: PiiSett
               <input
                 type="checkbox"
                 checked={enabledPatterns[item.id] !== false}
-                onChange={() => {}}
+                aria-label={`Maschera ${item.label}`}
+                onChange={() => handleTogglePattern(item.id)}
                 disabled={!isAdmin}
                 className="w-4 h-4 accent-amber-500 rounded cursor-pointer"
               />

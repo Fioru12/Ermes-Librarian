@@ -181,7 +181,6 @@ html:not(.dark) .text-lime-400 { color: #4d7c0f; }
 html:not(.dark) .text-slate-100,
 html:not(.dark) .text-slate-200 { color: #1e293b; }
 html:not(.dark) .text-slate-300 { color: #475569; }
-html:not(.dark) .text-slate-400 { color: #64748b; }
 html:not(.dark) .hover\:text-slate-300:hover { color: #1e293b; }
 html:not(.dark) .hover\:text-white:hover { color: #0f172a; }
 
@@ -197,3 +196,9 @@ html:not(.dark) [class~="bg-white/[0.04]"] { background-color: rgba(15, 23, 42, 
 html:not(.dark) [class~="bg-white/10"],
 html:not(.dark) .hover\:bg-white\/5:hover,
 html:not(.dark) .hover\:bg-white\/10:hover { background-color: rgba(15, 23, 42, 0.07); }
+
+/* Varianti con opacita' e grigio di servizio: stessi principi, contrasto >= 4.5:1. */
+html:not(.dark) .text-rose-300\/80,
+html:not(.dark) .text-rose-400\/80 { color: #be123c; }
+html:not(.dark) .text-slate-400,
+html:not(.dark) .text-slate-500 { color: #526072; }

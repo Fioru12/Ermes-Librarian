@@ -163,19 +163,19 @@ export default function UserManagement({ showNotif }: { showNotif: (m: string, t
     <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow">
       <section className="mb-8 border-b border-slate-200 pb-7 dark:border-slate-700">
         <h2 className="text-xl font-bold mb-1">Account web locali</h2>
-        <p className="mb-4 text-sm text-slate-500">Crea l’accesso all’interfaccia per chi dovrà consultare o gestire le biblioteche. Le password non vengono mostrate, registrate nei log o salvate nel browser.</p>
+        <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">Crea l’accesso all’interfaccia per chi dovrà consultare o gestire le biblioteche. Le password non vengono mostrate, registrate nei log o salvate nel browser.</p>
         <div className="flex flex-wrap gap-2">
           <input className="border rounded p-2 flex-1 min-w-40 dark:bg-gray-700" placeholder="Username account" value={newAccountUsername} onChange={(e) => setNewAccountUsername(e.target.value)} />
           <select aria-label="Ruolo account locale" className="border rounded p-2 dark:bg-gray-700" value={newAccountRole} onChange={(e) => setNewAccountRole(e.target.value)}><option value="viewer">Viewer</option><option value="editor">Editor</option><option value="admin">Admin</option></select>
           <input aria-label="Password account locale" type="password" className="border rounded p-2 flex-1 min-w-48 dark:bg-gray-700" placeholder="Password iniziale" value={newAccountPassword} onChange={(e) => setNewAccountPassword(e.target.value)} autoComplete="new-password" />
           <button onClick={createLocalAccount} disabled={!newAccountUsername.trim() || !newAccountPassword || creatingAccount} className="bg-blue-600 disabled:opacity-50 text-white p-2 rounded flex items-center gap-2"><UserPlus size={20} />{creatingAccount ? 'Creazione...' : 'Crea account'}</button>
         </div>
-        <p className="mt-2 text-xs text-slate-500">Minimo 8 caratteri, maiuscola, minuscola, numero e carattere speciale.</p>
+        <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">Minimo 8 caratteri, maiuscola, minuscola, numero e carattere speciale.</p>
         {accounts.length > 0 && <div className="mt-4 space-y-3">
           {accounts.map(account => {
             const draft = accountDraft(account);
             return <div key={account.username} className="rounded-lg border border-slate-200 p-3 dark:border-slate-600">
-              <div className="mb-2 flex flex-wrap items-center justify-between gap-2"><strong>{account.username}</strong><span className="text-xs text-slate-500">{account.active ? 'attivo' : 'disattivato'}</span></div>
+              <div className="mb-2 flex flex-wrap items-center justify-between gap-2"><strong>{account.username}</strong><span className="text-xs text-slate-500 dark:text-slate-400">{account.active ? 'attivo' : 'disattivato'}</span></div>
               <div className="flex flex-wrap items-center gap-2">
                 <select aria-label={`Ruolo di ${account.username}`} className="border rounded p-2 text-sm dark:bg-gray-700" value={draft.role} onChange={(e) => setAccountDraft(account, { role: e.target.value })}><option value="viewer">Viewer</option><option value="editor">Editor</option><option value="admin">Admin</option></select>
                 <label className="flex items-center gap-1 text-sm"><input aria-label={`Accesso attivo per ${account.username}`} type="checkbox" checked={draft.active} onChange={(e) => setAccountDraft(account, { active: e.target.checked })} />Accesso attivo</label>
@@ -187,7 +187,7 @@ export default function UserManagement({ showNotif }: { showNotif: (m: string, t
         </div>}
       </section>
       <h2 className="text-xl font-bold mb-1">Chiavi API (accesso programmatico)</h2>
-      <p className="mb-4 text-sm text-slate-500">Questa sezione gestisce chiavi per API e integrazioni, non account con password per l'interfaccia web.</p>
+      <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">Questa sezione gestisce chiavi per API e integrazioni, non account con password per l'interfaccia web.</p>
       
       <div className="flex gap-2 mb-6">
         <input 
@@ -196,7 +196,7 @@ export default function UserManagement({ showNotif }: { showNotif: (m: string, t
           value={newUsername}
           onChange={(e) => setNewUsername(e.target.value)}
         />
-        <select className="border rounded p-2 dark:bg-gray-700" value={newRole} onChange={(e) => setNewRole(e.target.value)}>
+        <select aria-label="Ruolo della chiave API" className="border rounded p-2 dark:bg-gray-700" value={newRole} onChange={(e) => setNewRole(e.target.value)}>
           <option value="viewer">Viewer</option>
           <option value="editor">Editor</option>
           <option value="admin">Admin</option>
@@ -230,7 +230,7 @@ export default function UserManagement({ showNotif }: { showNotif: (m: string, t
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-6" role="dialog" aria-modal="true" aria-label="Nuova chiave API">
           <section className="w-full max-w-xl rounded-2xl border border-amber-400/30 bg-white dark:bg-slate-900 p-6 text-slate-100 shadow-2xl">
             <div className="flex items-start justify-between gap-4"><div><h3 className="flex items-center gap-2 text-lg font-semibold"><KeyRound className="h-5 w-5 text-amber-300" />Nuova chiave API</h3><p className="mt-2 text-sm text-slate-400">Questa chiave per <strong className="text-slate-200">{revealedKey.username}</strong> sarà mostrata solo ora. Conservala in un password manager o secret manager, mai in un documento o in Git.</p></div><button onClick={() => setRevealedKey(null)} aria-label="Chiudi chiave API" className="rounded-md p-1 text-slate-400 hover:bg-white/10 hover:text-white"><X className="h-5 w-5" /></button></div>
-            <code className="mt-5 block break-all rounded-lg border border-white/10 bg-black/30 p-3 text-sm text-amber-100">{revealedKey.value}</code>
+            <code className="mt-5 block break-all rounded-lg border border-white/10 bg-slate-100 dark:bg-black/30 p-3 text-sm text-amber-100">{revealedKey.value}</code>
             <div className="mt-5 flex justify-end gap-3"><button onClick={copyRevealedKey} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500"><span className="flex items-center gap-2">{copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}{copied ? 'Copiata' : 'Copia chiave'}</span></button><button onClick={() => setRevealedKey(null)} className="rounded-lg border border-white/10 px-4 py-2 text-sm font-semibold text-slate-300 hover:bg-white/5">Ho salvato la chiave</button></div>
           </section>
         </div>
