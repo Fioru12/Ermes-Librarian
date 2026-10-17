@@ -118,14 +118,14 @@ export default function SynonymsSettingsPanel({ showNotif, isAdmin = false }: Sy
           type="button"
           onClick={fetchSynonyms}
           disabled={loading}
-          className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-white/5 transition disabled:opacity-50 cursor-pointer"
+          className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-white/5 transition disabled:opacity-50 cursor-pointer"
           title="Aggiorna glossario"
         >
           <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
         </button>
       </div>
 
-      <p className="text-sm text-slate-400 mb-6 leading-relaxed">
+      <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 leading-relaxed">
         Configura acronimi, abbreviazioni e terminologie aziendali specifiche per la tua organizzazione. 
         Il motore di ricerca espanderà automaticamente le domande degli utenti per massimizzare il recupero dei documenti corretti.
       </p>
@@ -135,20 +135,20 @@ export default function SynonymsSettingsPanel({ showNotif, isAdmin = false }: Sy
         <span className="inline-flex items-center gap-1.5 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-3 py-1 text-xs font-medium text-indigo-300">
           <Tag className="w-3.5 h-3.5" /> {Object.keys(customSynonyms).length} Termini Personalizzati
         </span>
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-slate-400">
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-white/5 px-3 py-1 text-xs font-medium text-slate-500 dark:text-slate-400">
           {Object.keys(allSynonyms).length} Totale Termini Attivi
         </span>
       </div>
 
       {/* Form Aggiunta Sinonimo (Admin/Editor) */}
       {isAdmin ? (
-        <form onSubmit={handleAddSynonym} className="mb-6 rounded-xl border border-white/10 bg-white/[0.02] p-4 space-y-4">
-          <div className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+        <form onSubmit={handleAddSynonym} className="mb-6 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.02] p-4 space-y-4">
+          <div className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
             Aggiungi nuovo termine o acronimo
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1">Termine / Acronimo</label>
+              <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Termine / Acronimo</label>
               <Input
                 value={newTerm}
                 onChange={e => setNewTerm(e.target.value)}
@@ -157,7 +157,7 @@ export default function SynonymsSettingsPanel({ showNotif, isAdmin = false }: Sy
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1">Sinonimi / Espansioni (separati da virgola)</label>
+              <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Sinonimi / Espansioni (separati da virgola)</label>
               <Input
                 value={newSynonyms}
                 onChange={e => setNewSynonyms(e.target.value)}
@@ -189,13 +189,13 @@ export default function SynonymsSettingsPanel({ showNotif, isAdmin = false }: Sy
 
       {/* Lista Termini Personalizzati */}
       <div className="space-y-3">
-        <div className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
+        <div className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
           Termini Personalizzati ({customEntries.length})
         </div>
         {loading ? (
           <div className="text-center py-6 text-sm text-slate-500">Caricamento glossario…</div>
         ) : customEntries.length === 0 ? (
-          <div className="rounded-lg border border-white/5 bg-white/[0.01] p-6 text-center text-sm text-slate-500">
+          <div className="rounded-lg border border-slate-200 dark:border-white/5 bg-white/[0.01] p-6 text-center text-sm text-slate-500">
             {searchTerm ? 'Nessun termine personalizzato corrisponde alla ricerca.' : 'Nessun termine personalizzato configurato. Aggiungine uno sopra!'}
           </div>
         ) : (
@@ -214,7 +214,7 @@ export default function SynonymsSettingsPanel({ showNotif, isAdmin = false }: Sy
                     {syns.map(s => (
                       <span
                         key={s}
-                        className="rounded-md border border-white/10 bg-white/5 px-2 py-0.5 text-xs text-slate-300"
+                        className="rounded-md border border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-white/5 px-2 py-0.5 text-xs text-slate-600 dark:text-slate-300"
                       >
                         {s}
                       </span>
@@ -238,11 +238,11 @@ export default function SynonymsSettingsPanel({ showNotif, isAdmin = false }: Sy
       </div>
 
       {/* Sezione Termini di Sistema Built-In */}
-      <div className="mt-8 pt-6 border-t border-white/10">
+      <div className="mt-8 pt-6 border-t border-slate-200 dark:border-white/10">
         <button
           type="button"
           onClick={() => setShowBuiltin(!showBuiltin)}
-          className="flex items-center justify-between w-full text-xs font-semibold uppercase tracking-wider text-slate-400 hover:text-white transition cursor-pointer"
+          className="flex items-center justify-between w-full text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 hover:text-white transition cursor-pointer"
         >
           <span>Termini Standard Predefiniti di Sistema ({builtinEntries.length})</span>
           {showBuiltin ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -253,17 +253,17 @@ export default function SynonymsSettingsPanel({ showNotif, isAdmin = false }: Sy
             {builtinEntries.map(([term, syns]) => (
               <div
                 key={term}
-                className="rounded-xl border border-white/5 bg-white/[0.01] p-3 transition hover:border-white/10"
+                className="rounded-xl border border-slate-200 dark:border-white/5 bg-white/[0.01] p-3 transition hover:border-white/10"
               >
                 <div className="flex items-center gap-2">
-                  <span className="font-semibold text-slate-300 uppercase tracking-wide text-xs">{term}</span>
-                  <span className="text-[10px] rounded bg-white/5 px-1.5 py-0.5 text-slate-400 font-mono">built-in</span>
+                  <span className="font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wide text-xs">{term}</span>
+                  <span className="text-[10px] rounded bg-slate-100 dark:bg-white/5 px-1.5 py-0.5 text-slate-500 dark:text-slate-400 font-mono">built-in</span>
                 </div>
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   {syns.map(s => (
                     <span
                       key={s}
-                      className="rounded-md border border-white/5 bg-white/[0.02] px-2 py-0.5 text-xs text-slate-400"
+                      className="rounded-md border border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-white/[0.02] px-2 py-0.5 text-xs text-slate-500 dark:text-slate-400"
                     >
                       {s}
                     </span>

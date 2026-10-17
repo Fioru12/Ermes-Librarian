@@ -176,7 +176,7 @@ export default function ProvidersTab({ showNotif }: ProvidersTabProps) {
               </div>
               {form.type !== 'ollama' && (
                 <button onClick={fetchModels} disabled={fetchingModels || !form.base_url}
-                  className="h-10 px-3 rounded-lg border border-white/10 hover:bg-white/5 disabled:opacity-40 disabled:cursor-not-allowed text-slate-300 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shrink-0">
+                  className="h-10 px-3 rounded-lg border border-slate-200 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-white/5 disabled:opacity-40 disabled:cursor-not-allowed text-slate-600 dark:text-slate-300 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shrink-0">
                   {fetchingModels ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
                   Modelli
                 </button>
@@ -184,7 +184,7 @@ export default function ProvidersTab({ showNotif }: ProvidersTabProps) {
             </div>
             <Input label="Modello predefinito" value={form.default_model} onChange={e => setForm({ ...form, default_model: e.target.value })} placeholder="es. gpt-4o" />
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-slate-400 block">Modelli (uno per riga)</label>
+              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 block">Modelli (uno per riga)</label>
               <textarea value={modelsInput} onChange={e => {
                 setModelsInput(e.target.value)
                 setForm({ ...form, models: e.target.value.split('\n').filter(s => s.trim()) })
@@ -213,17 +213,17 @@ export default function ProvidersTab({ showNotif }: ProvidersTabProps) {
                       <span className="font-bold text-sm">{p.name}</span>
                       {p.is_active && <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20">ATTIVO</span>}
                     </div>
-                    <span className="text-[10px] uppercase tracking-wider text-slate-500 bg-white/5 px-2 py-0.5 rounded-full">{p.type}</span>
+                    <span className="text-[10px] uppercase tracking-wider text-slate-500 bg-slate-100 dark:bg-white/5 px-2 py-0.5 rounded-full">{p.type}</span>
                   </div>
-                  <div className="text-xs text-slate-400 space-y-1">
-                    {p.base_url && <div>URL: <span className="text-slate-300">{p.base_url}</span></div>}
-                    {p.default_model && <div>Modello: <span className="text-slate-300">{p.default_model}</span></div>}
-                    {p.models && p.models.length > 0 && <div>Modelli: <span className="text-slate-300">{p.models.slice(0, 3).join(', ')}{p.models.length > 3 ? ` +${p.models.length - 3}` : ''}</span></div>}
+                  <div className="text-xs text-slate-500 dark:text-slate-400 space-y-1">
+                    {p.base_url && <div>URL: <span className="text-slate-600 dark:text-slate-300">{p.base_url}</span></div>}
+                    {p.default_model && <div>Modello: <span className="text-slate-600 dark:text-slate-300">{p.default_model}</span></div>}
+                    {p.models && p.models.length > 0 && <div>Modelli: <span className="text-slate-600 dark:text-slate-300">{p.models.slice(0, 3).join(', ')}{p.models.length > 3 ? ` +${p.models.length - 3}` : ''}</span></div>}
                   </div>
-                  <div className="flex items-center gap-2 mt-3 pt-3 border-t border-white/5">
+                  <div className="flex items-center gap-2 mt-3 pt-3 border-t border-slate-200 dark:border-white/5">
                     {!p.is_active && <button onClick={() => setActive(p.name)} className="text-xs text-blue-400 hover:text-blue-300 font-semibold transition cursor-pointer">Imposta Attivo</button>}
-                    <button onClick={() => testProvider(p)} className="text-xs text-slate-400 hover:text-slate-300 font-semibold transition cursor-pointer">Test</button>
-                    <button onClick={() => editProvider(p)} className="text-xs text-slate-400 hover:text-slate-300 font-semibold transition cursor-pointer">Modifica</button>
+                    <button onClick={() => testProvider(p)} className="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 font-semibold transition cursor-pointer">Test</button>
+                    <button onClick={() => editProvider(p)} className="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 font-semibold transition cursor-pointer">Modifica</button>
                     <button onClick={() => removeProvider(p.name)} className="text-xs text-rose-400 hover:text-rose-300 font-semibold transition cursor-pointer">Rimuovi</button>
                   </div>
                 </div>

@@ -148,7 +148,7 @@ export default function PiiSettingsPanel({ showNotif, isAdmin = false }: PiiSett
   if (loading) {
     return (
       <Card>
-        <div className="flex items-center justify-center p-8 text-slate-400 gap-2">
+        <div className="flex items-center justify-center p-8 text-slate-500 dark:text-slate-400 gap-2">
           <RefreshCw className="w-5 h-5 animate-spin" /> Caricamento regole PII/DLP...
         </div>
       </Card>
@@ -169,7 +169,7 @@ export default function PiiSettingsPanel({ showNotif, isAdmin = false }: PiiSett
             </Button>
           )}
         </div>
-        <p className="text-sm text-slate-400 mb-6">
+        <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
           Seleziona i tipi di dati riservati che il sistema deve oscurare automaticamente prima dell'invio ai modelli AI e nelle risposte finali.
         </p>
 
@@ -181,7 +181,7 @@ export default function PiiSettingsPanel({ showNotif, isAdmin = false }: PiiSett
               className={`flex items-center justify-between p-4 rounded-xl border transition-all cursor-pointer ${
                 enabledPatterns[item.id] !== false
                   ? 'bg-amber-500/10 border-amber-500/30 text-amber-200'
-                  : 'bg-white/[0.02] border-white/10 text-slate-400 hover:border-slate-600'
+                  : 'bg-slate-50 dark:bg-white/[0.02] border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400 hover:border-slate-600'
               }`}
             >
               <div>
@@ -205,12 +205,12 @@ export default function PiiSettingsPanel({ showNotif, isAdmin = false }: PiiSett
         <CardTitle>
           <Lock className="w-4 h-4 text-blue-400" /> Regole Regex Personalizzate
         </CardTitle>
-        <p className="text-sm text-slate-400 mt-1 mb-4">
+        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 mb-4">
           Definisci espressioni regolari aziendali su misura per mascherare codici interni, matricole dipendenti o numeri d'ordine.
         </p>
 
         {isAdmin && (
-          <div className="grid gap-3 sm:grid-cols-3 mb-6 p-4 rounded-xl border border-white/10 bg-white/[0.02]">
+          <div className="grid gap-3 sm:grid-cols-3 mb-6 p-4 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.02]">
             <Input
               placeholder="Nome Regola (es. Badge Dipendente)"
               value={newRuleName}
@@ -235,7 +235,7 @@ export default function PiiSettingsPanel({ showNotif, isAdmin = false }: PiiSett
         )}
 
         {customRules.length === 0 ? (
-          <div className="text-center py-6 border border-dashed border-white/10 rounded-xl text-slate-500 text-sm">
+          <div className="text-center py-6 border border-dashed border-slate-200 dark:border-white/10 rounded-xl text-slate-500 text-sm">
             Nessuna regola Regex personalizzata definita.
           </div>
         ) : (
@@ -243,10 +243,10 @@ export default function PiiSettingsPanel({ showNotif, isAdmin = false }: PiiSett
             {customRules.map(rule => (
               <div
                 key={rule.id}
-                className="flex items-center justify-between p-3 rounded-lg border border-white/10 bg-white/[0.02] text-sm"
+                className="flex items-center justify-between p-3 rounded-lg border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.02] text-sm"
               >
                 <div>
-                  <span className="font-semibold text-slate-200">{rule.name}</span>
+                  <span className="font-semibold text-slate-800 dark:text-slate-200">{rule.name}</span>
                   <span className="ml-3 font-mono text-xs text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded">
                     {rule.pattern}
                   </span>
@@ -268,13 +268,13 @@ export default function PiiSettingsPanel({ showNotif, isAdmin = false }: PiiSett
         <CardTitle>
           <TestTube className="w-4 h-4 text-emerald-400" /> Tester Mascheramento PII in Tempo Reale
         </CardTitle>
-        <p className="text-sm text-slate-400 mt-1 mb-4">
+        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 mb-4">
           Incolla un testo di prova per verificare istantaneamente come le regole attive oscurano i dati riservati.
         </p>
 
         <div className="space-y-4">
           <textarea
-            className="w-full h-24 p-3 text-sm bg-slate-900/60 border border-white/10 rounded-xl focus:border-emerald-500 focus:outline-none text-slate-200 placeholder-slate-500 font-mono"
+            className="w-full h-24 p-3 text-sm bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-white/10 rounded-xl focus:border-emerald-500 focus:outline-none text-slate-800 dark:text-slate-200 placeholder-slate-500 font-mono"
             value={testText}
             onChange={e => setTestText(e.target.value)}
             placeholder="Inserisci qui il testo da collaudare..."
@@ -289,7 +289,7 @@ export default function PiiSettingsPanel({ showNotif, isAdmin = false }: PiiSett
               <div className="flex items-center gap-2 text-emerald-300 font-semibold text-sm">
                 <CheckCircle className="w-4 h-4" /> Risultato Mascheramento ({testResult.detected.length} dati rilevati)
               </div>
-              <div className="p-3 bg-slate-950/80 border border-white/10 rounded-lg text-xs font-mono text-slate-200 whitespace-pre-wrap leading-relaxed">
+              <div className="p-3 bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-white/10 rounded-lg text-xs font-mono text-slate-800 dark:text-slate-200 whitespace-pre-wrap leading-relaxed">
                 {testResult.masked}
               </div>
               {testResult.detected.length > 0 && (

@@ -96,7 +96,7 @@ export default function AuditLogs({ showNotif }: { showNotif: (m: string, t: 'su
           <button
             onClick={fetchLogs}
             title="Verifica e Aggiorna Registro"
-            className="rounded-lg p-1.5 text-slate-400 transition hover:bg-white/5 hover:text-blue-400 cursor-pointer"
+            className="rounded-lg p-1.5 text-slate-500 dark:text-slate-400 transition hover:bg-slate-100 dark:hover:bg-white/5 hover:text-blue-400 cursor-pointer"
           >
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
@@ -118,25 +118,25 @@ export default function AuditLogs({ showNotif }: { showNotif: (m: string, t: 'su
               <ShieldAlert className="h-4 w-4 shrink-0 text-rose-400" />
             )}
             <div>
-              <p className="font-semibold text-slate-100">
+              <p className="font-semibold text-slate-900 dark:text-slate-100">
                 {integrity.valid
                   ? 'Catena Crittografica Immutabile e Autentica'
                   : `Allerta Integrità: Rilevate ${integrity.corrupted_count} anomalie nella catena!`}
               </p>
-              <p className="mt-0.5 text-slate-400">
+              <p className="mt-0.5 text-slate-500 dark:text-slate-400">
                 {integrity.verified_entries} su {integrity.total_entries} voci verificate matematicamente (SHA-256 + HMAC-SHA256).
               </p>
             </div>
           </div>
           {integrity.head_hash && integrity.head_hash !== '0'.repeat(64) && (
-            <div className="rounded bg-black/30 border border-white/5 px-2 py-1 font-mono text-[10px] text-slate-400">
+            <div className="rounded bg-black/30 border border-slate-200 dark:border-white/5 px-2 py-1 font-mono text-[10px] text-slate-500 dark:text-slate-400">
               Head Hash: <span className="text-blue-300">{integrity.head_hash.slice(0, 16)}...</span>
             </div>
           )}
         </div>
       )}
 
-      <div className="mt-4 max-h-96 overflow-y-auto overflow-x-auto rounded-xl border border-white/5">
+      <div className="mt-4 max-h-96 overflow-y-auto overflow-x-auto rounded-xl border border-slate-200 dark:border-white/5">
         <table className="w-full text-left text-xs">
           <thead>
             <tr className={t.tableHeader}>
@@ -158,7 +158,7 @@ export default function AuditLogs({ showNotif }: { showNotif: (m: string, t: 'su
             {entries.map((entry, index) => (
               <tr key={index} className={`border-t ${t.tableRow}`}>
                 <td className="p-2.5 font-mono text-slate-500 font-semibold">#{entry.seq_id ?? index + 1}</td>
-                <td className="p-2.5 text-slate-400 whitespace-nowrap">
+                <td className="p-2.5 text-slate-500 dark:text-slate-400 whitespace-nowrap">
                   {new Date(entry.ts).toLocaleString('it-IT')}
                 </td>
                 <td className="p-2.5">
@@ -169,7 +169,7 @@ export default function AuditLogs({ showNotif }: { showNotif: (m: string, t: 'su
                 <td className={`p-2.5 font-medium ${t.cardTitle}`}>{entry.actor}</td>
                 <td className="p-2.5 font-mono text-[10px] text-slate-500">
                   {entry.entry_hash ? (
-                    <span className="text-slate-400" title={`SHA256: ${entry.entry_hash}`}>
+                    <span className="text-slate-500 dark:text-slate-400" title={`SHA256: ${entry.entry_hash}`}>
                       {entry.entry_hash.slice(0, 12)}...
                     </span>
                   ) : (
