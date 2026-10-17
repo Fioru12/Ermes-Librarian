@@ -2,6 +2,10 @@
 
 Registro leggibile del lavoro su questo progetto. Per i finding tecnici completi, [docs/AUDIT_2026-08-19.md](docs/AUDIT_2026-08-19.md) e [docs/CODE_REVIEW.md](docs/CODE_REVIEW.md). La roadmap per fasi e il registro delle sessioni (`ROADMAP_V2.md`, `WORK_PROGRESS.md`) sono stati tolti dall'albero pubblico il 18 settembre 2026: la cronologia Git li conserva.
 
+## v2.4.0 — Stile app Windows 11, monitoraggio provato, collegamento rifinito
+
+Raccoglie le voci del 19 ottobre qui sotto: interfaccia in stile Windows 11 (Fluent, fondo Mica, Segoe UI Variable), apertura come app in finestra propria, monitoraggio Prometheus/Alertmanager/Grafana verificato su Docker reale, collegamento sul Desktop con l'icona di Ermes.
+
 ## 2026-10-19 (5) — Il collegamento sul Desktop
 
 Il collegamento "Ermes Knowledge" esisteva gia' e usa lo stesso `avvia_ermes.ps1`, quindi si apre gia' come app (finestra propria, senza barra degli indirizzi). Restavano due rifiniture: aveva l'icona generica di Windows e lasciava la finestra di PowerShell in vista. Ora usa l'icona di Ermes (`Ermes.ico`, rigenerata dal segno nuovo a 7 misure, da 16 a 256 px) e parte con la console nascosta. Chi ha gia' il collegamento lo aggiorna rieseguendo `CREA_COLLEGAMENTO_DESKTOP.bat`.
