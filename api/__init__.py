@@ -107,14 +107,13 @@ async def lifespan(app: FastAPI):
 
     # Metriche: etichette di sistema (una sola serie, idempotente).
     import platform
-    from importlib import metadata
 
     from core.metrics import init_system_info
 
-    try:
-        app_version = metadata.version("ermes")
-    except metadata.PackageNotFoundError:
-        app_version = "unknown"
+    # La versione e' quella dichiarata dall'applicazione. Prima si cercava il pacchetto
+    # installato "ermes", che quando si esegue dai sorgenti (o in Docker) non esiste: la
+    # metrica riportava sempre "unknown" e non si capiva quale versione girasse.
+    app_version = getattr(app, "version", None) or "unknown"
     init_system_info(
         version=app_version,
         python_version=platform.python_version(),

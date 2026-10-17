@@ -299,6 +299,16 @@ once. Reproduce on your own hardware with
 
 ---
 
+### Docker Desktop su Windows non parte: "initializing Inference manager" / "Secrets Engine"
+
+Se la finestra di errore dice `starting services: initializing Inference manager: listening on unix://…/Docker/run/dockerInference: remove …: The file cannot be accessed by the system`, oppure la stessa cosa con `docker-secrets-engine\engine.sock`, la causa è un file-socket Unix rimasto su disco dopo una chiusura brusca di Docker (arresto forzato, crash, spegnimento). Windows non riesce a cancellarlo e Docker non può ricrearlo. **Non serve** "Reset to factory defaults" (cancellerebbe immagini e volumi).
+
+1. Chiudi Docker Desktop dalla barra delle applicazioni (Quit) e, se serve, esegui `wsl --shutdown`.
+2. Cartella `%LOCALAPPDATA%\Docker\run`: i file lì dentro si cancellano dal sottosistema Linux di Docker, che la vede: `wsl -d docker-desktop -e rm -f /mnt/host/c/Users/<utente>/AppData/Local/Docker/run/dockerInference`.
+3. Cartella `%LOCALAPPDATA%\docker-secrets-engine`: non è visibile da lì. Rinomina l'intera cartella (per esempio in `docker-secrets-engine.old`): Docker ne crea una nuova e quella vecchia resta, intatta.
+4. Riavvia Docker Desktop e **non chiuderlo forzatamente**: un arresto brusco ricrea il problema.
+
+
 ## 8. Known limits
 
 State these to whoever is deciding on the deployment, before they find out:
