@@ -228,8 +228,8 @@ export default function ChatArea({
           <p className="text-xs text-slate-500">Di norma Ermes lavora solo su questo server: nessun documento viene inviato su internet.</p>
         </div>
       ) : messages.length === 0 ? (
-        <div className="flex-1 overflow-y-auto px-6 py-8 flex flex-col items-center justify-center max-w-5xl mx-auto w-full">
-          <div className="w-full rounded-[2rem] border border-white/[0.09] bg-slate-950/42 px-6 py-7 shadow-2xl shadow-slate-950/30 ermes-glass sm:px-9 sm:py-8">
+        <div className="flex-1 overflow-y-auto px-6 py-8 flex flex-col items-center max-w-5xl mx-auto w-full">
+          <div className="my-auto w-full rounded-[2rem] border border-slate-200 bg-white/85 shadow-xl shadow-slate-300/40 dark:border-white/[0.09] dark:bg-slate-950/40 dark:shadow-2xl dark:shadow-slate-950/30 px-6 py-7 ermes-glass sm:px-9 sm:py-8">
           <div className="text-center space-y-3">
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl border border-blue-400/20 bg-blue-500/10 text-lg font-bold text-blue-300 shadow-lg shadow-blue-500/10">E</div>
             <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-blue-400">Assistente documentale</p>
@@ -237,9 +237,9 @@ export default function ChatArea({
             <p className="text-sm text-slate-400 max-w-md mx-auto leading-relaxed">Chiedi informazioni sui documenti presenti nelle tue biblioteche.</p>
           </div>
           <div className="mt-7 grid gap-3 sm:grid-cols-3">
-            <div className="rounded-xl border border-white/[0.07] bg-white/[0.035] p-3 text-left"><BookOpen className="h-4 w-4 text-blue-400" /><p className="mt-2 truncate text-xs font-semibold text-slate-200">{selectedLibraryName}</p><p className="mt-1 text-[11px] text-slate-500">Biblioteca selezionata</p></div>
-            <div className="rounded-xl border border-white/[0.07] bg-white/[0.035] p-3 text-left"><Files className="h-4 w-4 text-violet-400" /><p className="mt-2 text-xs font-semibold text-slate-200">{selectedLibraryDocumentCount} documenti</p><p className="mt-1 text-[11px] text-slate-500">Disponibili per la ricerca</p></div>
-            <div className="rounded-xl border border-emerald-400/10 bg-emerald-400/[0.035] p-3 text-left"><ShieldCheck className="h-4 w-4 text-emerald-400" /><p className="mt-2 text-xs font-semibold text-slate-200">Fonti verificate</p><p className="mt-1 text-[11px] text-slate-500">Risposte ancorate ai documenti</p></div>
+            <div className="rounded-xl border border-slate-200 bg-white dark:border-white/[0.07] dark:bg-white/[0.035] p-3 text-left"><BookOpen className="h-4 w-4 text-blue-400" /><p className="mt-2 truncate text-xs font-semibold text-slate-200">{selectedLibraryName}</p><p className="mt-1 text-[11px] text-slate-500">Biblioteca selezionata</p></div>
+            <div className="rounded-xl border border-slate-200 bg-white dark:border-white/[0.07] dark:bg-white/[0.035] p-3 text-left"><Files className="h-4 w-4 text-violet-400" /><p className="mt-2 text-xs font-semibold text-slate-200">{selectedLibraryDocumentCount} documenti</p><p className="mt-1 text-[11px] text-slate-500">Disponibili per la ricerca</p></div>
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50 dark:border-emerald-400/10 dark:bg-emerald-400/[0.035] p-3 text-left"><ShieldCheck className="h-4 w-4 text-emerald-400" /><p className="mt-2 text-xs font-semibold text-slate-200">Fonti verificate</p><p className="mt-1 text-[11px] text-slate-500">Risposte ancorate ai documenti</p></div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full mt-7">
             {suggestions.map((s, idx) => (
@@ -685,7 +685,7 @@ export default function ChatArea({
             <div className="flex items-start justify-between gap-4 pb-4 border-b border-white/10">
               <div className="space-y-1">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h2 className="font-semibold text-base text-white">Citazione [{activeCitation.marker}]</h2>
+                  <h2 className="font-semibold text-base text-slate-900 dark:text-white">Citazione [{activeCitation.marker}]</h2>
                   <span className="rounded-full bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-300">
                     Evidenza verificata
                   </span>

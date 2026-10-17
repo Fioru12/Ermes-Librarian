@@ -4,6 +4,7 @@ Health check endpoint.
 """
 
 import logging
+import time
 
 import httpx
 from fastapi import APIRouter
@@ -16,16 +17,31 @@ _logger = logging.getLogger(__name__)
 router = APIRouter(tags=["Health"])
 
 
+# L'interfaccia sonda /health di continuo e Ollama puo' impiegare oltre 2 secondi
+# a elencare i modelli: senza memoria ogni sondaggio pagava l'attesa intera.
+# La risposta vale pochi secondi; un errore non viene memorizzato, cosi' il
+# ritorno di Ollama si vede subito.
+_OLLAMA_CACHE_TTL = 10.0
+_ollama_cache: dict[str, tuple[float, tuple[bool, set[str], str]]] = {}
+
+
 def _ollama_models() -> tuple[bool, set[str], str]:
     """(raggiungibile, modelli installati, messaggio). Un solo giro di rete
     per tutti i controlli che dipendono da un modello."""
+    host = cfg.OLLAMA_HOST.rstrip("/")
+    cached = _ollama_cache.get(host)
+    if cached is not None and time.monotonic() - cached[0] < _OLLAMA_CACHE_TTL:
+        return cached[1]
     try:
-        response = httpx.get(f"{cfg.OLLAMA_HOST.rstrip('/')}/api/tags", timeout=3)
+        response = httpx.get(f"{host}/api/tags", timeout=3)
         response.raise_for_status()
         names = {item.get("name", "") for item in response.json().get("models", [])}
-        return True, names, "Ollama raggiungibile"
+        result = (True, names, "Ollama raggiungibile")
     except httpx.HTTPError as error:
+        _ollama_cache.pop(host, None)
         return False, set(), f"Ollama non raggiungibile: {type(error).__name__}"
+    _ollama_cache[host] = (time.monotonic(), result)
+    return result
 
 
 def check_ollama(model_id: str) -> tuple[bool, str]:
@@ -118,7 +134,12 @@ class HealthResponse(BaseModel):
         "- `degraded`: Alcuni componenti degradati (es. Ollama lento, ChromaDB read-only)"
     ),
 )
-async def health_check():
+def health_check():
+    # `def`, non `async def`: il corpo fa I/O sincrono (httpx verso Ollama, disco,
+    # database). Dichiarato async girava SUL ciclo degli eventi e bloccava tutto
+    # il server - file statici e API incluse - per tutta la durata del controllo
+    # (oltre 2 secondi con Ollama lento), a ogni sondaggio dell'interfaccia.
+    # Cosi' FastAPI lo esegue in un thread e le altre richieste proseguono.
     ollama_reachable, ollama_models, ollama_base_msg = _ollama_models()
     ollama_ok = ollama_reachable
     ollama_msg = ollama_base_msg
@@ -202,5 +223,5 @@ async def health_check():
     summary="[v1] Health check completo",
     description="Versione versionata dell'health check (disponibile anche su /health)",
 )
-async def health_check_v1():
-    return await health_check()
+def health_check_v1():
+    return health_check()

@@ -128,7 +128,7 @@ export default function AnalyticsDashboard({ showNotif }: AnalyticsDashboardProp
             </span>
             <Activity className="w-5 h-5 text-blue-400" />
           </div>
-          <p className="text-3xl font-bold mt-3 text-white">
+          <p className="text-3xl font-bold mt-3 text-slate-900 dark:text-white">
             {summary ? summary.total_queries.toLocaleString() : '—'}
           </p>
           <span className="text-xs text-slate-500 dark:text-slate-400 mt-1 block">In {days} giorni</span>
@@ -142,7 +142,7 @@ export default function AnalyticsDashboard({ showNotif }: AnalyticsDashboardProp
             </span>
             <Clock className="w-5 h-5 text-amber-400" />
           </div>
-          <p className="text-3xl font-bold mt-3 text-white">
+          <p className="text-3xl font-bold mt-3 text-slate-900 dark:text-white">
             {summary ? `${summary.avg_latency_ms} ms` : '—'}
           </p>
           <span className="text-xs text-slate-500 dark:text-slate-400 mt-1 block">Tempo ricerca + sintesi</span>
@@ -156,7 +156,7 @@ export default function AnalyticsDashboard({ showNotif }: AnalyticsDashboardProp
             </span>
             <ThumbsUp className="w-5 h-5 text-emerald-400" />
           </div>
-          <p className="text-3xl font-bold mt-3 text-white">
+          <p className="text-3xl font-bold mt-3 text-slate-900 dark:text-white">
             {summary && summary.positive_feedback_rate !== null
               ? `${summary.positive_feedback_rate}%`
               : '—'}
@@ -176,7 +176,7 @@ export default function AnalyticsDashboard({ showNotif }: AnalyticsDashboardProp
             </span>
             <AlertCircle className="w-5 h-5 text-rose-400" />
           </div>
-          <p className="text-3xl font-bold mt-3 text-white">
+          <p className="text-3xl font-bold mt-3 text-slate-900 dark:text-white">
             {summary ? summary.knowledge_gaps_count : '—'}
           </p>
           <span className="text-xs text-rose-300/80 mt-1 block">Domande senza evidenza</span>
@@ -188,7 +188,7 @@ export default function AnalyticsDashboard({ showNotif }: AnalyticsDashboardProp
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <HelpCircle className="w-5 h-5 text-purple-400" />
-            <h3 className="text-base font-semibold text-white">
+            <h3 className="text-base font-semibold text-slate-900 dark:text-white">
               Buchi di Conoscenza Rilevati ({filteredGaps.length})
             </h3>
           </div>
@@ -227,7 +227,7 @@ export default function AnalyticsDashboard({ showNotif }: AnalyticsDashboardProp
                 {filteredGaps.map((gap, idx) => (
                   <tr key={idx} className="hover:bg-white/[0.02] transition">
                     <td className="py-3 px-4 max-w-md">
-                      <div className="font-medium text-white truncate" title={gap.query}>
+                      <div className="font-medium text-slate-900 dark:text-white truncate" title={gap.query}>
                         {gap.query}
                       </div>
                       {gap.feedback_reasons && gap.feedback_reasons.length > 0 && (

@@ -2,6 +2,15 @@
 
 Registro leggibile del lavoro su questo progetto. Per i finding tecnici completi, [docs/AUDIT_2026-08-19.md](docs/AUDIT_2026-08-19.md) e [docs/CODE_REVIEW.md](docs/CODE_REVIEW.md). La roadmap per fasi e il registro delle sessioni (`ROADMAP_V2.md`, `WORK_PROGRESS.md`) sono stati tolti dall'albero pubblico il 18 settembre 2026: la cronologia Git li conserva.
 
+## 2026-10-17 — Interfaccia: schede istantanee, tema chiaro completo, schermata di accesso
+
+Trovato guardando l'app con Playwright in chiaro e scuro, desktop e telefono (non a occhio sulla sola lettura del codice).
+
+- **Ogni scheda impiegava da 2 a 6 secondi ad aprirsi.** `/health` era dichiarato `async def` ma faceva I/O sincrono (httpx verso Ollama, timeout 3 s): girava sul ciclo degli eventi e bloccava l'intero server, file statici inclusi, a ogni sondaggio dell'interfaccia. Ora e' `def` (eseguito in un thread) e la sonda di Ollama e' memorizzata 10 secondi (un errore non viene memorizzato). Schede da 2-6 s a 10-40 ms. Due test fissano entrambe le cose.
+- **Tema chiaro**: lo sfondo dell'app era scuro anche con il tema chiaro; ora ha la sua variante. I colori pastello e i bianchi trasparenti, illeggibili su fondo chiaro, vengono portati a tonalita' scure con un livello di compatibilita' in `index.css`; titoli, riquadri e menu delle schede Biblioteche, Connettori, Impostazioni, Provider, Analytics, Audit e della schermata di accesso hanno le coppie chiaro/scuro. La scelta del tema viene ricordata.
+- **Opacita' non valide**: Tailwind genera solo passi da 5, quindi `bg-white/78`, `bg-slate-950/72`, `/48` e `/42` non producevano alcuno sfondo. Portate a valori validi: il vetro smerigliato di barra laterale e intestazione ora c'e' davvero.
+- **Telefono**: la scheda di benvenuto dell'assistente veniva tagliata in alto (centratura verticale con contenuto piu' alto dello schermo).
+
 ## 2026-10-16 — Embedding predefinito: EmbeddingGemma al posto di BGE-M3, misurato
 
 Quattro modelli di embedding confrontati con lo stesso strumento (`python evaluation/scale_check.py --sizes 0,97 --semantic`, 52 domande, corpus piccolo / con 388 passaggi di rumore intorno). Dettagli e numeri in [docs/RETRIEVAL_EVALUATION.md](docs/RETRIEVAL_EVALUATION.md).

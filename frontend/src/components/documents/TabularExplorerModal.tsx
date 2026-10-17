@@ -130,14 +130,14 @@ export function TabularExplorerModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
       <div className={`relative flex flex-col w-full max-w-5xl h-[85vh] rounded-2xl border shadow-2xl overflow-hidden ${t.card}`}>
         {/* Header */}
-        <div className="flex items-center justify-between border-b px-6 py-4 bg-slate-950/20">
+        <div className="flex items-center justify-between border-b px-6 py-4 bg-white/60 dark:bg-slate-950/20">
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20">
               <Table className="h-5 w-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-base font-semibold text-white truncate max-w-md">{filename}</h2>
+                <h2 className="text-base font-semibold text-slate-900 dark:text-white truncate max-w-md">{filename}</h2>
                 <span className="rounded-full bg-blue-500/10 px-2.5 py-0.5 text-xs font-medium text-blue-400 border border-blue-500/20">
                   SQL Sandboxed
                 </span>
@@ -161,7 +161,7 @@ export function TabularExplorerModal({
         </div>
 
         {/* Navigation Tabs */}
-        <div className="flex items-center justify-between border-b px-6 py-2 bg-slate-950/10">
+        <div className="flex items-center justify-between border-b px-6 py-2 bg-white/60 dark:bg-slate-950/10">
           <div className="flex gap-2">
             <button
               onClick={() => setActiveTab('schema')}
@@ -273,7 +273,7 @@ export function TabularExplorerModal({
                       </button>
                     </div>
 
-                    <div className="overflow-x-auto rounded-xl border border-white/10 bg-slate-950/30">
+                    <div className="overflow-x-auto rounded-xl border border-white/10 bg-white/60 dark:bg-slate-950/30">
                       <table className="w-full text-left text-xs text-slate-300 border-collapse">
                         <thead>
                           <tr className="border-b border-white/10 bg-white/5 font-semibold text-slate-200">
@@ -338,7 +338,7 @@ export function TabularExplorerModal({
                     onChange={e => setSqlQuery(e.target.value)}
                     placeholder="SELECT * FROM data WHERE ..."
                     rows={3}
-                    className="flex-1 rounded-xl border border-white/10 bg-slate-950/60 p-3 font-mono text-xs text-white outline-none focus:border-blue-500 transition resize-none"
+                    className="flex-1 rounded-xl border border-slate-300 dark:border-white/10 bg-white dark:bg-slate-950/60 p-3 font-mono text-xs text-slate-900 dark:text-white outline-none focus:border-blue-500 transition resize-none"
                   />
                   <button
                     onClick={() => handleExecuteQuery()}
@@ -359,7 +359,7 @@ export function TabularExplorerModal({
               )}
 
               {/* Query Results Table */}
-              <div className="flex-1 overflow-hidden flex flex-col rounded-xl border border-white/10 bg-slate-950/30">
+              <div className="flex-1 overflow-hidden flex flex-col rounded-xl border border-white/10 bg-white/60 dark:bg-slate-950/30">
                 {executingQuery ? (
                   <div className="flex flex-1 items-center justify-center text-slate-400 text-xs">
                     <div className="h-6 w-6 animate-spin rounded-full border-2 border-blue-500 border-t-transparent mr-2" />
@@ -375,7 +375,7 @@ export function TabularExplorerModal({
                     </div>
                     <div className="flex-1 overflow-auto">
                       <table className="w-full text-left text-xs text-slate-300 border-collapse">
-                        <thead className="sticky top-0 bg-slate-900 border-b border-white/10">
+                        <thead className="sticky top-0 bg-white dark:bg-slate-900 border-b border-white/10">
                           <tr className="font-semibold text-slate-200">
                             {queryResult.columns.map(col => (
                               <th key={col} className="px-3 py-2 whitespace-nowrap">

@@ -296,7 +296,7 @@ export default function PiiSettingsPanel({ showNotif, isAdmin = false }: PiiSett
                 <div className="flex flex-wrap gap-2 pt-1">
                   {testResult.detected.map((d, idx) => (
                     <span key={idx} className="text-xs bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-1 rounded-md font-mono">
-                      {d.label}: <strong className="text-white">{d.value}</strong>
+                      {d.label}: <strong className="text-slate-900 dark:text-white">{d.value}</strong>
                     </span>
                   ))}
                 </div>

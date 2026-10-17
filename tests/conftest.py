@@ -234,3 +234,15 @@ def reset_pii_config():
     reset_pii_config_cache()
     yield
     reset_pii_config_cache()
+
+
+@pytest.fixture(autouse=True)
+def _forget_cached_ollama_probe():
+    """La sonda di Ollama in api/health.py e' memorizzata per qualche secondo:
+    senza questo, l'esito di un test (raggiungibile) trapela nel successivo
+    (non raggiungibile)."""
+    from api import health
+
+    health._ollama_cache.clear()
+    yield
+    health._ollama_cache.clear()
