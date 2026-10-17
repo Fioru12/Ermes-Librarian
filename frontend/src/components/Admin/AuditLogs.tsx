@@ -65,7 +65,7 @@ export default function AuditLogs({ showNotif }: { showNotif: (m: string, t: 'su
       a.click()
       document.body.removeChild(a)
       URL.revokeObjectURL(url)
-      showNotif('Report di conformità SOC 2 / ISO 27001 scaricato con successo', 'success')
+      showNotif('Report di integrità del registro scaricato', 'success')
     } catch {
       showNotif('Impossibile scaricare il report di conformità', 'error')
     } finally {
@@ -88,10 +88,10 @@ export default function AuditLogs({ showNotif }: { showNotif: (m: string, t: 'su
             onClick={downloadComplianceReport}
             disabled={downloadingReport}
             className="flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-300 transition hover:bg-emerald-500/20 disabled:opacity-50 cursor-pointer"
-            title="Scarica Certificato di Conformità SOC 2 / ISO 27001"
+            title="Report sull'integrità del registro: evidenza utile per SOC 2, ISO 27001 e GDPR, non una certificazione"
           >
             <FileCheck className="h-3.5 w-3.5" />
-            <span>{downloadingReport ? 'Generazione...' : 'Scarica Report SOC 2 / GDPR'}</span>
+            <span>{downloadingReport ? 'Generazione...' : 'Scarica report di integrità'}</span>
           </button>
           <button
             onClick={fetchLogs}
@@ -120,11 +120,11 @@ export default function AuditLogs({ showNotif }: { showNotif: (m: string, t: 'su
             <div>
               <p className="font-semibold text-slate-900 dark:text-slate-100">
                 {integrity.valid
-                  ? 'Catena Crittografica Immutabile e Autentica'
+                  ? 'Registro integro: nessuna manomissione rilevata'
                   : `Allerta Integrità: Rilevate ${integrity.corrupted_count} anomalie nella catena!`}
               </p>
               <p className="mt-0.5 text-slate-500 dark:text-slate-400">
-                {integrity.verified_entries} su {integrity.total_entries} voci verificate matematicamente (SHA-256 + HMAC-SHA256).
+                {integrity.verified_entries} su {integrity.total_entries} voci verificate (catena SHA-256 e firma HMAC-SHA256). Una modifica successiva si vedrebbe; non è però impossibile farla.
               </p>
             </div>
           </div>

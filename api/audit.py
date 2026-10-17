@@ -107,7 +107,7 @@ async def audit_verify(_auth: dict = Depends(_require_role("admin"))):
     return report
 
 
-@router.get("/api/audit/compliance-report", summary="Genera un report di conformità SOC 2 / ISO 27001 / GDPR")
+@router.get("/api/audit/compliance-report", summary="Report sull'integrità del registro di audit (evidenza per SOC 2 / ISO 27001 / GDPR, non una certificazione)")
 async def audit_compliance_report(
     organization: str = "Ermes Enterprise",
     _auth: dict = Depends(_require_role("admin")),

@@ -243,7 +243,13 @@ class AuditChainManager:
         organization: str = "Ermes Enterprise",
         auditor_id: str = "security_auditor",
     ) -> dict[str, Any]:
-        """Generates a SOC 2 Type II / ISO 27001 / GDPR compliance certification report."""
+        """Genera il report sull'integrita' del registro di audit, con i controlli che alimenta.
+
+        Attesta UNA cosa: che la catena di hash e le firme HMAC del registro verificano.
+        Non e' una certificazione ne' una valutazione di conformita': SOC 2, ISO 27001 e
+        GDPR si valutano su organizzazione e processi, non su un file di log.
+        Vedi `disclaimer` nel report.
+        """
         verification = AuditChainManager.verify_chain(audit_file)
         now_iso = datetime.now(UTC).isoformat()
 
@@ -309,6 +315,12 @@ class AuditChainManager:
                 "high_priority_governance_events_count": len(security_events),
             },
             "recent_governance_events": security_events[-20:],
+            "disclaimer": (
+                "Questo report attesta soltanto l'integrita' del registro di audit "
+                "(catena SHA-256 e firme HMAC). Non e' una certificazione ne' una valutazione "
+                "di conformita' a SOC 2, ISO 27001 o GDPR: l'integrita' del registro e' una "
+                "evidenza che contribuisce a quei controlli, non li soddisfa da sola."
+            ),
             "compliance_attestation": {
                 "immutable_logging": verification["valid"],
                 "tamper_evidence": "SHA-256 Chained + HMAC Authenticated",

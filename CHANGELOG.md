@@ -2,6 +2,13 @@
 
 Registro leggibile del lavoro su questo progetto. Per i finding tecnici completi, [docs/AUDIT_2026-08-19.md](docs/AUDIT_2026-08-19.md) e [docs/CODE_REVIEW.md](docs/CODE_REVIEW.md). La roadmap per fasi e il registro delle sessioni (`ROADMAP_V2.md`, `WORK_PROGRESS.md`) sono stati tolti dall'albero pubblico il 18 settembre 2026: la cronologia Git li conserva.
 
+## 2026-10-18 (2) — README nuovo, schermate vere, e tre affermazioni che il prodotto non poteva sostenere
+
+- **README**: da 372 a 282 righe. In alto la dimostrazione animata (rifatta sull'interfaccia attuale: accesso, risposta con fonte, rifiuto onesto, biblioteche, tema chiaro), quattro punti di forza con i numeri, una galleria di otto schermate, un confronto onesto con Open WebUI, AnythingLLM, Onyx e OpenJarvis (comprese le righe in cui Ermes e' piu' debole: connettori, agenti, app desktop, community), lo schema dell'architettura in Mermaid e una sezione "What leaves your machine". Elenco completo delle funzioni in `docs/FEATURES.md` e tutte le misure, comprese quelle scomode, in `docs/BENCHMARKS.md`: spostati senza perdere nulla.
+- **"Certificato di Conformita' SOC 2 / ISO 27001"**: il pulsante e il report si presentavano cosi' ma `overall_status: COMPLIANT` dipendeva solo dalla validita' della catena di hash del registro. L'integrita' del registro e' una evidenza, non una conformita'. Pulsante e messaggi ora parlano di "report di integrita'", e il report ha un campo `disclaimer` (il resto del formato e' invariato). Un test lo fissa.
+- **"Catena crittografica immutabile"**: la catena rende visibile una manomissione, non la impedisce. Il testo lo dice.
+- **Stato del sistema**: mostrava "Degraded" in inglese senza dire perche'. Ora "Funziona, con avvisi" e un riquadro "Cosa richiede attenzione" con le ragioni reali (nell'istanza di prova: OCR attivo ma Tesseract non trovato). La latenza media passa da "7061.26 ms" a "7,1 s"; "Analytics & Knowledge Gaps" e "Knowledge Gaps" diventano italiano.
+
 ## 2026-10-18 — Giro di coerenza: documenti allineati al codice, contratto OpenAPI senza ambiguità
 
 - **OpenAPI**: il webhook di Microsoft Graph era registrato con `api_route(methods=["GET", "POST"])`, che genera un solo `operationId` per due operazioni (FastAPI lo segnalava con un avviso a ogni generazione dello schema). Un client generato dallo schema non sa quale funzione chiamare. Ora sono due decoratori, e `tests/test_openapi_contract.py` trasforma l'avviso in un errore.
