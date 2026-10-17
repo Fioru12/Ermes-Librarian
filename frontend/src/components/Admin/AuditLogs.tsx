@@ -129,7 +129,7 @@ export default function AuditLogs({ showNotif }: { showNotif: (m: string, t: 'su
             </div>
           </div>
           {integrity.head_hash && integrity.head_hash !== '0'.repeat(64) && (
-            <div className="rounded bg-black/30 border border-slate-200 dark:border-white/5 px-2 py-1 font-mono text-[10px] text-slate-500 dark:text-slate-400">
+            <div className="rounded bg-slate-100 dark:bg-black/30 border border-slate-200 dark:border-white/5 px-2 py-1 font-mono text-[10px] text-slate-500 dark:text-slate-400">
               Head Hash: <span className="text-blue-300">{integrity.head_hash.slice(0, 16)}...</span>
             </div>
           )}

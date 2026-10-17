@@ -92,6 +92,7 @@ export default function AnalyticsDashboard({ showNotif }: AnalyticsDashboardProp
         </div>
         <div className="flex items-center gap-3">
           <select
+            aria-label="Periodo di analisi"
             value={days}
             onChange={(e) => setDays(Number(e.target.value))}
             className={`text-xs rounded-xl px-3 py-2 border outline-none font-medium ${t.sidebarInput}`}

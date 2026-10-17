@@ -661,7 +661,7 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
     // Sotto i 768 px le due colonne si impilano: affiancate, su un telefono la
     // seconda (i documenti) finiva tagliata fuori dallo schermo.
     <div className="flex h-full flex-col overflow-y-auto md:flex-row md:overflow-hidden">
-      <aside className={`w-full shrink-0 border-b p-4 flex flex-col gap-4 bg-white/60 dark:bg-slate-950/20 ermes-glass max-h-[45vh] overflow-y-auto md:max-h-none md:w-80 md:border-b-0 md:border-r md:p-6 ${t.documentsBg}`}>
+      <aside aria-label="Biblioteche" className={`w-full shrink-0 border-b p-4 flex flex-col gap-4 bg-white/60 dark:bg-slate-950/20 ermes-glass max-h-[45vh] overflow-y-auto md:max-h-none md:w-80 md:border-b-0 md:border-r md:p-6 ${t.documentsBg}`}>
         <div className="flex items-center justify-between gap-3">
           <CardTitle><Library className="w-4 h-4 text-blue-400" />Biblioteche</CardTitle>
           <button onClick={fetchLibraries} aria-label="Aggiorna biblioteche" className="text-slate-400 hover:text-blue-400 transition">

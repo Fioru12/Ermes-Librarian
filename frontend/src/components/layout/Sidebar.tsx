@@ -41,6 +41,7 @@ export default function Sidebar({ activeTab, onTabChange, healthStatus, onRefres
     {mobileOpen && <div className="fixed inset-0 z-30 bg-slate-950/60 md:hidden" onClick={onMobileClose} aria-hidden="true" />}
     <aside
       id="ermes-menu"
+      aria-label="Menu principale"
       className={`fixed inset-y-0 left-0 z-40 w-[17.5rem] max-w-[85vw] border-r flex flex-col transition-transform duration-200 md:static md:z-10 md:translate-x-0 ${mobileOpen ? 'translate-x-0' : '-translate-x-full'} ${t.sidebar}`}
     >
       {/* Title */}

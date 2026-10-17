@@ -31,8 +31,8 @@ import httpx
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, Response
-from fastapi.staticfiles import StaticFiles
 
+from api.static_assets import assets_app
 from config import cfg
 from core.governance import append_audit
 
@@ -435,7 +435,7 @@ except Exception as _e:
 # ── Frontend Static (SPA) ──
 _frontend_dist = os.path.join(os.path.dirname(__file__), "..", "frontend", "dist")
 if os.path.isdir(_frontend_dist):
-    app.mount("/assets", StaticFiles(directory=os.path.join(_frontend_dist, "assets")), name="assets")
+    app.mount("/assets", assets_app(os.path.join(_frontend_dist, "assets")), name="assets")
 
     @app.get("/{full_path:path}", response_class=HTMLResponse, include_in_schema=False)
     async def _serve_frontend(full_path: str = ""):

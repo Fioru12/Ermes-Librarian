@@ -177,7 +177,7 @@ export default function PiiSettingsPanel({ showNotif, isAdmin = false }: PiiSett
           {standardMeta.map(item => (
             <div
               key={item.id}
-              onClick={() => handleTogglePattern(item.id)}
+              onClick={event => { if ((event.target as HTMLElement).tagName !== 'INPUT') handleTogglePattern(item.id) }}
               className={`flex items-center justify-between p-4 rounded-xl border transition-all cursor-pointer ${
                 enabledPatterns[item.id] !== false
                   ? 'bg-amber-500/10 border-amber-500/30 text-amber-200'
@@ -191,7 +191,8 @@ export default function PiiSettingsPanel({ showNotif, isAdmin = false }: PiiSett
               <input
                 type="checkbox"
                 checked={enabledPatterns[item.id] !== false}
-                onChange={() => {}}
+                aria-label={`Maschera ${item.label}`}
+                onChange={() => handleTogglePattern(item.id)}
                 disabled={!isAdmin}
                 className="w-4 h-4 accent-amber-500 rounded cursor-pointer"
               />
@@ -253,7 +254,7 @@ export default function PiiSettingsPanel({ showNotif, isAdmin = false }: PiiSett
                   <span className="ml-2 font-mono text-xs text-amber-400">→ {rule.replacement}</span>
                 </div>
                 {isAdmin && (
-                  <Button variant="danger" className="px-2 py-1 text-xs" onClick={() => handleDeleteCustomRule(rule.id)}>
+                  <Button variant="danger" className="px-2 py-1 text-xs" aria-label={`Elimina la regola ${rule.name}`} title="Elimina la regola" onClick={() => handleDeleteCustomRule(rule.id)}>
                     <Trash2 className="w-3.5 h-3.5" />
                   </Button>
                 )}

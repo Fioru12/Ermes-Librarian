@@ -23,8 +23,8 @@ interface CardTitleProps extends React.HTMLAttributes<HTMLHeadingElement> {
 
 export function CardTitle({ children, className = '', ...props }: CardTitleProps) {
   return (
-    <h3 className={`text-sm font-bold uppercase tracking-wider flex items-center gap-2 text-slate-300 ${className}`} {...props}>
+    <h2 className={`text-sm font-bold uppercase tracking-wider flex items-center gap-2 text-slate-300 ${className}`} {...props}>
       {children}
-    </h3>
+    </h2>
   )
 }
