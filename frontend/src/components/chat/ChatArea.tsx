@@ -65,7 +65,7 @@ export default function ChatArea({
   isGenerating, suggestions, libraries = [], selectedLibraryId = '', selectedLibraryDocumentCount = 0, onLibraryChange, onOpenLibraries,
   conversations = [], activeConversationId = null, onSelectConversation, onNewConversation, onDeleteConversation,
 }: ChatAreaProps) {
-  const { t } = useTheme()
+  const { t, isDark } = useTheme()
   const chatEndRef = useRef<HTMLDivElement>(null)
   const [activeCitation, setActiveCitation] = useState<{ source: Source; marker: number } | null>(null)
   const [isCitationDocked, setIsCitationDocked] = useState<boolean>(false)
@@ -582,13 +582,13 @@ export default function ChatArea({
       {/* NotebookLM-Style Split-Screen Source Inspector Panel */}
       {activeCitation && isCitationDocked && (
         <aside
-          className="hidden lg:flex flex-col w-[420px] xl:w-[460px] h-full border-l border-white/10 bg-slate-950/90 backdrop-blur-xl p-5 shrink-0 overflow-y-auto terminal-scroll shadow-2xl animate-fadeIn z-20"
+          className={`hidden lg:flex flex-col w-[420px] xl:w-[460px] h-full border-l backdrop-blur-xl p-5 shrink-0 overflow-y-auto terminal-scroll shadow-2xl animate-fadeIn z-20 ${isDark ? 'border-white/10 bg-slate-950/90' : 'border-slate-200 bg-white/95'}`}
           aria-label="Ispezione Fonte NotebookLM"
         >
-          <div className="flex items-start justify-between gap-3 pb-3 border-b border-white/10">
+          <div className={`flex items-start justify-between gap-3 pb-3 border-b ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-bold text-sm text-white">Fonte [{activeCitation.marker}]</span>
+                <span className={`font-bold text-sm ${isDark ? 'text-white' : 'text-slate-900'}`}>Fonte [{activeCitation.marker}]</span>
                 <span className="rounded-full bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-semibold text-emerald-300">
                   Evidenza Verificata
                 </span>
@@ -602,7 +602,7 @@ export default function ChatArea({
                 })()}
               </div>
               <div className="flex items-center gap-1.5 text-xs text-slate-400 mt-1 truncate max-w-[340px]">
-                <span className="font-medium text-slate-200 truncate">{activeCitation.source.filename}</span>
+                <span className={`font-medium truncate ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>{activeCitation.source.filename}</span>
                 <span>•</span>
                 <span className="rounded bg-blue-500/10 border border-blue-500/20 px-1 py-0.5 text-blue-300 font-mono text-[10px]">
                   {activeCitation.source.locator}
@@ -613,7 +613,7 @@ export default function ChatArea({
               <button
                 type="button"
                 onClick={() => setIsCitationDocked(false)}
-                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-white/10 transition cursor-pointer"
+                className={`p-1 rounded-lg transition cursor-pointer ${isDark ? 'text-slate-400 hover:text-white hover:bg-white/10' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'}`}
                 title="Espandi in modale"
               >
                 <Maximize2 className="h-4 w-4" />
@@ -621,7 +621,7 @@ export default function ChatArea({
               <button
                 type="button"
                 onClick={() => setActiveCitation(null)}
-                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-white/10 transition cursor-pointer"
+                className={`p-1 rounded-lg transition cursor-pointer ${isDark ? 'text-slate-400 hover:text-white hover:bg-white/10' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'}`}
                 title="Chiudi ispezione"
               >
                 <X className="h-4 w-4" />
@@ -631,12 +631,12 @@ export default function ChatArea({
 
           <div className="mt-4 flex-1">
             <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Estratto Documentale Certificato:</p>
-            <blockquote className="rounded-xl border border-amber-500/25 bg-amber-500/[0.04] p-3.5 text-xs leading-relaxed text-slate-200 border-l-4 border-l-amber-400/80 shadow-inner">
+            <blockquote className={`rounded-xl border border-amber-500/25 bg-amber-500/[0.04] p-3.5 text-xs leading-relaxed ${isDark ? 'text-slate-200' : 'text-slate-800'} border-l-4 border-l-amber-400/80 shadow-inner`}>
               <InlineMarkdown text={activeCitation.source.excerpt} />
             </blockquote>
           </div>
 
-          <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between gap-2">
+          <div className={`mt-4 pt-3 border-t ${isDark ? 'border-white/10' : 'border-slate-200'} flex items-center justify-between gap-2`}>
             <button
               type="button"
               onClick={handleCopyCitation}

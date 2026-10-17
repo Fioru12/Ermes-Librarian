@@ -339,28 +339,28 @@ export default function ConnectorsTab({ showNotif }: ConnectorsTabProps) {
     <div className="p-6 max-w-6xl mx-auto space-y-8">
       {/* Header */}
       <div>
-        <h2 className="text-2xl font-bold tracking-tight text-slate-100 flex items-center gap-3">
+        <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-3">
           <HardDrive className="w-7 h-7 text-blue-400" /> Connettori & Integrazioni Enterprise
         </h2>
-        <p className="text-sm text-slate-400 mt-1">
+        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
           Sincronizza documenti da cartelle di rete local-first, siti web ed esponi Ermes ad agenti AI (MCP) e workflow di automazione (n8n/Zapier).
         </p>
       </div>
 
       {/* Target Library Selector */}
-      <div className="rounded-xl border border-white/10 bg-slate-900/60 p-4 flex flex-col md:flex-row md:items-center gap-4 justify-between shadow-lg">
+      <div className="rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900/60 p-4 flex flex-col md:flex-row md:items-center gap-4 justify-between shadow-lg">
         <div>
-          <label className="text-xs font-semibold uppercase tracking-wider text-slate-300 block mb-1">
+          <label className="text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300 block mb-1">
             Biblioteca di destinazione per le sincronizzazioni
           </label>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-slate-500 dark:text-slate-400">
             I documenti importati verranno associati ed indicizzati direttamente in questa biblioteca.
           </p>
         </div>
         <select
           value={selectedLibrary}
           onChange={(e) => setSelectedLibrary(e.target.value)}
-          className="bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 text-sm rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
           {libraries.map((lib) => (
             <option key={lib.id} value={lib.id}>
@@ -371,14 +371,14 @@ export default function ConnectorsTab({ showNotif }: ConnectorsTabProps) {
       </div>
 
       {/* Folder Watcher Status */}
-      <div className="rounded-xl border border-white/10 bg-slate-900/60 p-4 flex flex-col md:flex-row md:items-center gap-4 justify-between shadow-lg">
+      <div className="rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900/60 p-4 flex flex-col md:flex-row md:items-center gap-4 justify-between shadow-lg">
         <div className="flex items-center gap-3">
           <Layers className="w-6 h-6 text-indigo-400" />
           <div>
-            <label className="text-xs font-semibold uppercase tracking-wider text-slate-300 block mb-1">
+            <label className="text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300 block mb-1">
               Folder Watcher — Monitoraggio automatico cartelle registrate
             </label>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               {watcherStatus
                 ? `${watcherStatus.active ? 'Attivo' : 'Inattivo'} — ${watcherStatus.monitored_sources_count ?? 0} sorgenti monitorate`
                 : 'Stato non disponibile'}
@@ -398,22 +398,22 @@ export default function ConnectorsTab({ showNotif }: ConnectorsTabProps) {
       {/* Grid Connectors */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* NAS / Local Folder Connector */}
-        <div className="rounded-xl border border-white/10 bg-slate-900/50 p-6 flex flex-col justify-between space-y-5 hover:border-blue-500/30 transition-all shadow-md">
+        <div className="rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-900/50 p-6 flex flex-col justify-between space-y-5 hover:border-blue-500/30 transition-all shadow-md">
           <div className="space-y-3">
             <div className="flex items-center gap-3 text-blue-400 font-semibold text-lg">
               <FolderCheck className="w-6 h-6" /> NAS & Cartella Locale
             </div>
-            <p className="text-xs text-slate-400 leading-relaxed">
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
               Scansiona ed indicizza cartelle di rete aziendali (SMB/NFS) o directory locali (.pdf, .docx, .txt, .md).
             </p>
             <div className="space-y-2 pt-2">
-              <label className="text-xs font-medium text-slate-300">Percorso Cartella (locale o UNC)</label>
+              <label className="text-xs font-medium text-slate-600 dark:text-slate-300">Percorso Cartella (locale o UNC)</label>
               <input
                 type="text"
                 placeholder="es. C:\Documenti\Procedure oppure \\nas\share\docs"
                 value={folderPath}
                 onChange={(e) => setFolderPath(e.target.value)}
-                className="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
             {folderStatus && (
@@ -433,7 +433,7 @@ export default function ConnectorsTab({ showNotif }: ConnectorsTabProps) {
             <button
               onClick={handleTestFolder}
               disabled={isFolderTesting}
-              className="px-4 py-2 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition border border-slate-700 flex items-center gap-2"
+              className="px-4 py-2 text-xs font-medium rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 transition border border-slate-300 dark:border-slate-700 flex items-center gap-2"
             >
               {isFolderTesting && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
               Testa percorso
@@ -450,22 +450,22 @@ export default function ConnectorsTab({ showNotif }: ConnectorsTabProps) {
         </div>
 
         {/* Web Scraper / Intranet Connector */}
-        <div className="rounded-xl border border-white/10 bg-slate-900/50 p-6 flex flex-col justify-between space-y-5 hover:border-purple-500/30 transition-all shadow-md">
+        <div className="rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-900/50 p-6 flex flex-col justify-between space-y-5 hover:border-purple-500/30 transition-all shadow-md">
           <div className="space-y-3">
             <div className="flex items-center gap-3 text-purple-400 font-semibold text-lg">
               <Globe className="w-6 h-6" /> Web Scraper / Intranet Wiki
             </div>
-            <p className="text-xs text-slate-400 leading-relaxed">
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
               Estrae e converte in Markdown le pagine di wiki aziendali o portali web pubblici/intranet.
             </p>
             <div className="space-y-2 pt-2">
-              <label className="text-xs font-medium text-slate-300">URL Base Portale Web</label>
+              <label className="text-xs font-medium text-slate-600 dark:text-slate-300">URL Base Portale Web</label>
               <input
                 type="text"
                 placeholder="es. https://intranet.azienda.local/wiki"
                 value={webUrl}
                 onChange={(e) => setWebUrl(e.target.value)}
-                className="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
               />
             </div>
             {webStatus && (
@@ -485,7 +485,7 @@ export default function ConnectorsTab({ showNotif }: ConnectorsTabProps) {
             <button
               onClick={handleTestWeb}
               disabled={isWebTesting}
-              className="px-4 py-2 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition border border-slate-700 flex items-center gap-2"
+              className="px-4 py-2 text-xs font-medium rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 transition border border-slate-300 dark:border-slate-700 flex items-center gap-2"
             >
               {isWebTesting && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
               Testa URL
@@ -502,54 +502,54 @@ export default function ConnectorsTab({ showNotif }: ConnectorsTabProps) {
         </div>
 
         {/* M365 / SharePoint / OneDrive Connector */}
-        <div className="rounded-xl border border-white/10 bg-slate-900/50 p-6 flex flex-col justify-between space-y-5 hover:border-sky-500/30 transition-all shadow-md">
+        <div className="rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-900/50 p-6 flex flex-col justify-between space-y-5 hover:border-sky-500/30 transition-all shadow-md">
           <div className="space-y-3">
             <div className="flex items-center gap-3 text-sky-400 font-semibold text-lg">
               <Cloud className="w-6 h-6" /> Microsoft 365 (SharePoint / OneDrive)
             </div>
-            <p className="text-xs text-slate-400 leading-relaxed">
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
               Collegati a Microsoft Graph (OAuth2 client credentials) per indicizzare documenti da SharePoint e OneDrive for Business.
             </p>
             <div className="space-y-2 pt-2">
-              <label className="text-xs font-medium text-slate-300">Tenant ID</label>
+              <label className="text-xs font-medium text-slate-600 dark:text-slate-300">Tenant ID</label>
               <input
                 type="text"
                 placeholder="es. 12345678-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
                 value={msTenantId}
                 onChange={(e) => setMsTenantId(e.target.value)}
-                className="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500"
               />
-              <label className="text-xs font-medium text-slate-300">Client ID</label>
+              <label className="text-xs font-medium text-slate-600 dark:text-slate-300">Client ID</label>
               <input
                 type="text"
                 placeholder="Azure Application (Client) ID"
                 value={msClientId}
                 onChange={(e) => setMsClientId(e.target.value)}
-                className="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500"
               />
-              <label className="text-xs font-medium text-slate-300">Client Secret</label>
+              <label className="text-xs font-medium text-slate-600 dark:text-slate-300">Client Secret</label>
               <input
                 type="password"
                 placeholder="Azure Application Secret"
                 value={msClientSecret}
                 onChange={(e) => setMsClientSecret(e.target.value)}
-                className="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500"
               />
-              <label className="text-xs font-medium text-slate-300">Drive ID (opzionale)</label>
+              <label className="text-xs font-medium text-slate-600 dark:text-slate-300">Drive ID (opzionale)</label>
               <input
                 type="text"
                 placeholder="es. 0B7g34... (lascia vuoto per OneDrive personale)"
                 value={msDriveId}
                 onChange={(e) => setMsDriveId(e.target.value)}
-                className="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500"
               />
-              <label className="text-xs font-medium text-slate-300">Percorso cartella remota</label>
+              <label className="text-xs font-medium text-slate-600 dark:text-slate-300">Percorso cartella remota</label>
               <input
                 type="text"
                 placeholder="es. /Documenti Condivisi"
                 value={msFolderPath}
                 onChange={(e) => setMsFolderPath(e.target.value)}
-                className="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500"
               />
             </div>
             {msStatus && (
@@ -569,7 +569,7 @@ export default function ConnectorsTab({ showNotif }: ConnectorsTabProps) {
             <button
               onClick={handleTestMs}
               disabled={isMsTesting}
-              className="px-4 py-2 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition border border-slate-700 flex items-center gap-2"
+              className="px-4 py-2 text-xs font-medium rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 transition border border-slate-300 dark:border-slate-700 flex items-center gap-2"
             >
               {isMsTesting && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
               Testa connessione
@@ -589,7 +589,7 @@ export default function ConnectorsTab({ showNotif }: ConnectorsTabProps) {
       {/* Advanced Integrations Section */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
         {/* MCP Server Integration */}
-        <div className="rounded-xl border border-white/10 bg-slate-900/60 p-6 space-y-4">
+        <div className="rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900/60 p-6 space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3 text-emerald-400 font-semibold text-lg">
               <Bot className="w-6 h-6" /> Server MCP (Model Context Protocol)
@@ -598,13 +598,13 @@ export default function ConnectorsTab({ showNotif }: ConnectorsTabProps) {
               JSON-RPC 2.0
             </span>
           </div>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-slate-500 dark:text-slate-400">
             Collega Ermes a client AI come <strong>Claude Desktop, Cursor, Antigravity o LangChain</strong> per risposte con fonti tracciate.
           </p>
-          <div className="relative bg-slate-950 p-3 rounded-lg border border-slate-800 font-mono text-[11px] text-slate-300 overflow-x-auto">
+          <div className="relative bg-white dark:bg-slate-950 p-3 rounded-lg border border-slate-200 dark:border-slate-800 font-mono text-[11px] text-slate-600 dark:text-slate-300 overflow-x-auto">
             <button
               onClick={() => copyToClipboard(mcpConfigJson)}
-              className="absolute top-2 right-2 p-1.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 transition"
+              className="absolute top-2 right-2 p-1.5 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition"
               title="Copia configurazione JSON"
             >
               <Copy className="w-3.5 h-3.5" />
@@ -617,7 +617,7 @@ export default function ConnectorsTab({ showNotif }: ConnectorsTabProps) {
         </div>
 
         {/* Automation Webhook Gateway */}
-        <div className="rounded-xl border border-white/10 bg-slate-900/60 p-6 space-y-4">
+        <div className="rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900/60 p-6 space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3 text-amber-400 font-semibold text-lg">
               <Zap className="w-6 h-6" /> Webhook Automazioni (n8n / Zapier)
@@ -626,13 +626,13 @@ export default function ConnectorsTab({ showNotif }: ConnectorsTabProps) {
               REST Webhooks
             </span>
           </div>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-slate-500 dark:text-slate-400">
             Interroga biblioteche o carica documenti da workflow automatici tramite API Key.
           </p>
-          <div className="space-y-2 bg-slate-950 p-3 rounded-lg border border-slate-800 text-[11px] font-mono text-slate-300">
+          <div className="space-y-2 bg-white dark:bg-slate-950 p-3 rounded-lg border border-slate-200 dark:border-slate-800 text-[11px] font-mono text-slate-600 dark:text-slate-300">
             <p className="text-amber-400 font-semibold">POST /api/integrations/automation/ask</p>
             <p className="text-slate-500">Body: &#123; "library_id": "...", "question": "..." &#125;</p>
-            <hr className="border-slate-800 my-2" />
+            <hr className="border-slate-200 dark:border-slate-800 my-2" />
             <p className="text-amber-400 font-semibold">POST /api/integrations/automation/ingest</p>
             <p className="text-slate-500">Body: &#123; "library_id": "...", "filename": "...", "content": "..." &#125;</p>
           </div>

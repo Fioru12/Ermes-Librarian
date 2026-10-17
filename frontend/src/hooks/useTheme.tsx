@@ -9,6 +9,17 @@ interface ThemeContextValue {
 
 const ThemeContext = createContext<ThemeContextValue | null>(null)
 
+const THEME_STORAGE_KEY = 'ermes-theme'
+
+// Il tema scelto sopravvive al ricaricamento; senza scelta salvata si parte dallo scuro.
+function readStoredTheme(): boolean {
+  try {
+    return window.localStorage.getItem(THEME_STORAGE_KEY) !== 'light'
+  } catch {
+    return true
+  }
+}
+
 function buildTheme(dark: boolean): ThemeClasses {
   return {
     bg: dark ? 'bg-[#0f1115] text-slate-100' : 'bg-[#f8fafc] text-slate-900',
@@ -38,15 +49,20 @@ function buildTheme(dark: boolean): ThemeClasses {
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [isDark, setIsDark] = useState(true)
+  const [isDark, setIsDark] = useState(readStoredTheme)
   const toggle = useCallback(() => setIsDark(d => !d), [])
   const t = useMemo(() => buildTheme(isDark), [isDark])
-  
+
   useEffect(() => {
     if (isDark) {
       document.documentElement.classList.add('dark')
     } else {
       document.documentElement.classList.remove('dark')
+    }
+    try {
+      window.localStorage.setItem(THEME_STORAGE_KEY, isDark ? 'dark' : 'light')
+    } catch {
+      // Storage bloccato (finestra privata, policy): il tema resta valido per la sessione.
     }
   }, [isDark])
 

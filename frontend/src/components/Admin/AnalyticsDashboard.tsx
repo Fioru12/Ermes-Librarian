@@ -123,7 +123,7 @@ export default function AnalyticsDashboard({ showNotif }: AnalyticsDashboardProp
         {/* Total Queries */}
         <div className={`p-5 rounded-2xl border ${t.card} relative overflow-hidden shadow-sm`}>
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               Query Totali
             </span>
             <Activity className="w-5 h-5 text-blue-400" />
@@ -131,13 +131,13 @@ export default function AnalyticsDashboard({ showNotif }: AnalyticsDashboardProp
           <p className="text-3xl font-bold mt-3 text-white">
             {summary ? summary.total_queries.toLocaleString() : '—'}
           </p>
-          <span className="text-xs text-slate-400 mt-1 block">In {days} giorni</span>
+          <span className="text-xs text-slate-500 dark:text-slate-400 mt-1 block">In {days} giorni</span>
         </div>
 
         {/* Avg Latency */}
         <div className={`p-5 rounded-2xl border ${t.card} relative overflow-hidden shadow-sm`}>
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               Latenza Media
             </span>
             <Clock className="w-5 h-5 text-amber-400" />
@@ -145,13 +145,13 @@ export default function AnalyticsDashboard({ showNotif }: AnalyticsDashboardProp
           <p className="text-3xl font-bold mt-3 text-white">
             {summary ? `${summary.avg_latency_ms} ms` : '—'}
           </p>
-          <span className="text-xs text-slate-400 mt-1 block">Tempo ricerca + sintesi</span>
+          <span className="text-xs text-slate-500 dark:text-slate-400 mt-1 block">Tempo ricerca + sintesi</span>
         </div>
 
         {/* Satisfaction Rate */}
         <div className={`p-5 rounded-2xl border ${t.card} relative overflow-hidden shadow-sm`}>
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               Feedback Positivi
             </span>
             <ThumbsUp className="w-5 h-5 text-emerald-400" />
@@ -161,7 +161,7 @@ export default function AnalyticsDashboard({ showNotif }: AnalyticsDashboardProp
               ? `${summary.positive_feedback_rate}%`
               : '—'}
           </p>
-          <span className="text-xs text-slate-400 mt-1 block">
+          <span className="text-xs text-slate-500 dark:text-slate-400 mt-1 block">
             {summary && summary.total_feedback > 0
               ? `${summary.total_feedback} feedback registrati`
               : 'Nessuna valutazione ricevuta'}
@@ -193,7 +193,7 @@ export default function AnalyticsDashboard({ showNotif }: AnalyticsDashboardProp
             </h3>
           </div>
           <div className="relative w-full sm:w-64">
-            <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
+            <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-500 dark:text-slate-400" />
             <input
               type="text"
               placeholder="Filtra domande..."
@@ -204,12 +204,12 @@ export default function AnalyticsDashboard({ showNotif }: AnalyticsDashboardProp
           </div>
         </div>
 
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-slate-500 dark:text-slate-400">
           Queste sono le domande poste dagli utenti a cui Ermes non ha trovato evidenza nei documenti caricati. Caricare documenti su questi argomenti aumenterà la copertura del RAG.
         </p>
 
         {filteredGaps.length === 0 ? (
-          <div className="text-center py-10 text-slate-400 text-sm">
+          <div className="text-center py-10 text-slate-500 dark:text-slate-400 text-sm">
             Nessun knowledge gap rilevato nel periodo selezionato.
           </div>
         ) : (
@@ -217,10 +217,10 @@ export default function AnalyticsDashboard({ showNotif }: AnalyticsDashboardProp
             <table className="w-full text-left text-xs">
               <thead className={`border-b ${t.tableHeader}`}>
                 <tr>
-                  <th className="py-3 px-4 font-semibold text-slate-300">Domanda Frequente</th>
-                  <th className="py-3 px-4 font-semibold text-slate-300">Frequenza</th>
-                  <th className="py-3 px-4 font-semibold text-slate-300">Motivo Esito</th>
-                  <th className="py-3 px-4 font-semibold text-slate-300">Feedback Negativi</th>
+                  <th className="py-3 px-4 font-semibold text-slate-600 dark:text-slate-300">Domanda Frequente</th>
+                  <th className="py-3 px-4 font-semibold text-slate-600 dark:text-slate-300">Frequenza</th>
+                  <th className="py-3 px-4 font-semibold text-slate-600 dark:text-slate-300">Motivo Esito</th>
+                  <th className="py-3 px-4 font-semibold text-slate-600 dark:text-slate-300">Feedback Negativi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/[0.04]">
@@ -248,7 +248,7 @@ export default function AnalyticsDashboard({ showNotif }: AnalyticsDashboardProp
                         {gap.count} {gap.count === 1 ? 'volta' : 'volte'}
                       </span>
                     </td>
-                    <td className="py-3 px-4 text-slate-300 max-w-xs truncate" title={gap.reason}>
+                    <td className="py-3 px-4 text-slate-600 dark:text-slate-300 max-w-xs truncate" title={gap.reason}>
                       {gap.reason || 'Evidenza insufficiente'}
                     </td>
                     <td className="py-3 px-4">
