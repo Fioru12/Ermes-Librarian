@@ -2,6 +2,19 @@
 
 Registro leggibile del lavoro su questo progetto. Per i finding tecnici completi, [docs/AUDIT_2026-08-19.md](docs/AUDIT_2026-08-19.md) e [docs/CODE_REVIEW.md](docs/CODE_REVIEW.md). La roadmap per fasi e il registro delle sessioni (`ROADMAP_V2.md`, `WORK_PROGRESS.md`) sono stati tolti dall'albero pubblico il 18 settembre 2026: la cronologia Git li conserva.
 
+## 2026-10-19 (4) — Stile app Windows 11
+
+Richiesta: far sentire a casa chi usa Windows. Si segue Fluent (il linguaggio di Windows 11) per il sistema e si lascia alla "voce del documento" il carattere con le grazie, che e' cio' che distingue Ermes.
+
+- **Carattere di sistema**: l'interfaccia usa *Segoe UI Variable* (gia' presente su Windows 11: nessun download e aspetto identico alle altre app); su altri sistemi il carattere di sistema. I dati usano *Cascadia Mono*. Il passaggio citato resta in *Source Serif 4*. Un carattere incluso in meno (Instrument Sans).
+- **Superfici**: grigi neutri come Windows 11 al posto dell'ardesia bluastra; fondo *Mica* piatto (`#202020` scuro, `#f3f3f3` chiaro) e il contenuto in un pannello con l'angolo in alto a sinistra arrotondato, come Impostazioni e Esplora file. Niente sfocature, griglie o bagliori.
+- **Accento**: il blu di Windows 11 (`#0f6cbd`, `#60cdff` sul fondo scuro); il segno e le icone dell'app lo adottano. Voce attiva della barra laterale con la barretta di accento a sinistra, come in NavigationView.
+- **Forma**: angoli da 4 px sui controlli e 8 px su pannelli e finestre; ombre leggere solo dove una superficie "galleggia".
+- **Si apre come un'app**: `AVVIA_ERMES` apre Ermes in una finestra propria (Edge o Chrome in modalita' app: niente barra degli indirizzi ne' schede). `ERMES_APRI_NEL_BROWSER=1` per il comportamento di prima. Chi usa Edge/Chrome puo' anche installarla: icona "Installa" in fondo alla barra laterale (`useInstallPrompt`), e il manifest chiede la barra del titolo integrata (`window-controls-overlay`): l'intestazione fa da barra del titolo e si trascina dalle zone libere.
+- Titoli in italiano con la sola iniziale maiuscola ("Impostazioni di sistema", "Termini personalizzati").
+
+Non fatto: i controlli nativi (menu a tendina, interruttori) restano quelli del browser; una resa completa di Fluent richiederebbe una libreria di componenti, che per ora non vale il peso aggiunto. Provato in Chromium su schermate chiare e scure; non provato dentro Edge installato come app, dove la barra del titolo integrata si vede solo.
+
 ## 2026-10-19 (2) — Segno e palette: Ermes ha un logo e un colore suoi
 
 - **Il segno**: una "E" i cui bracci sono righe di testo, come un documento, con un puntino accanto al braccio centrale: il segnaposto di una citazione. Il primo tentativo (tre righe senza costola) somigliava all'icona di un menu; la costola verticale lo rende una E. Sostituisce il quadratino sfumato con una "E" qualunque nella barra laterale, nell'accesso, nella favicon, nelle icone dell'app installabile e nel README (`components/ui/BrandMark.tsx`, stessa geometria di `public/favicon.svg`).

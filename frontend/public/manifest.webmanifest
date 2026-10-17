@@ -6,8 +6,8 @@
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#0f1115",
-  "theme_color": "#0f1115",
+  "background_color": "#202020",
+  "theme_color": "#202020",
   "icons": [
     {
       "src": "/icon-192.png",
@@ -25,5 +25,9 @@
       "type": "image/png",
       "purpose": "maskable"
     }
+  ],
+  "display_override": [
+    "window-controls-overlay",
+    "standalone"
   ]
 }

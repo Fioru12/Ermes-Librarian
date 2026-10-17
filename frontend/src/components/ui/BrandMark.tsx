@@ -16,12 +16,12 @@ export function BrandMark({ className = 'h-10 w-10', title }: { className?: stri
       aria-hidden={title ? undefined : true}
       focusable="false"
     >
-      <rect width="64" height="64" rx="15" fill="#3552f5" />
+      <rect width="64" height="64" rx="15" fill="#0f6cbd" />
       <rect x="17" y="16" width="8" height="32" rx="4" fill="#fff" />
       <rect x="17" y="16" width="30" height="7" rx="3.5" fill="#fff" />
       <rect x="17" y="28.5" width="21" height="7" rx="3.5" fill="#fff" />
       <rect x="17" y="41" width="30" height="7" rx="3.5" fill="#fff" />
-      <circle cx="46.5" cy="32" r="4" fill="#b9c4ff" />
+      <circle cx="46.5" cy="32" r="4" fill="#a8d3fb" />
     </svg>
   )
 }
