@@ -243,8 +243,8 @@ Verificato e **non** corretto perché il claim non regge: lo streaming SSE non "
 
 ## 2026-09-12 — v2.2.4: Gestione UI Glossario Dinamico e UX Citazioni Avanzate
 
-- **Pannello UI Glossario & Sinonimi Dinamici**: in [`frontend/src/components/settings/SynonymsSettingsPanel.tsx`](file:///c:/Progetti/ProgettoRAG_DEV/frontend/src/components/settings/SynonymsSettingsPanel.tsx) e integrato in [`SettingsTab.tsx`](file:///c:/Progetti/ProgettoRAG_DEV/frontend/src/components/settings/SettingsTab.tsx), introdotta la gestione visiva completa del glossario aziendale: conteggio metriche, visualizzazione a chip dei sinonimi personalizzati, modulo per l'inserimento di nuovi acronimi/espansioni per amministratori ed editor, eliminazione rapida con conferma e sezione collassabile per esplorare i termini predefiniti di sistema.
-- **UX Dettaglio Citazione Avanzata**: in [`ChatArea.tsx`](file:///c:/Progetti/ProgettoRAG_DEV/frontend/src/components/chat/ChatArea.tsx), arricchito il modal di consultazione delle evidenze con:
+- **Pannello UI Glossario & Sinonimi Dinamici**: in [`frontend/src/components/settings/SynonymsSettingsPanel.tsx`](frontend/src/components/settings/SynonymsSettingsPanel.tsx) e integrato in [`SettingsTab.tsx`](frontend/src/components/settings/SettingsTab.tsx), introdotta la gestione visiva completa del glossario aziendale: conteggio metriche, visualizzazione a chip dei sinonimi personalizzati, modulo per l'inserimento di nuovi acronimi/espansioni per amministratori ed editor, eliminazione rapida con conferma e sezione collassabile per esplorare i termini predefiniti di sistema.
+- **UX Dettaglio Citazione Avanzata**: in [`ChatArea.tsx`](frontend/src/components/chat/ChatArea.tsx), arricchito il modal di consultazione delle evidenze con:
   - Chiusura rapida tramite tasto `Escape` e click all'esterno dell'overlay;
   - Pulsante dedicato "Copia citazione" con feedback visivo (`Copiato!` con spunta verde);
   - Area di lettura ingrandita e scrollabile per estratti lunghi con backdrop blur.
@@ -297,7 +297,7 @@ Verificato e **non** corretto perché il claim non regge: lo streaming SSE non "
 - **Server MCP (Model Context Protocol)**: esposta l'interfaccia MCP nativa (`api/mcp_server.py`) su `/api/mcp/rpc` (JSON-RPC 2.0) e `/api/mcp/tools` (REST), consentendo a Claude Desktop, Cursor, Antigravity e LangChain di interrogare Ermes in modalità evidence-first.
 - **Gateway Webhook per Automazioni (n8n / Zapier / Make)**: implementati gli endpoint `/api/integrations/automation/ask` e `/api/integrations/automation/ingest` in `api/webhook_gateway.py` con autenticazione via API Key.
 - **Adattatore Telegram Bot Webhook**: aggiunto l'endpoint `/api/integrations/telegram` in `api/chat_webhooks.py` con verifica del token segreto `X-Telegram-Bot-Api-Secret-Token` per risposte RAG su Telegram.
-- **Nuova Scheda UI React "Connettori & Automazioni"**: sviluppato il componente [`frontend/src/components/connectors/ConnectorsTab.tsx`](file:///c:/Progetti/ProgettoRAG_DEV/frontend/src/components/connectors/ConnectorsTab.tsx) per testare e sincronizzare cartelle NAS, avviare lo scraper web, visualizzare snippet JSON per MCP Server ed esempi per n8n.
+- **Nuova Scheda UI React "Connettori & Automazioni"**: sviluppato il componente [`frontend/src/components/connectors/ConnectorsTab.tsx`](frontend/src/components/connectors/ConnectorsTab.tsx) per testare e sincronizzare cartelle NAS, avviare lo scraper web, visualizzare snippet JSON per MCP Server ed esempi per n8n.
 - **Suite di Test**: 248 test backend (`pytest`) e 62 test frontend (`vitest`) superati con esito 100% positivo.
 
 ## 2026-08-20
