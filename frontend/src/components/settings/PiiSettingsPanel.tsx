@@ -43,7 +43,7 @@ export default function PiiSettingsPanel({ showNotif, isAdmin = false }: PiiSett
   const fetchConfig = async () => {
     setLoading(true)
     try {
-      const res = await fetch('/api/pii/config')
+      const res = await fetch('/api/pii/config', { credentials: 'include' })
       if (!res.ok) throw new Error('Errore nel caricamento delle regole PII')
       const data = await res.json()
       setStandardMeta(data.standard_patterns_meta || [])
@@ -112,6 +112,7 @@ export default function PiiSettingsPanel({ showNotif, isAdmin = false }: PiiSett
           enabled_patterns: enabledPatterns,
           custom_rules: customRules,
         }),
+        credentials: 'include',
       })
 
       if (!res.ok) throw new Error('Errore durante il salvataggio della configurazione PII')
@@ -131,6 +132,7 @@ export default function PiiSettingsPanel({ showNotif, isAdmin = false }: PiiSett
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text: testText }),
+        credentials: 'include',
       })
       if (!res.ok) throw new Error('Errore durante il test PII')
       const data = await res.json()

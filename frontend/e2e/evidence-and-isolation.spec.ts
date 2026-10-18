@@ -44,7 +44,9 @@ async function login(page: import('@playwright/test').Page) {
 }
 
 async function ask(page: import('@playwright/test').Page, library: string, question: string) {
-  await page.locator('select').first().selectOption({ label: library })
+  const select = page.locator('select').first()
+  await expect(select.locator('option')).not.toHaveCount(1, { timeout: 30_000 })
+  await select.selectOption({ label: library })
 
   // The assistant renders either a citation banner or an abstention banner.
   // Waiting for "the last banner to be visible" races: a banner from an

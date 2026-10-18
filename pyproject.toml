@@ -85,6 +85,9 @@ indent-style = "space"
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 asyncio_mode = "auto"
+# Anche in locale un test bloccato deve fermarsi con lo stack, non restare
+# appeso per sempre. La CI passa gia' --timeout=30, che ha la precedenza.
+timeout = 120
 markers = [
     # Test che richiedono un PostgreSQL live (container ermes-pg o ERMES_TEST_DATABASE_URL);
     # vengono saltati automaticamente se il DB non è raggiungibile.

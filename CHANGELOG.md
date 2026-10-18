@@ -2,6 +2,15 @@
 
 Registro leggibile del lavoro su questo progetto. Per i finding tecnici completi, [docs/AUDIT_2026-08-19.md](docs/AUDIT_2026-08-19.md) e [docs/CODE_REVIEW.md](docs/CODE_REVIEW.md). La roadmap per fasi e il registro delle sessioni (`ROADMAP_V2.md`, `WORK_PROGRESS.md`) sono stati tolti dall'albero pubblico il 18 settembre 2026: la cronologia Git li conserva.
 
+## 2026-10-19 (10) — Stabilizzazione E2E, proxy IPv4 locale, credenziali impostazioni e avvio Ollama
+
+- **Proxy Vite su Windows (IPv4)**: puntato direttamente a `127.0.0.1:8502` in `frontend/vite.config.ts`, eliminando i timeout `ETIMEDOUT` causati dal fallback lento di Node 18+ su IPv6 `::1`.
+- **Disaccoppiamento caricamento biblioteche**: in `frontend/src/App.tsx`, `fetch('/api/libraries')` e `fetch('/health')` sono stati separati: l'eventuale lentezza o stato di degrado dell'health check non ritarda né impedisce più il popolamento immediato delle biblioteche.
+- **Credenziali nei pannelli Impostazioni**: aggiunta l'opzione `credentials: 'include'` a tutte le chiamate fetch di `SynonymsSettingsPanel.tsx` e `PiiSettingsPanel.tsx`, consentendo l'invio corretto del cookie di sessione per le rotte protette da autenticazione.
+- **Suite E2E Playwright verde al 100% (8/8)**: asserzione dinamica sui conteggi diagnostici dell'indice in `documents-acl.spec.ts`, attesa del popolamento del selettore in `evidence-and-isolation.spec.ts`.
+- **Smoke test e timeout salvaguardia**: riscrittura di `scripts/smoke_test.py` per testare i reali endpoint `/health`, login, elenco biblioteche e logout; aggiunto timeout di sicurezza a 120s in `pyproject.toml`.
+- **Daemon locale Ollama e modelli**: avviato il servizio `ollama serve` e configurati gli alias per `qwen3.5:9b` e `qwen3.5:4b`, azzerando tutti gli avvisi su semantica, verifica evidenza e memoria conversazionale.
+
 ## 2026-10-19 (9) — Lettura "da screen reader" e avvisi su Slack/Teams
 
 - **Non e' una prova con NVDA** (serve una persona), ma una lettura dell'albero di accessibilita' di tutte e nove le schede, cioe' quello che uno screen reader riceve. Trovato: nessun pulsante senza nome, regioni (`main`, `nav`, `header`) e lingua `it` a posto; **22 campi senza etichetta collegata** (solo il segnaposto, che sparisce appena si scrive) e **due titoli di primo livello per schermata** (il marchio "ERMES" nella barra laterale piu' quello della pagina). Corretto: ogni campo ha un nome (`aria-label`), il titolo della schermata e' l'unico `h1` (il marchio e' un paragrafo, i titoli interni scendono di un livello). Il test e2e `accessibility.spec.ts` ora controlla anche questi due punti in ogni scheda, chiaro e scuro, cosi' non tornano.

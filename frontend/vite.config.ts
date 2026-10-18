@@ -8,11 +8,11 @@ export default defineConfig({
     port: 3000,
     host: '0.0.0.0',
     proxy: {
-      '/api': { target: 'http://localhost:8502', changeOrigin: true },
-      '/health': { target: 'http://localhost:8502', changeOrigin: true },
-      '/modules': { target: 'http://localhost:8502', changeOrigin: true },
-      '/cache': { target: 'http://localhost:8502', changeOrigin: true },
-      '/backup': { target: 'http://localhost:8502', changeOrigin: true },
+      '/api': { target: 'http://127.0.0.1:8502', changeOrigin: true },
+      '/health': { target: 'http://127.0.0.1:8502', changeOrigin: true },
+      '/modules': { target: 'http://127.0.0.1:8502', changeOrigin: true },
+      '/cache': { target: 'http://127.0.0.1:8502', changeOrigin: true },
+      '/backup': { target: 'http://127.0.0.1:8502', changeOrigin: true },
     }
   },
   test: {

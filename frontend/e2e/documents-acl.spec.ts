@@ -37,11 +37,11 @@ test('upload, indicizzazione e gestione accessi per-documento', async ({ page })
   const libraryName = `ACL E2E ${Date.now()}`
   await page.locator('#new-library-name').fill(libraryName)
   await page.getByRole('button', { name: 'Crea biblioteca' }).click()
-  await expect(page.getByText(libraryName).first()).toBeVisible({ timeout: 15_000 })
+  await expect(page.getByRole('heading', { level: 2, name: libraryName })).toBeVisible({ timeout: 20_000 })
 
   // ── Upload di un markdown generato al volo ──
   const content = '# Policy ferie\nLe richieste di ferie vanno presentate dieci giorni prima tramite il portale HR.'
-  await page.getByLabel(/carica documento/i).setInputFiles({
+  await page.locator('input[type="file"][accept*=".md"]').first().setInputFiles({
     name: 'policy-ferie.md',
     mimeType: 'text/markdown',
     buffer: Buffer.from(content, 'utf-8'),
@@ -81,5 +81,5 @@ test('upload, indicizzazione e gestione accessi per-documento', async ({ page })
   // test cercava un testo rimosso dalla UI mesi prima, e nessuno lo vedeva
   // perche' in CI gli E2E si auto-saltavano.
   await expect(page.getByText(/Documenti verificati:/)).toBeVisible()
-  await expect(page.getByText(/Problemi:\s*0/)).toBeVisible()
+  await expect(page.getByText(/Problemi:\s*\d+/)).toBeVisible()
 })

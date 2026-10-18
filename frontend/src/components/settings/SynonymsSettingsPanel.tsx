@@ -25,7 +25,7 @@ export default function SynonymsSettingsPanel({ showNotif, isAdmin = false }: Sy
   const fetchSynonyms = async () => {
     setLoading(true)
     try {
-      const res = await fetch('/api/synonyms')
+      const res = await fetch('/api/synonyms', { credentials: 'include' })
       if (!res.ok) throw new Error('Errore nel caricamento dei sinonimi')
       const data = await res.json()
       setCustomSynonyms(data.custom || {})
@@ -64,6 +64,7 @@ export default function SynonymsSettingsPanel({ showNotif, isAdmin = false }: Sy
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ term: cleanTerm, synonyms: cleanSyns }),
+        credentials: 'include',
       })
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}))
@@ -85,6 +86,7 @@ export default function SynonymsSettingsPanel({ showNotif, isAdmin = false }: Sy
     try {
       const res = await fetch(`/api/synonyms/${encodeURIComponent(term)}`, {
         method: 'DELETE',
+        credentials: 'include',
       })
       if (!res.ok) throw new Error('Errore nella cancellazione del termine')
       showNotif(`Termine "${term}" rimosso`, 'success')

@@ -62,6 +62,7 @@ Adobe Scan*.pdf
 # ── Artefatti dei test E2E (Playwright) ─────────────────────
 # Tracce, screenshot e report delle esecuzioni: rigenerabili, e le tracce
 # di un fallimento possono contenere lo stato autenticato della sessione.
+test-results/
 frontend/test-results/
 frontend/playwright-report/
 frontend/blob-report/

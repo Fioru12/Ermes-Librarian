@@ -65,10 +65,7 @@ function AppInner() {
 
   const fetchData = async () => {
     try {
-      const [librariesResponse, healthResponse] = await Promise.all([
-        fetch('/api/libraries', { credentials: 'include' }),
-        fetch('/health', { credentials: 'include' }),
-      ])
+      const librariesResponse = await fetch('/api/libraries', { credentials: 'include' })
       if (librariesResponse.ok) {
         const data = await librariesResponse.json()
         const items: LibrarySummary[] = data.items ?? []
@@ -79,9 +76,15 @@ function AppInner() {
           if (!dismissed) setShowOnboarding(true)
         }
       }
+    } catch {
+      showNotif('Impossibile caricare le biblioteche.', 'error')
+    }
+
+    try {
+      const healthResponse = await fetch('/health', { credentials: 'include' })
       if (healthResponse.ok) setHealth(await healthResponse.json())
     } catch {
-      showNotif('Impossibile aggiornare i dati. Controlla la connessione e riprova.', 'error')
+      // Ignora errori di health check di sottofondo
     }
   }
 
@@ -356,7 +359,10 @@ function AppInner() {
         body: JSON.stringify({ username: loginUsername, password: loginPassword }),
         credentials: 'include',
       })
-      if (!response.ok) throw new Error('Credenziali non valide o login non configurato')
+      if (!response.ok) {
+        const errDetail = await response.json().catch(() => ({}))
+        throw new Error(errDetail.detail || `Errore di accesso (${response.status})`)
+      }
       setCurrentUser(await response.json())
       setLoginPassword('')
       setAuthState('authenticated')
