@@ -2,6 +2,10 @@
 
 Registro leggibile del lavoro su questo progetto. Per i finding tecnici completi, [docs/AUDIT_2026-08-19.md](docs/AUDIT_2026-08-19.md) e [docs/CODE_REVIEW.md](docs/CODE_REVIEW.md). La roadmap per fasi e il registro delle sessioni (`ROADMAP_V2.md`, `WORK_PROGRESS.md`) sono stati tolti dall'albero pubblico il 18 settembre 2026: la cronologia Git li conserva.
 
+## 2026-10-19 (7) — FastAPI 0.143: gli alias /v1 non dipendono piu' dai dettagli interni
+
+Con FastAPI 0.143 le rotte incluse stanno in oggetti interni e il vecchio ciclo su `app.routes` ne vedeva 28 invece di piu' di 50: gli alias `/v1` sparivano. Ora ogni router e' incluso una seconda volta sotto `/v1` (`include_router(prefix="/v1")`), con le stesse dipendenze di rotta (rate limiting incluso), senza toccare interni di FastAPI. Il confronto con il vecchio metodo: tutte le 263 rotte di prima ci sono ancora, e ne compaiono altre 33 che prima mancavano (il vecchio ciclo saltava un metodo se un altro con lo stesso percorso aveva gia' l'alias: per esempio `POST /v1/api/libraries`). I test di fumo leggono lo schema OpenAPI invece di `app.routes` e un nuovo test controlla che ogni `/api/...` abbia il suo `/v1/api/...`. Provato con 0.136 e 0.143 (859 test); `requirements.txt` passa a 0.143.0 e dependabot torna a seguire FastAPI.
+
 ## 2026-10-19 (5) — Il collegamento sul Desktop
 
 Il collegamento "Ermes Knowledge" esisteva gia' e usa lo stesso `avvia_ermes.ps1`, quindi si apre gia' come app (finestra propria, senza barra degli indirizzi). Restavano due rifiniture: aveva l'icona generica di Windows e lasciava la finestra di PowerShell in vista. Ora usa l'icona di Ermes (`Ermes.ico`, rigenerata dal segno nuovo a 7 misure, da 16 a 256 px) e parte con la console nascosta. Chi ha gia' il collegamento lo aggiorna rieseguendo `CREA_COLLEGAMENTO_DESKTOP.bat`.
