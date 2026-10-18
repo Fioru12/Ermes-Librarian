@@ -2,6 +2,9 @@
 
 Registro leggibile del lavoro su questo progetto. Per i finding tecnici completi, [docs/AUDIT_2026-08-19.md](docs/AUDIT_2026-08-19.md) e [docs/CODE_REVIEW.md](docs/CODE_REVIEW.md). La roadmap per fasi e il registro delle sessioni (`ROADMAP_V2.md`, `WORK_PROGRESS.md`) sono stati tolti dall'albero pubblico il 18 settembre 2026: la cronologia Git li conserva.
 
+## 2026-10-19 (7) — FastAPI 0.143: gli alias /v1 non dipendono piu' dai dettagli interni
+
+Con FastAPI 0.143 le rotte incluse stanno in oggetti interni e il vecchio ciclo su `app.routes` ne vedeva 28 invece di piu' di 50: gli alias `/v1` sparivano. Ora ogni router e' incluso una seconda volta sotto `/v1` (`include_router(prefix="/v1")`), con le stesse dipendenze di rotta (rate limiting incluso), senza toccare interni di FastAPI. Il confronto con il vecchio metodo: tutte le 263 rotte di prima ci sono ancora, e ne compaiono altre 33 che prima mancavano (il vecchio ciclo saltava un metodo se un altro con lo stesso percorso aveva gia' l'alias: per esempio `POST /v1/api/libraries`). I test di fumo leggono lo schema OpenAPI invece di `app.routes` e un nuovo test controlla che ogni `/api/...` abbia il suo `/v1/api/...`. Provato con 0.136 e 0.143 (859 test); `requirements.txt` passa a 0.143.0 e dependabot torna a seguire FastAPI.
 ## 2026-10-19 (6) — Tema chiaro meno abbagliante, sfondo scuro con profondita'
 
 Dalle schermate dell'app installata: il chiaro era un bianco pieno su un fondo quasi bianco, e lo scuro un piano uniforme. Chiaro: fondo grigio freddo (`#e2e5ea`), pannello `#eff1f4`, barra di scrittura semitrasparente; le schede restano bianche e si staccano. Scuro: pannello `#252525` con una luce d'accento (blu, 16%) molto tenue in alto e un leggero scurirsi verso il basso (classe `.ermes-panel`). Controllato in Chromium su tutte le schede; nessun colore del testo cambiato.
