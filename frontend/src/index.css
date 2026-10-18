@@ -98,13 +98,13 @@ body {
 }
 
 .ermes-app-shell {
-  background-color: #202020; /* Mica scuro */
+  background-color: #1c1c1c; /* Mica scuro */
 }
 
 /* Variante chiara: senza questa regola lo sfondo scuro qui sopra restava anche
    con il tema chiaro, e il testo scuro di t.bg finiva su fondo scuro. */
 html:not(.dark) .ermes-app-shell {
-  background-color: #f3f3f3; /* Mica chiaro */
+  background-color: #e2e5ea; /* Mica chiaro: grigio freddo, non bianco */
 }
 
 .ermes-grid { background-image: none; }
@@ -298,4 +298,21 @@ html:not(.dark) .text-slate-500 { color: #5a5a5a; }
     -webkit-app-region: no-drag;
     app-region: no-drag;
   }
+}
+
+/* Pannello del contenuto. Scuro: una luce d'accento molto tenue in alto e un leggero
+   scurirsi verso il basso, cosi' il fondo ha profondita' senza decorazioni. Chiaro: un
+   avorio freddo al posto del bianco pieno (che abbagliava); le schede restano bianche e
+   si staccano dal fondo. */
+.ermes-panel {
+  background-color: #eff1f4;
+}
+html.dark .ermes-panel {
+  background-color: #252525;
+  background-image:
+    radial-gradient(60rem 28rem at 50% -8rem, rgba(15, 108, 189, 0.16), transparent 70%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.025), rgba(0, 0, 0, 0.10));
+}
+html:not(.dark) .ermes-panel {
+  background-image: radial-gradient(60rem 24rem at 50% -8rem, rgba(15, 108, 189, 0.06), transparent 70%);
 }

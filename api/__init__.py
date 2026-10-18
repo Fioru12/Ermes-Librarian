@@ -222,7 +222,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="Ermes - Enterprise Knowledge Hub API",
     description="API REST per query RAG su documentazione aziendale",
-    version="2.3.1",
+    version="2.4.0",
     lifespan=lifespan,
 )
 
@@ -395,42 +395,21 @@ app.include_router(shutdown_router)
 
 
 # ── v1 routing retrocompatibilità ──
-try:
-    from fastapi.routing import APIRoute
-
-    _v1_routes_added = 0
-    _current_routes = list(app.routes)
-    for _route in _current_routes:
-        if isinstance(_route, APIRoute):
-            _path = _route.path
-            if (
-                _path.startswith("/v1")
-                or _path == "/"
-                or _path.startswith("/docs")
-                or _path.startswith("/openapi")
-                or _path == "/metrics"
-            ):
-                continue
-            _v1_path = f"/v1{_path}"
-            if not any(isinstance(r, APIRoute) and r.path == _v1_path for r in app.routes):
-                app.add_api_route(
-                    _v1_path,
-                    _route.endpoint,
-                    methods=list(_route.methods) if _route.methods else None,
-                    tags=[f"{t} (v1)" for t in _route.tags] if _route.tags else ["v1"],
-                    summary=_route.summary,
-                    description=_route.description,
-                    include_in_schema=_route.include_in_schema,
-                    response_model=_route.response_model,
-                    # Le dipendenze di rotta sono il rate limiting: senza
-                    # questa riga (fino al 18 settembre 2026) /v1/... era una
-                    # copia della rotta SENZA limite di frequenza.
-                    dependencies=list(_route.dependencies),
-                )
-                _v1_routes_added += 1
-    _logger.info("Enterprise Routing: registrati %d endpoint con prefisso v1 per retrocompatibilità", _v1_routes_added)
-except Exception as _e:
-    _logger.error("Errore durante l'inizializzazione del routing v1: %s", _e)
+# Ogni router viene incluso una seconda volta sotto /v1, con le stesse dipendenze di rotta
+# (il rate limiting: una copia senza non avrebbe limite di frequenza). Si lavora sui router e
+# non sull'elenco `app.routes`: da FastAPI 0.143 le rotte incluse stanno in oggetti interni
+# (`_IncludedRouter`) e un ciclo su `app.routes` non le vede piu'. `health_router` ne resta
+# fuori: espone gia' da se' sia `/health` sia `/v1/health`.
+_V1_ROUTERS = (
+    auth_router, pii_router, backup_router, users_router, scim_router,
+    audit_router, analytics_router, connectors_router, conversations_router, models_router,
+    providers_router, libraries_router, retention_router, tabular_router,
+    chat_webhooks_router, mcp_server_router, privacy_router, synonyms_router,
+    webhook_gateway_router, shutdown_router,
+)
+for _router in _V1_ROUTERS:
+    app.include_router(_router, prefix="/v1", tags=["v1"])
+_logger.info("Enterprise Routing: %d router esposti anche con prefisso /v1 per retrocompatibilità", len(_V1_ROUTERS))
 
 # ── Frontend Static (SPA) ──
 _frontend_dist = os.path.join(os.path.dirname(__file__), "..", "frontend", "dist")

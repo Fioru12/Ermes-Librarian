@@ -12,11 +12,6 @@ updates:
     ignore:
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]
-      # FastAPI e' 0.x: ogni minore puo' rompere. La 0.143 raggruppa le rotte
-      # in un _IncludedRouter e gli alias /v1 di api/__init__.py non le vedono
-      # piu' (28 rotte invece di piu' di 50). Va migrata di proposito.
-      - dependency-name: fastapi
-        update-types: ["version-update:semver-minor"]
   - package-ecosystem: npm
     directory: /frontend
     schedule: { interval: weekly }
