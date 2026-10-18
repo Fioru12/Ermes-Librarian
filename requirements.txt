@@ -2,7 +2,7 @@
 # Python 3.11+ required (tested on 3.14)
 
 # API Framework
-fastapi==0.143.0
+fastapi==0.143.1
 uvicorn[standard]==0.54.0
 pydantic==2.14.1
 # 0.0.22 fino all'11 settembre 2026: pip-audit segnalava 10 vulnerabilita'
@@ -21,7 +21,7 @@ python-docx==1.2.0
 # totale segnalato da pip-audit. pypdf legge i PDF caricati dagli utenti, cioe'
 # ingresso non fidato per definizione: e' il posto peggiore dove restare
 # indietro di sei versioni correttive.
-pypdf==6.20.0
+pypdf==6.20.1
 # OCR delle pagine PDF senza livello testo (scansioni): pypdfium2 rasterizza
 # la pagina (pdfium incluso nella wheel, nessuna dipendenza di sistema),
 # pytesseract la passa al binario Tesseract, che sta nel Dockerfile. Senza
@@ -67,7 +67,7 @@ argon2-cffi==25.1.0
 # Fissata alla versione verificata: il vincolo precedente (>=2.60.0) ammetteva
 # anche la 4.x, due major piu' avanti, quindi CI e sviluppo locale potevano
 # risolvere versioni diverse senza che nulla lo segnalasse.
-langfuse==4.17.0
+langfuse==4.18.0
 
 # Testing
 pytest==9.1.1
