@@ -1,0 +1,31 @@
+# Esempio: avvisi di Ermes direttamente su Slack e/o Microsoft Teams, senza un relay.
+# Copia questo file su `alertmanager.yml` (o montalo al suo posto) e metti gli indirizzi dei
+# webhook in file, non nel YAML: `api_url_file` legge l'indirizzo da un file di testo, cosi'
+# il segreto non finisce nel repository.
+#
+#   Slack: crea un "Incoming Webhook" nell'app Slack e salva l'indirizzo in
+#          /etc/alertmanager/secrets/slack_url
+#   Teams: aggiungi il connettore/flusso "Webhook" al canale e salva l'indirizzo in
+#          /etc/alertmanager/secrets/teams_url
+#
+# Validato con `amtool check-config` (Alertmanager 0.28.1). La consegna verso un workspace
+# reale va provata una volta con un avviso di prova (vedi docs/MONITORING.md).
+route:
+  receiver: ermes-team
+  group_by: [alertname]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+
+receivers:
+  - name: ermes-team
+    slack_configs:
+      - api_url_file: /etc/alertmanager/secrets/slack_url
+        send_resolved: true
+        title: '{{ .Status | toUpper }}: {{ .CommonLabels.alertname }}'
+        text: '{{ range .Alerts }}{{ .Annotations.summary }}{{ "\n" }}{{ end }}'
+    msteamsv2_configs:
+      - webhook_url_file: /etc/alertmanager/secrets/teams_url
+        send_resolved: true
+        title: '{{ .Status | toUpper }}: {{ .CommonLabels.alertname }}'
+        text: '{{ range .Alerts }}{{ .Annotations.summary }}{{ "\n" }}{{ end }}'

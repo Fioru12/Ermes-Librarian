@@ -265,7 +265,7 @@ export default function ChatArea({
         <div className="flex-1 overflow-y-auto px-8 py-8 flex flex-col items-center justify-center max-w-2xl mx-auto space-y-6 w-full text-center">
           <div className="rounded-2xl border border-blue-500/20 bg-blue-500/5 p-7">
             <p className="text-xs font-bold text-blue-400">Primo avvio</p>
-            <h1 className={`mt-3 text-2xl font-bold tracking-tight ${t.welcomeTitle}`}>{onboardingTitle}</h1>
+            <h2 className={`mt-3 text-2xl font-bold tracking-tight ${t.welcomeTitle}`}>{onboardingTitle}</h2>
             <p className="mx-auto mt-3 max-w-lg text-sm leading-6 text-slate-400">{onboardingDescription}</p>
             <ol className="mx-auto mt-6 max-w-md space-y-3 text-left text-sm text-slate-300">
               <li className="flex gap-3"><span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-500/20 text-xs font-bold text-blue-300">1</span><span>Crea o seleziona una biblioteca.</span></li>
@@ -281,7 +281,7 @@ export default function ChatArea({
       ) : messages.length === 0 ? (
         <div className="flex-1 overflow-y-auto px-6 py-10 md:px-12">
           <div className="mx-auto w-full max-w-2xl pt-4 md:pt-16">
-            <h1 className={`text-4xl font-semibold leading-[1.1] tracking-tight ${t.welcomeTitle}`}>Cosa vuoi trovare nei tuoi documenti?</h1>
+            <h2 className={`text-4xl font-semibold leading-[1.1] tracking-tight ${t.welcomeTitle}`}>Cosa vuoi trovare nei tuoi documenti?</h2>
             <p className="mt-5 max-w-xl text-base leading-relaxed text-slate-500 dark:text-slate-400">
               Ogni risposta indica il documento da cui arriva. Se i documenti non bastano, Ermes te lo dice invece di inventare.
             </p>
@@ -523,7 +523,7 @@ export default function ChatArea({
                       type="text"
                       value={historyFilter}
                       onChange={e => setHistoryFilter(e.target.value)}
-                      placeholder="Cerca conversazioni…"
+                      placeholder="Cerca conversazioni…" aria-label="Cerca nelle conversazioni"
                       className="w-full rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-slate-200 placeholder-slate-500 outline-hidden focus:border-blue-500/50"
                       onClick={e => e.stopPropagation()}
                     />
@@ -600,7 +600,7 @@ export default function ChatArea({
           )}
         </div>
         <form onSubmit={handleSubmit} className="flex gap-3 max-w-5xl mx-auto">
-          <input type="text" value={inputMessage}
+          <input type="text" aria-label="La tua domanda sui documenti" value={inputMessage}
             onChange={e => onInputChange(e.target.value)}
             disabled={isGenerating || needsLibrary || needsDocuments}
             placeholder={isGenerating ? 'Sto preparando la risposta…' : 'Fai una domanda sui tuoi documenti…'}

@@ -204,7 +204,7 @@ export default function AnalyticsDashboard({ showNotif }: AnalyticsDashboardProp
             <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-500 dark:text-slate-400" />
             <input
               type="text"
-              placeholder="Filtra domande…"
+              placeholder="Filtra domande…" aria-label="Filtra le domande senza risposta"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className={`w-full text-xs rounded-xl pl-9 pr-3 py-2 border outline-hidden ${t.sidebarInput}`}

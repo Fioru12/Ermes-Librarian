@@ -167,7 +167,7 @@ export default function UserManagement({ showNotif }: { showNotif: (m: string, t
         <h2 className="text-xl font-bold mb-1">Account web locali</h2>
         <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">Crea l’accesso all’interfaccia per chi dovrà consultare o gestire le biblioteche. Le password non vengono mostrate, registrate nei log o salvate nel browser.</p>
         <div className="flex flex-wrap gap-2">
-          <input className="border rounded-sm p-2 flex-1 min-w-40 dark:bg-gray-700" placeholder="Username account" value={newAccountUsername} onChange={(e) => setNewAccountUsername(e.target.value)} />
+          <input className="border rounded-sm p-2 flex-1 min-w-40 dark:bg-gray-700" placeholder="Username account" aria-label="Nome utente del nuovo account" value={newAccountUsername} onChange={(e) => setNewAccountUsername(e.target.value)} />
           <select aria-label="Ruolo account locale" className="border rounded-sm p-2 dark:bg-gray-700" value={newAccountRole} onChange={(e) => setNewAccountRole(e.target.value)}><option value="viewer">Viewer</option><option value="editor">Editor</option><option value="admin">Admin</option></select>
           <input aria-label="Password account locale" type="password" className="border rounded-sm p-2 flex-1 min-w-48 dark:bg-gray-700" placeholder="Password iniziale" value={newAccountPassword} onChange={(e) => setNewAccountPassword(e.target.value)} autoComplete="new-password" />
           <button onClick={createLocalAccount} disabled={!newAccountUsername.trim() || !newAccountPassword || creatingAccount} className="bg-blue-600 disabled:opacity-50 text-white p-2 rounded-sm flex items-center gap-2"><UserPlus size={20} />{creatingAccount ? 'Creazione...' : 'Crea account'}</button>
@@ -194,7 +194,7 @@ export default function UserManagement({ showNotif }: { showNotif: (m: string, t
       <div className="flex gap-2 mb-6">
         <input 
           className="border rounded-sm p-2 grow dark:bg-gray-700"
-          placeholder="Username"
+          placeholder="Username" aria-label="Nome utente della chiave API"
           value={newUsername}
           onChange={(e) => setNewUsername(e.target.value)}
         />

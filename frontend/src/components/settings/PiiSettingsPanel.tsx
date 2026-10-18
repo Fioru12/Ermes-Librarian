@@ -213,18 +213,18 @@ export default function PiiSettingsPanel({ showNotif, isAdmin = false }: PiiSett
         {isAdmin && (
           <div className="grid gap-3 sm:grid-cols-3 mb-6 p-4 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/2">
             <Input
-              placeholder="Nome Regola (es. Badge Dipendente)"
+              placeholder="Nome Regola (es. Badge Dipendente)" aria-label="Nome della regola"
               value={newRuleName}
               onChange={e => setNewRuleName(e.target.value)}
             />
             <Input
-              placeholder="Regex (es. \bEMP-\d{6}\b)"
+              placeholder="Regex (es. \bEMP-\d{6}\b)" aria-label="Espressione regolare"
               value={newRulePattern}
               onChange={e => setNewRulePattern(e.target.value)}
             />
             <div className="flex gap-2">
               <Input
-                placeholder="Segnaposto (es. [BADGE])"
+                placeholder="Segnaposto (es. [BADGE])" aria-label="Segnaposto che sostituisce il dato"
                 value={newRuleReplacement}
                 onChange={e => setNewRuleReplacement(e.target.value)}
               />
@@ -278,7 +278,7 @@ export default function PiiSettingsPanel({ showNotif, isAdmin = false }: PiiSett
             className="w-full h-24 p-3 text-sm bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-white/10 rounded-xl focus:border-emerald-500 focus:outline-hidden text-slate-800 dark:text-slate-200 placeholder-slate-500 font-mono"
             value={testText}
             onChange={e => setTestText(e.target.value)}
-            placeholder="Inserisci qui il testo da collaudare..."
+            placeholder="Inserisci qui il testo da collaudare..." aria-label="Testo da collaudare per il mascheramento"
           />
 
           <Button variant="secondary" onClick={handleRunTest} disabled={testing}>
