@@ -2,6 +2,16 @@
 
 Registro leggibile del lavoro su questo progetto. Per i finding tecnici completi, [docs/AUDIT_2026-08-19.md](docs/AUDIT_2026-08-19.md) e [docs/CODE_REVIEW.md](docs/CODE_REVIEW.md). La roadmap per fasi e il registro delle sessioni (`ROADMAP_V2.md`, `WORK_PROGRESS.md`) sono stati tolti dall'albero pubblico il 18 settembre 2026: la cronologia Git li conserva.
 
+## 2026-10-19 (11) — Launcher nativo Windows (Ermes.exe) e packaging desktop
+
+- **Launcher nativo Windows (`Ermes.exe`)**: creato e compilato l'eseguibile nativo C# (30 KB, senza dipendenze esterne o finestre nere di PowerShell/terminale). Include:
+  - Mutex a singola istanza per evitare doppie aperture o conflitti di porte.
+  - Verifica automatica e avvio trasparente in background di Ollama e del backend Uvicorn/FastAPI.
+  - Apertura in finestra desktop standalone (App Mode Edge/Chrome) a dimensione fissa con icona ufficiale incorporata.
+  - Icona nell'area di notifica (system tray) con menu di controllo rapido e chiusura pulita dei processi in background.
+- **Collegamento Desktop diretto**: aggiornato `scripts/CREA_COLLEGAMENTO_DESKTOP.ps1` per puntare direttamente all'eseguibile `Ermes.exe`.
+- **Script Inno Setup (`scripts/installer/ermes_setup.iss`)**: predisposto il sorgente di installazione wizard per generare pacchetti `Ermes-Setup.exe` distribuibili in ambito aziendale.
+
 ## 2026-10-19 (10) — Stabilizzazione E2E, proxy IPv4 locale, credenziali impostazioni e avvio Ollama
 
 - **Proxy Vite su Windows (IPv4)**: puntato direttamente a `127.0.0.1:8502` in `frontend/vite.config.ts`, eliminando i timeout `ETIMEDOUT` causati dal fallback lento di Node 18+ su IPv6 `::1`.

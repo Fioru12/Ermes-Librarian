@@ -135,7 +135,9 @@ npm.cmd --prefix frontend install
 .\scripts\avvia_ermes.ps1
 ```
 
-Open [http://127.0.0.1:3000](http://127.0.0.1:3000). The API health endpoint is [http://127.0.0.1:8502/health](http://127.0.0.1:8502/health).
+> **Avvio rapido con un click (Desktop)**: puoi avviare l'applicazione semplicemente facendo doppio click su **`Ermes.exe`** nella cartella principale (oppure creare l'icona con `CREA_COLLEGAMENTO_DESKTOP.bat`). Avvia tutti i componenti e apre Ermes in una finestra desktop nativa senza finestre di terminale.
+
+Open [http://127.0.0.1:3000](http://127.0.0.1:3000) (dev) or [http://127.0.0.1:8502](http://127.0.0.1:8502) (standalone). The API health endpoint is [http://127.0.0.1:8502/health](http://127.0.0.1:8502/health).
 
 To check a configuration before starting anything — useful when deploying
 somewhere new, or in a CI gate:
