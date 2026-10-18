@@ -66,6 +66,23 @@ for (const theme of ['dark', 'light'] as const) {
       await expect(page.getByText(/Caricamento/)).toHaveCount(0, { timeout: 20_000 })
       await page.waitForTimeout(500)
       expect(describe((await audit()).violations), `scheda "${name}"`).toEqual([])
+
+      // Cio' che axe non dice: un solo titolo di primo livello per schermata e nessun campo
+      // senza nome (un lettore di schermo direbbe soltanto "campo di testo").
+      const lettura = await page.evaluate(() => {
+        const visibile = (el: Element) => {
+          const b = el.getBoundingClientRect()
+          return b.width > 0 && b.height > 0 && getComputedStyle(el).visibility !== 'hidden'
+        }
+        const campiSenzaNome = Array.from(document.querySelectorAll('input,select,textarea'))
+          .filter(e => visibile(e) && (e as HTMLInputElement).type !== 'hidden')
+          .filter(e => !(e as HTMLInputElement).labels?.length && !e.getAttribute('aria-label') && !e.getAttribute('aria-labelledby'))
+          .map(e => e.outerHTML.slice(0, 90))
+        const h1 = Array.from(document.querySelectorAll('h1')).filter(visibile).length
+        return { campiSenzaNome, h1 }
+      })
+      expect(lettura.h1, `scheda "${name}": titoli di primo livello`).toBe(1)
+      expect(lettura.campiSenzaNome, `scheda "${name}": campi senza nome`).toEqual([])
     }
   })
 }

@@ -188,7 +188,7 @@ export default function ProvidersTab({ showNotif }: ProvidersTabProps) {
               <textarea value={modelsInput} onChange={e => {
                 setModelsInput(e.target.value)
                 setForm({ ...form, models: e.target.value.split('\n').filter(s => s.trim()) })
-              }} rows={3} placeholder="gpt-4o&#10;gpt-4.1" className={`w-full border rounded-lg px-3 py-2 text-sm outline-hidden transition ${t.sidebarInput}`} />
+              }} rows={3} aria-label="Modelli (uno per riga)" placeholder="gpt-4o&#10;gpt-4.1" className={`w-full border rounded-lg px-3 py-2 text-sm outline-hidden transition ${t.sidebarInput}`} />
             </div>
             <div className="flex gap-2 pt-2">
               <Button onClick={saveProvider}>{editing ? 'Aggiorna' : 'Aggiungi'}</Button>

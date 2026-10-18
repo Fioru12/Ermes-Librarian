@@ -152,7 +152,7 @@ export default function SynonymsSettingsPanel({ showNotif, isAdmin = false }: Sy
               <Input
                 value={newTerm}
                 onChange={e => setNewTerm(e.target.value)}
-                placeholder="es. DDT, WFH, CIG..."
+                placeholder="es. DDT, WFH, CIG..." aria-label="Termine o acronimo"
                 disabled={saving}
               />
             </div>
@@ -161,7 +161,7 @@ export default function SynonymsSettingsPanel({ showNotif, isAdmin = false }: Sy
               <Input
                 value={newSynonyms}
                 onChange={e => setNewSynonyms(e.target.value)}
-                placeholder="es. documento di trasporto, bolla di consegna"
+                placeholder="es. documento di trasporto, bolla di consegna" aria-label="Sinonimi o espansioni, separati da virgola"
                 disabled={saving}
               />
             </div>
@@ -183,7 +183,7 @@ export default function SynonymsSettingsPanel({ showNotif, isAdmin = false }: Sy
         <Input
           value={searchTerm}
           onChange={e => setSearchTerm(e.target.value)}
-          placeholder="Cerca nel glossario per termine o sinonimo…"
+          placeholder="Cerca nel glossario per termine o sinonimo…" aria-label="Cerca nel glossario"
         />
       </div>
 

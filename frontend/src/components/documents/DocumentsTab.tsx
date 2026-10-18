@@ -679,7 +679,7 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
             id="new-library-name"
             value={newLibraryName}
             onChange={event => setNewLibraryName(event.target.value)}
-            placeholder="Nuova biblioteca"
+            placeholder="Nuova biblioteca" aria-label="Nome della nuova biblioteca"
             className={`min-w-0 flex-1 border rounded-lg px-3 py-2 text-sm outline-hidden ${t.sidebarInput}`}
           />
           <button type="submit" aria-label="Crea biblioteca" className="rounded-lg bg-blue-600 px-3 text-white hover:bg-blue-500 transition">
@@ -850,7 +850,7 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
                       setRetrievalProfile(null)
                     }
                   }}
-                  placeholder="Cerca nei documenti della biblioteca"
+                  placeholder="Cerca nei documenti della biblioteca" aria-label="Cerca nei documenti della biblioteca"
                   className={`min-w-0 flex-1 border rounded-lg px-3 py-2 text-sm outline-hidden ${t.sidebarInput}`}
                 />
                 <button type="submit" disabled={searchQuery.trim().length < 2 || searching} className="rounded-lg bg-blue-600 px-4 text-sm text-white transition hover:bg-blue-500 disabled:opacity-50">
@@ -917,7 +917,7 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
                         type="text"
                         value={docNameFilter}
                         onChange={e => setDocNameFilter(e.target.value)}
-                        placeholder="Filtra per nome..."
+                        placeholder="Filtra per nome..." aria-label="Filtra i documenti per nome"
                         className={`w-full rounded-lg border px-3 py-1 text-xs outline-hidden ${t.sidebarInput}`}
                       />
                     </div>

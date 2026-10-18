@@ -82,3 +82,18 @@ def test_no_default_secret_in_the_monitoring_profile():
     assert "${ERMES_METRICS_TOKEN:?" in testo
     assert "${GRAFANA_ADMIN_PASSWORD:?" in testo
     assert not re.search(r"ADMIN_PASSWORD=\$\{[A-Z_]+:-", testo), "password di Grafana con default"
+
+
+def test_slack_teams_example_is_valid_and_keeps_secrets_out_of_the_yaml():
+    """L'esempio per Slack/Teams deve restare leggibile e non contenere indirizzi di webhook."""
+    import pathlib
+
+    import yaml
+
+    path = pathlib.Path(__file__).resolve().parent.parent / "deploy" / "monitoring" / "alertmanager.slack-teams.example.yml"
+    config = yaml.safe_load(path.read_text(encoding="utf-8"))
+    receiver = config["receivers"][0]
+    assert receiver["slack_configs"][0]["api_url_file"]
+    assert receiver["msteamsv2_configs"][0]["webhook_url_file"]
+    codice = [r for r in path.read_text(encoding="utf-8").splitlines() if not r.lstrip().startswith("#")]
+    assert not any("https://" in riga for riga in codice), "un indirizzo di webhook e' finito nel YAML"

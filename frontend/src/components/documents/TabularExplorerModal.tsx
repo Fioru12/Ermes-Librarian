@@ -336,7 +336,7 @@ export function TabularExplorerModal({
                   <textarea
                     value={sqlQuery}
                     onChange={e => setSqlQuery(e.target.value)}
-                    placeholder="SELECT * FROM data WHERE ..."
+                    placeholder="SELECT * FROM data WHERE ..." aria-label="Condizione SQL sui dati"
                     rows={3}
                     className="flex-1 rounded-xl border border-slate-300 dark:border-white/10 bg-white dark:bg-slate-950/60 p-3 font-mono text-xs text-slate-900 dark:text-white outline-hidden focus:border-blue-500 transition resize-none"
                   />

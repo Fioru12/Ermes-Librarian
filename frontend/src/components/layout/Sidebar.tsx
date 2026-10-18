@@ -51,7 +51,7 @@ export default function Sidebar({ activeTab, onTabChange, healthStatus, onRefres
       <div className="px-5 pt-6 pb-5 flex items-center gap-3">
         <BrandMark className="h-10 w-10 shrink-0 drop-shadow-xs" />
         <div>
-          <h1 className={`text-base font-semibold tracking-tight ${t.sidebarTitle}`}>ERMES</h1>
+          <p className={`text-base font-semibold tracking-tight ${t.sidebarTitle}`}>ERMES</p>
           <p className={`text-xs mt-0.5 ${t.sidebarLabel} font-medium `}>Knowledge</p>
         </div>
       </div>
