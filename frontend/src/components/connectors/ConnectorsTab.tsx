@@ -361,7 +361,7 @@ export default function ConnectorsTab({ showNotif }: ConnectorsTabProps) {
           aria-label="Biblioteca di destinazione"
           value={selectedLibrary}
           onChange={(e) => setSelectedLibrary(e.target.value)}
-          className="bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 text-sm rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 text-sm rounded-lg px-4 py-2 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
         >
           {libraries.map((lib) => (
             <option key={lib.id} value={lib.id}>
@@ -414,7 +414,7 @@ export default function ConnectorsTab({ showNotif }: ConnectorsTabProps) {
                 placeholder="es. C:\Documenti\Procedure oppure \\nas\share\docs"
                 value={folderPath}
                 onChange={(e) => setFolderPath(e.target.value)}
-                className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 text-sm rounded-lg px-3 py-2 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
               />
             </div>
             {folderStatus && (
@@ -466,7 +466,7 @@ export default function ConnectorsTab({ showNotif }: ConnectorsTabProps) {
                 placeholder="es. https://intranet.azienda.local/wiki"
                 value={webUrl}
                 onChange={(e) => setWebUrl(e.target.value)}
-                className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 text-sm rounded-lg px-3 py-2 focus:outline-hidden focus:ring-2 focus:ring-purple-500"
               />
             </div>
             {webStatus && (
@@ -518,7 +518,7 @@ export default function ConnectorsTab({ showNotif }: ConnectorsTabProps) {
                 placeholder="es. 12345678-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
                 value={msTenantId}
                 onChange={(e) => setMsTenantId(e.target.value)}
-                className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 text-sm rounded-lg px-3 py-2 focus:outline-hidden focus:ring-2 focus:ring-sky-500"
               />
               <label className="text-xs font-medium text-slate-600 dark:text-slate-300">Client ID</label>
               <input
@@ -526,7 +526,7 @@ export default function ConnectorsTab({ showNotif }: ConnectorsTabProps) {
                 placeholder="Azure Application (Client) ID"
                 value={msClientId}
                 onChange={(e) => setMsClientId(e.target.value)}
-                className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 text-sm rounded-lg px-3 py-2 focus:outline-hidden focus:ring-2 focus:ring-sky-500"
               />
               <label className="text-xs font-medium text-slate-600 dark:text-slate-300">Client Secret</label>
               <input
@@ -534,7 +534,7 @@ export default function ConnectorsTab({ showNotif }: ConnectorsTabProps) {
                 placeholder="Azure Application Secret"
                 value={msClientSecret}
                 onChange={(e) => setMsClientSecret(e.target.value)}
-                className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 text-sm rounded-lg px-3 py-2 focus:outline-hidden focus:ring-2 focus:ring-sky-500"
               />
               <label className="text-xs font-medium text-slate-600 dark:text-slate-300">Drive ID (opzionale)</label>
               <input
@@ -542,7 +542,7 @@ export default function ConnectorsTab({ showNotif }: ConnectorsTabProps) {
                 placeholder="es. 0B7g34... (lascia vuoto per OneDrive personale)"
                 value={msDriveId}
                 onChange={(e) => setMsDriveId(e.target.value)}
-                className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 text-sm rounded-lg px-3 py-2 focus:outline-hidden focus:ring-2 focus:ring-sky-500"
               />
               <label className="text-xs font-medium text-slate-600 dark:text-slate-300">Percorso cartella remota</label>
               <input
@@ -550,7 +550,7 @@ export default function ConnectorsTab({ showNotif }: ConnectorsTabProps) {
                 placeholder="es. /Documenti Condivisi"
                 value={msFolderPath}
                 onChange={(e) => setMsFolderPath(e.target.value)}
-                className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 text-sm rounded-lg px-3 py-2 focus:outline-hidden focus:ring-2 focus:ring-sky-500"
               />
             </div>
             {msStatus && (
@@ -595,7 +595,7 @@ export default function ConnectorsTab({ showNotif }: ConnectorsTabProps) {
             <div className="flex items-center gap-3 text-emerald-400 font-semibold text-lg">
               <Bot className="w-6 h-6" /> Server MCP (Model Context Protocol)
             </div>
-            <span className="text-[10px] font-mono bg-emerald-950 text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/30">
+            <span className="text-[10px] font-mono bg-emerald-950 text-emerald-400 px-2 py-0.5 rounded-sm border border-emerald-500/30">
               JSON-RPC 2.0
             </span>
           </div>
@@ -605,7 +605,7 @@ export default function ConnectorsTab({ showNotif }: ConnectorsTabProps) {
           <div className="relative bg-white dark:bg-slate-950 p-3 rounded-lg border border-slate-200 dark:border-slate-800 font-mono text-[11px] text-slate-600 dark:text-slate-300 overflow-x-auto">
             <button
               onClick={() => copyToClipboard(mcpConfigJson)}
-              className="absolute top-2 right-2 p-1.5 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition"
+              className="absolute top-2 right-2 p-1.5 rounded-sm bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition"
               title="Copia configurazione JSON"
             >
               <Copy className="w-3.5 h-3.5" />
@@ -623,7 +623,7 @@ export default function ConnectorsTab({ showNotif }: ConnectorsTabProps) {
             <div className="flex items-center gap-3 text-amber-400 font-semibold text-lg">
               <Zap className="w-6 h-6" /> Webhook Automazioni (n8n / Zapier)
             </div>
-            <span className="text-[10px] font-mono bg-amber-950 text-amber-400 px-2 py-0.5 rounded border border-amber-500/30">
+            <span className="text-[10px] font-mono bg-amber-950 text-amber-400 px-2 py-0.5 rounded-sm border border-amber-500/30">
               REST Webhooks
             </span>
           </div>

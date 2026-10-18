@@ -181,7 +181,7 @@ export default function PiiSettingsPanel({ showNotif, isAdmin = false }: PiiSett
               className={`flex items-center justify-between p-4 rounded-xl border transition cursor-pointer ${
                 enabledPatterns[item.id] !== false
                   ? 'bg-amber-500/10 border-amber-500/30 text-amber-200'
-                  : 'bg-slate-50 dark:bg-white/[0.02] border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400 hover:border-slate-600'
+                  : 'bg-slate-50 dark:bg-white/2 border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400 hover:border-slate-600'
               }`}
             >
               <div>
@@ -194,7 +194,7 @@ export default function PiiSettingsPanel({ showNotif, isAdmin = false }: PiiSett
                 aria-label={`Maschera ${item.label}`}
                 onChange={() => handleTogglePattern(item.id)}
                 disabled={!isAdmin}
-                className="w-4 h-4 accent-amber-500 rounded cursor-pointer"
+                className="w-4 h-4 accent-amber-500 rounded-sm cursor-pointer"
               />
             </div>
           ))}
@@ -211,7 +211,7 @@ export default function PiiSettingsPanel({ showNotif, isAdmin = false }: PiiSett
         </p>
 
         {isAdmin && (
-          <div className="grid gap-3 sm:grid-cols-3 mb-6 p-4 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.02]">
+          <div className="grid gap-3 sm:grid-cols-3 mb-6 p-4 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/2">
             <Input
               placeholder="Nome Regola (es. Badge Dipendente)"
               value={newRuleName}
@@ -244,11 +244,11 @@ export default function PiiSettingsPanel({ showNotif, isAdmin = false }: PiiSett
             {customRules.map(rule => (
               <div
                 key={rule.id}
-                className="flex items-center justify-between p-3 rounded-lg border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.02] text-sm"
+                className="flex items-center justify-between p-3 rounded-lg border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/2 text-sm"
               >
                 <div>
                   <span className="font-semibold text-slate-800 dark:text-slate-200">{rule.name}</span>
-                  <span className="ml-3 font-mono text-xs text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded">
+                  <span className="ml-3 font-mono text-xs text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-sm">
                     {rule.pattern}
                   </span>
                   <span className="ml-2 font-mono text-xs text-amber-400">→ {rule.replacement}</span>
@@ -275,7 +275,7 @@ export default function PiiSettingsPanel({ showNotif, isAdmin = false }: PiiSett
 
         <div className="space-y-4">
           <textarea
-            className="w-full h-24 p-3 text-sm bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-white/10 rounded-xl focus:border-emerald-500 focus:outline-none text-slate-800 dark:text-slate-200 placeholder-slate-500 font-mono"
+            className="w-full h-24 p-3 text-sm bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-white/10 rounded-xl focus:border-emerald-500 focus:outline-hidden text-slate-800 dark:text-slate-200 placeholder-slate-500 font-mono"
             value={testText}
             onChange={e => setTestText(e.target.value)}
             placeholder="Inserisci qui il testo da collaudare..."

@@ -680,7 +680,7 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
             value={newLibraryName}
             onChange={event => setNewLibraryName(event.target.value)}
             placeholder="Nuova biblioteca"
-            className={`min-w-0 flex-1 border rounded-lg px-3 py-2 text-sm outline-none ${t.sidebarInput}`}
+            className={`min-w-0 flex-1 border rounded-lg px-3 py-2 text-sm outline-hidden ${t.sidebarInput}`}
           />
           <button type="submit" aria-label="Crea biblioteca" className="rounded-lg bg-blue-600 px-3 text-white hover:bg-blue-500 transition">
             <FolderPlus className="w-4 h-4" />
@@ -764,13 +764,13 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
                   <select value={selectedLibrary.assistant_mode ?? 'evidence_only'} onChange={event => {
                     const mode = event.target.value as LibraryItem['assistant_mode']
                     changeAssistantMode(mode, mode === 'approved_provider' ? approvedProviders[0]?.name ?? '' : '')
-                  }} className={`rounded-xl border px-3 py-2 text-xs outline-none ${t.sidebarInput}`} aria-label="Come risponde l'assistente in questa biblioteca" title="Come risponde l'assistente in questa biblioteca">
+                  }} className={`rounded-xl border px-3 py-2 text-xs outline-hidden ${t.sidebarInput}`} aria-label="Come risponde l'assistente in questa biblioteca" title="Come risponde l'assistente in questa biblioteca">
                     <option value="evidence_only">Solo i passaggi dei documenti (nessuna IA)</option>
                     <option value="local_ollama">IA su questo server (i documenti non escono)</option>
                     <option value="approved_openrouter">IA cloud OpenRouter (i passaggi escono)</option>
                     <option value="approved_provider" disabled={!approvedProviders.length}>IA cloud approvata (i passaggi escono)</option>
                   </select>
-                  {selectedLibrary.assistant_mode === 'approved_provider' && <select value={selectedLibrary.assistant_provider ?? ''} onChange={event => changeAssistantMode('approved_provider', event.target.value)} className={`max-w-44 rounded-xl border px-3 py-2 text-xs outline-none ${t.sidebarInput}`} aria-label="Provider cloud biblioteca">
+                  {selectedLibrary.assistant_mode === 'approved_provider' && <select value={selectedLibrary.assistant_provider ?? ''} onChange={event => changeAssistantMode('approved_provider', event.target.value)} className={`max-w-44 rounded-xl border px-3 py-2 text-xs outline-hidden ${t.sidebarInput}`} aria-label="Provider cloud biblioteca">
                     {approvedProviders.map(provider => <option key={provider.name} value={provider.name}>{provider.name} · {provider.default_model}</option>)}
                   </select>}
                 </div>}
@@ -784,8 +784,8 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
                     <p className="mt-1 text-xs text-slate-400">I viewer consultano fonti e risposte; gli editor possono anche caricare e reindicizzare documenti.</p>
                   </div>
                   <form onSubmit={saveMember} className="flex flex-wrap items-center gap-2">
-                    <input value={memberUsername} onChange={event => setMemberUsername(event.target.value)} placeholder="Nome utente" aria-label="Nome utente collaboratore" className={`w-36 rounded-lg border px-3 py-2 text-xs outline-none ${t.sidebarInput}`} />
-                    <select value={memberRole} onChange={event => setMemberRole(event.target.value as 'viewer' | 'editor')} aria-label="Ruolo collaboratore" className={`rounded-lg border px-3 py-2 text-xs outline-none ${t.sidebarInput}`}>
+                    <input value={memberUsername} onChange={event => setMemberUsername(event.target.value)} placeholder="Nome utente" aria-label="Nome utente collaboratore" className={`w-36 rounded-lg border px-3 py-2 text-xs outline-hidden ${t.sidebarInput}`} />
+                    <select value={memberRole} onChange={event => setMemberRole(event.target.value as 'viewer' | 'editor')} aria-label="Ruolo collaboratore" className={`rounded-lg border px-3 py-2 text-xs outline-hidden ${t.sidebarInput}`}>
                       <option value="viewer">Viewer</option>
                       <option value="editor">Editor</option>
                     </select>
@@ -813,7 +813,7 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
                     </p>
                   </div>
                   <form onSubmit={addSource} className="flex flex-wrap items-center gap-2">
-                    <input value={newSourcePath} onChange={event => setNewSourcePath(event.target.value)} placeholder={'\\\\server\\condivisa oppure C:\\percorso'} aria-label="Percorso della cartella" className={`w-56 rounded-lg border px-3 py-2 text-xs outline-none ${t.sidebarInput}`} />
+                    <input value={newSourcePath} onChange={event => setNewSourcePath(event.target.value)} placeholder={'\\\\server\\condivisa oppure C:\\percorso'} aria-label="Percorso della cartella" className={`w-56 rounded-lg border px-3 py-2 text-xs outline-hidden ${t.sidebarInput}`} />
                     <button type="submit" disabled={!newSourcePath.trim() || addingSource} className="rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-blue-500 disabled:opacity-50"><span className="flex items-center gap-1"><FolderPlus className="h-3.5 w-3.5" />{addingSource ? 'Registro...' : 'Registra'}</span></button>
                   </form>
                 </div>
@@ -851,7 +851,7 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
                     }
                   }}
                   placeholder="Cerca nei documenti della biblioteca"
-                  className={`min-w-0 flex-1 border rounded-lg px-3 py-2 text-sm outline-none ${t.sidebarInput}`}
+                  className={`min-w-0 flex-1 border rounded-lg px-3 py-2 text-sm outline-hidden ${t.sidebarInput}`}
                 />
                 <button type="submit" disabled={searchQuery.trim().length < 2 || searching} className="rounded-lg bg-blue-600 px-4 text-sm text-white transition hover:bg-blue-500 disabled:opacity-50">
                   <span className="flex items-center gap-1.5"><Search className="h-3.5 w-3.5" />{searching ? 'Ricerca...' : 'Cerca'}</span>
@@ -894,7 +894,7 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/5 bg-white/[0.02] p-3">
+                  <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/5 bg-white/2 p-3">
                     <div className="flex flex-wrap items-center gap-1.5">
                       <span className="mr-1 text-xs font-medium text-slate-400">Tipo:</span>
                       {['all', 'pdf', 'docx', 'pptx', 'xlsx', 'txt', 'md'].map(ext => (
@@ -904,7 +904,7 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
                           onClick={() => setFileTypeFilter(ext)}
                           className={`rounded-lg px-2.5 py-1 text-xs font-semibold uppercase transition cursor-pointer ${
                             fileTypeFilter === ext
-                              ? 'bg-blue-600 text-white shadow-sm'
+                              ? 'bg-blue-600 text-white shadow-xs'
                               : 'border border-white/10 text-slate-400 hover:border-white/20 hover:text-white'
                           }`}
                         >
@@ -918,7 +918,7 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
                         value={docNameFilter}
                         onChange={e => setDocNameFilter(e.target.value)}
                         placeholder="Filtra per nome..."
-                        className={`w-full rounded-lg border px-3 py-1 text-xs outline-none ${t.sidebarInput}`}
+                        className={`w-full rounded-lg border px-3 py-1 text-xs outline-hidden ${t.sidebarInput}`}
                       />
                     </div>
                   </div>
@@ -982,10 +982,10 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
         )}
       </section>
       {aclPanel && (
-        <div ref={aclDialogRef} role="dialog" aria-modal="true" aria-label="Accessi documento" tabIndex={-1} className="absolute inset-0 z-20 flex items-center justify-center bg-slate-950/70 p-6 outline-none">
+        <div ref={aclDialogRef} role="dialog" aria-modal="true" aria-label="Accessi documento" tabIndex={-1} className="absolute inset-0 z-20 flex items-center justify-center bg-slate-950/70 p-6 outline-hidden">
           <section className={`w-full max-w-lg rounded-2xl border p-6 shadow-2xl ${t.card}`} aria-label="Accessi documento">
             <div className="flex items-start justify-between gap-4"><div><h2 className="font-semibold">Chi può vedere questo documento</h2><p className="mt-1 text-sm text-slate-400">{aclPanel.document.filename}</p></div><button onClick={() => setAclPanel(null)} className="text-slate-400 hover:text-white">Chiudi</button></div>
-            <p className="mt-4 rounded-lg border border-white/10 bg-white/[0.02] p-3 text-xs leading-5 text-slate-400">Senza restrizioni il documento è visibile a chi accede alla biblioteca. Con una lista, solo l'amministratore, il proprietario e gli utenti elencati possono vederlo — anche nelle risposte dell'assistente.</p>
+            <p className="mt-4 rounded-lg border border-white/10 bg-white/2 p-3 text-xs leading-5 text-slate-400">Senza restrizioni il documento è visibile a chi accede alla biblioteca. Con una lista, solo l'amministratore, il proprietario e gli utenti elencati possono vederlo — anche nelle risposte dell'assistente.</p>
             {aclPanel.usernames.length > 0 ? (
               <ul className="mt-4 space-y-2">
                 {aclPanel.usernames.map(username => (
@@ -999,7 +999,7 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
               <p className="mt-4 text-sm text-slate-500">Nessuna restrizione: visibile a tutta la biblioteca.</p>
             )}
             <form onSubmit={addAclUser} className="mt-5 flex flex-wrap items-center gap-2">
-              <input value={aclUsername} onChange={event => setAclUsername(event.target.value)} placeholder="nome utente da autorizzare" className={`min-w-0 flex-1 rounded-xl border px-3 py-2 text-sm outline-none ${t.sidebarInput}`} aria-label="Utente da autorizzare" />
+              <input value={aclUsername} onChange={event => setAclUsername(event.target.value)} placeholder="nome utente da autorizzare" className={`min-w-0 flex-1 rounded-xl border px-3 py-2 text-sm outline-hidden ${t.sidebarInput}`} aria-label="Utente da autorizzare" />
               <button type="submit" disabled={savingAcl || !aclUsername.trim()} className="flex items-center gap-1.5 rounded-xl bg-blue-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-40">
                 <UserPlus className="h-3.5 w-3.5" />{savingAcl ? 'Salvo…' : 'Autorizza'}
               </button>
@@ -1008,7 +1008,7 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
         </div>
       )}
       {summaryPanel && (
-        <div ref={summaryDialogRef} role="dialog" aria-modal="true" aria-label="Riassunto documento" tabIndex={-1} className="absolute inset-0 z-20 flex items-center justify-center bg-slate-950/70 p-6 outline-none">
+        <div ref={summaryDialogRef} role="dialog" aria-modal="true" aria-label="Riassunto documento" tabIndex={-1} className="absolute inset-0 z-20 flex items-center justify-center bg-slate-950/70 p-6 outline-hidden">
           <section className={`w-full max-w-lg rounded-2xl border p-6 shadow-2xl ${t.card}`} aria-label="Riassunto documento">
             <div className="flex items-start justify-between gap-4">
               <div>
@@ -1019,14 +1019,14 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
             </div>
             {summaryPanel.status === 'answered' ? (
               <>
-                <div className="mt-4 space-y-2 rounded-lg border border-white/10 bg-white/[0.02] p-4 text-sm leading-6 whitespace-pre-wrap">{summaryPanel.summary}</div>
+                <div className="mt-4 space-y-2 rounded-lg border border-white/10 bg-white/2 p-4 text-sm leading-6 whitespace-pre-wrap">{summaryPanel.summary}</div>
                 <p className="mt-3 text-xs text-slate-500">
                   Generato {summaryPanel.mode === 'local_llm' ? 'con il modello locale' : 'in modo estrattivo'} solo dai passaggi indicizzati del documento.
                   {summaryPanel.reason ? ` ${summaryPanel.reason}` : ''}
                 </p>
               </>
             ) : (
-              <p className="mt-4 rounded-lg border border-white/10 bg-white/[0.02] p-4 text-sm text-slate-400">
+              <p className="mt-4 rounded-lg border border-white/10 bg-white/2 p-4 text-sm text-slate-400">
                 Nessun riassunto disponibile: {summaryPanel.reason || 'il documento non ha testo indicizzato utilizzabile.'}
               </p>
             )}
@@ -1034,7 +1034,7 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
         </div>
       )}
       {versionHistory && (
-        <div ref={versionsDialogRef} role="dialog" aria-modal="true" aria-label="Storico versioni" tabIndex={-1} className="absolute inset-0 z-20 flex items-center justify-center bg-slate-950/70 p-6 outline-none">
+        <div ref={versionsDialogRef} role="dialog" aria-modal="true" aria-label="Storico versioni" tabIndex={-1} className="absolute inset-0 z-20 flex items-center justify-center bg-slate-950/70 p-6 outline-hidden">
           <section className={`w-full max-w-lg rounded-2xl border p-6 shadow-2xl ${t.card}`}>
             <div className="flex items-start justify-between gap-4"><div><h2 className="font-semibold">Storico versioni</h2><p className="mt-1 text-sm text-slate-400">{versionHistory.document.filename}</p></div><button onClick={() => setVersionHistory(null)} className="text-slate-400 hover:text-white">Chiudi</button></div>
             <div className="mt-5 space-y-2">{versionHistory.items.map(item => <article key={item.version} className="flex items-center justify-between rounded-lg border border-white/10 p-3"><div><p className="text-sm font-medium">Versione {item.version}{item.version === versionHistory.document.version ? ' · corrente' : ''}</p><p className="text-xs text-slate-400">{formatSize(item.size_bytes)} · {new Date(item.created_at).toLocaleString()}</p></div>{item.version !== versionHistory.document.version && <button onClick={() => restoreVersion(item.version)} className="rounded-md border border-blue-500/40 px-2 py-1 text-xs text-blue-300 hover:bg-blue-500/10">Ripristina</button>}</article>)}</div>
@@ -1042,7 +1042,7 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
         </div>
       )}
       {showDLQ && (
-        <div ref={dlqDialogRef} role="dialog" aria-modal="true" aria-label="Documenti non indicizzati (coda degli errori)" tabIndex={-1} className="absolute inset-0 z-20 flex items-center justify-center bg-slate-950/70 p-6 outline-none">
+        <div ref={dlqDialogRef} role="dialog" aria-modal="true" aria-label="Documenti non indicizzati (coda degli errori)" tabIndex={-1} className="absolute inset-0 z-20 flex items-center justify-center bg-slate-950/70 p-6 outline-hidden">
           <section className={`w-full max-w-2xl rounded-2xl border p-6 shadow-2xl ${t.card}`} aria-label="Dead-Letter Queue">
             <div className="flex items-start justify-between gap-4">
               <div>

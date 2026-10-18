@@ -15,7 +15,7 @@ export function Input({ label, className = '', id, ...props }: InputProps) {
   return (
     <div className="space-y-1">
       {label && <label htmlFor={inputId} className="text-xs font-semibold text-slate-400 block">{label}</label>}
-      <input id={inputId} className={`w-full border rounded-lg px-3 py-2 text-sm outline-none transition ${t.sidebarInput} ${className}`} {...props} />
+      <input id={inputId} className={`w-full border rounded-lg px-3 py-2 text-sm outline-hidden transition ${t.sidebarInput} ${className}`} {...props} />
     </div>
   )
 }
@@ -32,7 +32,7 @@ export function Select({ label, children, className = '', id, ...props }: Select
   return (
     <div className="space-y-1">
       {label && <label htmlFor={selectId} className="text-xs font-semibold text-slate-400 block">{label}</label>}
-      <select id={selectId} className={`w-full border rounded-lg px-3 py-2 text-sm outline-none cursor-pointer transition ${t.sidebarInput} ${className}`} {...props}>
+      <select id={selectId} className={`w-full border rounded-lg px-3 py-2 text-sm outline-hidden cursor-pointer transition ${t.sidebarInput} ${className}`} {...props}>
         {children}
       </select>
     </div>

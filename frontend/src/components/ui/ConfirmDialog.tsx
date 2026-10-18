@@ -66,7 +66,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
       {children}
       {pending && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm animate-fadeIn"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-xs animate-fadeIn"
           role="dialog"
           aria-modal="true"
           aria-labelledby="ermes-confirm-title"

@@ -374,12 +374,12 @@ function AppInner() {
 
   if (authState !== 'authenticated') {
     return <main className={`ermes-app-shell ermes-grid flex min-h-screen items-center justify-center p-6 ${t.bg}`}>
-      <div className="grid w-full max-w-5xl overflow-hidden rounded-3xl border border-slate-200 bg-white/90 shadow-2xl shadow-slate-300/50 dark:border-white/10 dark:bg-[#2b2b2b] dark:shadow-slate-950/40 ermes-glass lg:grid-cols-[1.05fr_.95fr]">
-        <section className="hidden min-h-[34rem] flex-col justify-between border-r border-slate-200 dark:border-white/[0.08] bg-gradient-to-br from-blue-600/10 via-slate-100/40 to-indigo-500/10 dark:from-blue-600/20 dark:via-slate-950/20 dark:to-indigo-500/10 p-10 lg:flex">
+      <div className="grid w-full max-w-5xl overflow-hidden rounded-3xl border border-slate-200 bg-white/90 shadow-2xl shadow-slate-300/50 dark:border-white/10 dark:bg-slate-800 dark:shadow-slate-950/40 ermes-glass lg:grid-cols-[1.05fr_.95fr]">
+        <section className="hidden min-h-136 flex-col justify-between border-r border-slate-200 dark:border-white/8 bg-linear-to-br from-blue-600/10 via-slate-100/40 to-indigo-500/10 dark:from-blue-600/20 dark:via-slate-950/20 dark:to-indigo-500/10 p-10 lg:flex">
           <div><BrandMark className="h-12 w-12" /><p className="mt-12 text-xs font-bold text-blue-300">ERMES Knowledge</p><h1 className="mt-4 max-w-md text-4xl font-semibold leading-tight tracking-tight text-slate-900 dark:text-white">La conoscenza aziendale, finalmente consultabile.</h1><p className="mt-5 max-w-md text-sm leading-6 text-slate-300">Organizza documenti, cerca passaggi e ottieni risposte legate alle fonti originali.</p></div>
           <div className="space-y-3 text-sm text-slate-300"><p className="flex items-center gap-3"><ShieldCheck className="h-4 w-4 text-emerald-400" />I documenti restano nella tua azienda</p><p className="flex items-center gap-3"><Sparkles className="h-4 w-4 text-blue-300" />Ogni risposta dice da quale documento viene</p></div>
         </section>
-        <form onSubmit={handleLogin} className="flex min-h-[34rem] w-full flex-col justify-center p-7 sm:p-10">
+        <form onSubmit={handleLogin} className="flex min-h-136 w-full flex-col justify-center p-7 sm:p-10">
           <div className="mb-8"><div className="mb-6 flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/10 text-blue-300 lg:hidden"><LockKeyhole className="h-5 w-5" /></div><h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-900 dark:text-white">Accedi al tuo spazio</h2><p className="mt-2 text-sm leading-6 text-slate-400">Usa le credenziali o il provider SSO della tua organizzazione.</p></div>
           {authState === 'checking' ? <p className="mt-6 text-sm text-slate-400">Verifica sessione…</p> : <>
             {oidcConfig?.enabled && (
@@ -394,7 +394,7 @@ function AppInner() {
                 <div className="my-5 flex items-center gap-3"><div className="h-px flex-1 bg-white/10" /><span className="text-[11px] font-medium text-slate-500">oppure account locale</span><div className="h-px flex-1 bg-white/10" /></div>
               </div>
             )}
-            <label className="block text-sm font-medium text-slate-300">Utente<input value={loginUsername} onChange={event => setLoginUsername(event.target.value)} placeholder="nome utente" className={`mt-2 w-full rounded-xl border px-3.5 py-3 outline-none ${t.sidebarInput}`} autoComplete="username" /></label><label className="mt-5 block text-sm font-medium text-slate-300">Password<input type="password" value={loginPassword} onChange={event => setLoginPassword(event.target.value)} className={`mt-2 w-full rounded-xl border px-3.5 py-3 outline-none ${t.sidebarInput}`} autoComplete="current-password" /></label>{loginError && <p className="mt-4 rounded-lg border border-rose-500/20 bg-rose-500/10 px-3 py-2 text-sm text-rose-300">{loginError}</p>}<button className="mt-7 flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-500 px-4 py-3 font-semibold text-white shadow-lg shadow-blue-900/30 transition hover:from-blue-500 hover:to-indigo-500">Accedi <LockKeyhole className="h-4 w-4" /></button></>}
+            <label className="block text-sm font-medium text-slate-300">Utente<input value={loginUsername} onChange={event => setLoginUsername(event.target.value)} placeholder="nome utente" className={`mt-2 w-full rounded-xl border px-3.5 py-3 outline-hidden ${t.sidebarInput}`} autoComplete="username" /></label><label className="mt-5 block text-sm font-medium text-slate-300">Password<input type="password" value={loginPassword} onChange={event => setLoginPassword(event.target.value)} className={`mt-2 w-full rounded-xl border px-3.5 py-3 outline-hidden ${t.sidebarInput}`} autoComplete="current-password" /></label>{loginError && <p className="mt-4 rounded-lg border border-rose-500/20 bg-rose-500/10 px-3 py-2 text-sm text-rose-300">{loginError}</p>}<button className="mt-7 flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-500 px-4 py-3 font-semibold text-white shadow-lg shadow-blue-900/30 transition hover:from-blue-500 hover:to-indigo-500">Accedi <LockKeyhole className="h-4 w-4" /></button></>}
           <p className="mt-7 text-center text-xs leading-5 text-slate-500">Le tue sessioni restano protette su questo server.</p>
         </form>
       </div>
@@ -402,7 +402,7 @@ function AppInner() {
   }
 
   return <div className={`ermes-app-shell flex h-screen overflow-hidden font-sans antialiased ${t.bg}`}>
-    <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[100] focus:rounded-lg focus:bg-blue-600 focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white focus:shadow-lg">Vai al contenuto</a>
+    <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-100 focus:rounded-lg focus:bg-blue-600 focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white focus:shadow-lg">Vai al contenuto</a>
     {showOnboarding && currentUser && (
       <Suspense fallback={null}>
       <OnboardingWizard
@@ -420,9 +420,9 @@ function AppInner() {
       </Suspense>
     )}
     <Sidebar activeTab={activeTab} onTabChange={setActiveTab} healthStatus={health ? { status: health.status } : undefined} onRefresh={fetchData} isAdmin={currentUser?.role === 'admin'} username={currentUser?.username} onLogout={handleLogout} mobileOpen={mobileMenuOpen} onMobileClose={() => setMobileMenuOpen(false)} />
-    <main id="main-content" tabIndex={-1} className="relative flex flex-1 flex-col overflow-hidden outline-none ermes-panel md:mt-2 md:rounded-tl-2xl md:border-l md:border-t md:border-slate-200 dark:md:border-white/[0.08]">
+    <main id="main-content" tabIndex={-1} className="relative flex flex-1 flex-col overflow-hidden outline-hidden ermes-panel md:mt-2 md:rounded-tl-2xl md:border-l md:border-t md:border-slate-200 dark:md:border-white/8">
       {notif && <div className={`absolute right-4 top-4 z-50 flex items-center gap-2.5 rounded-xl border px-4 py-3 shadow-lg ${notif.type === 'error' ? 'border-rose-800 bg-rose-950/90 text-rose-200' : 'border-emerald-800 bg-emerald-950/90 text-emerald-200'}`}>{notif.type === 'error' ? <AlertTriangle className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}<span className="text-sm font-medium">{notif.message}</span></div>}
-      <header className={`app-titlebar z-10 flex h-[4.5rem] items-center justify-between gap-3 border-b px-4 md:px-7 ${t.header}`}><div className="flex min-w-0 items-center gap-3"><button type="button" onClick={() => setMobileMenuOpen(true)} aria-label="Apri il menu" aria-controls="ermes-menu" aria-expanded={mobileMenuOpen} className="rounded-lg border border-white/10 p-2 text-slate-300 md:hidden"><Menu className="h-5 w-5" /></button><div className="min-w-0"><h2 className={`text-base font-semibold ${t.cardTitle}`}>{tabHeaders[activeTab]}</h2></div></div><p className={`hidden text-xs md:block ${t.cardDesc}`}>Ogni biblioteca decide come usare l’IA</p></header>
+      <header className={`app-titlebar z-10 flex h-18 items-center justify-between gap-3 border-b px-4 md:px-7 ${t.header}`}><div className="flex min-w-0 items-center gap-3"><button type="button" onClick={() => setMobileMenuOpen(true)} aria-label="Apri il menu" aria-controls="ermes-menu" aria-expanded={mobileMenuOpen} className="rounded-lg border border-white/10 p-2 text-slate-300 md:hidden"><Menu className="h-5 w-5" /></button><div className="min-w-0"><h2 className={`text-base font-semibold ${t.cardTitle}`}>{tabHeaders[activeTab]}</h2></div></div><p className={`hidden text-xs md:block ${t.cardDesc}`}>Ogni biblioteca decide come usare l’IA</p></header>
       <div className="flex-1 overflow-hidden">
         <Suspense fallback={<PanelSkeleton />}>
         {activeTab === 'chat' && (

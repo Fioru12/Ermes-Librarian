@@ -316,7 +316,7 @@ export default function ChatArea({
                   </p>
                 )}
                 {m.role === 'assistant' && m.evidence && (
-                  <div className={`mb-3 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold shadow-sm ${
+                  <div className={`mb-3 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold shadow-xs ${
                     m.evidence.coverage === 'supported'
                       ? 'border-emerald-500/30 bg-emerald-500/15 text-emerald-300'
                       : 'border-amber-500/30 bg-amber-500/15 text-amber-300'
@@ -350,8 +350,8 @@ export default function ChatArea({
                             title="Visualizza estratto completo"
                           >
                             <span className="data-voice text-[11px]">{source.filename}</span><span className="data-voice text-[11px] font-normal text-slate-400"> · v{source.version} · {source.locator}</span>
-                            {source.library_name && <span className="ml-2 rounded border border-indigo-500/30 bg-indigo-500/15 px-1.5 py-0.5 text-[10px] font-medium text-indigo-300" title={`Biblioteca: ${source.library_name}`}>{source.library_name}</span>}
-                            {source.injection_suspected && <span className="ml-2 rounded border border-amber-400/40 bg-amber-400/10 px-1.5 py-0.5 text-[10px] font-semibold text-amber-300" title="Il passaggio contiene istruzioni rivolte al modello: la fonte e' mostrata, il suo testo non e' stato usato per rispondere">non usata</span>}
+                            {source.library_name && <span className="ml-2 rounded-sm border border-indigo-500/30 bg-indigo-500/15 px-1.5 py-0.5 text-[10px] font-medium text-indigo-300" title={`Biblioteca: ${source.library_name}`}>{source.library_name}</span>}
+                            {source.injection_suspected && <span className="ml-2 rounded-sm border border-amber-400/40 bg-amber-400/10 px-1.5 py-0.5 text-[10px] font-semibold text-amber-300" title="Il passaggio contiene istruzioni rivolte al modello: la fonte e' mostrata, il suo testo non e' stato usato per rispondere">non usata</span>}
                           </button>
                           <div className="flex items-center gap-1.5 shrink-0">
                             {isTabular && (
@@ -475,7 +475,7 @@ export default function ChatArea({
         <div className="mb-3 flex max-w-5xl items-center justify-between gap-2 mx-auto">
           <div className="flex items-center gap-2">
             <span className="rounded-full border border-blue-500/15 bg-blue-500/5 px-2.5 py-1 text-[11px] font-medium text-blue-300">Stai consultando</span>
-            <select aria-label="Biblioteca da consultare" value={selectedLibraryId} onChange={event => onLibraryChange?.(event.target.value)} className={`min-w-0 rounded-lg border px-3 py-1.5 text-xs outline-none ${t.sidebarInput}`}>
+            <select aria-label="Biblioteca da consultare" value={selectedLibraryId} onChange={event => onLibraryChange?.(event.target.value)} className={`min-w-0 rounded-lg border px-3 py-1.5 text-xs outline-hidden ${t.sidebarInput}`}>
               <option value="">Seleziona una biblioteca</option>
               {libraries.map(library => <option key={library.id} value={library.id}>{library.name}</option>)}
             </select>
@@ -524,7 +524,7 @@ export default function ChatArea({
                       value={historyFilter}
                       onChange={e => setHistoryFilter(e.target.value)}
                       placeholder="Cerca conversazioni…"
-                      className="w-full rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-slate-200 placeholder-slate-500 outline-none focus:border-blue-500/50"
+                      className="w-full rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-slate-200 placeholder-slate-500 outline-hidden focus:border-blue-500/50"
                       onClick={e => e.stopPropagation()}
                     />
                     <div className="flex flex-col gap-1 max-h-[220px] overflow-y-auto mt-1">
@@ -557,7 +557,7 @@ export default function ChatArea({
                                   e.stopPropagation()
                                   onDeleteConversation(c.id)
                                 }}
-                                className="text-slate-500 hover:text-rose-400 p-1 rounded transition"
+                                className="text-slate-500 hover:text-rose-400 p-1 rounded-sm transition"
                                 title="Elimina conversazione"
                               >
                                 <Trash2 className="w-3 h-3" />
@@ -604,15 +604,15 @@ export default function ChatArea({
             onChange={e => onInputChange(e.target.value)}
             disabled={isGenerating || needsLibrary || needsDocuments}
             placeholder={isGenerating ? 'Sto preparando la risposta…' : 'Fai una domanda sui tuoi documenti…'}
-            className={`flex-1 border rounded-xl px-4 py-3 text-sm outline-none transition disabled:opacity-50 ${t.chatInput}`} />
+            className={`flex-1 border rounded-xl px-4 py-3 text-sm outline-hidden transition disabled:opacity-50 ${t.chatInput}`} />
           {isGenerating ? (
             <button type="button" onClick={onStop}
-              className="bg-red-600 hover:bg-red-500 text-white rounded-lg px-5 py-3 flex items-center justify-center gap-2 font-medium text-sm transition shadow-sm cursor-pointer">
+              className="bg-red-600 hover:bg-red-500 text-white rounded-lg px-5 py-3 flex items-center justify-center gap-2 font-medium text-sm transition shadow-xs cursor-pointer">
               <Square className="w-4 h-4" /> Stop
             </button>
           ) : (
             <button type="submit" disabled={!inputMessage.trim() || isGenerating || needsLibrary || needsDocuments}
-              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:opacity-50 text-white rounded-xl px-5 py-3 flex items-center justify-center gap-2 font-medium text-sm transition shadow-lg shadow-blue-950/30 cursor-pointer">
+              className="bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:opacity-50 text-white rounded-xl px-5 py-3 flex items-center justify-center gap-2 font-medium text-sm transition shadow-lg shadow-blue-950/30 cursor-pointer">
               <Send className="w-4 h-4" /> Invia
             </button>
           )}
@@ -645,7 +645,7 @@ export default function ChatArea({
               <div className="flex items-center gap-1.5 text-xs text-slate-400 mt-1 truncate max-w-[340px]">
                 <span className={`font-medium truncate ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>{activeCitation.source.filename}</span>
                 <span>•</span>
-                <span className="rounded bg-blue-500/10 border border-blue-500/20 px-1 py-0.5 text-blue-300 font-mono text-[10px]">
+                <span className="rounded-sm bg-blue-500/10 border border-blue-500/20 px-1 py-0.5 text-blue-300 font-mono text-[10px]">
                   {activeCitation.source.locator}
                 </span>
               </div>
@@ -672,7 +672,7 @@ export default function ChatArea({
 
           <div className="mt-4 flex-1">
             <p className="text-xs font-medium text-slate-400 mb-1.5">Passaggio nel documento</p>
-            <blockquote className={`rounded-xl border border-amber-500/25 bg-amber-500/[0.04] doc-voice p-3.5 text-[13px] leading-relaxed ${isDark ? 'text-slate-200' : 'text-slate-800'} border-l-4 border-l-amber-400/80 shadow-inner`}>
+            <blockquote className={`rounded-xl border border-amber-500/25 bg-amber-500/4 doc-voice p-3.5 text-[13px] leading-relaxed ${isDark ? 'text-slate-200' : 'text-slate-800'} border-l-4 border-l-amber-400/80 shadow-inner`}>
               <InlineMarkdown text={activeCitation.source.excerpt} />
             </blockquote>
           </div>
@@ -718,7 +718,7 @@ export default function ChatArea({
           ref={citationDialogRef}
           tabIndex={-1}
           aria-modal="true"
-          className="absolute inset-0 z-30 flex items-center justify-center bg-slate-950/80 p-4 sm:p-6 backdrop-blur-sm animate-fadeIn outline-none"
+          className="absolute inset-0 z-30 flex items-center justify-center bg-slate-950/80 p-4 sm:p-6 backdrop-blur-xs animate-fadeIn outline-hidden"
           role="dialog"
           aria-label="Dettaglio citazione"
           onClick={e => {
@@ -747,13 +747,13 @@ export default function ChatArea({
                   <span>·</span>
                   <span>v{activeCitation.source.version}</span>
                   <span>·</span>
-                  <span className="rounded bg-blue-500/10 border border-blue-500/20 px-1.5 py-0.5 text-blue-300 font-mono text-[11px]">
+                  <span className="rounded-sm bg-blue-500/10 border border-blue-500/20 px-1.5 py-0.5 text-blue-300 font-mono text-[11px]">
                     {activeCitation.source.locator}
                   </span>
                   {activeCitation.source.library_name && (
                     <>
                       <span>·</span>
-                      <span className="rounded bg-indigo-500/10 border border-indigo-500/20 px-1.5 py-0.5 text-indigo-300 text-[11px] font-medium">
+                      <span className="rounded-sm bg-indigo-500/10 border border-indigo-500/20 px-1.5 py-0.5 text-indigo-300 text-[11px] font-medium">
                         {activeCitation.source.library_name}
                       </span>
                     </>
@@ -780,7 +780,7 @@ export default function ChatArea({
             </div>
             <div className="mt-4">
               <p className="text-xs font-medium text-slate-400 mb-2">Passaggio nel documento</p>
-              <blockquote className="max-h-[50vh] overflow-y-auto doc-voice rounded-xl border border-amber-500/20 bg-amber-500/[0.03] p-4 text-[15px] leading-relaxed text-slate-200 border-l-4 border-l-amber-400/70 shadow-inner">
+              <blockquote className="max-h-[50vh] overflow-y-auto doc-voice rounded-xl border border-amber-500/20 bg-amber-500/3 p-4 text-[15px] leading-relaxed text-slate-200 border-l-4 border-l-amber-400/70 shadow-inner">
                 <InlineMarkdown text={activeCitation.source.excerpt} />
               </blockquote>
             </div>
@@ -813,7 +813,7 @@ export default function ChatArea({
                         filename: activeCitation.source.filename,
                       })
                     }}
-                    className="flex items-center gap-1.5 rounded-lg border border-purple-500/30 bg-purple-500/15 hover:bg-purple-500/25 px-3.5 py-2 text-xs font-semibold text-purple-200 transition shadow-sm cursor-pointer"
+                    className="flex items-center gap-1.5 rounded-lg border border-purple-500/30 bg-purple-500/15 hover:bg-purple-500/25 px-3.5 py-2 text-xs font-semibold text-purple-200 transition shadow-xs cursor-pointer"
                   >
                     <Table className="h-3.5 w-3.5 text-purple-400" /> Esplora Dati SQL
                   </button>
@@ -827,7 +827,7 @@ export default function ChatArea({
                       'noopener,noreferrer'
                     )
                   }
-                  className="flex items-center gap-1.5 rounded-lg border border-blue-500/30 bg-blue-500/15 hover:bg-blue-500/25 px-4 py-2 text-xs font-semibold text-blue-200 transition shadow-sm cursor-pointer"
+                  className="flex items-center gap-1.5 rounded-lg border border-blue-500/30 bg-blue-500/15 hover:bg-blue-500/25 px-4 py-2 text-xs font-semibold text-blue-200 transition shadow-xs cursor-pointer"
                 >
                   <Download className="h-3.5 w-3.5 text-blue-400" /> Scarica originale
                 </button>

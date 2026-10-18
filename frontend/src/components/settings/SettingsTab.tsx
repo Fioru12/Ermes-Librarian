@@ -22,8 +22,8 @@ export default function SettingsTab({ showNotif, isAdmin = false }: SettingsTabP
       <Card>
         <CardTitle><ShieldCheck className="w-4 h-4 text-emerald-400" /> Configurazione dell'istanza</CardTitle>
         <div className="mt-4 grid gap-3 text-sm text-slate-500 dark:text-slate-400 sm:grid-cols-2">
-          <p className="rounded-lg border border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-white/[0.02] p-3"><span className="block text-xs font-semibold text-slate-500">Dati</span><span className="mt-1 block text-slate-600 dark:text-slate-300">Biblioteche e file restano nell'istanza locale.</span></p>
-          <p className="rounded-lg border border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-white/[0.02] p-3"><span className="block text-xs font-semibold text-slate-500">AI cloud</span><span className="mt-1 block text-slate-600 dark:text-slate-300">Disponibile solo quando autorizzata per una biblioteca.</span></p>
+          <p className="rounded-lg border border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-white/2 p-3"><span className="block text-xs font-semibold text-slate-500">Dati</span><span className="mt-1 block text-slate-600 dark:text-slate-300">Biblioteche e file restano nell'istanza locale.</span></p>
+          <p className="rounded-lg border border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-white/2 p-3"><span className="block text-xs font-semibold text-slate-500">AI cloud</span><span className="mt-1 block text-slate-600 dark:text-slate-300">Disponibile solo quando autorizzata per una biblioteca.</span></p>
         </div>
       </Card>
 
