@@ -127,7 +127,7 @@ export function TabularExplorerModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
       <div className={`relative flex flex-col w-full max-w-5xl h-[85vh] rounded-2xl border shadow-2xl overflow-hidden ${t.card}`}>
         {/* Header */}
         <div className="flex items-center justify-between border-b px-6 py-4 bg-white/60 dark:bg-slate-950/20">
@@ -167,7 +167,7 @@ export function TabularExplorerModal({
               onClick={() => setActiveTab('schema')}
               className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition ${
                 activeTab === 'schema'
-                  ? 'bg-blue-600 text-white shadow-sm'
+                  ? 'bg-blue-600 text-white shadow-xs'
                   : 'text-slate-400 hover:text-white hover:bg-white/5'
               }`}
             >
@@ -178,7 +178,7 @@ export function TabularExplorerModal({
               onClick={() => setActiveTab('query')}
               className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition ${
                 activeTab === 'query'
-                  ? 'bg-blue-600 text-white shadow-sm'
+                  ? 'bg-blue-600 text-white shadow-xs'
                   : 'text-slate-400 hover:text-white hover:bg-white/5'
               }`}
             >
@@ -235,7 +235,7 @@ export function TabularExplorerModal({
                       {schema.columns.map(col => (
                         <div
                           key={col.name}
-                          className="flex items-center justify-between rounded-xl border border-white/5 bg-white/[0.02] p-2.5"
+                          className="flex items-center justify-between rounded-xl border border-white/5 bg-white/2 p-2.5"
                         >
                           <span className="text-xs font-medium text-slate-200 truncate" title={col.name}>
                             {col.name}
@@ -286,7 +286,7 @@ export function TabularExplorerModal({
                         </thead>
                         <tbody className="divide-y divide-white/5">
                           {schema.sample_rows.map((row, idx) => (
-                            <tr key={idx} className="hover:bg-white/[0.02] transition">
+                            <tr key={idx} className="hover:bg-white/2 transition">
                               {schema.columns.map(c => (
                                 <td key={c.name} className="px-3 py-2 whitespace-nowrap truncate max-w-xs">
                                   {String(row[c.name] ?? '')}
@@ -313,7 +313,7 @@ export function TabularExplorerModal({
                     <span className="text-slate-500">Preset:</span>
                     <button
                       onClick={() => setSqlQuery('SELECT * FROM data LIMIT 50')}
-                      className="px-2 py-0.5 rounded border border-white/10 hover:bg-white/5 text-blue-300"
+                      className="px-2 py-0.5 rounded-sm border border-white/10 hover:bg-white/5 text-blue-300"
                     >
                       Top 50
                     </button>
@@ -324,7 +324,7 @@ export function TabularExplorerModal({
                             `SELECT ${schema.columns[0].name}, COUNT(*) as conteggio FROM data GROUP BY ${schema.columns[0].name} ORDER BY conteggio DESC`
                           )
                         }
-                        className="px-2 py-0.5 rounded border border-white/10 hover:bg-white/5 text-purple-300"
+                        className="px-2 py-0.5 rounded-sm border border-white/10 hover:bg-white/5 text-purple-300"
                       >
                         Group By
                       </button>
@@ -338,7 +338,7 @@ export function TabularExplorerModal({
                     onChange={e => setSqlQuery(e.target.value)}
                     placeholder="SELECT * FROM data WHERE ..."
                     rows={3}
-                    className="flex-1 rounded-xl border border-slate-300 dark:border-white/10 bg-white dark:bg-slate-950/60 p-3 font-mono text-xs text-slate-900 dark:text-white outline-none focus:border-blue-500 transition resize-none"
+                    className="flex-1 rounded-xl border border-slate-300 dark:border-white/10 bg-white dark:bg-slate-950/60 p-3 font-mono text-xs text-slate-900 dark:text-white outline-hidden focus:border-blue-500 transition resize-none"
                   />
                   <button
                     onClick={() => handleExecuteQuery()}
@@ -386,7 +386,7 @@ export function TabularExplorerModal({
                         </thead>
                         <tbody className="divide-y divide-white/5">
                           {queryResult.rows.map((row, rIdx) => (
-                            <tr key={rIdx} className="hover:bg-white/[0.02] transition">
+                            <tr key={rIdx} className="hover:bg-white/2 transition">
                               {row.map((cell, cIdx) => (
                                 <td key={cIdx} className="px-3 py-2 whitespace-nowrap truncate max-w-xs font-mono">
                                   {cell !== null ? String(cell) : <span className="text-slate-600 italic">null</span>}

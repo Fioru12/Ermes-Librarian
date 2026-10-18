@@ -102,7 +102,7 @@ export default function AnalyticsDashboard({ showNotif }: AnalyticsDashboardProp
             aria-label="Periodo di analisi"
             value={days}
             onChange={(e) => setDays(Number(e.target.value))}
-            className={`text-xs rounded-xl px-3 py-2 border outline-none font-medium ${t.sidebarInput}`}
+            className={`text-xs rounded-xl px-3 py-2 border outline-hidden font-medium ${t.sidebarInput}`}
           >
             <option value={7}>Ultimi 7 giorni</option>
             <option value={30}>Ultimi 30 giorni</option>
@@ -129,7 +129,7 @@ export default function AnalyticsDashboard({ showNotif }: AnalyticsDashboardProp
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Queries */}
-        <div className={`p-5 rounded-2xl border ${t.card} relative overflow-hidden shadow-sm`}>
+        <div className={`p-5 rounded-2xl border ${t.card} relative overflow-hidden shadow-xs`}>
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
               Query totali
@@ -143,7 +143,7 @@ export default function AnalyticsDashboard({ showNotif }: AnalyticsDashboardProp
         </div>
 
         {/* Avg Latency */}
-        <div className={`p-5 rounded-2xl border ${t.card} relative overflow-hidden shadow-sm`}>
+        <div className={`p-5 rounded-2xl border ${t.card} relative overflow-hidden shadow-xs`}>
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
               Latenza media
@@ -157,7 +157,7 @@ export default function AnalyticsDashboard({ showNotif }: AnalyticsDashboardProp
         </div>
 
         {/* Satisfaction Rate */}
-        <div className={`p-5 rounded-2xl border ${t.card} relative overflow-hidden shadow-sm`}>
+        <div className={`p-5 rounded-2xl border ${t.card} relative overflow-hidden shadow-xs`}>
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
               Feedback positivi
@@ -177,7 +177,7 @@ export default function AnalyticsDashboard({ showNotif }: AnalyticsDashboardProp
         </div>
 
         {/* Knowledge Gaps */}
-        <div className={`p-5 rounded-2xl border ${t.card} relative overflow-hidden shadow-sm`}>
+        <div className={`p-5 rounded-2xl border ${t.card} relative overflow-hidden shadow-xs`}>
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-rose-400">
               Lacune di conoscenza
@@ -192,7 +192,7 @@ export default function AnalyticsDashboard({ showNotif }: AnalyticsDashboardProp
       </div>
 
       {/* Knowledge Gaps Section */}
-      <div className={`p-6 rounded-2xl border ${t.card} shadow-sm space-y-4`}>
+      <div className={`p-6 rounded-2xl border ${t.card} shadow-xs space-y-4`}>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <HelpCircle className="w-5 h-5 text-purple-400" />
@@ -207,7 +207,7 @@ export default function AnalyticsDashboard({ showNotif }: AnalyticsDashboardProp
               placeholder="Filtra domande…"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className={`w-full text-xs rounded-xl pl-9 pr-3 py-2 border outline-none ${t.sidebarInput}`}
+              className={`w-full text-xs rounded-xl pl-9 pr-3 py-2 border outline-hidden ${t.sidebarInput}`}
             />
           </div>
         </div>
@@ -231,9 +231,9 @@ export default function AnalyticsDashboard({ showNotif }: AnalyticsDashboardProp
                   <th className="py-3 px-4 font-semibold text-slate-600 dark:text-slate-300">Feedback negativi</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/[0.04]">
+              <tbody className="divide-y divide-white/4">
                 {filteredGaps.map((gap, idx) => (
-                  <tr key={idx} className="hover:bg-white/[0.02] transition">
+                  <tr key={idx} className="hover:bg-white/2 transition">
                     <td className="py-3 px-4 max-w-md">
                       <div className="font-medium text-slate-900 dark:text-white truncate" title={gap.query}>
                         {gap.query}
@@ -243,7 +243,7 @@ export default function AnalyticsDashboard({ showNotif }: AnalyticsDashboardProp
                           {gap.feedback_reasons.map((r, rIdx) => (
                             <span
                               key={rIdx}
-                              className="inline-block px-1.5 py-0.5 rounded text-[10px] font-medium bg-rose-500/10 text-rose-300 border border-rose-500/20"
+                              className="inline-block px-1.5 py-0.5 rounded-sm text-[10px] font-medium bg-rose-500/10 text-rose-300 border border-rose-500/20"
                             >
                               • {r}
                             </span>

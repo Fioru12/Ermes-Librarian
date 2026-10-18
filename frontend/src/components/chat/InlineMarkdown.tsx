@@ -57,7 +57,7 @@ export function InlineMarkdown({ text, className }: { text: string; className?: 
             return <em key={index}>{token.value}</em>;
           case 'code':
             return (
-              <code key={index} className="rounded bg-white/10 px-1 py-0.5 font-mono text-[0.9em]">
+              <code key={index} className="rounded-sm bg-white/10 px-1 py-0.5 font-mono text-[0.9em]">
                 {token.value}
               </code>
             );

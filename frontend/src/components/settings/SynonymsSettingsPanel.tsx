@@ -142,7 +142,7 @@ export default function SynonymsSettingsPanel({ showNotif, isAdmin = false }: Sy
 
       {/* Form Aggiunta Sinonimo (Admin/Editor) */}
       {isAdmin ? (
-        <form onSubmit={handleAddSynonym} className="mb-6 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.02] p-4 space-y-4">
+        <form onSubmit={handleAddSynonym} className="mb-6 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/2 p-4 space-y-4">
           <div className="text-xs font-semibold text-slate-500 dark:text-slate-400">
             Aggiungi nuovo termine o acronimo
           </div>
@@ -195,7 +195,7 @@ export default function SynonymsSettingsPanel({ showNotif, isAdmin = false }: Sy
         {loading ? (
           <div className="text-center py-6 text-sm text-slate-500">Caricamento glossario…</div>
         ) : customEntries.length === 0 ? (
-          <div className="rounded-lg border border-slate-200 dark:border-white/5 bg-white/[0.01] p-6 text-center text-sm text-slate-500">
+          <div className="rounded-lg border border-slate-200 dark:border-white/5 bg-white/1 p-6 text-center text-sm text-slate-500">
             {searchTerm ? 'Nessun termine personalizzato corrisponde alla ricerca.' : 'Nessun termine personalizzato configurato. Aggiungine uno sopra!'}
           </div>
         ) : (
@@ -203,12 +203,12 @@ export default function SynonymsSettingsPanel({ showNotif, isAdmin = false }: Sy
             {customEntries.map(([term, syns]) => (
               <div
                 key={term}
-                className="flex items-start justify-between gap-3 rounded-xl border border-indigo-500/20 bg-indigo-500/[0.03] p-3.5 transition hover:border-indigo-500/40"
+                className="flex items-start justify-between gap-3 rounded-xl border border-indigo-500/20 bg-indigo-500/3 p-3.5 transition hover:border-indigo-500/40"
               >
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <span className="font-semibold text-indigo-300 text-xs">{term}</span>
-                    <span className="text-[10px] rounded bg-indigo-500/20 px-1.5 py-0.5 text-indigo-300 font-mono">custom</span>
+                    <span className="text-[10px] rounded-sm bg-indigo-500/20 px-1.5 py-0.5 text-indigo-300 font-mono">custom</span>
                   </div>
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     {syns.map(s => (
@@ -253,17 +253,17 @@ export default function SynonymsSettingsPanel({ showNotif, isAdmin = false }: Sy
             {builtinEntries.map(([term, syns]) => (
               <div
                 key={term}
-                className="rounded-xl border border-slate-200 dark:border-white/5 bg-white/[0.01] p-3 transition hover:border-white/10"
+                className="rounded-xl border border-slate-200 dark:border-white/5 bg-white/1 p-3 transition hover:border-white/10"
               >
                 <div className="flex items-center gap-2">
                   <span className="font-semibold text-slate-600 dark:text-slate-300 text-xs">{term}</span>
-                  <span className="text-[10px] rounded bg-slate-100 dark:bg-white/5 px-1.5 py-0.5 text-slate-500 dark:text-slate-400 font-mono">built-in</span>
+                  <span className="text-[10px] rounded-sm bg-slate-100 dark:bg-white/5 px-1.5 py-0.5 text-slate-500 dark:text-slate-400 font-mono">built-in</span>
                 </div>
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   {syns.map(s => (
                     <span
                       key={s}
-                      className="rounded-md border border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-white/[0.02] px-2 py-0.5 text-xs text-slate-500 dark:text-slate-400"
+                      className="rounded-md border border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-white/2 px-2 py-0.5 text-xs text-slate-500 dark:text-slate-400"
                     >
                       {s}
                     </span>

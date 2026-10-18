@@ -164,7 +164,7 @@ export default function ProvidersTab({ showNotif }: ProvidersTabProps) {
                   <Input label="API Key" type="password" value={form.api_key} onChange={e => setForm({ ...form, api_key: e.target.value })} placeholder="sk-..." />
                 </div>
                 <button onClick={detectProvider} disabled={detecting || (!form.api_key && form.type !== 'ollama')}
-                  className="h-10 px-3 rounded-lg bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shrink-0">
+                  className="h-10 px-3 rounded-lg bg-linear-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shrink-0">
                   {detecting ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5" />}
                   Riconosci
                 </button>
@@ -188,7 +188,7 @@ export default function ProvidersTab({ showNotif }: ProvidersTabProps) {
               <textarea value={modelsInput} onChange={e => {
                 setModelsInput(e.target.value)
                 setForm({ ...form, models: e.target.value.split('\n').filter(s => s.trim()) })
-              }} rows={3} placeholder="gpt-4o&#10;gpt-4.1" className={`w-full border rounded-lg px-3 py-2 text-sm outline-none transition ${t.sidebarInput}`} />
+              }} rows={3} placeholder="gpt-4o&#10;gpt-4.1" className={`w-full border rounded-lg px-3 py-2 text-sm outline-hidden transition ${t.sidebarInput}`} />
             </div>
             <div className="flex gap-2 pt-2">
               <Button onClick={saveProvider}>{editing ? 'Aggiorna' : 'Aggiungi'}</Button>

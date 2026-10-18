@@ -45,11 +45,11 @@ export default function Sidebar({ activeTab, onTabChange, healthStatus, onRefres
     <aside
       id="ermes-menu"
       aria-label="Menu principale"
-      className={`fixed inset-y-0 left-0 z-40 w-[17.5rem] max-w-[85vw] border-r flex flex-col transition-transform duration-200 md:static md:z-10 md:translate-x-0 ${mobileOpen ? 'translate-x-0' : '-translate-x-full'} ${t.sidebar}`}
+      className={`fixed inset-y-0 left-0 z-40 w-70 max-w-[85vw] border-r flex flex-col transition-transform duration-200 md:static md:z-10 md:translate-x-0 ${mobileOpen ? 'translate-x-0' : '-translate-x-full'} ${t.sidebar}`}
     >
       {/* Title */}
       <div className="px-5 pt-6 pb-5 flex items-center gap-3">
-        <BrandMark className="h-10 w-10 shrink-0 drop-shadow-sm" />
+        <BrandMark className="h-10 w-10 shrink-0 drop-shadow-xs" />
         <div>
           <h1 className={`text-base font-semibold tracking-tight ${t.sidebarTitle}`}>ERMES</h1>
           <p className={`text-xs mt-0.5 ${t.sidebarLabel} font-medium `}>Knowledge</p>
@@ -59,7 +59,7 @@ export default function Sidebar({ activeTab, onTabChange, healthStatus, onRefres
       {/* Config Section */}
       <div className="px-4 pb-5 flex-1 flex flex-col gap-6 overflow-y-auto">
         {/* Library-first AI policy */}
-        <div className="space-y-2 rounded-xl border border-white/[0.06] bg-white/[0.025] p-3">
+        <div className="space-y-2 rounded-xl border border-white/6 bg-white/2.5 p-3">
           <label className={`text-xs font-semibold flex items-center gap-1.5 ${t.sidebarLabel}`}>
             <Shield className="w-3.5 h-3.5 text-purple-400" /> Assistente IA
           </label>
@@ -80,7 +80,7 @@ export default function Sidebar({ activeTab, onTabChange, healthStatus, onRefres
 
       {/* Footer */}
       <div className={`p-4 border-t ${t.statusFooter}`}>
-        <div className="mb-3 flex items-center gap-2 rounded-lg border border-emerald-500/10 bg-emerald-500/[0.04] px-2.5 py-2 text-[11px] text-slate-400">
+        <div className="mb-3 flex items-center gap-2 rounded-lg border border-emerald-500/10 bg-emerald-500/4 px-2.5 py-2 text-[11px] text-slate-400">
           <Sparkles className="h-3.5 w-3.5 text-blue-400" /><span className="truncate">Risposte con fonti verificabili</span>
         </div>
         <div className="flex items-center justify-between text-xs text-slate-400">
