@@ -228,3 +228,4 @@ Per consultare approfondimenti specifici, fare riferimento ai file dedicati nell
 - 🛡️ **Modello delle Minacce**: [`docs/THREAT_MODEL.md`](THREAT_MODEL.md) — Analisi dei vettori di attacco (STRIDE) e misure di mitigazione implementate.
 - 🔧 **Manuale Operativo e Troubleshooting**: [`docs/RUNBOOK.md`](RUNBOOK.md) — Procedure di disaster recovery, diagnostica e monitoraggio dello stato di salute.
 - 📈 **Valutazione del Retrieval**: [`docs/RETRIEVAL_EVALUATION.md`](RETRIEVAL_EVALUATION.md) — Metriche di accuratezza su golden dataset, benchmarking e percentuali di astensione.
+- 🚀 **Benchmark e Piano di Evoluzione (2026)**: [`docs/PIANO_EVOLUZIONE_E_BENCHMARK.md`](PIANO_EVOLUZIONE_E_BENCHMARK.md) — Posizionamento rispetto ai top progetti open-source (RAGFlow, AnythingLLM, NotebookLM) e roadmap delle iniziative future.

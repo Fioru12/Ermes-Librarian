@@ -236,6 +236,8 @@ With the local application running and an administrator password or API key conf
 - ✅ **Enterprise Glossary & Acronyms**: Real-time synonym expansion (`/api/synonyms`) with atomic concurrency locks.
 - ✅ **Real-time SSE Streaming**: Direct token-by-token streaming on `/api/libraries/{id}/ask/stream` with live UI feedback.
 - ✅ **UI & Governance Polish**: Tamper-evident SHA-256 audit log, Markdown chat export, instant chat reset, and citation modal.
+- ✅ **Native Desktop Launcher**: Single-instance Windows launcher ([`Ermes.exe`](Ermes.exe)) with silent background service management and system tray integration.
+- 📋 **2026 Strategic Evolution & Benchmark**: Detailed competitive analysis vs RAGFlow, AnythingLLM, NotebookLM, and strategic roadmap ([docs/PIANO_EVOLUZIONE_E_BENCHMARK.md](docs/PIANO_EVOLUZIONE_E_BENCHMARK.md)).
 
 The historical WinSarp formula engine, kept frozen under `legacy_winsarp/` behind a dev-only flag since August 2026, was removed from the repository on 18 September 2026: its flag path imported routers that no longer existed, so it could not have been switched on. Git history keeps it. `tests/test_legacy_packages_stay_out.py` still fails the build if LlamaIndex, ChromaDB or the Ollama client come back into the product requirements — the reason they were removed in the first place (150 packages instead of 56) has not changed.
 
