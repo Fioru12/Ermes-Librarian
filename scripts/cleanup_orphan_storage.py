@@ -10,6 +10,7 @@ Uso:
 """
 
 import argparse
+import contextlib
 import os
 import sys
 from pathlib import Path
@@ -79,10 +80,8 @@ def main():
     # Rimuove cartelle vuote residue
     for dirpath, dirnames, filenames in os.walk(str(root), topdown=False):
         if dirpath != str(root):
-            try:
+            with contextlib.suppress(OSError):
                 os.rmdir(dirpath)
-            except OSError:
-                pass
 
     return 0
 
