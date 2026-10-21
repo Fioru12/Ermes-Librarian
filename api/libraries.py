@@ -299,7 +299,15 @@ def download_document(
     )
     media_type = document.get("media_type") or "application/octet-stream"
     encoded_filename = quote(document["filename"])
-    disposition = "inline" if inline else "attachment"
+    # Il tipo del file lo dichiara chi lo carica: non ci si puo' fidare per mostrarlo nella
+    # pagina. "Inline" (visualizzatore PDF) solo per un PDF vero, riconosciuto da estensione
+    # e firma `%PDF`, con tipo fisso; qualunque altra cosa e' sempre un download. Altrimenti
+    # un `.txt` caricato come `text/html` verrebbe aperto come pagina sotto il dominio dell'app.
+    is_real_pdf = document["filename"].lower().endswith(".pdf") and data[:5] == b"%PDF-"
+    show_inline = inline and is_real_pdf
+    if show_inline:
+        media_type = "application/pdf"
+    disposition = "inline" if show_inline else "attachment"
     return Response(
         content=data,
         media_type=media_type,
