@@ -2,6 +2,11 @@
 
 Registro leggibile del lavoro su questo progetto. Per i finding tecnici completi, [docs/AUDIT_2026-08-19.md](docs/AUDIT_2026-08-19.md) e [docs/CODE_REVIEW.md](docs/CODE_REVIEW.md). La roadmap per fasi e il registro delle sessioni (`ROADMAP_V2.md`, `WORK_PROGRESS.md`) sono stati tolti dall'albero pubblico il 18 settembre 2026: la cronologia Git li conserva.
 
+## 2026-10-22 (2) — Niente binari nel repository; test dell'indice di nuovo rigoroso
+
+- `Ermes.exe` non e' piu' tracciato in git (resta sul disco di chi l'ha compilato, ed e' in `.gitignore`): un eseguibile non firmato in un repository pubblico non si puo' verificare contro i sorgenti. Chi lo vuole lo compila con `scripts/build_exe.ps1` da `scripts/launcher/`. Il collegamento sul Desktop (`CREA_COLLEGAMENTO_DESKTOP.bat`) funziona anche senza: in quel caso usa `avvia_ermes.ps1`. README e guide aggiornati.
+- Il test e2e dell'indice controlla di nuovo `Problemi: 0` (era stato allentato a una cifra qualunque, e un indice incoerente non lo avrebbe fatto fallire).
+
 ## 2026-10-22 — Revisione dei commit di Gemini: visualizzatore PDF, file serviti, affermazioni
 
 Sei commit (18-21 ottobre) erano finiti su `main` senza PR, da un'altra sessione (Gemini). Riletti e provati uno per uno. Trovato e corretto:

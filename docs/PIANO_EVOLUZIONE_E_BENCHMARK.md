@@ -21,7 +21,7 @@ Ermes Knowledge e' un prodotto funzionante e ben testato, ma **non ancora provat
   - Gestione identità RBAC integrata con OIDC/SSO e mappatura automatica dei gruppi ai ruoli di biblioteca.
   - Strumenti per esportazione (Art. 15) e cancellazione (Art. 17) dei dati di un utente. Non e' una certificazione di conformita' GDPR.
 - **Integrazioni e Canali Estesi:** Connettori cartelle NAS/SMB, Microsoft Graph (SharePoint/OneDrive), Confluence, S3, WebDAV, server nativo Model Context Protocol (MCP), webhook per n8n/Zapier e bot per Slack, Teams e Telegram.
-- **Esperienza Desktop:** un lanciatore Windows in C# (`scripts/launcher/ErmesLauncher.cs`, si compila con `scripts/build_exe.ps1`) con istanza unica, icona nell'area di notifica e apertura in finestra propria tramite Edge o Chrome in modalita' app.
+- **Esperienza Desktop:** un lanciatore Windows in C# (`scripts/launcher/ErmesLauncher.cs`, si compila con `scripts/build_exe.ps1`; il binario non e' nel repository) con istanza unica, icona nell'area di notifica e apertura in finestra propria tramite Edge o Chrome in modalita' app.
 - **Affidabilità e qualità del codice:** oltre 850 test backend, oltre 110 test frontend, suite E2E in CI, Tailwind 4 (0 avvisi npm) e backend dati SQLite o PostgreSQL + pgvector.
 
 ---

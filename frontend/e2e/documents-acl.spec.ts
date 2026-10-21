@@ -81,5 +81,5 @@ test('upload, indicizzazione e gestione accessi per-documento', async ({ page })
   // test cercava un testo rimosso dalla UI mesi prima, e nessuno lo vedeva
   // perche' in CI gli E2E si auto-saltavano.
   await expect(page.getByText(/Documenti verificati:/)).toBeVisible()
-  await expect(page.getByText(/Problemi:\s*\d+/)).toBeVisible()
+  await expect(page.getByText(/Problemi:\s*0/)).toBeVisible()
 })
