@@ -372,7 +372,7 @@ export default function ChatArea({
         window.print();
       }, 300);
     };
-  <\/script>
+  </script>
 </body>
 </html>`
 
