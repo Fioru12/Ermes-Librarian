@@ -126,4 +126,51 @@ describe('ChatArea', () => {
       vi.unstubAllGlobals()
     }
   })
+
+  it('provides visual PDF preview toggle and certified report export', () => {
+    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => ({
+      document: { write: vi.fn(), close: vi.fn() },
+    } as any))
+
+    renderChat({
+      selectedLibraryId: 'hr',
+      messages: [
+        {
+          id: 'a',
+          role: 'assistant' as const,
+          content: 'Consultare il manuale.[1]',
+          timestamp: '10:01',
+          evidence: { coverage: 'supported' as const },
+          sources: [
+            {
+              document_id: 'd-manuale',
+              filename: 'manuale.pdf',
+              version: 1,
+              locator: 'Pagina 14',
+              excerpt: 'Procedura di sicurezza interna.',
+              marker: 1,
+            },
+          ],
+        },
+      ],
+    })
+
+    // Verifica pulsante export report certificato
+    expect(screen.getByText('Report PDF')).toBeInTheDocument()
+    fireEvent.click(screen.getByText('Report PDF'))
+    expect(openSpy).toHaveBeenCalledWith('', '_blank')
+
+    // Apertura citazione
+    fireEvent.click(screen.getByRole('button', { name: /^Fonte 1/ }))
+    expect(screen.getByText('Citazione [1]')).toBeInTheDocument()
+
+    // Toggle PDF Pag. 14
+    const pdfToggle = screen.getByText('Visualizza PDF (Pag. 14)')
+    expect(pdfToggle).toBeInTheDocument()
+    fireEvent.click(pdfToggle)
+    expect(screen.getByTitle('Anteprima PDF manuale.pdf a pagina 14')).toBeInTheDocument()
+
+    openSpy.mockRestore()
+  })
 })
+

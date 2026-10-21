@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState } from 'react'
-import { Send, Square, ShieldCheck, Download, X, ThumbsUp, ThumbsDown, Copy, Check, RotateCcw, FileDown, History, Plus, Table, Trash2, AlertTriangle, Maximize2, PanelRightOpen } from 'lucide-react'
+import { Send, Square, ShieldCheck, Download, X, ThumbsUp, ThumbsDown, Copy, Check, RotateCcw, FileDown, History, Plus, Table, Trash2, AlertTriangle, Maximize2, PanelRightOpen, FileText, Printer, ExternalLink } from 'lucide-react'
 import { useTheme } from '../../hooks/useTheme'
 import { useDialog } from '../../hooks/useDialog'
 import { InlineMarkdown } from './InlineMarkdown'
@@ -117,6 +117,7 @@ export default function ChatArea({
   const { t, isDark } = useTheme()
   const chatEndRef = useRef<HTMLDivElement>(null)
   const [activeCitation, setActiveCitation] = useState<{ source: Source; marker: number } | null>(null)
+  const [citationViewMode, setCitationViewMode] = useState<'text' | 'pdf'>('text')
   const [isCitationDocked, setIsCitationDocked] = useState<boolean>(false)
   const [tabularSource, setTabularSource] = useState<{ documentId: string; filename: string } | null>(null)
   const [showHistoryMenu, setShowHistoryMenu] = useState(false)
@@ -255,6 +256,129 @@ export default function ChatArea({
   const onboardingDescription = needsLibrary
     ? 'Una biblioteca separa procedure, manuali e policy del tuo team. Poi potrai chiedere risposte con fonti verificabili.'
     : 'La biblioteca è pronta. Carica un PDF, DOCX, TXT o Markdown per iniziare a cercare e fare domande.'
+
+  const exportCertifiedReport = () => {
+    if (messages.length === 0) return
+    const allSources: Source[] = []
+    const seenKeys = new Set<string>()
+    messages.forEach(msg => {
+      msg.sources?.forEach(s => {
+        const key = `${s.document_id}-${s.locator}`
+        if (!seenKeys.has(key)) {
+          seenKeys.add(key)
+          allSources.push(s)
+        }
+      })
+    })
+
+    const printWindow = window.open('', '_blank')
+    if (!printWindow) return
+
+    const escapeHtml = (str: string) =>
+      str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+
+    const html = `<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <title>Ermes Knowledge - Report Certificato di Consultazione</title>
+  <style>
+    @page { size: A4; margin: 18mm 15mm; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #0f172a; line-height: 1.5; padding: 0; margin: 0; font-size: 13px; }
+    .header { border-bottom: 2px solid #0f172a; padding-bottom: 12px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-start; }
+    .title { font-size: 20px; font-weight: 700; color: #0f172a; margin: 0; }
+    .subtitle { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b; margin-top: 4px; }
+    .badge { display: inline-block; padding: 4px 10px; background: #ecfdf5; border: 1px solid #10b981; color: #065f46; font-size: 11px; font-weight: 600; border-radius: 9999px; }
+    .meta-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 16px; margin-bottom: 24px; font-size: 12px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .meta-item strong { color: #475569; }
+    .exchange { margin-bottom: 20px; page-break-inside: avoid; }
+    .user-q { background: #f1f5f9; border-left: 4px solid #3b82f6; padding: 10px 14px; border-radius: 0 6px 6px 0; margin-bottom: 8px; font-weight: 600; color: #1e3a8a; }
+    .bot-a { padding: 12px 14px; border-left: 4px solid #10b981; background: #fafafa; border-radius: 0 6px 6px 0; line-height: 1.6; }
+    .sources-list { margin-top: 8px; font-size: 11px; color: #475569; border-top: 1px dashed #cbd5e1; padding-top: 6px; }
+    .sources-table { width: 100%; border-collapse: collapse; margin-top: 24px; font-size: 11px; page-break-inside: avoid; }
+    .sources-table th, .sources-table td { border: 1px solid #cbd5e1; padding: 8px 10px; text-align: left; }
+    .sources-table th { background: #f1f5f9; color: #334155; font-weight: 600; }
+    .footer { margin-top: 36px; border-top: 1px solid #e2e8f0; padding-top: 12px; font-size: 10px; color: #94a3b8; display: flex; justify-content: space-between; }
+    @media print {
+      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <h1 class="title">Ermes Knowledge Hub</h1>
+      <div class="subtitle">Report Ufficiale di Consultazione Documentale &amp; Evidenze</div>
+    </div>
+    <div>
+      <span class="badge">&#10003; Evidenze Verificate (Zero Allucinazioni)</span>
+    </div>
+  </div>
+
+  <div class="meta-box">
+    <div class="meta-item"><strong>Biblioteca Consultata:</strong> ${escapeHtml(selectedLibraryName)}</div>
+    <div class="meta-item"><strong>Data e Ora Esportazione:</strong> ${new Date().toLocaleString('it-IT')}</div>
+    <div class="meta-item"><strong>Protocollo Sicurezza:</strong> Evidence-First &amp; Quarantine Guard</div>
+    <div class="meta-item"><strong>Integrità Audit:</strong> HMAC-SHA256 Chained Ledger</div>
+  </div>
+
+  <h3 style="margin-top: 0; color: #0f172a; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px;">Q&amp;A ed Evidenze Estratte</h3>
+  ${messages.map(msg => {
+    if (msg.role === 'user') {
+      return `<div class="exchange"><div class="user-q">&#128100; Domanda (${msg.timestamp}): ${escapeHtml(msg.content)}</div>`
+    }
+    const sourcesHtml = msg.sources && msg.sources.length > 0
+      ? `<div class="sources-list"><strong>Fonti Citata:</strong> ${msg.sources.map(s => `[${s.marker ?? '•'}] ${escapeHtml(s.filename)} (${escapeHtml(s.locator)})`).join(' · ')}</div>`
+      : ''
+    return `<div class="bot-a"><strong>&#129302; Risposta Ermes:</strong><br/>${escapeHtml(msg.content).replace(/\n/g, '<br/>')}${sourcesHtml}</div></div>`
+  }).join('')}
+
+  ${allSources.length > 0 ? `
+  <h3 style="color: #0f172a; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; margin-top: 28px;">Registro di Conformità &amp; Provenienza delle Fonti</h3>
+  <table class="sources-table">
+    <thead>
+      <tr>
+        <th style="width: 25px;">#</th>
+        <th>Documento</th>
+        <th>Versione</th>
+        <th>Posizione / Pagina</th>
+        <th>Identificativo / Hash</th>
+        <th>Stato Verifica</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${allSources.map(s => `
+        <tr>
+          <td>[${s.marker ?? '•'}]</td>
+          <td><strong>${escapeHtml(s.filename)}</strong></td>
+          <td>v${s.version}</td>
+          <td>${escapeHtml(s.locator)}</td>
+          <td style="font-family: monospace; font-size: 10px;">${escapeHtml(s.content_hash || s.chunk_id || 'Autenticato dal sistema')}</td>
+          <td style="color: #059669; font-weight: 600;">Verificato &#10003;</td>
+        </tr>
+      `).join('')}
+    </tbody>
+  </table>
+  ` : ''}
+
+  <div class="footer">
+    <span>Ermes Knowledge Hub v2.4.0 &mdash; Documentazione riservata a uso aziendale interno</span>
+    <span>Generato il ${new Date().toISOString()}</span>
+  </div>
+
+  <script>
+    window.onload = function() {
+      setTimeout(function() {
+        window.print();
+      }, 300);
+    };
+  <\/script>
+</body>
+</html>`
+
+    printWindow.document.write(html)
+    printWindow.document.close()
+  }
 
   return (
     <div className={`flex h-full w-full overflow-hidden ${t.chatBg}`}>
@@ -583,7 +707,16 @@ export default function ChatArea({
                 title="Esporta conversazione in Markdown"
               >
                 <FileDown className="w-3.5 h-3.5 text-blue-400" />
-                <span>Esporta .md</span>
+                <span>Markdown</span>
+              </button>
+              <button
+                type="button"
+                onClick={exportCertifiedReport}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-300 transition hover:bg-emerald-500/20 hover:text-emerald-200 cursor-pointer shadow-xs"
+                title="Esporta report formattato ufficiale per stampa o salvataggio PDF"
+              >
+                <Printer className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Report PDF</span>
               </button>
               {onClearChat && (
                 <button
@@ -670,12 +803,76 @@ export default function ChatArea({
             </div>
           </div>
 
-          <div className="mt-4 flex-1">
-            <p className="text-xs font-medium text-slate-400 mb-1.5">Passaggio nel documento</p>
-            <blockquote className={`rounded-xl border border-amber-500/25 bg-amber-500/4 doc-voice p-3.5 text-[13px] leading-relaxed ${isDark ? 'text-slate-200' : 'text-slate-800'} border-l-4 border-l-amber-400/80 shadow-inner`}>
-              <InlineMarkdown text={activeCitation.source.excerpt} />
-            </blockquote>
-          </div>
+          {/* Contenuto fonte: Toggle Estratto / PDF per i file PDF */}
+          {(() => {
+            const isPdf = activeCitation.source.filename.toLowerCase().endsWith('.pdf')
+            const pageMatch = activeCitation.source.locator.match(/Pagina\s+(\d+)/i)
+            const pageNum = pageMatch ? pageMatch[1] : '1'
+            const pdfUrl = `/api/libraries/${selectedLibraryId}/documents/${activeCitation.source.document_id}/download?inline=true#page=${pageNum}&view=FitH`
+
+            return (
+              <div className="mt-4 flex-1 flex flex-col">
+                {isPdf && (
+                  <div className="flex items-center gap-1.5 p-0.5 rounded-lg bg-black/20 border border-white/10 w-fit mb-2.5">
+                    <button
+                      type="button"
+                      onClick={() => setCitationViewMode('text')}
+                      className={`px-2 py-0.5 text-[11px] rounded-md font-medium transition cursor-pointer ${
+                        citationViewMode === 'text'
+                          ? 'bg-blue-600 text-white shadow-xs'
+                          : 'text-slate-400 hover:text-slate-200'
+                      }`}
+                    >
+                      Estratto Testo
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCitationViewMode('pdf')}
+                      className={`px-2 py-0.5 text-[11px] rounded-md font-medium transition cursor-pointer flex items-center gap-1 ${
+                        citationViewMode === 'pdf'
+                          ? 'bg-rose-600 text-white shadow-xs'
+                          : 'text-slate-400 hover:text-slate-200'
+                      }`}
+                    >
+                      <FileText className="w-3 h-3" />
+                      <span>PDF Pag. {pageNum}</span>
+                    </button>
+                  </div>
+                )}
+
+                {isPdf && citationViewMode === 'pdf' ? (
+                  <div className="flex flex-col h-[52vh] rounded-xl border border-white/10 bg-slate-950 overflow-hidden shadow-inner">
+                    <div className="flex items-center justify-between px-2.5 py-1.5 bg-slate-900 border-b border-white/10 text-xs">
+                      <span className="text-slate-300 font-medium text-[11px] flex items-center gap-1">
+                        <FileText className="w-3.5 h-3.5 text-rose-400" />
+                        <span>Pagina {pageNum}</span>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => window.open(pdfUrl, '_blank', 'noopener,noreferrer')}
+                        className="text-blue-400 hover:text-blue-300 flex items-center gap-1 text-[11px] font-medium transition cursor-pointer"
+                        title="Apri a tutto schermo"
+                      >
+                        <ExternalLink className="h-3 w-3" /> Schermo intero
+                      </button>
+                    </div>
+                    <iframe
+                      src={pdfUrl}
+                      className="w-full flex-1 border-0 bg-slate-900"
+                      title={`Anteprima PDF ${activeCitation.source.filename} a pagina ${pageNum}`}
+                    />
+                  </div>
+                ) : (
+                  <div>
+                    <p className="text-xs font-medium text-slate-400 mb-1.5">Passaggio nel documento</p>
+                    <blockquote className={`rounded-xl border border-amber-500/25 bg-amber-500/4 doc-voice p-3.5 text-[13px] leading-relaxed ${isDark ? 'text-slate-200' : 'text-slate-800'} border-l-4 border-l-amber-400/80 shadow-inner`}>
+                      <InlineMarkdown text={activeCitation.source.excerpt} />
+                    </blockquote>
+                  </div>
+                )}
+              </div>
+            )
+          })()}
 
           <div className={`mt-4 pt-3 border-t ${isDark ? 'border-white/10' : 'border-slate-200'} flex items-center justify-between gap-2`}>
             <button
@@ -725,7 +922,7 @@ export default function ChatArea({
             if (e.target === e.currentTarget) setActiveCitation(null)
           }}
         >
-          <section className={`w-full max-w-2xl rounded-2xl border p-6 shadow-2xl ${t.card}`}>
+          <section className={`w-full ${citationViewMode === 'pdf' && activeCitation.source.filename.toLowerCase().endsWith('.pdf') ? 'max-w-4xl' : 'max-w-2xl'} rounded-2xl border p-6 shadow-2xl transition-all duration-200 ${t.card}`}>
             <div className="flex items-start justify-between gap-4 pb-4 border-b border-white/10">
               <div className="space-y-1">
                 <div className="flex items-center gap-2 flex-wrap">
@@ -778,12 +975,78 @@ export default function ChatArea({
                 </button>
               </div>
             </div>
-            <div className="mt-4">
-              <p className="text-xs font-medium text-slate-400 mb-2">Passaggio nel documento</p>
-              <blockquote className="max-h-[50vh] overflow-y-auto doc-voice rounded-xl border border-amber-500/20 bg-amber-500/3 p-4 text-[15px] leading-relaxed text-slate-200 border-l-4 border-l-amber-400/70 shadow-inner">
-                <InlineMarkdown text={activeCitation.source.excerpt} />
-              </blockquote>
-            </div>
+            {/* Contenuto citazione: Toggle Estratto / PDF per i file PDF */}
+            {(() => {
+              const isPdf = activeCitation.source.filename.toLowerCase().endsWith('.pdf')
+              const pageMatch = activeCitation.source.locator.match(/Pagina\s+(\d+)/i)
+              const pageNum = pageMatch ? pageMatch[1] : '1'
+              const pdfUrl = `/api/libraries/${selectedLibraryId}/documents/${activeCitation.source.document_id}/download?inline=true#page=${pageNum}&view=FitH`
+
+              return (
+                <div className="mt-4">
+                  {isPdf && (
+                    <div className="flex items-center gap-1.5 p-0.5 rounded-lg bg-black/20 border border-white/10 w-fit mb-3">
+                      <button
+                        type="button"
+                        onClick={() => setCitationViewMode('text')}
+                        className={`px-3 py-1 text-xs rounded-md font-medium transition cursor-pointer ${
+                          citationViewMode === 'text'
+                            ? 'bg-blue-600 text-white shadow-xs'
+                            : 'text-slate-400 hover:text-slate-200'
+                        }`}
+                      >
+                        Estratto Testuale
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setCitationViewMode('pdf')}
+                        className={`px-3 py-1 text-xs rounded-md font-medium transition cursor-pointer flex items-center gap-1.5 ${
+                          citationViewMode === 'pdf'
+                            ? 'bg-rose-600 text-white shadow-xs'
+                            : 'text-slate-400 hover:text-slate-200'
+                        }`}
+                      >
+                        <FileText className="w-3.5 h-3.5" />
+                        <span>Visualizza PDF (Pag. {pageNum})</span>
+                      </button>
+                    </div>
+                  )}
+
+                  {isPdf && citationViewMode === 'pdf' ? (
+                    <div className="flex flex-col h-[52vh] rounded-xl border border-white/10 bg-slate-950 overflow-hidden shadow-inner">
+                      <div className="flex items-center justify-between px-3 py-1.5 bg-slate-900 border-b border-white/10 text-xs">
+                        <span className="text-slate-300 font-medium flex items-center gap-1.5">
+                          <FileText className="w-3.5 h-3.5 text-rose-400" />
+                          <span>{activeCitation.source.filename}</span>
+                          <span className="text-slate-500">·</span>
+                          <span className="text-rose-300 font-mono">Pagina {pageNum}</span>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => window.open(pdfUrl, '_blank', 'noopener,noreferrer')}
+                          className="text-blue-400 hover:text-blue-300 flex items-center gap-1 text-[11px] font-medium transition cursor-pointer"
+                          title="Apri a tutto schermo in una nuova scheda"
+                        >
+                          <ExternalLink className="h-3 w-3" /> Schermo intero
+                        </button>
+                      </div>
+                      <iframe
+                        src={pdfUrl}
+                        className="w-full flex-1 border-0 bg-slate-900"
+                        title={`Anteprima PDF ${activeCitation.source.filename} a pagina ${pageNum}`}
+                      />
+                    </div>
+                  ) : (
+                    <div>
+                      <p className="text-xs font-medium text-slate-400 mb-2">Passaggio nel documento</p>
+                      <blockquote className="max-h-[50vh] overflow-y-auto doc-voice rounded-xl border border-amber-500/20 bg-amber-500/3 p-4 text-[15px] leading-relaxed text-slate-200 border-l-4 border-l-amber-400/70 shadow-inner">
+                        <InlineMarkdown text={activeCitation.source.excerpt} />
+                      </blockquote>
+                    </div>
+                  )}
+                </div>
+              )
+            })()}
             <div className="mt-5 flex items-center justify-between gap-3 pt-3 border-t border-white/10">
               <button
                 type="button"

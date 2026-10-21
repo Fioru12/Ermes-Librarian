@@ -253,6 +253,7 @@ def download_document(
     library_id: str,
     document_id: str,
     redirect: bool = Query(default=False),
+    inline: bool = Query(default=False),
     _auth: dict = Depends(_verify_api_key),
     store: LibraryStore = Depends(get_library_store),
 ):
@@ -293,14 +294,16 @@ def download_document(
             "document_id": document_id,
             "filename": document["filename"],
             "version": document["version"],
+            "inline": inline,
         },
     )
     media_type = document.get("media_type") or "application/octet-stream"
     encoded_filename = quote(document["filename"])
+    disposition = "inline" if inline else "attachment"
     return Response(
         content=data,
         media_type=media_type,
-        headers={"Content-Disposition": f"attachment; filename*=UTF-8''{encoded_filename}"},
+        headers={"Content-Disposition": f"{disposition}; filename*=UTF-8''{encoded_filename}"},
     )
 
 
