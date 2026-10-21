@@ -4,24 +4,25 @@
 > **Versione Progetto:** 2.4.0  
 > **Data:** Ottobre 2026  
 > **Stato:** Strategico / Architettura  
+> **Natura:** documento di lavoro. Le colonne "Gap" del confronto sono ipotesi non verificate; il confronto controllato con gli altri progetti e' nel README. Le date della roadmap sono indicative.  
 
 ---
 
 ## 1. Executive Assessment dello Stato Attuale (v2.4.0)
 
-Ermes Knowledge si trova in uno stato di **maturità produttiva elevata** (Production-Ready per ambienti On-Premise e Cloud Privato). A differenza di molti progetti RAG open-source che si limitano a essere "wrapper" di librerie generiche, Ermes possiede un'architettura enterprise proprietaria solida e disciplinata:
+Ermes Knowledge e' un prodotto funzionante e ben testato, ma **non ancora provato in produzione da utenti esterni**. Cio' che e' verificato (test, CI, monitoraggio su Docker) e cio' che non lo e' (carico reale, consegna degli avvisi su Slack/Teams, prova con screen reader) e' elencato in [`CHANGELOG.md`](../CHANGELOG.md) e [`docs/BENCHMARKS.md`](BENCHMARKS.md). Punti di forza dell'architettura:
 
-- **Evidence-First & Zero Allucinazioni:** Meccanismo di astensione rigorosa (`NON_EVIDENCE`) e verificatore neurale delle evidenze (`core/evidence_verifier.py`).
+- **Evidence-First:** risposte che citano il documento da cui arrivano e rifiuto esplicito quando le fonti non bastano (`NON_EVIDENCE`), con un verificatore delle evidenze (`core/evidence_verifier.py`). Riduce le risposte inventate, non le elimina: la misura e' in [`docs/BENCHMARKS.md`](BENCHMARKS.md).
 - **Data Sovereignty & Local-First:** Funzionamento 100% offline nativo con Ollama/vLLM; nessuna dipendenza o telemetria cloud forzata.
-- **Sicurezza e Governance di Grado Bancario:**
-  - Isolamento delle biblioteche verificato prima del context window (Zero Cross-Contamination).
+- **Sicurezza e governance:**
+  - Isolamento delle biblioteche: il controllo di accesso avviene prima che il contesto arrivi al modello, ed e' coperto da test.
   - Quarantena deterministica preventiva per attacchi di Prompt Injection indiretta nei documenti (`core/injection_guard.py`).
-  - Registro di Audit crittografico firmato HMAC-SHA256 per singola voce (`core/audit_chain.py`).
+  - Registro di audit a catena (SHA-256 / HMAC): rende evidente una manomissione, non la impedisce (`core/audit_chain.py`).
   - Gestione identità RBAC integrata con OIDC/SSO e mappatura automatica dei gruppi ai ruoli di biblioteca.
-  - Conformità GDPR nativa (esportazione Art. 15 e cancellazione con oblio Art. 17).
+  - Strumenti per esportazione (Art. 15) e cancellazione (Art. 17) dei dati di un utente. Non e' una certificazione di conformita' GDPR.
 - **Integrazioni e Canali Estesi:** Connettori cartelle NAS/SMB, Microsoft Graph (SharePoint/OneDrive), Confluence, S3, WebDAV, server nativo Model Context Protocol (MCP), webhook per n8n/Zapier e bot per Slack, Teams e Telegram.
-- **Esperienza Desktop:** Launcher nativo Windows C# ([`Ermes.exe`](../Ermes.exe)) compatto (~31 KB), single-instance con mutex, system tray e visualizzazione in finestra standalone (App Mode).
-- **Affidabilità e Qualità del Codice:** 873 test backend pytest, 112 test frontend Vitest, suite E2E Playwright, migrazione a Tailwind 4 completata (0 vulnerabilità npm) e backend dati duale (SQLite o PostgreSQL + pgvector).
+- **Esperienza Desktop:** un lanciatore Windows in C# (`scripts/launcher/ErmesLauncher.cs`, si compila con `scripts/build_exe.ps1`) con istanza unica, icona nell'area di notifica e apertura in finestra propria tramite Edge o Chrome in modalita' app.
+- **Affidabilità e qualità del codice:** oltre 850 test backend, oltre 110 test frontend, suite E2E in CI, Tailwind 4 (0 avvisi npm) e backend dati SQLite o PostgreSQL + pgvector.
 
 ---
 
@@ -48,20 +49,21 @@ Ermes Knowledge possiede caratteristiche uniche che i software concorrenti gener
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                        ERMES ENTERPRISE ADVANTAGES                          │
 ├────────────────────────────────┬────────────────────────────────────────────┤
-│ 1. Isolamento Matematico       │ Il contesto non entra MAI nel prompt prima │
-│    delle Biblioteche           │ del filtro ACL della specifica biblioteca.  │
+│ 1. Isolamento delle            │ Il contesto passa dal filtro di accesso    │
+│    Biblioteche                 │ della biblioteca prima di arrivare al      │
+│                                │ modello (coperto da test).                 │
 ├────────────────────────────────┼────────────────────────────────────────────┤
-│ 2. Evidenza Obbligatoria       │ Nessuna risposta inventata: o c'è la fonte │
-│    (Anti-Allucinazione)        │ verificata, o dichiara NON_EVIDENCE.       │
+│ 2. Evidenza Obbligatoria       │ Ogni risposta cita la fonte, oppure        │
+│                                │ dichiara NON_EVIDENCE.                     │
 ├────────────────────────────────┼────────────────────────────────────────────┤
 │ 3. Difesa Iniezione Documenti  │ Il testo nei file è trattato come input    │
 │    (Untrusted Data Layer)      │ ostile e bonificato prima del modello.     │
 ├────────────────────────────────┼────────────────────────────────────────────┤
-│ 4. Audit Trail HMAC-SHA256     │ Immutabilità e rilevamento manomissione    │
-│    per Singolo Evento          │ su ogni operazione e risposta generata.    │
+│ 4. Audit Trail a catena        │ Rilevamento di manomissioni sul registro   │
+│    HMAC-SHA256                 │ delle operazioni (non impedimento).        │
 ├────────────────────────────────┼────────────────────────────────────────────┤
-│ 5. Desktop Standalone Nativo   │ Zero finestre di terminale nere, 30 KB     │
-│    su Windows                  │ launcher C# con avvio trasparente servizi. │
+│ 5. Lanciatore Windows          │ Nessuna finestra di terminale in vista;    │
+│                                │ avvio dei servizi in background.           │
 └────────────────────────────────┴────────────────────────────────────────────┘
 ```
 
@@ -105,7 +107,7 @@ Sulla base del benchmark, sono state identificate 6 iniziative strategiche per e
   - **Speech-to-Text (Input):** Icona microfono per dettatura vocale della query elaborata in locale con Whisper (CPU/GPU-friendly).
   - **Text-to-Speech (Output):** Pulsante "Ascolta risposta" che legge l'estratto con voce naturale (es. tramite Piper TTS, 100% offline e ultra-leggero).
 
-### Iniziativa 6: Esportazione Formattata Certificata (PDF / DOCX Aziendale)
+### Iniziativa 6: Esportazione formattata (PDF / DOCX aziendale)
 - **Problema:** L'esportazione attuale produce un file Markdown (`.md`), che richiede formattazione manuale prima di essere allegato a pratiche ufficiali.
 - **Soluzione:**
   - Generazione di report in formato **PDF/Word con layout istituzionale**:
@@ -123,7 +125,7 @@ gantt
     dateFormat  YYYY-MM-DD
     section Fase 1 (UX & Immediate Value)
     Visual PDF Viewer con Bounding Box        :active, 2026-11-01, 20d
-    Esportazione Certificata PDF/Word         :2026-11-15, 15d
+    Esportazione formattata PDF/Word          :2026-11-15, 15d
     section Fase 2 (Retrieval Intelligence)
     Contextual Chunking & Ingestion Tabelle   :2026-12-01, 25d
     Modalità Deep Research / Multi-Hop RAG    :2026-12-15, 25d

@@ -100,7 +100,7 @@ Ermes Knowledge è una piattaforma documentale enterprise progettata secondo il 
 Per postazioni workstation o singoli professionisti/reparti:
 1. Copiare la cartella di distribuzione o utilizzare l'installer compilato (`Ermes-Setup.exe` da `scripts/installer/ermes_setup.iss`).
 2. L'utente avvia l'applicazione direttamente facendo doppio clic su `Ermes.exe` (oppure tramite icona sul Desktop generata da `CREA_COLLEGAMENTO_DESKTOP.bat`).
-3. L'eseguibile gestisce l'intero ciclo di vita in background (motore AI locale e API di retrieval) e presenta l'interfaccia in una finestra desktop nativa autonoma, integrandosi nella barra delle notifiche di sistema (System Tray) senza finestre di terminale.
+3. L'eseguibile gestisce l'intero ciclo di vita in background (motore AI locale e API di retrieval) e apre l'interfaccia in una finestra propria (Edge o Chrome in modalita' app, senza barra degli indirizzi) e resta nell'area di notifica; non mostra finestre di terminale.
 
 ---
 

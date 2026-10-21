@@ -2,6 +2,19 @@
 
 Registro leggibile del lavoro su questo progetto. Per i finding tecnici completi, [docs/AUDIT_2026-08-19.md](docs/AUDIT_2026-08-19.md) e [docs/CODE_REVIEW.md](docs/CODE_REVIEW.md). La roadmap per fasi e il registro delle sessioni (`ROADMAP_V2.md`, `WORK_PROGRESS.md`) sono stati tolti dall'albero pubblico il 18 settembre 2026: la cronologia Git li conserva.
 
+## 2026-10-22 — Revisione dei commit di Gemini: visualizzatore PDF, file serviti, affermazioni
+
+Sei commit (18-21 ottobre) erano finiti su `main` senza PR, da un'altra sessione (Gemini). Riletti e provati uno per uno. Trovato e corretto:
+
+- **Il visualizzatore PDF non funzionava.** L'`iframe` veniva bloccato dalla nostra stessa Content-Security-Policy (`frame-ancestors 'none'`; console: "Framing ... violates ... frame-ancestors"). Ora il solo percorso di download dei documenti puo' essere incorporato dalla stessa app (`'self'`); tutto il resto resta `'none'`. Provato con un PDF vero in Chromium.
+- **Un file qualunque poteva essere aperto come pagina.** Il tipo di un file lo dichiara chi lo carica, e con `?inline=true` un `.txt` caricato come `text/html` veniva servito come `text/html` dal dominio dell'app. Ora "inline" vale solo per un PDF vero (estensione e firma `%PDF`, tipo fisso `application/pdf`); tutto il resto e' sempre un download. Sette test nuovi.
+- **Il "Report Certificato di Consultazione" prometteva cio' che non puo' garantire**: titolo "Certificato", badge "Zero Allucinazioni" e un "Verificato ✓" verde su ogni fonte a prescindere. Ora si chiama "Report di consultazione", dice che e' un'esportazione non firmata senza valore di certificazione e indica le fonti come "Citata".
+- **`docs/PIANO_EVOLUZIONE_E_BENCHMARK.md`**: tolti "Zero Allucinazioni", "Grado Bancario", "Production-Ready", "Immutabilita'", "Isolamento Matematico" e "Conformita' GDPR nativa" (il progetto documenta altrove i limiti reali); aggiunta una nota che le colonne "Gap" dei concorrenti sono ipotesi non verificate; corretti conteggi dei test e la descrizione del lanciatore (Edge o Chrome in modalita' app, non una "finestra nativa").
+
+**Aperto, da decidere**: `Ermes.exe` (31 KB, compilato) e' tracciato in git: nessuno puo' verificare che corrisponda ai sorgenti in `scripts/launcher/`, e un eseguibile non firmato in un repository pubblico e' un rischio per chi lo scarica. Si compila con `scripts/build_exe.ps1`.
+
+Un test e2e (`Problemi:\s*\d+`) e' stato allentato rispetto a `Problemi: 0`: non fallisce piu' se l'indice ha problemi.
+
 ## 2026-10-19 (11) — Launcher nativo Windows (Ermes.exe) e packaging desktop
 
 - **Launcher nativo Windows (`Ermes.exe`)**: creato e compilato l'eseguibile nativo C# (30 KB, senza dipendenze esterne o finestre nere di PowerShell/terminale). Include:

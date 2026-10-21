@@ -281,7 +281,7 @@ export default function ChatArea({
 <html lang="it">
 <head>
   <meta charset="utf-8">
-  <title>Ermes Knowledge - Report Certificato di Consultazione</title>
+  <title>Ermes Knowledge - Report di consultazione</title>
   <style>
     @page { size: A4; margin: 18mm 15mm; }
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #0f172a; line-height: 1.5; padding: 0; margin: 0; font-size: 13px; }
@@ -311,7 +311,7 @@ export default function ChatArea({
       <div class="subtitle">Report Ufficiale di Consultazione Documentale &amp; Evidenze</div>
     </div>
     <div>
-      <span class="badge">&#10003; Evidenze Verificate (Zero Allucinazioni)</span>
+      <span class="badge">Fonti citate nella risposta</span>
     </div>
   </div>
 
@@ -319,7 +319,7 @@ export default function ChatArea({
     <div class="meta-item"><strong>Biblioteca Consultata:</strong> ${escapeHtml(selectedLibraryName)}</div>
     <div class="meta-item"><strong>Data e Ora Esportazione:</strong> ${new Date().toLocaleString('it-IT')}</div>
     <div class="meta-item"><strong>Protocollo Sicurezza:</strong> Evidence-First &amp; Quarantine Guard</div>
-    <div class="meta-item"><strong>Integrità Audit:</strong> HMAC-SHA256 Chained Ledger</div>
+    <div class="meta-item"><strong>Natura del documento:</strong> esportazione non firmata, senza valore di certificazione</div>
   </div>
 
   <h3 style="margin-top: 0; color: #0f172a; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px;">Q&amp;A ed Evidenze Estratte</h3>
@@ -334,7 +334,7 @@ export default function ChatArea({
   }).join('')}
 
   ${allSources.length > 0 ? `
-  <h3 style="color: #0f172a; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; margin-top: 28px;">Registro di Conformità &amp; Provenienza delle Fonti</h3>
+  <h3 style="color: #0f172a; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; margin-top: 28px;">Fonti citate e loro provenienza</h3>
   <table class="sources-table">
     <thead>
       <tr>
@@ -343,7 +343,7 @@ export default function ChatArea({
         <th>Versione</th>
         <th>Posizione / Pagina</th>
         <th>Identificativo / Hash</th>
-        <th>Stato Verifica</th>
+        <th>Stato</th>
       </tr>
     </thead>
     <tbody>
@@ -353,8 +353,8 @@ export default function ChatArea({
           <td><strong>${escapeHtml(s.filename)}</strong></td>
           <td>v${s.version}</td>
           <td>${escapeHtml(s.locator)}</td>
-          <td style="font-family: monospace; font-size: 10px;">${escapeHtml(s.content_hash || s.chunk_id || 'Autenticato dal sistema')}</td>
-          <td style="color: #059669; font-weight: 600;">Verificato &#10003;</td>
+          <td style="font-family: monospace; font-size: 10px;">${escapeHtml(s.content_hash || s.chunk_id || 'n/d')}</td>
+          <td>Citata</td>
         </tr>
       `).join('')}
     </tbody>
