@@ -309,6 +309,10 @@ Se la finestra di errore dice `starting services: initializing Inference manager
 4. Riavvia Docker Desktop e **non chiuderlo forzatamente**: un arresto brusco ricrea il problema.
 
 
+### L'interfaccia mostra un errore rosso di Vite/PostCSS ("@layer base is used but no matching @tailwind base")
+
+Succede quando si aggiornano le dipendenze del frontend (`npm install`, `npm ci`, una migrazione) con il server di sviluppo `vite` gia' acceso: il server tiene in memoria la configurazione vecchia mentre `node_modules` e' cambiato. Il codice e' a posto. Fermare il processo `vite` (porta 3000) e riavviare Ermes con `AVVIA_ERMES` (o `npx vite --host` dalla cartella `frontend`), poi ricaricare la finestra con `F5`.
+
 ## 8. Known limits
 
 State these to whoever is deciding on the deployment, before they find out:

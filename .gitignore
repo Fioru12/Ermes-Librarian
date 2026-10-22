@@ -111,3 +111,6 @@ scripts/ollama_*.json
 release/
 # ── Backup locali di file sorgente ──
 *.original_backup
+
+# Lanciatore Windows: si compila da scripts/launcher con scripts/build_exe.ps1
+/Ermes.exe

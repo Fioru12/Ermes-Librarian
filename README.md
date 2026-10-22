@@ -135,7 +135,7 @@ npm.cmd --prefix frontend install
 .\scripts\avvia_ermes.ps1
 ```
 
-> **Avvio rapido con un click (Desktop)**: puoi avviare l'applicazione semplicemente facendo doppio click su **`Ermes.exe`** nella cartella principale (oppure creare l'icona con `CREA_COLLEGAMENTO_DESKTOP.bat`). Avvia tutti i componenti e apre Ermes in una finestra desktop nativa senza finestre di terminale.
+> **Avvio rapido con un click (Desktop)**: esegui `CREA_COLLEGAMENTO_DESKTOP.bat`: crea sul Desktop un'icona di Ermes che avvia tutti i componenti e apre l'interfaccia in una finestra propria (Edge o Chrome in modalita' app), senza finestre di terminale. In alternativa, `.\scriptsuild_exe.ps1` compila un lanciatore `Ermes.exe` dai sorgenti in `scripts/launcher/` (il binario non e' nel repository: lo compili tu e sai cosa esegui).
 
 Open [http://127.0.0.1:3000](http://127.0.0.1:3000) (dev) or [http://127.0.0.1:8502](http://127.0.0.1:8502) (standalone). The API health endpoint is [http://127.0.0.1:8502/health](http://127.0.0.1:8502/health).
 
@@ -236,7 +236,7 @@ With the local application running and an administrator password or API key conf
 - ✅ **Enterprise Glossary & Acronyms**: Real-time synonym expansion (`/api/synonyms`) with atomic concurrency locks.
 - ✅ **Real-time SSE Streaming**: Direct token-by-token streaming on `/api/libraries/{id}/ask/stream` with live UI feedback.
 - ✅ **UI & Governance Polish**: Tamper-evident SHA-256 audit log, Markdown chat export, instant chat reset, and citation modal.
-- ✅ **Native Desktop Launcher**: Single-instance Windows launcher ([`Ermes.exe`](Ermes.exe)) with silent background service management and system tray integration.
+- ✅ **Native Desktop Launcher**: Single-instance Windows launcher (`Ermes.exe`, built from source with `scripts/build_exe.ps1`; no binary is committed) with silent background service management and system tray integration.
 - 📋 **2026 Strategic Evolution & Benchmark**: Detailed competitive analysis vs RAGFlow, AnythingLLM, NotebookLM, and strategic roadmap ([docs/PIANO_EVOLUZIONE_E_BENCHMARK.md](docs/PIANO_EVOLUZIONE_E_BENCHMARK.md)).
 
 The historical WinSarp formula engine, kept frozen under `legacy_winsarp/` behind a dev-only flag since August 2026, was removed from the repository on 18 September 2026: its flag path imported routers that no longer existed, so it could not have been switched on. Git history keeps it. `tests/test_legacy_packages_stay_out.py` still fails the build if LlamaIndex, ChromaDB or the Ollama client come back into the product requirements — the reason they were removed in the first place (150 packages instead of 56) has not changed.

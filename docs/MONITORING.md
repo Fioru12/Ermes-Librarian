@@ -62,7 +62,7 @@ Le soglie sono un punto di partenza: adattale ai tuoi volumi. Per i passi da far
 
 ### Notifiche su Slack, Teams, Discord
 
-Alertmanager invia un JSON generico. Per Slack, Teams o Discord usa un relay (n8n, Zapier o un piccolo servizio) che traduce il formato, oppure i receiver nativi di Alertmanager: [`deploy/monitoring/alertmanager.slack-teams.example.yml`](../deploy/monitoring/alertmanager.slack-teams.example.yml) e' un esempio pronto (`slack_configs` e `msteamsv2_configs`, con gli indirizzi dei webhook letti da file e non scritti nel YAML). Il file passa `amtool check-config` di Alertmanager 0.28.1 ed e' controllato da un test; la consegna verso un workspace vero va provata una volta, con un avviso di prova.
+Alertmanager invia un JSON generico. Per Slack, Teams o Discord usa un relay (n8n, Zapier o un piccolo servizio) che traduce il formato, oppure i receiver nativi di Alertmanager: [`deploy/monitoring/alertmanager.slack-teams.example.yml`](../deploy/monitoring/alertmanager.slack-teams.example.yml) e' un esempio pronto (`slack_configs` e `msteamsv2_configs`, con gli indirizzi dei webhook letti da file e non scritti nel YAML). Il file passa `amtool check-config` di Alertmanager 0.28.1 ed e' controllato da un test; la consegna verso un workspace vero va provata una volta: `.\scripts\prova_avviso.ps1` invia ad Alertmanager un avviso di prova e, dopo qualche secondo, il suo "risolto" (devono arrivare un messaggio FIRING e uno RESOLVED nel canale).
 
 ## Verificato su un'istanza reale (17 ottobre 2026)
 
