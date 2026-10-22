@@ -362,7 +362,7 @@ export default function ChatArea({
   ` : ''}
 
   <div class="footer">
-    <span>Ermes Knowledge Hub v2.4.0 &mdash; Documentazione riservata a uso aziendale interno</span>
+    <span>Ermes Knowledge Hub v2.4.1 &mdash; Documentazione riservata a uso aziendale interno</span>
     <span>Generato il ${new Date().toISOString()}</span>
   </div>
 

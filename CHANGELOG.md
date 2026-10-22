@@ -2,6 +2,10 @@
 
 Registro leggibile del lavoro su questo progetto. Per i finding tecnici completi, [docs/AUDIT_2026-08-19.md](docs/AUDIT_2026-08-19.md) e [docs/CODE_REVIEW.md](docs/CODE_REVIEW.md). La roadmap per fasi e il registro delle sessioni (`ROADMAP_V2.md`, `WORK_PROGRESS.md`) sono stati tolti dall'albero pubblico il 18 settembre 2026: la cronologia Git li conserva.
 
+## v2.4.1 — Visualizzatore PDF funzionante, file serviti in sicurezza, niente binari nel repository
+
+Raccoglie le voci del 22 ottobre qui sotto: il visualizzatore PDF delle fonti ora si apre (era bloccato dalla Content-Security-Policy), un file caricato con un tipo falso non puo' piu' essere aperto come pagina web, il report di consultazione non si presenta piu' come "certificato", `Ermes.exe` non e' piu' un binario nel repository, e `pypdf` 6.21.1 chiude un avviso di sicurezza sul caricamento di immagini JPEG.
+
 ## 2026-10-22 (2) — Niente binari nel repository; test dell'indice di nuovo rigoroso
 
 - `Ermes.exe` non e' piu' tracciato in git (resta sul disco di chi l'ha compilato, ed e' in `.gitignore`): un eseguibile non firmato in un repository pubblico non si puo' verificare contro i sorgenti. Chi lo vuole lo compila con `scripts/build_exe.ps1` da `scripts/launcher/`. Il collegamento sul Desktop (`CREA_COLLEGAMENTO_DESKTOP.bat`) funziona anche senza: in quel caso usa `avvia_ermes.ps1`. README e guide aggiornati.
