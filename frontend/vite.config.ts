@@ -4,6 +4,11 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
+  build: {
+    // Vite incorpora i file piccoli (come certi font) nel CSS come `data:`: la nostra
+    // Content-Security-Policy (`font-src 'self'`) li blocca. Restano file veri, serviti da qui.
+    assetsInlineLimit: 0,
+  },
   server: {
     port: 3000,
     host: '0.0.0.0',

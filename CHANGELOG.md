@@ -2,6 +2,11 @@
 
 Registro leggibile del lavoro su questo progetto. Per i finding tecnici completi, [docs/AUDIT_2026-08-19.md](docs/AUDIT_2026-08-19.md) e [docs/CODE_REVIEW.md](docs/CODE_REVIEW.md). La roadmap per fasi e il registro delle sessioni (`ROADMAP_V2.md`, `WORK_PROGRESS.md`) sono stati tolti dall'albero pubblico il 18 settembre 2026: la cronologia Git li conserva.
 
+## 2026-10-23 (3) — Il pulsante "Report PDF" stampa davvero; niente font bloccati
+
+- **Il report non partiva in stampa.** Il pulsante apriva il report ma la stampa automatica non partiva mai: la funzione era uno `<script>` scritto dentro la finestra, e la nostra Content-Security-Policy (`script-src 'self'`) blocca gli script in linea anche nelle finestre aperte dall'app (provato in Chromium). Ora la stampa parte dall'app dopo aver scritto il report, e il report non contiene piu' script. La stessa politica ha fatto da difesa: un nome di file con HTML dentro viene escapato, e anche se non lo fosse lo script non girerebbe. Un test nuovo controlla la stampa, l'assenza di `<script>` nel report, l'escape del nome file e che il testo non prometta "certificazioni"; fallisce senza la correzione.
+- **Un font veniva bloccato.** Vite incorporava un file font piccolo nel CSS come `data:`, e la politica `font-src 'self'` lo bloccava: un errore in console a ogni caricamento, visto in tutte le prove di questi giorni. `build.assetsInlineLimit: 0`: i font restano file veri e la console e' pulita.
+
 ## 2026-10-23 (2) — Docker Desktop: i file bloccati sono più d'uno
 
 L'errore di avvio di Docker Desktop ("Inference manager", poi "vfkit", poi "Secrets Engine") tornava perché dopo una chiusura brusca (17 ottobre, 22:36) restano **tre** file-socket in `%LOCALAPPDATA%\Docker\run` e uno in `docker-secrets-engine`, e Docker si ferma sul primo che non riesce a cancellare: toglierne uno rivela il successivo. Il runbook ora dice di toglierli tutti insieme, come chiudere Docker senza ricrearli e dove leggere nel log quale file blocca.
