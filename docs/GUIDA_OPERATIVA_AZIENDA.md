@@ -98,7 +98,7 @@ Ermes Knowledge è una piattaforma documentale enterprise progettata secondo il 
 ### Opzione C: Distribuzione Desktop Standalone Windows (Ermes.exe)
 
 Per postazioni workstation o singoli professionisti/reparti:
-1. Compilare il lanciatore con `scripts/build_exe.ps1` (il binario non e' nel repository), poi copiare la cartella di distribuzione o utilizzare l'installer compilato (`Ermes-Setup.exe` da `scripts/installer/ermes_setup.iss`).
+1. Compilare il lanciatore con `scripts/build_exe.ps1` (il binario non e' nel repository; serve l'ambiente `.venv-ermes` nella stessa cartella). L'installer (`scripts/installer/ermes_setup.iss`) e' **sperimentale e mai provato su un PC pulito**: non include Python, quindi per ora non e' una via supportata. Per un'installazione vera usare `CREA_COLLEGAMENTO_DESKTOP.bat` dal repository.
 2. L'utente avvia l'applicazione direttamente facendo doppio clic su `Ermes.exe` (oppure tramite icona sul Desktop generata da `CREA_COLLEGAMENTO_DESKTOP.bat`).
 3. L'eseguibile gestisce l'intero ciclo di vita in background (motore AI locale e API di retrieval) e apre l'interfaccia in una finestra propria (Edge o Chrome in modalita' app, senza barra degli indirizzi) e resta nell'area di notifica; non mostra finestre di terminale.
 
