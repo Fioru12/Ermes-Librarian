@@ -127,9 +127,11 @@ describe('ChatArea', () => {
     }
   })
 
-  it('provides visual PDF preview toggle and certified report export', () => {
+  it('provides visual PDF preview toggle and report export', () => {
     const openSpy = vi.spyOn(window, 'open').mockImplementation(() => ({
       document: { write: vi.fn(), close: vi.fn() },
+      focus: vi.fn(),
+      print: vi.fn(),
     } as any))
 
     renderChat({
@@ -171,6 +173,38 @@ describe('ChatArea', () => {
     expect(screen.getByTitle('Anteprima PDF manuale.pdf a pagina 14')).toBeInTheDocument()
 
     openSpy.mockRestore()
+  })
+
+  it('prints the report from the opener, with no inline script (the CSP blocks those)', () => {
+    vi.useFakeTimers()
+    const write = vi.fn()
+    const print = vi.fn()
+    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => ({
+      document: { write, close: vi.fn() },
+      focus: vi.fn(),
+      print,
+    } as any))
+
+    renderChat({
+      selectedLibraryId: 'hr',
+      messages: [
+        { id: 'a', role: 'assistant' as const, content: 'Risposta.[1]', timestamp: '10:01',
+          evidence: { coverage: 'supported' as const },
+          sources: [{ document_id: 'd', filename: '<img src=x onerror=alert(1)>.pdf', version: 1, locator: 'Pagina 1', excerpt: 'x', marker: 1 }] },
+      ],
+    })
+    fireEvent.click(screen.getByText('Report PDF'))
+
+    const html = String(write.mock.calls[0][0])
+    expect(html).not.toMatch(/<script/i)
+    expect(html).not.toContain('<img src=x') // il nome del file e' escapato
+    expect(html).not.toMatch(/certificat|zero allucinazioni/i) // nessuna promessa che il prodotto non puo' mantenere
+    expect(print).not.toHaveBeenCalled()
+    vi.advanceTimersByTime(500)
+    expect(print).toHaveBeenCalledTimes(1)
+
+    openSpy.mockRestore()
+    vi.useRealTimers()
   })
 })
 

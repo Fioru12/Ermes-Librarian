@@ -366,18 +366,18 @@ export default function ChatArea({
     <span>Generato il ${new Date().toISOString()}</span>
   </div>
 
-  <script>
-    window.onload = function() {
-      setTimeout(function() {
-        window.print();
-      }, 300);
-    };
-  </script>
 </body>
 </html>`
 
     printWindow.document.write(html)
     printWindow.document.close()
+    // La stampa parte da qui, non da uno <script> dentro il report: la Content-Security-Policy
+    // (`script-src 'self'`) blocca gli script in linea anche nelle finestre aperte dall'app, quindi
+    // prima il pulsante apriva il report ma la stampa non partiva mai.
+    window.setTimeout(() => {
+      printWindow.focus()
+      printWindow.print()
+    }, 400)
   }
 
   return (
