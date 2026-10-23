@@ -2,6 +2,14 @@
 
 Registro leggibile del lavoro su questo progetto. Per i finding tecnici completi, [docs/AUDIT_2026-08-19.md](docs/AUDIT_2026-08-19.md) e [docs/CODE_REVIEW.md](docs/CODE_REVIEW.md). La roadmap per fasi e il registro delle sessioni (`ROADMAP_V2.md`, `WORK_PROGRESS.md`) sono stati tolti dall'albero pubblico il 18 settembre 2026: la cronologia Git li conserva.
 
+## 2026-10-23 — Revisione del lanciatore Ermes.exe e dell'installer
+
+Il lanciatore e l'installer erano gli ultimi pezzi di Gemini non controllati. Provato per davvero.
+
+- **L'installer consegnava i segreti.** Lo script (`scripts/installer/ermes_setup.iss`) impacchettava il file `.env` vero dello sviluppatore (chiavi e password) e la cartella `data/` (database, utenti, configurazione): chi installava l'app li riceveva. Includeva anche `.venv-ermes` (non trasferibile, pesa GB), non copiava `core/` (che l'API importa 46 volte: l'app installata non sarebbe partita) e puntava a una cartella `rag/` che non esiste (lo script non compilava). Riscritto: niente segreti, dati o ambienti virtuali, codice completo, versione 2.4.1. `tests/test_installer_safety.py` impedisce che tornino. Resta **sperimentale e non provato su un PC pulito**: non include Python.
+- **Lanciatore, provato.** Si compila senza errori da `scripts/launcher/` (31.232 byte, come il binario che era nel repository); avvia Ollama e il backend, apre la finestra "Ermes - Enterprise Knowledge Hub" in Edge in modalita' app e, quando esce, non lascia server orfani. Corretti due difetti: attendeva 15 secondi per il backend, ma un avvio a freddo ne richiede piu' di 30 (l'utente vedeva un errore mentre il server partiva): ora 90. E se non trovava l'ambiente Python ripiegava su un `python.exe` qualsiasi del PC (senza le dipendenze di Ermes, e cercato per nome anche nella cartella corrente): ora si ferma con un messaggio chiaro.
+- **Una correzione a una frase di ieri.** La voce del 22 ottobre diceva che `Ermes.exe` "resta sul disco di chi l'ha compilato". Non e' vero per chi aggiorna con `git pull`: git cancella dal disco un file che torna ignorato dopo essere stato tracciato. Su un PC l'eseguibile e' sparito e va ricompilato con `scripts/build_exe.ps1`.
+
 ## v2.4.1 — Visualizzatore PDF funzionante, file serviti in sicurezza, niente binari nel repository
 
 Raccoglie le voci del 22 ottobre qui sotto: il visualizzatore PDF delle fonti ora si apre (era bloccato dalla Content-Security-Policy), un file caricato con un tipo falso non puo' piu' essere aperto come pagina web, il report di consultazione non si presenta piu' come "certificato", `Ermes.exe` non e' piu' un binario nel repository, e `pypdf` 6.21.1 chiude un avviso di sicurezza sul caricamento di immagini JPEG.

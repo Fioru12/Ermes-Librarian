@@ -190,8 +190,7 @@ namespace Ermes
             {
                 Path.Combine(baseDir, @".venv-ermes\Scripts\python.exe"),
                 Path.Combine(baseDir, @"python\python.exe"),
-                Path.Combine(baseDir, @"runtime\python.exe"),
-                "python.exe"
+                Path.Combine(baseDir, @"runtime\python.exe")
             };
 
             string pythonExe = null;
@@ -206,7 +205,9 @@ namespace Ermes
 
             if (pythonExe == null)
             {
-                pythonExe = "python.exe"; // Fallback to PATH
+                // Niente ripiego su un "python.exe" qualunque del PC: senza le dipendenze di Ermes
+                // fallirebbe in silenzio, e Windows cerca per nome anche nella cartella corrente.
+                throw new Exception("Ambiente Python di Ermes non trovato.\nCrea .venv-ermes (vedi README) oppure usa CREA_COLLEGAMENTO_DESKTOP.bat dal repository.");
             }
 
             ProcessStartInfo psi = new ProcessStartInfo();
@@ -226,9 +227,11 @@ namespace Ermes
                 throw new Exception("Impossibile avviare il motore Python:\n" + ex.Message);
             }
 
-            // Poll for backend readiness up to 15 seconds
+            // Attende il backend fino a 90 secondi: al primo avvio a freddo l'importazione delle
+            // librerie supera spesso i 30 secondi (misurato), e con 15 l'utente vedeva un errore
+            // mentre il server stava ancora partendo.
             bool ready = false;
-            for (int i = 0; i < 15; i++)
+            for (int i = 0; i < 90; i++)
             {
                 Thread.Sleep(1000);
                 if (CheckUrl(AppUrl + "health", 1500))
@@ -240,7 +243,7 @@ namespace Ermes
 
             if (!ready)
             {
-                throw new Exception("Il server Ermes non ha risposto entro i tempi previsti sulla porta " + BackendPort);
+                throw new Exception("Il server Ermes non ha risposto entro 90 secondi sulla porta " + BackendPort + ".\nControlla che la porta non sia gia' usata da un altro programma e i log nella cartella 'logs'.");
             }
         }
 
