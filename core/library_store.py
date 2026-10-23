@@ -1168,6 +1168,9 @@ class LibraryStore:
         root = Path(storage_root)
         with self._connection() as connection:
             documents = connection.execute("SELECT id, filename, storage_path FROM documents").fetchall()
+            # Le versioni precedenti restano nello storage, referenziate solo da `document_versions`:
+            # non sono orfane (prima la verifica le segnalava, e la pulizia le avrebbe cancellate).
+            version_paths = connection.execute("SELECT storage_path FROM document_versions").fetchall()
             chunk_stats = connection.execute(
                 """
                 SELECT d.id AS document_id, d.status,
@@ -1196,6 +1199,9 @@ class LibraryStore:
                 inside_root = False
             if not (inside_root and path.is_file()):
                 missing_originals.append({"document_id": row["id"], "filename": row["filename"]})
+
+        for row in version_paths:
+            expected_files.add(resolve_storage_path(row["storage_path"], root))
 
         orphan_files: list[str] = []
         if root.is_dir():

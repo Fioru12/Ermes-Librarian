@@ -2,6 +2,12 @@
 
 Registro leggibile del lavoro su questo progetto. Per i finding tecnici completi, [docs/AUDIT_2026-08-19.md](docs/AUDIT_2026-08-19.md) e [docs/CODE_REVIEW.md](docs/CODE_REVIEW.md). La roadmap per fasi e il registro delle sessioni (`ROADMAP_V2.md`, `WORK_PROGRESS.md`) sono stati tolti dall'albero pubblico il 18 settembre 2026: la cronologia Git li conserva.
 
+## 2026-10-23 (4) — Le versioni precedenti dei documenti non sono file orfani
+
+Trovato rileggendo `scripts/cleanup_orphan_storage.py` (di Gemini): rimettere un file con lo stesso nome crea una nuova versione con un nuovo percorso di storage, e il vecchio resta referenziato solo da `document_versions`. La verifica di coerenza (`verify_index_consistency`) guardava soltanto `documents`, quindi dichiarava orfano lo storico: lo mostrava come problema nella scheda Stato del sistema e, soprattutto, `cleanup_orphan_storage.py --confirm` avrebbe **cancellato definitivamente le versioni precedenti**, che il prodotto presenta come originali immutabili. Ora le versioni sono considerate referenziate. Due test nuovi (uno fallisce senza la correzione; l'altro garantisce che un file davvero senza riferimenti resti orfano).
+
+Lo script resta una pulizia pericolosa per sua natura: di default non cancella niente (modalita' prova) e va usato con `--confirm` solo dopo aver letto l'elenco e con un backup recente.
+
 ## 2026-10-23 (3) — Il pulsante "Report PDF" stampa davvero; niente font bloccati
 
 - **Il report non partiva in stampa.** Il pulsante apriva il report ma la stampa automatica non partiva mai: la funzione era uno `<script>` scritto dentro la finestra, e la nostra Content-Security-Policy (`script-src 'self'`) blocca gli script in linea anche nelle finestre aperte dall'app (provato in Chromium). Ora la stampa parte dall'app dopo aver scritto il report, e il report non contiene piu' script. La stessa politica ha fatto da difesa: un nome di file con HTML dentro viene escapato, e anche se non lo fosse lo script non girerebbe. Un test nuovo controlla la stampa, l'assenza di `<script>` nel report, l'escape del nome file e che il testo non prometta "certificazioni"; fallisce senza la correzione.
