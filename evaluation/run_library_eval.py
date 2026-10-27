@@ -25,6 +25,12 @@ from core.library_store import LibraryStore
 
 ROOT = Path(__file__).resolve().parent
 GOLD_SET_PATH = ROOT / "library_gold_set.json"
+# Suite PMI: dieci documenti di una piccola azienda fittizia, divisi in cinque
+# biblioteche, caricati dallo stesso parser usato dagli utenti invece che da
+# passaggi scritti a mano. Il gold set e' separato da quello storico, i cui
+# numeri sono pubblicati in docs/BENCHMARKS.md e non devono cambiare.
+PMI_CORPUS_DIR = ROOT / "pmi_corpus"
+PMI_GOLD_SET_PATH = ROOT / "pmi_gold_set.json"
 
 # Configurazioni messe a confronto da --compare. L'ordine è quello in cui
 # vengono stampate: si parte dal recupero più semplice e si aggiunge un
@@ -177,6 +183,38 @@ def build_demo_store(database_path: Path) -> tuple[LibraryStore, dict[str, str]]
     return store, libraries
 
 
+def build_pmi_store(database_path: Path) -> tuple[LibraryStore, dict[str, str]]:
+    """Una biblioteca per sottocartella di pmi_corpus, un documento per file.
+
+    I passaggi e i loro riferimenti (``Sezione: ...``) li produce
+    core/document_parser.py come per un caricamento reale: se il parser cambia
+    il modo di dividere o nominare le sezioni, questa suite se ne accorge.
+    """
+    from core.document_parser import chunk_source_units, extract_source_units
+
+    store = LibraryStore(database_path)
+    libraries: dict[str, str] = {}
+    for folder in sorted(path for path in PMI_CORPUS_DIR.iterdir() if path.is_dir()):
+        library = store.create_library(folder.name, "Corpus PMI fittizio", "shared", owner_id="demo")
+        libraries[folder.name] = library["id"]
+        for file in sorted(folder.glob("*.md")):
+            content = file.read_bytes()
+            chunks = chunk_source_units(extract_source_units(file.name, content))
+            document = store.add_document(
+                library["id"], file.name, "text/markdown", content, f"/pmi/{folder.name}/{file.name}", chunks=chunks
+            )
+            embeddings = embed_texts([text for text, _ in chunks])
+            if embeddings:
+                store.store_chunk_embeddings(library["id"], document["id"], embeddings, cfg.EMBED_MODEL_ID)
+    return store, libraries
+
+
+SUITES = {
+    "demo": (GOLD_SET_PATH, build_demo_store),
+    "pmi": (PMI_GOLD_SET_PATH, build_pmi_store),
+}
+
+
 def _recall(details: list[dict], type_filter: str | None = None) -> float | None:
     subset = [d for d in details if type_filter is None or d["type"] == type_filter]
     if not subset:
@@ -184,7 +222,30 @@ def _recall(details: list[dict], type_filter: str | None = None) -> float | None
     return round(sum(d["passed"] for d in subset) / len(subset), 3)
 
 
-def evaluate(gold_set: list[dict], limit: int | None = None, semantic: bool = False, verify: bool = False) -> dict:
+def _by_tag(details: list[dict]) -> dict[str, dict]:
+    """Esito per etichetta (trappola, altra biblioteca, linguaggio colloquiale...).
+
+    Il totale nasconde dove il sistema sbaglia: una buona astensione media puo'
+    venire tutta dalle domande fuori tema e coprire un crollo su quelle che
+    toccano un argomento presente ma senza la risposta.
+    """
+    tags = sorted({tag for d in details for tag in d.get("tags", [])})
+    return {
+        tag: {
+            "queries": sum(1 for d in details if tag in d["tags"]),
+            "passed": sum(1 for d in details if tag in d["tags"] and d["passed"]),
+        }
+        for tag in tags
+    }
+
+
+def evaluate(
+    gold_set: list[dict],
+    limit: int | None = None,
+    semantic: bool = False,
+    verify: bool = False,
+    build_store=build_demo_store,
+) -> dict:
     cases = gold_set[:limit] if limit else gold_set
     # cfg is a frozen dataclass singleton shared with core.library_store /
     # core.library_embeddings; this is the standard way to flip one flag on an
@@ -199,7 +260,7 @@ def evaluate(gold_set: list[dict], limit: int | None = None, semantic: bool = Fa
     # altrimenti un .env locale deciderebbe al posto dell'opzione passata.
     object.__setattr__(cfg, "EVIDENCE_VERIFIER_ENABLED", verify)
     with tempfile.TemporaryDirectory(prefix="ermes-library-eval-") as temp_dir:
-        store, libraries = build_demo_store(Path(temp_dir) / "library.sqlite3")
+        store, libraries = build_store(Path(temp_dir) / "library.sqlite3")
         details = []
         verified_queries = 0
         for item in cases:
@@ -215,10 +276,14 @@ def evaluate(gold_set: list[dict], limit: int | None = None, semantic: bool = Fa
                 # Correct behaviour is to find nothing to cite, not to guess.
                 passed = len(results) == 0
             else:
+                # Alcune domande hanno davvero due sezioni che rispondono:
+                # premiare solo una delle due misurerebbe la scelta del
+                # gold set, non il recupero.
+                acceptable = {(item["expected_filename"], item["expected_locator"])} | {
+                    (alt["filename"], alt["locator"]) for alt in item.get("also_acceptable", [])
+                }
                 passed = any(
-                    result["filename"] == item["expected_filename"]
-                    and result["citation"]["locator"] == item["expected_locator"]
-                    for result in results
+                    (result["filename"], result["citation"]["locator"]) in acceptable for result in results
                 )
             details.append(
                 {
@@ -230,6 +295,8 @@ def evaluate(gold_set: list[dict], limit: int | None = None, semantic: bool = Fa
                     "expected": {"filename": item.get("expected_filename"), "locator": item.get("expected_locator")},
                 }
             )
+            if "tags" in item:
+                details[-1]["tags"] = item["tags"]
     evidence_expected = [d for d in details if d["type"] != "abstention"]
     citation_coverage = (
         round(sum(1 for d in evidence_expected if d["top_result"] is not None) / len(evidence_expected), 3)
@@ -255,11 +322,12 @@ def evaluate(gold_set: list[dict], limit: int | None = None, semantic: bool = Fa
         # verificato sarebbe la stessa bugia che questo file evita per la
         # ricerca semantica.
         "evidence_verification_active": verified_queries > 0,
+        **({"by_tag": _by_tag(details)} if any("tags" in d for d in details) else {}),
         "details": details,
     }
 
 
-def _run_single_configuration(entry: dict, limit: int | None) -> dict | None:
+def _run_single_configuration(entry: dict, limit: int | None, suite: str = "demo") -> dict | None:
     """Esegue una configurazione in un processo separato.
 
     Il sottoprocesso non è una precauzione generica: senza di esso il
@@ -272,7 +340,7 @@ def _run_single_configuration(entry: dict, limit: int | None) -> dict | None:
     """
     with tempfile.TemporaryDirectory(prefix="ermes-compare-") as temp_dir:
         output_path = Path(temp_dir) / "report.json"
-        command = [sys.executable, str(Path(__file__).resolve()), "--output", str(output_path)]
+        command = [sys.executable, str(Path(__file__).resolve()), "--output", str(output_path), "--suite", suite]
         if entry["semantic"]:
             command.append("--semantic")
         if entry.get("verify"):
@@ -326,12 +394,12 @@ def _format_comparison_table(rows: list[tuple[str, dict]]) -> str:
     return "\n".join(lines)
 
 
-def run_comparison(limit: int | None = None) -> dict:
+def run_comparison(limit: int | None = None, suite: str = "demo") -> dict:
     """Misura ogni configurazione della matrice e restituisce il confronto."""
     rows: list[tuple[str, dict]] = []
     for entry in COMPARISON_MATRIX:
         print(f"-> {entry['label']} ...", file=sys.stderr)
-        report = _run_single_configuration(entry, limit)
+        report = _run_single_configuration(entry, limit, suite)
         if report is not None:
             rows.append((entry["label"], report))
 
@@ -360,6 +428,13 @@ def main() -> int:
     parser.add_argument("--limit", type=int)
     parser.add_argument("--output", type=Path)
     parser.add_argument(
+        "--suite",
+        choices=sorted(SUITES),
+        default="demo",
+        help="demo: gold set storico (numeri in docs/BENCHMARKS.md). "
+        "pmi: corpus e domande di una piccola azienda fittizia, con trappole e domande colloquiali.",
+    )
+    parser.add_argument(
         "--compare",
         action="store_true",
         help="Misura tutte le configurazioni di recupero (lessicale, ibrida, con e senza reranker) e stampa la tabella comparativa.",
@@ -378,7 +453,7 @@ def main() -> int:
     args = parser.parse_args()
 
     if args.compare:
-        comparison = run_comparison(args.limit)
+        comparison = run_comparison(args.limit, args.suite)
         if not comparison["configurations"]:
             print("Nessuna configurazione misurata con successo.", file=sys.stderr)
             return 1
@@ -388,8 +463,9 @@ def main() -> int:
             args.output.write_text(json.dumps(comparison, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         return 0
 
-    gold_set = json.loads(GOLD_SET_PATH.read_text(encoding="utf-8"))
-    report = evaluate(gold_set, args.limit, semantic=args.semantic, verify=args.verify)
+    gold_set_path, build_store = SUITES[args.suite]
+    gold_set = json.loads(gold_set_path.read_text(encoding="utf-8"))
+    report = evaluate(gold_set, args.limit, semantic=args.semantic, verify=args.verify, build_store=build_store)
     if args.semantic and not report["semantic_search_active"]:
         print(
             "AVVISO: --semantic richiesto ma nessuna query ha usato hybrid_local — "

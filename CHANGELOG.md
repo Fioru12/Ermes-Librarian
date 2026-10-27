@@ -2,6 +2,12 @@
 
 Registro leggibile del lavoro su questo progetto. Per i finding tecnici completi, [docs/AUDIT_2026-08-19.md](docs/AUDIT_2026-08-19.md) e [docs/CODE_REVIEW.md](docs/CODE_REVIEW.md). La roadmap per fasi e il registro delle sessioni (`ROADMAP_V2.md`, `WORK_PROGRESS.md`) sono stati tolti dall'albero pubblico il 18 settembre 2026: la cronologia Git li conserva.
 
+## 2026-10-27 — Suite di valutazione PMI: 172 domande su un corpus realistico
+
+Il gold set storico (52 domande su 16 passaggi scritti a mano) resta invariato, con i suoi numeri pubblicati. Accanto c'e' una seconda suite, `python evaluation/run_library_eval.py --suite pmi`: dieci documenti di una piccola azienda fittizia in cinque biblioteche, caricati dal parser reale, e 172 domande (62 dirette, 65 parafrasi, 45 di astensione) etichettate per tipo di difficolta': trappole con l'argomento presente ma la risposta assente, domande la cui risposta e' in un'altra biblioteca, linguaggio colloquiale, scelta fra due documenti, soglie numeriche. Il report ora riporta l'esito per etichetta.
+
+Il primo numero e' poco lusinghiero, ed e' il motivo per misurarlo: in modalita' keyword le dirette sono 0.952, ma l'astensione scende a 0.178 e le trappole sono 2 su 20. Dettagli e lettura in [docs/RETRIEVAL_EVALUATION.md](docs/RETRIEVAL_EVALUATION.md). La misura con verifica dell'evidenza richiede Ollama ed e' il prossimo numero da pubblicare. I test verificano che ogni riferimento atteso esista davvero nel corpus e fissano le soglie keyword al valore misurato.
+
 ## 2026-10-23 (4) — Le versioni precedenti dei documenti non sono file orfani
 
 Trovato rileggendo `scripts/cleanup_orphan_storage.py` (di Gemini): rimettere un file con lo stesso nome crea una nuova versione con un nuovo percorso di storage, e il vecchio resta referenziato solo da `document_versions`. La verifica di coerenza (`verify_index_consistency`) guardava soltanto `documents`, quindi dichiarava orfano lo storico: lo mostrava come problema nella scheda Stato del sistema e, soprattutto, `cleanup_orphan_storage.py --confirm` avrebbe **cancellato definitivamente le versioni precedenti**, che il prodotto presenta come originali immutabili. Ora le versioni sono considerate referenziate. Due test nuovi (uno fallisce senza la correzione; l'altro garantisce che un file davvero senza riferimenti resti orfano).

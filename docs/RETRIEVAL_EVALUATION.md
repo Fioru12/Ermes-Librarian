@@ -412,7 +412,7 @@ non cambi i risultati.
 - Il comportamento su versioni ripristinate o casi di accesso negato tra librerie.
 - Una soglia di coseno-similarita' che non sacrifichi l'astensione per guadagnare sulle parafrasi — vedi l'implicazione pratica sopra.
 
-Prima di una release pubblica, il golden set dovrebbe crescere ulteriormente con query derivate da documenti realistici, non solo dal corpus sintetico qui sopra.
+Prima di una release pubblica, il golden set dovrebbe crescere ulteriormente con query derivate da documenti realistici, non solo dal corpus sintetico qui sopra. Un primo passo e' la suite PMI descritta in fondo a questo documento.
 
 ## Confronto fra modelli di embedding (16 ottobre 2026)
 
@@ -435,3 +435,47 @@ Stessi dati, stesso codice, cambia solo `ERMES_EMBED_MODEL_ID`. Comando: `python
 | bge-m3 | 1.000 / 1.000 | 0.650 / 0.400 | 1.000 / 1.000 | 0.865 / 0.769 |
 
 Lettura onesta: nessun modello rifiuta da solo; la verifica porta i rifiuti a 16/16 a prescindere dal modello. EmbeddingGemma perde meno parafrasi quando l'archivio cresce. È una sola esecuzione su 52 domande scritte da noi, con un verificatore da 4 miliardi di parametri: la differenza con la verifica (0.55 contro 0.40) vale circa tre domande su venti. Un primo tentativo di questo confronto aveva dato numeri identici per i due modelli perché il verificatore era caduto senza che lo script lo dichiarasse; lo script ora lo segnala.
+
+## Suite PMI: corpus realistico e domande avversarie (27 ottobre 2026)
+
+Il gold set storico ha 52 domande scritte su 16 passaggi brevi, uno per sezione, inseriti a mano. La suite PMI misura lo stesso contratto su un materiale piu' vicino a quello di una piccola azienda:
+
+- **Corpus** (`evaluation/pmi_corpus/`): dieci documenti di un'azienda manifatturiera fittizia (regolamento interno, welfare, note spese, ciclo passivo, condizioni di vendita, politica sconti, non conformita', sicurezza, strumenti informatici, privacy), in cinque biblioteche con due documenti ciascuna. Vengono caricati da `core/document_parser.py` come un upload reale: 72 passaggi, riferimenti `Sezione: ...` generati dal parser.
+- **Domande** (`evaluation/pmi_gold_set.json`): 172, di cui 62 dirette, 65 parafrasi e 45 di astensione. Ogni sezione con contenuto e' bersaglio di almeno una domanda diretta e una parafrasi. Le etichette (`tags`) separano i casi difficili:
+  - `trap`: l'argomento c'e', la risposta no ("Quanti giorni di ferie maturo ogni anno?" in un regolamento che parla di ferie);
+  - `cross_library`: la risposta esiste, ma in un'altra biblioteca;
+  - `out_of_domain`: argomento assente;
+  - `colloquial`: linguaggio parlato ("mi sono scordato di passare il badge");
+  - `multi_doc`: la biblioteca ha due documenti e bisogna scegliere quello giusto;
+  - `numeric`: la risposta dipende da una soglia o da una durata.
+- Due domande hanno davvero due sezioni che rispondono (`also_acceptable`): vale l'una o l'altra.
+
+```powershell
+python evaluation/run_library_eval.py --suite pmi
+python evaluation/run_library_eval.py --suite pmi --semantic --verify
+python evaluation/run_library_eval.py --suite pmi --compare
+```
+
+### Baseline keyword (configurazione di default, nessun modello)
+
+| | valore |
+|---|---|
+| dirette | 0.952 (59/62) |
+| parafrasi | 0.569 (37/65) |
+| astensione | 0.178 (8/45) |
+| citation coverage | 0.961 |
+
+| etichetta | corrette |
+|---|---|
+| multi_doc | 43/52 |
+| numeric | 8/10 |
+| colloquial | 26/49 |
+| out_of_domain | 4/15 |
+| cross_library | 3/11 |
+| trap | 2/20 |
+
+Lettura: le domande dirette reggono anche con due documenti per biblioteca. L'astensione e' il punto debole e scende rispetto al gold set storico (0.375): con piu' testo per biblioteca una parola in comune si trova quasi sempre, e la corrispondenza per parole cita qualcosa. Le trappole sono il caso peggiore, 2 su 20, perche' l'argomento e' davvero presente. E' lo stesso limite gia' misurato sopra; il rimedio misurato sul gold set storico e' la verifica dell'evidenza.
+
+Non ancora misurato: `--semantic` e `--verify` su questa suite richiedono Ollama locale. Sono il prossimo numero da pubblicare, perche' dicono se la verifica regge su trappole scritte apposta e non solo sulle 16 astensioni storiche.
+
+Gate CI (`tests/test_library_evaluation.py`): ogni riferimento atteso deve corrispondere a una sezione che il parser produce davvero, e le soglie keyword sono fissate al valore misurato (dirette >= 0.95, parafrasi >= 0.56, astensione >= 0.17).
