@@ -2,6 +2,18 @@
 
 Registro leggibile del lavoro su questo progetto. Per i finding tecnici completi, [docs/AUDIT_2026-08-19.md](docs/AUDIT_2026-08-19.md) e [docs/CODE_REVIEW.md](docs/CODE_REVIEW.md). La roadmap per fasi e il registro delle sessioni (`ROADMAP_V2.md`, `WORK_PROGRESS.md`) sono stati tolti dall'albero pubblico il 18 settembre 2026: la cronologia Git li conserva.
 
+## 2026-10-27 (3) — Il setup chiede come deve rispondere Ermes
+
+Il setup grafico (`SETUP_WIZARD.bat`), l'installer da console (`INSTALLA_ERMES.bat`) e il nuovo `scripts/configure_ai.py` chiedono una scelta esplicita, senza opzione preselezionata:
+
+- **solo estratti**: nessun modello, nessun dato esce;
+- **modello locale con Ollama**: controlla la RAM (sotto i 15 GB usa il modello piu' leggero, sotto gli 8 avvisa), scarica il modello e avvisa se Ollama manca;
+- **API pubblica (OpenRouter)**: chiede chiave, modello e il consenso esplicito all'invio dei passaggi. La chiave passa da una variabile d'ambiente, mai dalla riga di comando, e non viene stampata.
+
+La verifica dell'evidenza e' una casella separata e spenta: su domande realistiche non e' ancora misurata.
+
+Trovato strada facendo: `ERMES_LIBRARY_ASSISTANT_MODE` era dichiarata e documentata ma nessuna biblioteca la usava, quindi ogni biblioteca nasceva "solo estratti" qualunque cosa ci fosse nel `.env`. Ora e' la modalita' delle biblioteche nuove, con chiusura sul sicuro: il cloud vale solo con consenso e chiave, e `approved_provider` (che richiede un provider per nome) non puo' essere il default. Le biblioteche esistenti non cambiano. `docker-compose.yml` passa ora anche `OPENROUTER_MODEL`, che prima non arrivava al container.
+
 ## 2026-10-27 (2) — La verifica dell'evidenza funziona anche senza un modello locale
 
 La verifica dell'evidenza (il controllo che tiene la promessa "cito o mi astengo") chiamava solo Ollama: chi non ha un PC adatto a un modello locale non poteva averla. Ora usa il modello a cui la biblioteca e' gia' autorizzata a mandare i passaggi: Ollama per le biblioteche locali, lo stesso provider cloud approvato (OpenRouter o un provider configurato dall'amministratore) per quelle con politica cloud. Nessun nuovo flusso di dati: consenso cloud, filtro dei dati personali e quarantena dei passaggi sospetti sono gli stessi della generazione, e il trasporto e' condiviso con essa. Se il provider non risponde, la risposta dichiara `evidence_verified: false` come prima.

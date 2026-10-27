@@ -111,6 +111,12 @@ if not exist ".env" (
 echo      -^> Generazione credenziali sicure di primo accesso...
 .\.venv-ermes\Scripts\python.exe scripts\provision_local_demo_auth.py --write
 
+REM 6b. Scelta del modello: solo estratti, Ollama locale o API pubblica.
+REM Nessuna opzione preselezionata; si puo' rifare con lo stesso comando.
+echo.
+echo      -^> Scelta del modello di intelligenza artificiale...
+.\.venv-ermes\Scripts\python.exe scripts\configure_ai.py
+
 REM 7. Creazione Collegamento sul Desktop
 echo.
 powershell.exe -ExecutionPolicy Bypass -File "scripts\CREA_COLLEGAMENTO_DESKTOP.ps1"
