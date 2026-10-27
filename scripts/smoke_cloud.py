@@ -40,7 +40,8 @@ def step(name: str, condition: bool, detail: str = "") -> None:
 def main() -> int:
     from fastapi.testclient import TestClient
 
-    import api.libraries as api_libraries
+    import api.libraries.ask as api_libraries_ask
+    import api.libraries.catalog as api_libraries_catalog
     import config
     import core.evidence_assistant as evidence_assistant
     from api import app
@@ -70,13 +71,13 @@ def main() -> int:
 
         # ── Cancello 1: chiave SENZA consenso globale ──
         no_consent = config.cfg.replace(LIBRARY_CLOUD_CONSENT=False)
-        saved = (config.cfg, api_libraries.cfg, evidence_assistant.cfg)
-        config.cfg = api_libraries.cfg = evidence_assistant.cfg = no_consent
+        saved = (config.cfg, api_libraries_catalog.cfg, api_libraries_ask.cfg, evidence_assistant.cfg)
+        config.cfg = api_libraries_catalog.cfg = api_libraries_ask.cfg = evidence_assistant.cfg = no_consent
         r = client.put(f"{base}/assistant-policy", json={"mode": "approved_openrouter", "provider_name": ""})
         step("cancello 1: chiave sola NON abilita il cloud (409)", r.status_code == 409)
         answer = client.post(f"{base}/ask", json={"question": "Con quale tariffa si calcola il rimborso?"}).json()
         step("ask resta evidence-only senza consenso", answer["meta"]["assistant_mode"] == "evidence_only")
-        config.cfg, api_libraries.cfg, evidence_assistant.cfg = saved
+        config.cfg, api_libraries_catalog.cfg, api_libraries_ask.cfg, evidence_assistant.cfg = saved
 
         # ── Cancello 2+3: consenso globale + scelta per biblioteca ──
         options = client.get(f"{base}/assistant-options").json()

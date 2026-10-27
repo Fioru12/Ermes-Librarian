@@ -11,6 +11,7 @@ from fastapi.testclient import TestClient
 from api import app
 from api.auth import session_store
 from config import cfg
+from tests.library_api_cfg import LIBRARIES_CFG_TARGETS
 
 
 def api_client_factory(tmp_path, monkeypatch):
@@ -20,7 +21,8 @@ def api_client_factory(tmp_path, monkeypatch):
     )
     monkeypatch.setattr("config.cfg", test_cfg)
     monkeypatch.setattr("api.auth.cfg", test_cfg)
-    monkeypatch.setattr("api.libraries.cfg", test_cfg)
+    for target in LIBRARIES_CFG_TARGETS:
+        monkeypatch.setattr(target, test_cfg)
     session_store.clear()
     return TestClient(app), test_cfg
 
@@ -42,7 +44,7 @@ def test_document_scoped_search_returns_only_that_document(tmp_path, monkeypatch
     client, _ = api_client_factory(tmp_path, monkeypatch)
     import api.libraries
 
-    monkeypatch.setattr(api.libraries, "_store", None)
+    monkeypatch.setattr(api.libraries.common, "_store", None)
     store = api.libraries.get_library_store()
     library = store.create_library("Contratti", "", "private", owner_id="owner")
     contratto = _add_doc(

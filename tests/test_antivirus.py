@@ -21,6 +21,7 @@ from core.antivirus import (
     scan_document,
 )
 from core.governance import verify_audit_log_integrity
+from tests.library_api_cfg import LIBRARIES_CFG_TARGETS
 
 
 def test_antivirus_disabled_by_default(monkeypatch):
@@ -86,11 +87,12 @@ def test_api_upload_blocked_by_antivirus(tmp_path: Path, monkeypatch):
     )
     monkeypatch.setattr("config.cfg", test_cfg)
     monkeypatch.setattr("api.auth.cfg", test_cfg)
-    monkeypatch.setattr("api.libraries.cfg", test_cfg)
+    for target in LIBRARIES_CFG_TARGETS:
+        monkeypatch.setattr(target, test_cfg)
     monkeypatch.setattr("core.antivirus.cfg", test_cfg)
 
     session_store.clear()
-    monkeypatch.setattr(api.libraries, "_store", None)
+    monkeypatch.setattr(api.libraries.common, "_store", None)
     client = TestClient(app)
 
     # Login

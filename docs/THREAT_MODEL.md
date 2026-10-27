@@ -43,7 +43,7 @@ a user or sent to a model.
 The product's central claim. A user with access to library A obtains content
 from library B, either directly or through an assistant answer.
 
-*Posture:* the library is resolved and access-checked in `core/library_store.py`
+*Posture:* the library is resolved and access-checked in `core/library_store/`
 before any chunk is read; retrieval is scoped by `library_id` in SQL rather than
 filtered afterwards. Covered by `tests/test_library_store.py`, by
 `scripts/run_demo_validation.py` against two live corpora, and end-to-end
@@ -236,7 +236,7 @@ route exists — still works.
 *Posture:* fixed on 10 September 2026, after being demonstrated.
 `POST /api/connectors/sync` pulls documents into a library by reading the
 server's filesystem — exactly what a registered folder source does. That twin
-path in `api/libraries.py` carries two deliberate guards with explanatory
+path in `api/libraries/sources.py` carries two deliberate guards with explanatory
 comments: owner-or-admin (because filesystem read access is a larger blast
 radius than a browser upload) and a refusal of paths inside the application's
 own tree (because pointing a source at `storage/libraries/<other-id>` imports
@@ -451,7 +451,7 @@ something irrelevant. That promise is weaker than the headline number suggests.
 *Posture:* measured, and the measurement is unflattering. On the 16-passage demo
 corpus abstention is perfect (1.000). Add 100 passages of ordinary prose and it
 falls to 0.333 — two abstention questions out of three get a confident citation
-to unrelated text. The cause is in `core/library_store.py`: a chunk is admitted
+to unrelated text. The cause is in `core/library_store/search.py`: a chunk is admitted
 as evidence if it shares **any single term** with the question, and every term
 weighs the same — and the shared terms are often function words. One abstention
 question matched an unrelated technical paragraph on *sempre*, *senza* and *mai*

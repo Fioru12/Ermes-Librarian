@@ -26,6 +26,7 @@ import config
 import core.evidence_assistant as assistant
 from api import app
 from core.injection_guard import QUARANTENA, inspect_passage, quarantine_citations
+from tests.library_api_cfg import LIBRARIES_CFG_TARGETS
 
 PASSWORD = "StrongPassword!123"
 
@@ -162,9 +163,9 @@ def istanza(tmp_path, monkeypatch):
         HYDE_ENABLED=False,
         METRICS_TOKEN="",
     )
-    for percorso in ("config.cfg", "api.auth.cfg", "api.libraries.cfg", "core.evidence_assistant.cfg"):
+    for percorso in ("config.cfg", "api.auth.cfg", *LIBRARIES_CFG_TARGETS, "core.evidence_assistant.cfg"):
         monkeypatch.setattr(percorso, test_cfg)
-    monkeypatch.setattr(api.libraries, "_store", None)
+    monkeypatch.setattr(api.libraries.common, "_store", None)
     api.auth.session_store.clear()
     api.auth.login_guard.clear()
     return test_cfg

@@ -19,6 +19,7 @@ from api import app
 from core.database_backend import _qmark_to_format, _translate_params
 from core.document_parser import DocumentParseError, _validate_office_archive, extract_source_units
 from core.pii_filter import regex_rejection_reason
+from tests.library_api_cfg import LIBRARIES_CFG_TARGETS
 
 PASSWORD = "StrongPassword!123"
 
@@ -103,10 +104,10 @@ def istanza(tmp_path, monkeypatch):
     test_cfg = config.cfg.replace(
         BASE_DIR=str(app_dir), DATABASE_URL="", ADMIN_USERNAME="capo", ADMIN_PASSWORD=PASSWORD, API_KEY=""
     )
-    for percorso in ("config.cfg", "api.auth.cfg", "api.libraries.cfg", "api.pii.cfg", "api.backup.cfg"):
+    for percorso in ("config.cfg", "api.auth.cfg", *LIBRARIES_CFG_TARGETS, "api.pii.cfg", "api.backup.cfg"):
         with contextlib.suppress(AttributeError):
             monkeypatch.setattr(percorso, test_cfg)
-    monkeypatch.setattr(api.libraries, "_store", None)
+    monkeypatch.setattr(api.libraries.common, "_store", None)
     api.auth.session_store.clear()
     api.auth.login_guard.clear()
     from core.governance import create_or_update_user, ensure_default_admin

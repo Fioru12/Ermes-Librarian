@@ -25,6 +25,7 @@ import api.webhook_gateway
 import config
 from api import app
 from core.governance import create_or_update_user
+from tests.library_api_cfg import LIBRARIES_CFG_TARGETS
 
 PASSWORD_CAPO = "StrongPassword!123"
 PASSWORD_OSPITE = "PasswordOspite!123"
@@ -38,14 +39,16 @@ def istanza(tmp_path, monkeypatch):
     test_cfg = config.cfg.replace(
         BASE_DIR=str(app_dir), DATABASE_URL="", ADMIN_USERNAME="capo", ADMIN_PASSWORD=PASSWORD_CAPO, API_KEY=""
     )
-    for modulo in (config, api.auth, api.libraries, api.webhook_gateway):
+    for modulo in (config, api.auth, api.webhook_gateway):
         # Solo dove l'attributo esiste: cosi' il file resta eseguibile anche
         # contro una versione del gateway che non importa cfg, e il confronto
         # prima/dopo produce fallimenti leggibili invece di errori di
         # raccolta.
         if hasattr(modulo, "cfg"):
             monkeypatch.setattr(modulo, "cfg", test_cfg)
-    monkeypatch.setattr(api.libraries, "_store", None)
+    for target in LIBRARIES_CFG_TARGETS:
+        monkeypatch.setattr(target, test_cfg)
+    monkeypatch.setattr(api.libraries.common, "_store", None)
     api.auth.session_store.clear()
     api.auth.login_guard.clear()
     return test_cfg

@@ -35,6 +35,7 @@ import pytest
 
 import config
 from config.validation import ConfigurationError, check_configuration, enforce
+from tests.library_api_cfg import LIBRARIES_CFG_TARGETS
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 from provision_local_demo_auth import provision  # noqa: E402
@@ -271,9 +272,9 @@ def test_rotating_the_configured_password_revokes_the_previous_one(tmp_path, mon
     # Anche "api.cfg": il lifespan legge il proprio riferimento al modulo, e
     # senza questa riga l'avvio userebbe la configurazione reale della
     # macchina.
-    for percorso in ("config.cfg", "api.cfg", "api.auth.cfg", "api.libraries.cfg"):
+    for percorso in ("config.cfg", "api.cfg", "api.auth.cfg", *LIBRARIES_CFG_TARGETS):
         monkeypatch.setattr(percorso, dopo)
-    monkeypatch.setattr(api.libraries, "_store", None)
+    monkeypatch.setattr(api.libraries.common, "_store", None)
     api.auth.session_store.clear()
     api.auth.login_guard.clear()
 

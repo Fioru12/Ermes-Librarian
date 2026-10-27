@@ -13,6 +13,7 @@ import config
 from api import app
 from core.connectors.base import RemoteDocument
 from core.library_store import LibraryStore
+from tests.library_api_cfg import LIBRARIES_CFG_TARGETS
 
 PASSWORD_ADMIN = "AdminStrongPass!123"
 
@@ -30,11 +31,13 @@ def api_test_env(tmp_path: Path, monkeypatch):
         ADMIN_PASSWORD=PASSWORD_ADMIN,
         API_KEY="",
     )
-    for m in (config, api.auth, api.libraries, api.connectors):
+    for m in (config, api.auth, api.connectors):
         monkeypatch.setattr(m, "cfg", test_cfg)
+    for target in LIBRARIES_CFG_TARGETS:
+        monkeypatch.setattr(target, test_cfg)
 
     store = LibraryStore(test_cfg.LIBRARY_DB_PATH)
-    monkeypatch.setattr(api.libraries, "_store", store)
+    monkeypatch.setattr(api.libraries.common, "_store", store)
 
     api.auth.session_store.clear()
     api.auth.login_guard.clear()

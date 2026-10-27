@@ -16,6 +16,7 @@ from config import cfg
 from core.document_summary import summarize_document
 from core.governance import create_or_update_user
 from core.library_store import LibraryAccessError, LibraryStore
+from tests.library_api_cfg import LIBRARIES_CFG_TARGETS
 
 
 def _make_store(tmp_path) -> LibraryStore:
@@ -42,7 +43,8 @@ def api_client_factory(tmp_path, monkeypatch):
     )
     monkeypatch.setattr("config.cfg", test_cfg)
     monkeypatch.setattr("api.auth.cfg", test_cfg)
-    monkeypatch.setattr("api.libraries.cfg", test_cfg)
+    for target in LIBRARIES_CFG_TARGETS:
+        monkeypatch.setattr(target, test_cfg)
     session_store.clear()
     client = TestClient(app)
     return client, test_cfg
@@ -76,7 +78,7 @@ def test_summary_endpoint_respects_document_acl(tmp_path, monkeypatch):
     api_client, test_cfg = api_client_factory(tmp_path, monkeypatch)
     import api.libraries
 
-    monkeypatch.setattr(api.libraries, "_store", None)
+    monkeypatch.setattr(api.libraries.common, "_store", None)
     store = api.libraries.get_library_store()
     library = store.create_library("Riservate", "", "private", owner_id="owner")
     visibile = _add_doc(store, library["id"], "spese.txt", "Le note spese si inviano entro il dieci del mese.")
@@ -119,7 +121,7 @@ def test_evidence_only_library_never_calls_the_model_even_if_asked(tmp_path, mon
     api_client, test_cfg = api_client_factory(tmp_path, monkeypatch)
     import api.libraries
 
-    monkeypatch.setattr(api.libraries, "_store", None)
+    monkeypatch.setattr(api.libraries.common, "_store", None)
     store = api.libraries.get_library_store()
     library = store.create_library("Evidenza", "", "private", owner_id="owner")
     assert library["assistant_mode"] == "evidence_only"
@@ -157,7 +159,7 @@ def test_local_ollama_library_can_still_use_the_model(tmp_path, monkeypatch):
     api_client, test_cfg = api_client_factory(tmp_path, monkeypatch)
     import api.libraries
 
-    monkeypatch.setattr(api.libraries, "_store", None)
+    monkeypatch.setattr(api.libraries.common, "_store", None)
     store = api.libraries.get_library_store()
     library = store.create_library("Locale", "", "private", owner_id="owner")
     store.set_assistant_mode(library["id"], "local_ollama")

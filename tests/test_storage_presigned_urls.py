@@ -1,6 +1,6 @@
 """tests/test_storage_presigned_urls.py
 Unit tests for Object Storage presigned URLs and download endpoints
-(core/storage_provider.py and api/libraries.py).
+(core/storage_provider.py and api/libraries/documents.py).
 """
 
 from unittest.mock import MagicMock
@@ -123,7 +123,7 @@ def test_api_download_url_endpoint_s3_returns_presigned(tmp_path, monkeypatch):
     provider = get_storage_provider()
     mock_url = "https://s3.amazonaws.com/ermes-bucket/cloud_doc.pdf?signed=1"
     monkeypatch.setattr(provider, "get_url", lambda path, expires_seconds=3600: mock_url)
-    monkeypatch.setattr("api.libraries.get_storage_provider", lambda: provider)
+    monkeypatch.setattr("api.libraries.documents.get_storage_provider", lambda: provider)
 
     client = TestClient(app)
     res = client.get(f"/api/libraries/{lib['id']}/documents/{doc['id']}/download-url?expires_seconds=7200")
@@ -155,7 +155,7 @@ def test_api_download_redirect_to_presigned(tmp_path, monkeypatch):
     provider = get_storage_provider()
     mock_url = "https://minio.corp/bucket/file.pdf?token=xyz"
     monkeypatch.setattr(provider, "get_url", lambda path, expires_seconds=3600: mock_url)
-    monkeypatch.setattr("api.libraries.get_storage_provider", lambda: provider)
+    monkeypatch.setattr("api.libraries.documents.get_storage_provider", lambda: provider)
 
     client = TestClient(app)
     res = client.get(f"/api/libraries/{lib['id']}/documents/{doc['id']}/download?redirect=true", follow_redirects=False)

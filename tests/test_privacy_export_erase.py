@@ -17,6 +17,7 @@ import api.privacy
 import config
 from api import app
 from core.governance import create_or_update_user
+from tests.library_api_cfg import LIBRARIES_CFG_TARGETS
 
 PASSWORD_CAPO = "StrongPassword!123"
 PASSWORD_MARIO = "PasswordMario!123"
@@ -37,11 +38,11 @@ def istanza(tmp_path, monkeypatch):
         LIBRARY_SEMANTIC_SEARCH_ENABLED=False,
         HYDE_ENABLED=False,
     )
-    for percorso in ("config.cfg", "api.auth.cfg", "api.libraries.cfg", "api.privacy.cfg", "core.analytics.cfg"):
+    for percorso in ("config.cfg", "api.auth.cfg", *LIBRARIES_CFG_TARGETS, "api.privacy.cfg", "core.analytics.cfg"):
         monkeypatch.setattr(percorso, test_cfg)
-    monkeypatch.setattr(api.libraries, "_store", None)
+    monkeypatch.setattr(api.libraries.common, "_store", None)
     monkeypatch.setattr(
-        api.libraries,
+        api.libraries.ask,
         "answer_from_evidence",
         lambda *args, **kwargs: ("La pausa pranzo dura 60 minuti.", "full", ""),
     )

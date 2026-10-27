@@ -13,7 +13,8 @@ from core.library_store import (
     resolve_storage_path,
     storage_relative_path,
 )
-import core.library_store as library_store_module
+import core.library_store.search as library_store_search
+from tests.library_api_cfg import LIBRARIES_CFG_TARGETS
 
 
 def test_creates_library_and_lists_documents(tmp_path: Path):
@@ -151,7 +152,7 @@ def test_semantic_score_can_return_a_chunk_without_keyword_overlap(tmp_path: Pat
         chunks=[("Le assenze programmate richiedono approvazione.", "Sezione: Assenze")],
     )
     assert store.store_chunk_embeddings(library["id"], document["id"], [[1.0, 0.0]], "test") == 1
-    monkeypatch.setattr(library_store_module, "embed_texts", lambda _: [[1.0, 0.0]])
+    monkeypatch.setattr(library_store_search, "embed_texts", lambda _: [[1.0, 0.0]])
 
     results, profile = store.search_with_profile(library["id"], "vacanze")
 
@@ -329,7 +330,7 @@ def test_download_is_denied_to_a_non_member_of_a_private_library(tmp_path: Path,
     store = LibraryStore(tmp_path / "download_acl.sqlite3")
     app.dependency_overrides[get_library_store] = lambda: store
     audit_calls: list[tuple] = []
-    monkeypatch.setattr("api.libraries.append_audit", lambda *args, **kwargs: audit_calls.append((args, kwargs)))
+    monkeypatch.setattr("api.libraries.documents.append_audit", lambda *args, **kwargs: audit_calls.append((args, kwargs)))
     try:
         client = TestClient(app)
 
@@ -417,10 +418,11 @@ def test_reindex_recomputes_embeddings_instead_of_silently_dropping_them(tmp_pat
     process_ingestion_job: qui verifichiamo che dopo un reindex ogni chunk
     abbia il suo vettore."""
     test_cfg = cfg.replace(BASE_DIR=str(tmp_path), API_KEY="")
-    monkeypatch.setattr("api.libraries.cfg", test_cfg)
+    for target in LIBRARIES_CFG_TARGETS:
+        monkeypatch.setattr(target, test_cfg)
     vector = [0.1, 0.2, 0.3]
     fake_embed = lambda texts: [vector for _ in texts]  # noqa: E731 — mock deterministico
-    monkeypatch.setattr("api.libraries.embed_texts", fake_embed)
+    monkeypatch.setattr("api.libraries.documents.embed_texts", fake_embed)
     # L'upload lancia process_ingestion_job in background: anche il suo
     # percorso deve restare deterministico su macchine con o senza Ollama.
     monkeypatch.setattr("core.ingestion_service.embed_texts", fake_embed)

@@ -17,6 +17,7 @@ import api.libraries
 import config
 from api import app
 from core.rate_limiter import get_rate_limiter
+from tests.library_api_cfg import LIBRARIES_CFG_TARGETS
 
 PASSWORD = "StrongPassword!123"
 
@@ -30,8 +31,9 @@ def istanza(tmp_path, monkeypatch):
     )
     monkeypatch.setattr(config, "cfg", test_cfg)
     monkeypatch.setattr(api.auth, "cfg", test_cfg)
-    monkeypatch.setattr(api.libraries, "cfg", test_cfg)
-    monkeypatch.setattr(api.libraries, "_store", None)
+    for target in LIBRARIES_CFG_TARGETS:
+        monkeypatch.setattr(target, test_cfg)
+    monkeypatch.setattr(api.libraries.common, "_store", None)
     api.auth.session_store.clear()
     api.auth.login_guard.clear()
     get_rate_limiter().reset()

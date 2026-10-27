@@ -23,6 +23,7 @@ from core.connectors import registry
 from core.connectors.base import BaseConnector
 from core.connectors.local_folder import LocalFolderConnector
 from core.library_store import LibraryStore
+from tests.library_api_cfg import LIBRARIES_CFG_TARGETS
 
 PASSWORD_ADMIN = "AdminStrongPass!123"
 
@@ -81,9 +82,11 @@ def admin_client(tmp_path: Path, monkeypatch):
             API_KEY="",
             CONNECTOR_PLUGINS=plugins,
         )
-        for module in (config, api.auth, api.libraries, api.connectors):
+        for module in (config, api.auth, api.connectors):
             monkeypatch.setattr(module, "cfg", test_cfg)
-        monkeypatch.setattr(api.libraries, "_store", LibraryStore(test_cfg.LIBRARY_DB_PATH))
+        for target in LIBRARIES_CFG_TARGETS:
+            monkeypatch.setattr(target, test_cfg)
+        monkeypatch.setattr(api.libraries.common, "_store", LibraryStore(test_cfg.LIBRARY_DB_PATH))
         api.auth.session_store.clear()
         api.auth.login_guard.clear()
         client = TestClient(app)

@@ -37,7 +37,7 @@ PUBLIC_PATHS = {
     # there is no session or API key to present. Authentication here is the
     # platform's own request signature (HMAC), checked inside the handler
     # against a channel explicitly bound to one library by that library's
-    # owner (see api/libraries.py: add_library_chat_integration). Requiring
+    # owner (see api/libraries/sources.py: add_library_chat_integration). Requiring
     # _verify_api_key would make the route unreachable by design, not safer.
     ("POST", "/api/integrations/slack"),
     ("POST", "/v1/api/integrations/slack"),

@@ -14,7 +14,13 @@ pyproject.toml          # Ruff + pytest config
 api/                    # FastAPI — l'app e' `api:app`
 ├── __init__.py         # Composizione app, router, startup, SPA catch-all
 ├── auth.py             # Login locale, API key, RBAC (_require_role)
-├── libraries.py        # Biblioteche, documenti, versioni, download, ricerca
+├── libraries/          # Endpoint biblioteche: un router per area
+│   ├── common.py       #   singleton LibraryStore, controlli di permesso condivisi
+│   ├── catalog.py      #   biblioteche, policy assistente, membri, export/import
+│   ├── documents.py    #   documenti, download, upload, job, ACL, reindex
+│   ├── ask.py          #   ricerca e domande, anche federate e in streaming
+│   ├── sources.py      #   cartelle importate, integrazioni chat
+│   └── studio.py       #   Studio e note personali
 ├── health.py           # /health (stato ollama, storage, disco, database)
 ├── users.py            # Gestione account e API key (solo admin)
 ├── audit.py            # Lettura audit log firmato
@@ -24,7 +30,16 @@ api/                    # FastAPI — l'app e' `api:app`
 └── shutdown.py         # Arresto controllato
 
 core/
-├── library_store.py    # Metadati, versioni, ACL, ricerca ibrida keyword+embedding
+├── library_store/      # Persistenza biblioteche: LibraryStore = StoreBase + un mixin per area
+│   ├── base.py         #   accesso DB, regole di accesso, biblioteche, membri
+│   ├── schema.py       #   schema SQLite e migrazioni
+│   ├── common.py       #   errori, costanti, stopword, percorsi di storage
+│   ├── documents.py    #   documenti, versioni, chunk, ACL per documento
+│   ├── ingestion.py    #   coda di ingestione, dead letter, coerenza indice
+│   ├── search.py       #   ricerca ibrida keyword+embedding, federata
+│   ├── sources.py      #   cartelle importate, integrazioni chat
+│   ├── notes.py        #   note personali
+│   └── privacy.py      #   GDPR: footprint e cancellazione utente
 ├── ingestion_service.py# Pipeline di ingestione (parse -> chunk -> embedding)
 ├── document_parser.py  # Estrazione testo PDF/DOCX/TXT/MD
 ├── library_embeddings.py# Generazione e persistenza embedding dei chunk
