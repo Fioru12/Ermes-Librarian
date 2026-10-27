@@ -44,6 +44,7 @@ import config
 from api import app
 from core.governance import create_or_update_user
 from core.rate_limiter import get_rate_limiter
+from tests.library_api_cfg import LIBRARIES_CFG_TARGETS
 
 PASSWORD_CAPO = "StrongPassword!123"
 PASSWORD_OSPITE = "PasswordOspite!123"
@@ -56,9 +57,9 @@ def istanza(tmp_path, monkeypatch):
     test_cfg = config.cfg.replace(
         BASE_DIR=str(app_dir), DATABASE_URL="", ADMIN_USERNAME="capo", ADMIN_PASSWORD=PASSWORD_CAPO, API_KEY=""
     )
-    for percorso in ("config.cfg", "api.auth.cfg", "api.libraries.cfg", "core.analytics.cfg"):
+    for percorso in ("config.cfg", "api.auth.cfg", *LIBRARIES_CFG_TARGETS, "core.analytics.cfg"):
         monkeypatch.setattr(percorso, test_cfg)
-    monkeypatch.setattr(api.libraries, "_store", None)
+    monkeypatch.setattr(api.libraries.common, "_store", None)
     api.auth.session_store.clear()
     api.auth.login_guard.clear()
     get_rate_limiter().reset()

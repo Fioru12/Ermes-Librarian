@@ -11,6 +11,7 @@ import pytest
 import config
 import core.library_studio as studio
 from core.library_store import LibraryStore
+from tests.library_api_cfg import LIBRARIES_CFG_TARGETS
 
 
 def _library(tmp_path, mode="local_ollama", db_path=None) -> tuple[LibraryStore, dict]:
@@ -164,10 +165,12 @@ def test_studio_route_respects_library_access(tmp_path, monkeypatch, fake_model)
     app_dir = tmp_path / "app"
     app_dir.mkdir()
     test_cfg = config.cfg.replace(BASE_DIR=str(app_dir), DATABASE_URL="", API_KEY="chiave-di-test-studio-7c1")
-    for module in (config, api.auth, api.libraries):
+    for module in (config, api.auth):
         monkeypatch.setattr(module, "cfg", test_cfg)
+    for target in LIBRARIES_CFG_TARGETS:
+        monkeypatch.setattr(target, test_cfg)
     store, library = _library(tmp_path, db_path=test_cfg.LIBRARY_DB_PATH)
-    monkeypatch.setattr(api.libraries, "_store", store)
+    monkeypatch.setattr(api.libraries.common, "_store", store)
     fake_model("Nota spese entro il quinto giorno. [1]")
     client = TestClient(app)
 

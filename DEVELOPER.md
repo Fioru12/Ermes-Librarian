@@ -14,7 +14,13 @@ pyproject.toml          # Ruff + pytest config
 api/                    # FastAPI — l'app e' `api:app`
 ├── __init__.py         # Composizione app, router, startup, SPA catch-all
 ├── auth.py             # Login locale, API key, RBAC (_require_role)
-├── libraries.py        # Biblioteche, documenti, versioni, download, ricerca
+├── libraries/          # Endpoint biblioteche: un router per area
+│   ├── common.py       #   singleton LibraryStore, controlli di permesso condivisi
+│   ├── catalog.py      #   biblioteche, policy assistente, membri, export/import
+│   ├── documents.py    #   documenti, download, upload, job, ACL, reindex
+│   ├── ask.py          #   ricerca e domande, anche federate e in streaming
+│   ├── sources.py      #   cartelle importate, integrazioni chat
+│   └── studio.py       #   Studio e note personali
 ├── health.py           # /health (stato ollama, storage, disco, database)
 ├── users.py            # Gestione account e API key (solo admin)
 ├── audit.py            # Lettura audit log firmato

@@ -2,7 +2,7 @@
 
 `POST /api/connectors/sync` immette documenti in una biblioteca leggendoli dal
 filesystem del server — esattamente come le sorgenti cartella registrate in
-`api/libraries.py`. Quel percorso gemello ha due guardie, scritte con cura e
+`api/libraries/sources.py`. Quel percorso gemello ha due guardie, scritte con cura e
 commentate: proprietario o amministratore, e rifiuto dei percorsi interni
 all'applicazione. Questa rotta le ignorava entrambe.
 
@@ -29,6 +29,7 @@ import api.libraries
 import config
 from api import app
 from core.governance import create_or_update_user
+from tests.library_api_cfg import LIBRARIES_CFG_TARGETS
 
 PASSWORD_PROPRIETARIO = "StrongPassword!123"
 PASSWORD_COLLEGA = "AltraPassword!123"
@@ -45,9 +46,11 @@ def istanza(tmp_path, monkeypatch):
         ADMIN_PASSWORD=PASSWORD_PROPRIETARIO,
         API_KEY="",
     )
-    for modulo in (config, api.auth, api.libraries, api.connectors):
+    for modulo in (config, api.auth, api.connectors):
         monkeypatch.setattr(modulo, "cfg", test_cfg)
-    monkeypatch.setattr(api.libraries, "_store", None)
+    for target in LIBRARIES_CFG_TARGETS:
+        monkeypatch.setattr(target, test_cfg)
+    monkeypatch.setattr(api.libraries.common, "_store", None)
     api.auth.session_store.clear()
     api.auth.login_guard.clear()
     return test_cfg

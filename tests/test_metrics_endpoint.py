@@ -10,6 +10,7 @@ from fastapi.testclient import TestClient
 from api import app
 from api.auth import session_store
 from config import cfg
+from tests.library_api_cfg import LIBRARIES_CFG_TARGETS
 
 
 @pytest.fixture
@@ -19,8 +20,8 @@ def env(tmp_path, monkeypatch):
     test_cfg = cfg.replace(
         BASE_DIR=str(app_dir), ADMIN_USERNAME="owner", ADMIN_PASSWORD="StrongPassword!123", API_KEY=""
     )
-    for target in ("config", "api", "api.auth", "api.libraries"):
-        monkeypatch.setattr(f"{target}.cfg", test_cfg)
+    for target in ("config.cfg", "api.cfg", "api.auth.cfg", *LIBRARIES_CFG_TARGETS):
+        monkeypatch.setattr(target, test_cfg)
     session_store.clear()
     # Forza il re-set di system_info: in suite completa un altro test può aver
     # già inizializzato il gauge prometheus su un'istanza distinta (reload moduli);
@@ -52,8 +53,8 @@ def test_metrics_exposes_prometheus_format(env):
 def test_metrics_requires_bearer_token_when_configured(env, monkeypatch):
     client, test_cfg = env
     secured = test_cfg.replace(METRICS_TOKEN="s3cret")
-    for target in ("config", "api", "api.auth", "api.libraries"):
-        monkeypatch.setattr(f"{target}.cfg", secured)
+    for target in ("config.cfg", "api.cfg", "api.auth.cfg", *LIBRARIES_CFG_TARGETS):
+        monkeypatch.setattr(target, secured)
 
     denied = client.get("/metrics")
     assert denied.status_code == 401
@@ -87,7 +88,7 @@ def test_metrics_denied_from_remote_without_token():
 
 def test_rag_business_metrics_recorded_by_ask(env, monkeypatch):
     client, test_cfg = env
-    monkeypatch.setattr("api.libraries._store", None)
+    monkeypatch.setattr("api.libraries.common._store", None)
 
     store = __import__("api.libraries", fromlist=["get_library_store"]).get_library_store()
     library = store.create_library("Metrics", "", "private", owner_id="owner")

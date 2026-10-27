@@ -3,6 +3,7 @@ from pathlib import Path
 
 from core.library_pack import export_library_pack, import_library_pack, KnowledgePackError
 from core.library_store import LibraryStore
+from tests.library_api_cfg import LIBRARIES_CFG_TARGETS
 
 
 def test_export_and_import_knowledge_pack(tmp_path: Path):
@@ -95,12 +96,13 @@ def test_library_pack_api_endpoints(tmp_path: Path, monkeypatch):
     )
     monkeypatch.setattr("config.cfg", test_cfg)
     monkeypatch.setattr("api.auth.cfg", test_cfg)
-    monkeypatch.setattr("api.libraries.cfg", test_cfg)
+    for target in LIBRARIES_CFG_TARGETS:
+        monkeypatch.setattr(target, test_cfg)
     session_store.clear()
 
     import api.libraries
 
-    monkeypatch.setattr(api.libraries, "_store", None)
+    monkeypatch.setattr(api.libraries.common, "_store", None)
     store = api.libraries.get_library_store()
     lib = store.create_library("Catalogo", "Catalogo Ricambi", "shared", owner_id="admin")
 
@@ -201,11 +203,12 @@ def test_import_api_streams_to_disk_and_caps_the_pack(tmp_path: Path, monkeypatc
     )
     monkeypatch.setattr("config.cfg", test_cfg)
     monkeypatch.setattr("api.auth.cfg", test_cfg)
-    monkeypatch.setattr("api.libraries.cfg", test_cfg)
+    for target in LIBRARIES_CFG_TARGETS:
+        monkeypatch.setattr(target, test_cfg)
     session_store.clear()
     import api.libraries
 
-    monkeypatch.setattr(api.libraries, "_store", None)
+    monkeypatch.setattr(api.libraries.common, "_store", None)
     client = TestClient(app)
     assert (
         client.post("/api/auth/login", json={"username": "admin", "password": "admin_password_123!"}).status_code == 200

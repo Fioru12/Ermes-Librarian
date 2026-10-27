@@ -23,6 +23,7 @@ import api.libraries
 import config
 import core.question_rewriter as rewriter
 from api import app
+from tests.library_api_cfg import LIBRARIES_CFG_TARGETS
 
 PASSWORD = "StrongPassword!123"
 
@@ -42,9 +43,9 @@ def istanza(tmp_path, monkeypatch):
         LIBRARY_SEMANTIC_SEARCH_ENABLED=False,
         HYDE_ENABLED=False,
     )
-    for percorso in ("config.cfg", "api.auth.cfg", "api.libraries.cfg"):
+    for percorso in ("config.cfg", "api.auth.cfg", *LIBRARIES_CFG_TARGETS):
         monkeypatch.setattr(percorso, test_cfg)
-    monkeypatch.setattr(api.libraries, "_store", None)
+    monkeypatch.setattr(api.libraries.common, "_store", None)
     api.auth.session_store.clear()
     api.auth.login_guard.clear()
     return test_cfg

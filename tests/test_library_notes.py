@@ -1,4 +1,4 @@
-"""Note personali per biblioteca (core/library_store.py, api/libraries.py)."""
+"""Note personali per biblioteca (core/library_store/notes.py, api/libraries/studio.py)."""
 
 import pytest
 from fastapi.testclient import TestClient
@@ -8,6 +8,7 @@ import api.libraries
 import config
 from api import app
 from core.library_store import LibraryAccessError, LibraryNotFoundError, LibraryStore
+from tests.library_api_cfg import LIBRARIES_CFG_TARGETS
 
 BOB = {"username": "bob", "role": "viewer"}
 CAROL = {"username": "carol", "role": "viewer"}
@@ -77,10 +78,12 @@ def test_notes_api_round_trip(tmp_path, monkeypatch):
     app_dir = tmp_path / "app"
     app_dir.mkdir()
     test_cfg = config.cfg.replace(BASE_DIR=str(app_dir), DATABASE_URL="", API_KEY="chiave-note-test-4b8e")
-    for module in (config, api.auth, api.libraries):
+    for module in (config, api.auth):
         monkeypatch.setattr(module, "cfg", test_cfg)
+    for target in LIBRARIES_CFG_TARGETS:
+        monkeypatch.setattr(target, test_cfg)
     store, library_id = _store(tmp_path, db_path=test_cfg.LIBRARY_DB_PATH)
-    monkeypatch.setattr(api.libraries, "_store", store)
+    monkeypatch.setattr(api.libraries.common, "_store", store)
     client = TestClient(app)
     auth = {"Authorization": "Bearer chiave-note-test-4b8e"}
     base = f"/api/libraries/{library_id}/notes"

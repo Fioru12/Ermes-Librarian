@@ -167,7 +167,7 @@ def test_api_progress_and_dlq_endpoints(tmp_path, monkeypatch):
     assert dlq_res2.json()["items"][0]["id"] == job_id
 
     # Mock background run_ingestion_job so it doesn't fail on dummy document
-    monkeypatch.setattr("api.libraries.run_ingestion_job", lambda *args, **kwargs: None)
+    monkeypatch.setattr("api.libraries.documents.run_ingestion_job", lambda *args, **kwargs: None)
 
     # 4. Test reprocess DLQ endpoint
     reproc_res = client.post(f"/api/libraries/{lib['id']}/dead-letter-jobs/{job_id}/reprocess")

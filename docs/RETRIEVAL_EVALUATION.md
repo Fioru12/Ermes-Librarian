@@ -244,7 +244,7 @@ statistica:
 > l'altra. La causa vera e' emersa stampando quali termini corrispondessero
 > davvero, invece di dedurla dal testo del passaggio.
 
-La regola di ammissione in `core/library_store.py` e'
+La regola di ammissione in `core/library_store/search.py` e'
 `if phrase_score or token_score or ...`: **un solo termine in comune basta**
 per essere restituito come evidenza, e tutti i termini pesano uguale.
 

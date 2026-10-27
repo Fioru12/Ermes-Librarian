@@ -34,6 +34,7 @@ import config
 from api import app
 from api.auth import session_store
 from core.rate_limiter import get_rate_limiter
+from tests.library_api_cfg import LIBRARIES_CFG_TARGETS
 
 PASSWORD = "StrongPassword!123"
 TOKEN_BOT = "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11"
@@ -59,9 +60,9 @@ def istanza(tmp_path, monkeypatch):
     if hasattr(config.cfg, "TELEGRAM_WEBHOOK_SECRET"):
         campi["TELEGRAM_WEBHOOK_SECRET"] = SEGRETO_WEBHOOK
     test_cfg = config.cfg.replace(**campi)
-    for percorso in ("config.cfg", "api.auth.cfg", "api.libraries.cfg", "api.chat_webhooks.cfg"):
+    for percorso in ("config.cfg", "api.auth.cfg", *LIBRARIES_CFG_TARGETS, "api.chat_webhooks.cfg"):
         monkeypatch.setattr(percorso, test_cfg)
-    monkeypatch.setattr(api.libraries, "_store", None)
+    monkeypatch.setattr(api.libraries.common, "_store", None)
     session_store.clear()
     get_rate_limiter().reset()
     return test_cfg

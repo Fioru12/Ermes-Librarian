@@ -17,7 +17,7 @@ Il filtro dei permessi è un argomento del recupero stesso.
 - Le biblioteche sono il primo confine: `get_library(library_id, actor)`
   fallisce per chi non ne è membro, prima di qualunque ricerca. Le query
   federate cercano solo sulle biblioteche visibili all'utente.
-- Dentro una biblioteca, `_hidden_document_ids()` in `core/library_store.py`
+- Dentro una biblioteca, `_hidden_document_ids()` in `core/library_store/base.py`
   calcola i documenti con una allow-list (`document_acls`) che non include
   l'utente. L'insieme viene passato a `_keyword_candidates()`, e le righe
   candidate lette dal database (anche quelle del percorso semantico) vengono

@@ -16,6 +16,7 @@ import pytest
 import config
 import core.evidence_verifier as verificatore
 from core.evidence_verifier import verify_citations
+from tests.library_api_cfg import LIBRARIES_CFG_TARGETS
 
 
 def _citazione(testo: str) -> dict:
@@ -168,8 +169,9 @@ def test_the_answer_declares_whether_verification_ran(tmp_path, monkeypatch):
     )
     monkeypatch.setattr(config, "cfg", test_cfg)
     monkeypatch.setattr(api.auth, "cfg", test_cfg)
-    monkeypatch.setattr(api.libraries, "cfg", test_cfg)
-    monkeypatch.setattr(api.libraries, "_store", None)
+    for target in LIBRARIES_CFG_TARGETS:
+        monkeypatch.setattr(target, test_cfg)
+    monkeypatch.setattr(api.libraries.common, "_store", None)
     api.auth.session_store.clear()
     api.auth.login_guard.clear()
 

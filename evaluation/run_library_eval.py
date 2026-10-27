@@ -205,7 +205,7 @@ def evaluate(gold_set: list[dict], limit: int | None = None, semantic: bool = Fa
         for item in cases:
             item_type = item.get("type", "direct")
             results, profile = store.search_with_profile(libraries[item["library"]], item["query"], limit=3)
-            # Nello stesso punto in cui la applica api/libraries.py::_answer_question:
+            # Nello stesso punto in cui la applica api/libraries/ask.py::_answer_question:
             # fra recupero e risposta. Misurare altrove misurerebbe un sistema
             # diverso da quello che gli utenti usano.
             results, verified = verify_citations(item["query"], results)

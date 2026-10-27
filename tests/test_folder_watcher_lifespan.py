@@ -13,6 +13,7 @@ from api import app
 import api.libraries
 from api.auth import session_store
 from config import cfg
+from tests.library_api_cfg import LIBRARIES_CFG_TARGETS
 
 
 @pytest.fixture
@@ -26,11 +27,12 @@ def watcher_client(tmp_path: Path, monkeypatch):
     )
     monkeypatch.setattr("config.cfg", test_cfg)
     monkeypatch.setattr("api.auth.cfg", test_cfg)
-    monkeypatch.setattr("api.libraries.cfg", test_cfg)
+    for target in LIBRARIES_CFG_TARGETS:
+        monkeypatch.setattr(target, test_cfg)
     monkeypatch.setattr("api.connectors.cfg", test_cfg)
 
     session_store.clear()
-    monkeypatch.setattr(api.libraries, "_store", None)
+    monkeypatch.setattr(api.libraries.common, "_store", None)
 
     client = TestClient(app)
     client.post("/api/auth/login", json={"username": "admin", "password": "StrongPassword!123"})

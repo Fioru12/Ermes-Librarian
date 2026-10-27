@@ -2,7 +2,7 @@
 
 > Stato: **Tutte le Fasi 0-5 completate e verificate.**
 > - Fasi 0-4 verificate in CI contro Postgres 16 (`tests/test_postgres_parity.py`).
-> - Fase 3 (concorrenza `SELECT ... FOR UPDATE SKIP LOCKED` per worker multipli) implementata in `core/library_store.py`.
+> - Fase 3 (concorrenza `SELECT ... FOR UPDATE SKIP LOCKED` per worker multipli) implementata in `core/library_store/ingestion.py`.
 > - Fase 5 (script di migrazione dati a blocchi e verifica integrità) implementata in `scripts/migrate_sqlite_to_postgres.py` e testata in `tests/test_postgres_migration.py`.
 > Ultimo aggiornamento: 2026-09-23
 

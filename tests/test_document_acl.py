@@ -15,6 +15,7 @@ from api.auth import session_store
 from config import cfg
 from core.governance import create_or_update_user
 from core.library_store import LibraryAccessError, LibraryStore
+from tests.library_api_cfg import LIBRARIES_CFG_TARGETS
 
 
 def _make_store(tmp_path) -> LibraryStore:
@@ -90,7 +91,8 @@ def test_acl_api_is_owner_admin_only_and_validates_usernames(tmp_path, monkeypat
     )
     monkeypatch.setattr("config.cfg", test_cfg)
     monkeypatch.setattr("api.auth.cfg", test_cfg)
-    monkeypatch.setattr("api.libraries.cfg", test_cfg)
+    for target in LIBRARIES_CFG_TARGETS:
+        monkeypatch.setattr(target, test_cfg)
     session_store.clear()
     client = TestClient(app)
 
@@ -103,7 +105,7 @@ def test_acl_api_is_owner_admin_only_and_validates_usernames(tmp_path, monkeypat
     # in un altro database rispetto a quello interrogato dagli endpoint.
     import api.libraries
 
-    monkeypatch.setattr(api.libraries, "_store", None)
+    monkeypatch.setattr(api.libraries.common, "_store", None)
     store = api.libraries.get_library_store()
     library = store.create_library("Demo", "", "private", owner_id="owner")
     document = _add_doc(store, library["id"], "contratto.txt", "Il contratto scade a dicembre.")

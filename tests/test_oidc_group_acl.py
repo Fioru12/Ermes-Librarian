@@ -21,6 +21,7 @@ from core.governance import (
     resolve_oidc_group_role,
     set_oidc_group_mapping,
 )
+from tests.library_api_cfg import LIBRARIES_CFG_TARGETS
 
 
 def api_client_factory(tmp_path, monkeypatch):
@@ -35,7 +36,8 @@ def api_client_factory(tmp_path, monkeypatch):
     )
     monkeypatch.setattr("config.cfg", test_cfg)
     monkeypatch.setattr("api.auth.cfg", test_cfg)
-    monkeypatch.setattr("api.libraries.cfg", test_cfg)
+    for target in LIBRARIES_CFG_TARGETS:
+        monkeypatch.setattr(target, test_cfg)
     session_store.clear()
     return TestClient(app), test_cfg
 
@@ -93,7 +95,7 @@ def test_oidc_group_grants_access_without_membership(tmp_path, monkeypatch):
     client, _ = api_client_factory(tmp_path, monkeypatch)
     import api.libraries
 
-    monkeypatch.setattr(api.libraries, "_store", None)
+    monkeypatch.setattr(api.libraries.common, "_store", None)
     store = api.libraries.get_library_store()
     library = store.create_library("Riservata HR", "", "private", owner_id="owner")
     set_oidc_group_mapping("hr", library["id"], "viewer")
@@ -115,7 +117,7 @@ def test_oidc_user_without_mapped_group_sees_nothing(tmp_path, monkeypatch):
     client, _ = api_client_factory(tmp_path, monkeypatch)
     import api.libraries
 
-    monkeypatch.setattr(api.libraries, "_store", None)
+    monkeypatch.setattr(api.libraries.common, "_store", None)
     store = api.libraries.get_library_store()
     library = store.create_library("Riservata", "", "private", owner_id="owner")
     set_oidc_group_mapping("hr", library["id"], "viewer")
@@ -130,7 +132,7 @@ def test_group_mapping_apis_require_admin(tmp_path, monkeypatch):
     client, _ = api_client_factory(tmp_path, monkeypatch)
     import api.libraries
 
-    monkeypatch.setattr(api.libraries, "_store", None)
+    monkeypatch.setattr(api.libraries.common, "_store", None)
     store = api.libraries.get_library_store()
     library = store.create_library("B", "", "private", owner_id="owner")
     assert (
