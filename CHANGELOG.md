@@ -2,6 +2,10 @@
 
 Registro leggibile del lavoro su questo progetto. Per i finding tecnici completi, [docs/AUDIT_2026-08-19.md](docs/AUDIT_2026-08-19.md) e [docs/CODE_REVIEW.md](docs/CODE_REVIEW.md). La roadmap per fasi e il registro delle sessioni (`ROADMAP_V2.md`, `WORK_PROGRESS.md`) sono stati tolti dall'albero pubblico il 18 settembre 2026: la cronologia Git li conserva.
 
+## 2026-10-27 (4) — Piano di evoluzione: priorita' riviste sul target PMI
+
+`docs/PIANO_EVOLUZIONE_E_BENCHMARK.md` riscritto nelle sezioni 4 e 5. Il target dichiarato e' PMI e professionisti con installazione locale; le funzioni enterprise restano ma non ricevono nuovo lavoro senza un cliente che le chieda. Il piano parte dai numeri della suite PMI (astensione 0.178 nella configurazione predefinita), separa cio' che e' gia' fatto (pollice su/giu', PDF alla pagina citata, Studio, report stampabile, scelta del modello) da cio' che blocca l'uso (misura della verifica, installer senza prerequisiti, aggiornamenti, email e PEC, giudizi negativi verso il gold set) e da cio' che e' rimandato con il motivo (agenti, voce, multimodale, knowledge graph, SaaS). Ogni voce dice come si misura il risultato.
+
 ## 2026-10-27 (3) — Il setup chiede come deve rispondere Ermes
 
 Il setup grafico (`SETUP_WIZARD.bat`), l'installer da console (`INSTALLA_ERMES.bat`) e il nuovo `scripts/configure_ai.py` chiedono una scelta esplicita, senza opzione preselezionata:
