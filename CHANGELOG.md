@@ -2,6 +2,12 @@
 
 Registro leggibile del lavoro su questo progetto. Per i finding tecnici completi, [docs/AUDIT_2026-08-19.md](docs/AUDIT_2026-08-19.md) e [docs/CODE_REVIEW.md](docs/CODE_REVIEW.md). La roadmap per fasi e il registro delle sessioni (`ROADMAP_V2.md`, `WORK_PROGRESS.md`) sono stati tolti dall'albero pubblico il 18 settembre 2026: la cronologia Git li conserva.
 
+## 2026-10-27 (2) — La verifica dell'evidenza funziona anche senza un modello locale
+
+La verifica dell'evidenza (il controllo che tiene la promessa "cito o mi astengo") chiamava solo Ollama: chi non ha un PC adatto a un modello locale non poteva averla. Ora usa il modello a cui la biblioteca e' gia' autorizzata a mandare i passaggi: Ollama per le biblioteche locali, lo stesso provider cloud approvato (OpenRouter o un provider configurato dall'amministratore) per quelle con politica cloud. Nessun nuovo flusso di dati: consenso cloud, filtro dei dati personali e quarantena dei passaggi sospetti sono gli stessi della generazione, e il trasporto e' condiviso con essa. Se il provider non risponde, la risposta dichiara `evidence_verified: false` come prima.
+
+La valutazione si puo' ora misurare anche con un'API pubblica: `python evaluation/run_library_eval.py --suite pmi --verify --verifier openrouter`. Cinque test nuovi, fra cui uno che fallisce se gli endpoint di risposta smettono di passare la politica della biblioteca al verificatore.
+
 ## 2026-10-27 — Suite di valutazione PMI: 172 domande su un corpus realistico
 
 Il gold set storico (52 domande su 16 passaggi scritti a mano) resta invariato, con i suoi numeri pubblicati. Accanto c'e' una seconda suite, `python evaluation/run_library_eval.py --suite pmi`: dieci documenti di una piccola azienda fittizia in cinque biblioteche, caricati dal parser reale, e 172 domande (62 dirette, 65 parafrasi, 45 di astensione) etichettate per tipo di difficolta': trappole con l'argomento presente ma la risposta assente, domande la cui risposta e' in un'altra biblioteca, linguaggio colloquiale, scelta fra due documenti, soglie numeriche. Il report ora riporta l'esito per etichetta.

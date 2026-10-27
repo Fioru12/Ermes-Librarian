@@ -245,6 +245,8 @@ def evaluate(
     semantic: bool = False,
     verify: bool = False,
     build_store=build_demo_store,
+    verifier_mode: str = "evidence_only",
+    verifier_provider: str = "",
 ) -> dict:
     cases = gold_set[:limit] if limit else gold_set
     # cfg is a frozen dataclass singleton shared with core.library_store /
@@ -269,7 +271,7 @@ def evaluate(
             # Nello stesso punto in cui la applica api/libraries/ask.py::_answer_question:
             # fra recupero e risposta. Misurare altrove misurerebbe un sistema
             # diverso da quello che gli utenti usano.
-            results, verified = verify_citations(item["query"], results)
+            results, verified = verify_citations(item["query"], results, verifier_mode, verifier_provider)
             if verified:
                 verified_queries += 1
             if item_type == "abstention":
@@ -282,9 +284,7 @@ def evaluate(
                 acceptable = {(item["expected_filename"], item["expected_locator"])} | {
                     (alt["filename"], alt["locator"]) for alt in item.get("also_acceptable", [])
                 }
-                passed = any(
-                    (result["filename"], result["citation"]["locator"]) in acceptable for result in results
-                )
+                passed = any((result["filename"], result["citation"]["locator"]) in acceptable for result in results)
             details.append(
                 {
                     "id": item["id"],
@@ -450,7 +450,19 @@ def main() -> int:
         help="Chiede a un modello locale se ogni passaggio recuperato risponda davvero alla domanda, "
         "e scarta quelli che non lo fanno. Richiede Ollama; senza, la verifica viene saltata e lo dichiara.",
     )
+    parser.add_argument(
+        "--verifier",
+        choices=["local", "openrouter", "provider"],
+        default="local",
+        help="Chi verifica con --verify: Ollama locale (default), OpenRouter o un provider approvato "
+        "(--verifier-provider). Le opzioni cloud richiedono ERMES_LIBRARY_CLOUD_CONSENT=1 e la chiave "
+        "del provider, come una biblioteca configurata cosi'.",
+    )
+    parser.add_argument("--verifier-provider", default="", help="Nome del provider approvato per --verifier provider.")
     args = parser.parse_args()
+    verifier_mode = {"local": "evidence_only", "openrouter": "approved_openrouter", "provider": "approved_provider"}[
+        args.verifier
+    ]
 
     if args.compare:
         comparison = run_comparison(args.limit, args.suite)
@@ -465,7 +477,16 @@ def main() -> int:
 
     gold_set_path, build_store = SUITES[args.suite]
     gold_set = json.loads(gold_set_path.read_text(encoding="utf-8"))
-    report = evaluate(gold_set, args.limit, semantic=args.semantic, verify=args.verify, build_store=build_store)
+    report = evaluate(
+        gold_set,
+        args.limit,
+        semantic=args.semantic,
+        verify=args.verify,
+        build_store=build_store,
+        verifier_mode=verifier_mode,
+        verifier_provider=args.verifier_provider,
+    )
+    report["verifier"] = args.verifier if args.verify else None
     if args.semantic and not report["semantic_search_active"]:
         print(
             "AVVISO: --semantic richiesto ma nessuna query ha usato hybrid_local — "

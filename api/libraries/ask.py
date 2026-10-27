@@ -457,7 +457,9 @@ def _answer_question(
             raise HTTPException(status_code=404, detail="Biblioteca non trovata") from error
 
         with tracer.span("evidence_verification", citations_in=len(citations)) as s_ver:
-            citations, evidence_verified = verify_citations(question, citations)
+            citations, evidence_verified = verify_citations(
+                question, citations, library["assistant_mode"], library.get("assistant_provider", "")
+            )
             s_ver.set_metadata("citations_out", len(citations))
             s_ver.set_metadata("evidence_verified", evidence_verified)
 
@@ -566,7 +568,9 @@ def _stream_answer(
     citations, retrieval_profile = _retrieve(search, question, hyde_mode)
 
     yield _sse("status", {"step": "verifying"})
-    citations, evidence_verified = verify_citations(question, citations)
+    citations, evidence_verified = verify_citations(
+        question, citations, scope.assistant_mode, scope.assistant_provider or ""
+    )
     if tabular is not None:
         citations = tabular(question, citations)
 

@@ -476,6 +476,16 @@ python evaluation/run_library_eval.py --suite pmi --compare
 
 Lettura: le domande dirette reggono anche con due documenti per biblioteca. L'astensione e' il punto debole e scende rispetto al gold set storico (0.375): con piu' testo per biblioteca una parola in comune si trova quasi sempre, e la corrispondenza per parole cita qualcosa. Le trappole sono il caso peggiore, 2 su 20, perche' l'argomento e' davvero presente. E' lo stesso limite gia' misurato sopra; il rimedio misurato sul gold set storico e' la verifica dell'evidenza.
 
-Non ancora misurato: `--semantic` e `--verify` su questa suite richiedono Ollama locale. Sono il prossimo numero da pubblicare, perche' dicono se la verifica regge su trappole scritte apposta e non solo sulle 16 astensioni storiche.
+Non ancora misurato: `--semantic` e `--verify` su questa suite richiedono un modello. La verifica puo' girare con Ollama locale oppure con un'API pubblica, come una biblioteca con politica cloud:
+
+```powershell
+# Ollama locale
+python evaluation/run_library_eval.py --suite pmi --semantic --verify
+# OpenRouter (consenso cloud e chiave come in produzione)
+$env:ERMES_LIBRARY_CLOUD_CONSENT="1"; $env:ERMES_OPENROUTER_API_KEY="..."
+python evaluation/run_library_eval.py --suite pmi --verify --verifier openrouter
+```
+
+Il report indica `verifier` e `evidence_verification_active`: se il modello non risponde, i numeri sono quelli senza verifica e lo script lo dichiara. Sono il prossimo numero da pubblicare, perche' dicono se la verifica regge su trappole scritte apposta e non solo sulle 16 astensioni storiche.
 
 Gate CI (`tests/test_library_evaluation.py`): ogni riferimento atteso deve corrispondere a una sezione che il parser produce davvero, e le soglie keyword sono fissate al valore misurato (dirette >= 0.95, parafrasi >= 0.56, astensione >= 0.17).
