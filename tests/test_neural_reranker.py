@@ -107,7 +107,7 @@ def test_search_library_two_stage_candidate_pool_expansion(tmp_path, monkeypatch
         BASE_DIR=str(tmp_path),
         RERANKER_ENABLED=True,
     )
-    monkeypatch.setattr("core.library_store.cfg", test_cfg)
+    monkeypatch.setattr("core.library_store.search.cfg", test_cfg)
     store = LibraryStore(tmp_path / "test_rag.sqlite3")
     lib = store.create_library("Policy Test", "Descrizione", "private", owner_id="owner")
 

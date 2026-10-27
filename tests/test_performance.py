@@ -208,7 +208,7 @@ def test_search_survives_more_candidates_than_sqlite_allows(tmp_path, monkeypatc
     Qui il limite viene abbassato invece di creare 50.000 passaggi, cosi' il
     test verifica la stessa logica di suddivisione in blocchi restando veloce.
     """
-    import core.library_store as ls
+    import core.library_store.search as ls
 
     store = _make_store(tmp_path)
     library = store.create_library("Archivio", "", "private", owner_id="perf_user")
@@ -224,7 +224,7 @@ def test_search_survives_more_candidates_than_sqlite_allows(tmp_path, monkeypatc
 
 def test_batching_returns_the_same_results_as_a_single_query(tmp_path, monkeypatch):
     """Suddividere non deve cambiare cosa si trova."""
-    import core.library_store as ls
+    import core.library_store.search as ls
 
     store = _make_store(tmp_path)
     library = store.create_library("Archivio", "", "private", owner_id="perf_user")

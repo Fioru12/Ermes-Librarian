@@ -10,7 +10,8 @@ lavora con una propria cache in memoria, come un processo separato.
 
 import pytest
 
-import core.library_store as library_store_module
+import core.library_store.documents as library_store_documents
+import core.library_store.search as library_store_search
 from core.library_store import LibraryStore
 from core.search_cache import SemanticSearchCache, reset_search_cache
 
@@ -29,16 +30,20 @@ def replicas(tmp_path, monkeypatch):
     path = tmp_path / "ermes.sqlite3"
     a, b = LibraryStore(path), LibraryStore(path)
     cache_b = SemanticSearchCache()
-    real = library_store_module.get_search_cache
+    real = library_store_search.get_search_cache
+    # Legge la cache la ricerca, la invalidano le modifiche ai documenti.
+    modules = (library_store_search, library_store_documents)
 
     class OnReplicaB:
         """Durante il blocco, LibraryStore usa la cache della replica B."""
 
         def __enter__(self):
-            monkeypatch.setattr(library_store_module, "get_search_cache", lambda: cache_b)
+            for module in modules:
+                monkeypatch.setattr(module, "get_search_cache", lambda: cache_b)
 
         def __exit__(self, *_):
-            monkeypatch.setattr(library_store_module, "get_search_cache", real)
+            for module in modules:
+                monkeypatch.setattr(module, "get_search_cache", real)
 
     return a, b, OnReplicaB
 

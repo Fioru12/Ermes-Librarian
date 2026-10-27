@@ -24,7 +24,16 @@ api/                    # FastAPI — l'app e' `api:app`
 └── shutdown.py         # Arresto controllato
 
 core/
-├── library_store.py    # Metadati, versioni, ACL, ricerca ibrida keyword+embedding
+├── library_store/      # Persistenza biblioteche: LibraryStore = StoreBase + un mixin per area
+│   ├── base.py         #   accesso DB, regole di accesso, biblioteche, membri
+│   ├── schema.py       #   schema SQLite e migrazioni
+│   ├── common.py       #   errori, costanti, stopword, percorsi di storage
+│   ├── documents.py    #   documenti, versioni, chunk, ACL per documento
+│   ├── ingestion.py    #   coda di ingestione, dead letter, coerenza indice
+│   ├── search.py       #   ricerca ibrida keyword+embedding, federata
+│   ├── sources.py      #   cartelle importate, integrazioni chat
+│   ├── notes.py        #   note personali
+│   └── privacy.py      #   GDPR: footprint e cancellazione utente
 ├── ingestion_service.py# Pipeline di ingestione (parse -> chunk -> embedding)
 ├── document_parser.py  # Estrazione testo PDF/DOCX/TXT/MD
 ├── library_embeddings.py# Generazione e persistenza embedding dei chunk

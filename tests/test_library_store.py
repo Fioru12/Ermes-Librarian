@@ -13,7 +13,7 @@ from core.library_store import (
     resolve_storage_path,
     storage_relative_path,
 )
-import core.library_store as library_store_module
+import core.library_store.search as library_store_search
 
 
 def test_creates_library_and_lists_documents(tmp_path: Path):
@@ -151,7 +151,7 @@ def test_semantic_score_can_return_a_chunk_without_keyword_overlap(tmp_path: Pat
         chunks=[("Le assenze programmate richiedono approvazione.", "Sezione: Assenze")],
     )
     assert store.store_chunk_embeddings(library["id"], document["id"], [[1.0, 0.0]], "test") == 1
-    monkeypatch.setattr(library_store_module, "embed_texts", lambda _: [[1.0, 0.0]])
+    monkeypatch.setattr(library_store_search, "embed_texts", lambda _: [[1.0, 0.0]])
 
     results, profile = store.search_with_profile(library["id"], "vacanze")
 
