@@ -124,6 +124,12 @@ Criterio dell'ordine: prima cio' che impedisce a una PMI di usare Ermes o di fid
 - Obiettivo: esportare le domande con giudizio negativo (testo della domanda, biblioteca, motivazione; mai il contenuto dei documenti) come candidati per il gold set, da rivedere a mano.
 - Misura: il gold set cresce con domande vere degli utenti pilota.
 
+**1.6 Permessi ereditati dalle fonti collegate.**
+- Oggi i connettori (cartelle di rete, SharePoint/OneDrive, Google Drive, Confluence) importano i documenti ma non i loro permessi: chi puo' vedere cosa va rifatto a mano, biblioteca per biblioteca. Collegare una cartella condivisa reale puo' quindi mostrare a tutti i membri della biblioteca un file che sull'origine vedevano in pochi.
+- E' il primo controllo che fa un'azienda vera, ed e' cio' che Copilot, Gemini e Glean fanno di serie.
+- Obiettivo: a ogni sincronizzazione, leggere i permessi del file d'origine (ACL NTFS per le cartelle di rete, condivisioni per SharePoint/Drive) e tradurli nella allow-list per documento che esiste gia' (`document_acls`). Gli utenti si abbinano tramite l'identita' gia' gestita (OIDC/SSO, SCIM). Un permesso che non si riesce a tradurre chiude il documento invece di aprirlo.
+- Misura: test per connettore con un file visibile a un solo utente sull'origine, che in Ermes resta visibile solo a lui; un permesso tolto sull'origine sparisce alla sincronizzazione successiva.
+
 ### Priorita' 2 — Distinguono Ermes dagli altri
 
 **2.1 Evidenziazione del passaggio nel PDF** (ex Iniziativa 1, completamento).
@@ -160,14 +166,18 @@ Criterio dell'ordine: prima cio' che impedisce a una PMI di usare Ermes o di fid
 
 - **2-3 utenti pilota** (commercialista, piccola azienda, associazione) dopo la 1.1: due settimane d'uso osservato, le loro domande vere entrano nel gold set.
 - **Guida per l'utente non tecnico**: installazione, prima biblioteca, cosa significa "non ho trovato evidenza".
+- **Chi ne risponde**: contratto di assistenza con tempi di intervento e un ripristino da backup provato su un'installazione reale, non solo nei test.
+- **Documenti per l'acquisto**: contratto di trattamento dati (art. 28 GDPR) se l'assistenza da' accesso ai dati, termini di licenza chiari (con GPL-3 il valore venduto e' installazione e supporto, non il codice), almeno un test di intrusione fatto da terzi. Obblighi dell'AI Act e del GDPR da verificare con un consulente.
+- **Piu' di una persona**: un socio o un partner tecnico. Un'azienda non si lega a un fornitore che dipende da una persona sola.
 
 ## 5. Ordine di esecuzione
 
 1. **1.1** Misura della verifica sulla suite PMI e scelta del default.
 2. **1.2** e **1.3** Installer senza prerequisiti con aggiornamento.
 3. Utenti pilota, con **1.5** attivo per raccogliere le loro domande.
-4. **1.4** Email e PEC.
-5. **2.1** e **2.2** Evidenziazione nel PDF e confronto tra versioni.
-6. Il resto della priorita' 2, nell'ordine indicato dalle misure.
+4. **1.6** Permessi ereditati dalle fonti: prima di collegare cartelle o SharePoint reali di un'azienda.
+5. **1.4** Email e PEC.
+6. **2.1** e **2.2** Evidenziazione nel PDF e confronto tra versioni.
+7. Il resto della priorita' 2, nell'ordine indicato dalle misure.
 
 Le date non sono indicate: dipendono dall'esito della 1.1 e dal tempo disponibile. Il piano precedente (Iniziative 1-6 con diagramma di Gantt) resta nella cronologia Git.
