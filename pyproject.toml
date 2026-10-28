@@ -27,7 +27,7 @@ dependencies = [
 # per non gonfiare il deploy base. Senza questo extra il reranker
 # ripiega automaticamente sul motore lessicale.
 neural = [
-    "sentence-transformers>=3.0",
+    "sentence-transformers>=6.2.0",
 ]
 # Backend PostgreSQL multi-utente (ERMES_DATABASE_URL). Vedi
 # docs/POSTGRES_MIGRATION_PLAN.md per lo stato della migrazione.
