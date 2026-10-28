@@ -1,6 +1,6 @@
 [build-system]
 # >=83: pip-audit segnalava due vulnerabilita' note sulle versioni precedenti.
-requires = ["setuptools>=84.0.0"]
+requires = ["setuptools>=84.2.1"]
 build-backend = "setuptools.backends._legacy:_Backend"
 
 [project]
