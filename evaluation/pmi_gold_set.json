@@ -798,6 +798,74 @@
     ]
   },
   {
+    "id": "pmi-amm-dir-fino-a-quando-e-bloccato-il-prezzo-delle-barre-i",
+    "library": "Amministrazione",
+    "type": "direct",
+    "query": "Fino a quando è bloccato il prezzo delle barre in acciaio C45?",
+    "expected_filename": "conferma-condizioni-acciaio.eml",
+    "expected_locator": "Email: Conferma condizioni di fornitura acciaio 2026 (Tue, 14 Apr 2026 10:12:00 +0200)",
+    "tags": [
+      "email"
+    ]
+  },
+  {
+    "id": "pmi-amm-dir-quali-termini-di-pagamento-abbiamo-concordato-pe",
+    "library": "Amministrazione",
+    "type": "direct",
+    "query": "Quali termini di pagamento abbiamo concordato per le barre C45?",
+    "expected_filename": "conferma-condizioni-acciaio.eml",
+    "expected_locator": "Email: Conferma condizioni di fornitura acciaio 2026 (Tue, 14 Apr 2026 10:12:00 +0200)",
+    "tags": [
+      "email"
+    ]
+  },
+  {
+    "id": "pmi-amm-par-se-ordiniamo-25-tonnellate-di-barre-chi-paga-il",
+    "library": "Amministrazione",
+    "type": "paraphrase",
+    "query": "Se ordiniamo 25 tonnellate di barre, chi paga il trasporto?",
+    "expected_filename": "conferma-condizioni-acciaio.eml",
+    "expected_locator": "Email: Conferma condizioni di fornitura acciaio 2026 (Tue, 14 Apr 2026 10:12:00 +0200)",
+    "tags": [
+      "email",
+      "numeric"
+    ]
+  },
+  {
+    "id": "pmi-amm-par-quanto-costa-al-chilo-la-barra-c45-da-40-millime",
+    "library": "Amministrazione",
+    "type": "paraphrase",
+    "query": "Quanto costa al chilo la barra C45 da 40 millimetri?",
+    "expected_filename": "conferma-condizioni-acciaio.eml",
+    "expected_locator": "Email: Conferma condizioni di fornitura acciaio 2026 (Tue, 14 Apr 2026 10:12:00 +0200), allegato listino-c45-2026.md — Sezione: Diametri e prezzi",
+    "tags": [
+      "email"
+    ]
+  },
+  {
+    "id": "pmi-amm-par-in-quanti-giorni-arrivano-le-barre-c45-dopo-l-or",
+    "library": "Amministrazione",
+    "type": "paraphrase",
+    "query": "In quanti giorni arrivano le barre C45 dopo l'ordine?",
+    "expected_filename": "conferma-condizioni-acciaio.eml",
+    "expected_locator": "Email: Conferma condizioni di fornitura acciaio 2026 (Tue, 14 Apr 2026 10:12:00 +0200), allegato listino-c45-2026.md — Sezione: Tempi di consegna",
+    "tags": [
+      "email"
+    ]
+  },
+  {
+    "id": "pmi-amm-abs-qual-e-il-prezzo-della-barra-c45-da-30-millimetr",
+    "library": "Amministrazione",
+    "type": "abstention",
+    "query": "Qual è il prezzo della barra C45 da 30 millimetri?",
+    "expected_filename": null,
+    "expected_locator": null,
+    "tags": [
+      "email",
+      "trap"
+    ]
+  },
+  {
     "id": "pmi-com-dir-per-quanto-tempo-e-valida-un-offerta",
     "library": "Commerciale",
     "type": "direct",

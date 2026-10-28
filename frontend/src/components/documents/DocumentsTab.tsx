@@ -729,7 +729,7 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
                   <span className="flex items-center gap-1.5"><Upload className="w-3.5 h-3.5" />Carica documento</span>
                   {/* sr-only e non hidden: un input nascosto con display:none non
                       riceve il focus, e il pulsante non era raggiungibile da tastiera. */}
-                  <input type="file" className="sr-only" accept=".pdf,.docx,.xlsx,.csv,.rtf,.txt,.md" onChange={uploadDocument} />
+                  <input type="file" className="sr-only" accept=".pdf,.docx,.xlsx,.csv,.rtf,.txt,.md,.eml" onChange={uploadDocument} />
                 </label>}
                 {selectedLibrary.access_role && <span className={`rounded-full px-2 py-1 text-[11px] font-medium ${canEditLibrary ? 'bg-emerald-500/10 text-emerald-300' : 'bg-slate-500/10 text-slate-400'}`}>
                   {selectedLibrary.access_role === 'owner' ? 'Proprietario' : selectedLibrary.access_role === 'admin' ? 'Admin' : selectedLibrary.access_role === 'editor' ? 'Editor' : 'Sola lettura'}
@@ -888,7 +888,7 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
                   <p className="max-w-md text-sm leading-6">Carica un PDF, DOCX, TXT o Markdown. Ermes lo indicizza e manterrà il collegamento all'originale e alla sua versione.</p>
                   {canEditLibrary ? <label className="mt-2 cursor-pointer rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-500">
                     Carica il primo documento
-                    <input type="file" className="hidden" accept=".pdf,.docx,.xlsx,.txt,.md" onChange={uploadDocument} />
+                    <input type="file" className="hidden" accept=".pdf,.docx,.xlsx,.csv,.rtf,.txt,.md,.eml" onChange={uploadDocument} />
                   </label> : <p className="text-xs text-slate-400">Chiedi a un editor di caricare un documento.</p>}
                   <p className="text-xs text-slate-500">Per impostazione predefinita, i documenti restano locali.</p>
                 </div>

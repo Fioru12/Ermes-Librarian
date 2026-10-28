@@ -197,11 +197,12 @@ def build_pmi_store(database_path: Path) -> tuple[LibraryStore, dict[str, str]]:
     for folder in sorted(path for path in PMI_CORPUS_DIR.iterdir() if path.is_dir()):
         library = store.create_library(folder.name, "Corpus PMI fittizio", "shared", owner_id="demo")
         libraries[folder.name] = library["id"]
-        for file in sorted(folder.glob("*.md")):
+        for file in sorted(f for f in folder.iterdir() if f.suffix in {".md", ".eml"}):
             content = file.read_bytes()
             chunks = chunk_source_units(extract_source_units(file.name, content))
+            media_type = "message/rfc822" if file.suffix == ".eml" else "text/markdown"
             document = store.add_document(
-                library["id"], file.name, "text/markdown", content, f"/pmi/{folder.name}/{file.name}", chunks=chunks
+                library["id"], file.name, media_type, content, f"/pmi/{folder.name}/{file.name}", chunks=chunks
             )
             embeddings = embed_texts([text for text, _ in chunks])
             if embeddings:

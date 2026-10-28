@@ -26,6 +26,7 @@ MEDIA_TYPES = {
     ".pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
     ".csv": "text/csv",
     ".rtf": "application/rtf",
+    ".eml": "message/rfc822",
 }
 
 SUPPORTED_EXTENSIONS = set(MEDIA_TYPES.keys())

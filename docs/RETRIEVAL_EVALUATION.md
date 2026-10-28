@@ -488,6 +488,18 @@ python evaluation/run_library_eval.py --suite pmi --verify --verifier openrouter
 
 Il report indica `verifier` e `evidence_verification_active`: se il modello non risponde, i numeri sono quelli senza verifica e lo script lo dichiara. Sono il prossimo numero da pubblicare, perche' dicono se la verifica regge su trappole scritte apposta e non solo sulle 16 astensioni storiche.
 
+**Aggiornamento 28 ottobre 2026: le email.** La biblioteca Amministrazione contiene ora anche un'email salvata (`conferma-condizioni-acciaio.eml`) con un listino allegato, e la suite ha 6 domande in piu' (tag `email`), per un totale di 178. Prima della correzione sugli allegati le due domande sul listino fallivano: il testo dell'allegato non nominava il prodotto, che stava solo nel nome del file e nell'oggetto. Ora nome e oggetto precedono il testo dell'allegato. Numeri attuali in modalita' keyword: dirette 0.953, parafrasi 0.588, astensione 0.174.
+
+| etichetta | corrette |
+|---|---|
+| colloquial | 26/49 |
+| cross_library | 3/11 |
+| email | 5/6 |
+| multi_doc | 43/52 |
+| numeric | 9/11 |
+| out_of_domain | 4/15 |
+| trap | 2/21 |
+
 Gate CI (`tests/test_library_evaluation.py`): ogni riferimento atteso deve corrispondere a una sezione che il parser produce davvero, e le soglie keyword sono fissate al valore misurato (dirette >= 0.95, parafrasi >= 0.56, astensione >= 0.17).
 
 ### Esperimento: titolo e sezione davanti al passaggio (28 ottobre 2026)

@@ -43,7 +43,7 @@ def test_pmi_gold_set_points_at_sections_the_parser_really_produces():
     from evaluation.run_library_eval import PMI_CORPUS_DIR, PMI_GOLD_SET_PATH
 
     sections: dict[str, set[tuple[str, str]]] = {}
-    for file in PMI_CORPUS_DIR.rglob("*.md"):
+    for file in (f for f in PMI_CORPUS_DIR.rglob("*") if f.suffix in {".md", ".eml"}):
         chunks = chunk_source_units(extract_source_units(file.name, file.read_bytes()))
         sections.setdefault(file.parent.name, set()).update((file.name, locator) for _, locator in chunks)
     gold_set = json.loads(PMI_GOLD_SET_PATH.read_text(encoding="utf-8"))
