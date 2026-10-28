@@ -40,6 +40,13 @@ interface RetrievalProfile {
   semantic_used: boolean
 }
 
+interface VersionChange {
+  locator: string
+  kind: 'added' | 'removed' | 'changed'
+  before: string[]
+  after: string[]
+}
+
 interface DocumentVersion {
   version: number
   size_bytes: number
@@ -119,6 +126,7 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
   const [searching, setSearching] = useState(false)
   const [searchScopeDoc, setSearchScopeDoc] = useState<LibraryDocument | null>(null)
   const [versionHistory, setVersionHistory] = useState<{ document: LibraryDocument; items: DocumentVersion[] } | null>(null)
+  const [versionDiff, setVersionDiff] = useState<{ from: number; to: number; changes: VersionChange[] } | null>(null)
   const [members, setMembers] = useState<LibraryMember[]>([])
   const [canManageMembers, setCanManageMembers] = useState(false)
   const [showMembers, setShowMembers] = useState(false)
@@ -521,6 +529,19 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
       setVersionHistory({ document, items: data.items ?? [] })
     } catch {
       showNotif('Impossibile caricare lo storico versioni', 'error')
+    }
+  }
+
+  const compareWithCurrent = async (version: number) => {
+    if (!selectedLibraryId || !versionHistory) return
+    const current = versionHistory.document.version
+    try {
+      const response = await fetch(`/api/libraries/${selectedLibraryId}/documents/${versionHistory.document.id}/versions/compare?from=${version}&to=${current}`, { credentials: 'include' })
+      if (!response.ok) throw new Error('compare failed')
+      const data = await response.json()
+      setVersionDiff({ from: version, to: current, changes: data.changes ?? [] })
+    } catch {
+      showNotif('Impossibile confrontare le versioni', 'error')
     }
   }
 
@@ -1036,8 +1057,22 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
       {versionHistory && (
         <div ref={versionsDialogRef} role="dialog" aria-modal="true" aria-label="Storico versioni" tabIndex={-1} className="absolute inset-0 z-20 flex items-center justify-center bg-slate-950/70 p-6 outline-hidden">
           <section className={`w-full max-w-lg rounded-2xl border p-6 shadow-2xl ${t.card}`}>
-            <div className="flex items-start justify-between gap-4"><div><h2 className="font-semibold">Storico versioni</h2><p className="mt-1 text-sm text-slate-400">{versionHistory.document.filename}</p></div><button onClick={() => setVersionHistory(null)} className="text-slate-400 hover:text-white">Chiudi</button></div>
-            <div className="mt-5 space-y-2">{versionHistory.items.map(item => <article key={item.version} className="flex items-center justify-between rounded-lg border border-white/10 p-3"><div><p className="text-sm font-medium">Versione {item.version}{item.version === versionHistory.document.version ? ' · corrente' : ''}</p><p className="text-xs text-slate-400">{formatSize(item.size_bytes)} · {new Date(item.created_at).toLocaleString()}</p></div>{item.version !== versionHistory.document.version && <button onClick={() => restoreVersion(item.version)} className="rounded-md border border-blue-500/40 px-2 py-1 text-xs text-blue-300 hover:bg-blue-500/10">Ripristina</button>}</article>)}</div>
+            <div className="flex items-start justify-between gap-4"><div><h2 className="font-semibold">Storico versioni</h2><p className="mt-1 text-sm text-slate-400">{versionHistory.document.filename}</p></div><button onClick={() => { setVersionHistory(null); setVersionDiff(null) }} className="text-slate-400 hover:text-white">Chiudi</button></div>
+            <div className="mt-5 space-y-2">{versionHistory.items.map(item => <article key={item.version} className="flex items-center justify-between rounded-lg border border-white/10 p-3"><div><p className="text-sm font-medium">Versione {item.version}{item.version === versionHistory.document.version ? ' · corrente' : ''}</p><p className="text-xs text-slate-400">{formatSize(item.size_bytes)} · {new Date(item.created_at).toLocaleString()}</p></div>{item.version !== versionHistory.document.version && <div className="flex gap-2"><button onClick={() => compareWithCurrent(item.version)} className="rounded-md border border-white/20 px-2 py-1 text-xs text-slate-300 hover:bg-white/10">Confronta con la corrente</button><button onClick={() => restoreVersion(item.version)} className="rounded-md border border-blue-500/40 px-2 py-1 text-xs text-blue-300 hover:bg-blue-500/10">Ripristina</button></div>}</article>)}</div>
+            {versionDiff && (
+              <div className="mt-5 max-h-72 overflow-y-auto" aria-live="polite">
+                <h3 className="text-sm font-semibold">Dalla versione {versionDiff.from} alla {versionDiff.to}</h3>
+                {versionDiff.changes.length === 0 ? <p className="mt-2 text-sm text-slate-400">Nessuna differenza nel testo.</p> : (
+                  <ul className="mt-2 space-y-3">{versionDiff.changes.map(change => (
+                    <li key={`${change.kind}-${change.locator}`} className="rounded-lg border border-white/10 p-3 text-sm">
+                      <p className="font-medium">{change.locator} <span className="text-xs text-slate-400">· {change.kind === 'added' ? 'aggiunta' : change.kind === 'removed' ? 'tolta' : 'modificata'}</span></p>
+                      {change.before.map(frase => <p key={`-${frase}`} className="mt-1 text-red-300"><span className="sr-only">Prima: </span>− {frase}</p>)}
+                      {change.after.map(frase => <p key={`+${frase}`} className="mt-1 text-emerald-300"><span className="sr-only">Dopo: </span>+ {frase}</p>)}
+                    </li>
+                  ))}</ul>
+                )}
+              </div>
+            )}
           </section>
         </div>
       )}

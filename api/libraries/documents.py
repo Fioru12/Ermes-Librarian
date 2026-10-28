@@ -501,6 +501,56 @@ def reindex_library_document(
     return result
 
 
+def _version_content(source: dict) -> bytes:
+    """L'originale di una versione, dallo storage o dal disco locale."""
+    try:
+        return bytes(get_storage_provider().get(source["storage_path"]))
+    except Exception:
+        source_path = resolve_storage_path(source["storage_path"], cfg.LIBRARY_STORAGE_DIR)
+        if not source_path.is_file():
+            raise HTTPException(status_code=409, detail="Originale della versione non disponibile") from None
+        return source_path.read_bytes()
+
+
+@router.get("/{library_id}/documents/{document_id}/versions/compare")
+def compare_document_versions(
+    library_id: str,
+    document_id: str,
+    from_version: int = Query(alias="from", ge=1),
+    to_version: int = Query(alias="to", ge=1),
+    _auth: dict = Depends(_verify_api_key),
+    store: LibraryStore = Depends(get_library_store),
+):
+    """Cosa e' cambiato fra due versioni, sezione per sezione (core/version_diff.py).
+
+    Stessi controlli di accesso della lettura del documento, allow-list per
+    documento compresa: chi non puo' aprire il documento non ne vede le
+    differenze.
+    """
+    from core.version_diff import compare_units
+
+    try:
+        versions = store.list_document_versions(library_id, document_id, _auth)
+    except (LibraryNotFoundError, LibraryAccessError) as error:
+        raise HTTPException(status_code=404, detail="Documento non trovato") from error
+    by_number = {item["version"]: item for item in versions}
+    if from_version not in by_number or to_version not in by_number:
+        raise HTTPException(status_code=404, detail="Versione non trovata")
+    try:
+        before = extract_source_units(by_number[from_version]["filename"], _version_content(by_number[from_version]))
+        after = extract_source_units(by_number[to_version]["filename"], _version_content(by_number[to_version]))
+    except DocumentParseError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+    changes = compare_units(before, after)
+    return {
+        "document_id": document_id,
+        "from": {"version": from_version, "created_at": by_number[from_version]["created_at"]},
+        "to": {"version": to_version, "created_at": by_number[to_version]["created_at"]},
+        "identical": not changes,
+        "changes": [change.as_dict() for change in changes],
+    }
+
+
 @router.post("/{library_id}/documents/{document_id}/versions/{version}/restore")
 def restore_document_version(
     library_id: str,

@@ -138,6 +138,7 @@ Criterio dell'ordine: prima cio' che impedisce a una PMI di usare Ermes o di fid
 
 **2.2 Confronto tra versioni di un documento.**
 - Lo storico delle versioni esiste gia'. Rispondere a "cosa e' cambiato tra la revisione 3 e la 4 della procedura?" con le differenze citate per sezione e' raro negli altri prodotti ed e' molto richiesto da qualita', ISO e uffici legali.
+- **Stato (28 ottobre 2026):** fatto. `GET .../versions/compare?from=N&to=M` (`core/version_diff.py`) e pulsante "Confronta con la corrente" nello storico versioni. Confronta i testi estratti dagli originali, sezione per sezione; una sezione rinominata appare come tolta e aggiunta. Manca ancora la risposta in linguaggio naturale ("cosa e' cambiato?" chiesto in chat).
 
 **2.3 Scadenze e revisioni dei documenti.**
 - Data di revisione o scadenza per documento (procedure ISO, DVR, certificati), avviso a chi ne e' responsabile, elenco dei documenti scaduti nella scheda Stato.
