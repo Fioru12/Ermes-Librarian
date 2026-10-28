@@ -501,3 +501,7 @@ Voce 2.5 del piano, versione senza modello: prima dell'indicizzazione si antepon
 | + titolo e sezione | 0.968 | 0.585 | 0.178 |
 
 Due domande in piu' su 127, nessun effetto sull'astensione. Non applicato al prodotto: il guadagno non giustifica gli estratti mostrati all'utente con un prefisso in testa. Da rimisurare con la ricerca a vettori, dove il contesto entra nell'embedding e dovrebbe pesare di piu'.
+
+### Domande vere degli utenti come casi di test
+
+`GET /api/analytics/gold-set-candidates` (solo amministratori) restituisce le domande senza risposta o con giudizio negativo nel formato di `evaluation/pmi_gold_set.json`, con `type` e risposta attesa vuoti e in `origin` quante volte sono state fatte e le motivazioni del pollice giu'. Chi conosce i documenti decide se la risposta c'era (caso `direct`/`paraphrase` con sezione attesa: errore di recupero) o no (caso `abstention`: Ermes aveva ragione) e lo aggiunge al gold set. Non contiene testo dei documenti.
