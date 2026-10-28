@@ -489,3 +489,15 @@ python evaluation/run_library_eval.py --suite pmi --verify --verifier openrouter
 Il report indica `verifier` e `evidence_verification_active`: se il modello non risponde, i numeri sono quelli senza verifica e lo script lo dichiara. Sono il prossimo numero da pubblicare, perche' dicono se la verifica regge su trappole scritte apposta e non solo sulle 16 astensioni storiche.
 
 Gate CI (`tests/test_library_evaluation.py`): ogni riferimento atteso deve corrispondere a una sezione che il parser produce davvero, e le soglie keyword sono fissate al valore misurato (dirette >= 0.95, parafrasi >= 0.56, astensione >= 0.17).
+
+### Esperimento: titolo e sezione davanti al passaggio (28 ottobre 2026)
+
+Voce 2.5 del piano, versione senza modello: prima dell'indicizzazione si antepone a ogni passaggio "Titolo del documento — Sezione". Suite PMI, modalita' keyword:
+
+| | dirette | parafrasi | astensione |
+|---|---|---|---|
+| senza contesto | 0.952 | 0.569 | 0.178 |
+| + titolo | 0.952 | 0.569 | 0.178 |
+| + titolo e sezione | 0.968 | 0.585 | 0.178 |
+
+Due domande in piu' su 127, nessun effetto sull'astensione. Non applicato al prodotto: il guadagno non giustifica gli estratti mostrati all'utente con un prefisso in testa. Da rimisurare con la ricerca a vettori, dove il contesto entra nell'embedding e dovrebbe pesare di piu'.
