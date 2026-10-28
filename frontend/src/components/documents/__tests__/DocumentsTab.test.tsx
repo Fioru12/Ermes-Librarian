@@ -131,4 +131,20 @@ describe('DocumentsTab', () => {
     expect(screen.getByText(/Entro un giorno\./)).toBeInTheDocument()
     expect(screen.getByText(/Entro due giorni\./)).toBeInTheDocument()
   })
+
+  it('flags documents whose review is overdue', async () => {
+    const passed = new Date()
+    passed.setDate(passed.getDate() - 5)
+    const iso = `${passed.getFullYear()}-${String(passed.getMonth() + 1).padStart(2, '0')}-${String(passed.getDate()).padStart(2, '0')}`
+    vi.mocked(fetch).mockImplementation(async (input) => {
+      const url = String(input)
+      if (url === '/api/libraries') return { ok: true, json: async () => ({ items: [{ id: 'library-1', name: 'Qualita', description: '', visibility: 'private', document_count: 1 }] }) } as Response
+      if (url === '/api/libraries/library-1/documents') return { ok: true, json: async () => ({ items: [{ id: 'document-1', filename: 'dvr.md', size_bytes: 1200, version: 1, status: 'ready', review_due: iso }] }) } as Response
+      return { ok: true, json: async () => ({ items: [] }) } as Response
+    })
+
+    renderWithTheme(<DocumentsTab showNotif={showNotif} />)
+
+    expect(await screen.findByText('Revisione scaduta da 5 gg')).toBeInTheDocument()
+  })
 })

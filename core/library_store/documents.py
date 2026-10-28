@@ -57,6 +57,48 @@ class DocumentsMixin(StoreBase):
             ).fetchall()
         return [self._row(row) for row in rows if row["id"] not in hidden]
 
+    def set_review_due(self, library_id: str, document_id: str, review_due: str) -> dict:
+        """Imposta (o toglie, con "") la data entro cui il documento va rivisto."""
+        from datetime import date
+
+        value = review_due.strip()
+        if value:
+            value = date.fromisoformat(value).isoformat()  # ValueError se non e' una data
+        self.get_document(library_id, document_id)
+        with self._lock, self._connection() as connection:
+            connection.execute(
+                "UPDATE documents SET review_due = ?, updated_at = ? WHERE id = ? AND library_id = ?",
+                (value, self._timestamp(), document_id, library_id),
+            )
+        return self.get_document(library_id, document_id)
+
+    def documents_due_for_review(self, library_id: str, actor: dict | None, today: str, within_days: int) -> list[dict]:
+        """Documenti visibili all'utente con revisione scaduta o in scadenza entro `within_days`.
+
+        Ordinati dal piu' urgente. `today` e' passato dal chiamante: la data di
+        riferimento e' quella dell'ufficio, non quella del server.
+        """
+        from datetime import date, timedelta
+
+        oggi = date.fromisoformat(today)
+        limite = (oggi + timedelta(days=within_days)).isoformat()
+        due = []
+        for document in self.list_documents(library_id, actor):
+            scadenza = str(document.get("review_due") or "")
+            if scadenza and scadenza <= limite:
+                giorni = (date.fromisoformat(scadenza) - oggi).days
+                due.append(
+                    {
+                        "id": document["id"],
+                        "filename": document["filename"],
+                        "version": document["version"],
+                        "review_due": scadenza,
+                        "days_left": giorni,
+                        "status": "overdue" if giorni < 0 else "due_soon",
+                    }
+                )
+        return sorted(due, key=lambda item: item["review_due"])
+
     def get_document(self, library_id: str, document_id: str, actor: dict | None = None) -> dict:
         with self._connection() as connection:
             row = connection.execute(

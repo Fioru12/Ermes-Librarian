@@ -142,6 +142,7 @@ Criterio dell'ordine: prima cio' che impedisce a una PMI di usare Ermes o di fid
 
 **2.3 Scadenze e revisioni dei documenti.**
 - Data di revisione o scadenza per documento (procedure ISO, DVR, certificati), avviso a chi ne e' responsabile, elenco dei documenti scaduti nella scheda Stato.
+- **Stato (28 ottobre 2026):** fatta la parte centrale: data di revisione per documento ("Scadenza revisione" nel menu del documento), avviso nella lista nei 30 giorni prima e dopo la scadenza, `GET /api/libraries/{id}/reviews-due` con i documenti scaduti o in scadenza, nel rispetto dei permessi per documento. Mancano l'avviso via email o chat al responsabile e l'elenco nella scheda Stato.
 
 **2.4 Domande su piu' documenti** (ex Iniziativa 2).
 - "Elenca tutte le scadenze nelle procedure" oggi fallisce: la ricerca restituisce tre passaggi. Serve scomporre la domanda in sotto-domande o raccogliere i dati in forma strutturata, con le stesse regole di citazione e astensione.

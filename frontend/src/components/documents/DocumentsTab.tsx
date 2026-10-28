@@ -25,6 +25,15 @@ interface LibraryDocument {
   size_bytes: number
   version: number
   status: string
+  review_due?: string
+}
+
+// Giorni che mancano alla revisione, contati sulla data dell'ufficio.
+function reviewDaysLeft(reviewDue: string, today = new Date()): number {
+  const [y, m, d] = reviewDue.split('-').map(Number)
+  const due = Date.UTC(y, m - 1, d)
+  const now = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate())
+  return Math.round((due - now) / 86_400_000)
 }
 
 interface SearchResult {
@@ -126,6 +135,7 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
   const [searching, setSearching] = useState(false)
   const [searchScopeDoc, setSearchScopeDoc] = useState<LibraryDocument | null>(null)
   const [versionHistory, setVersionHistory] = useState<{ document: LibraryDocument; items: DocumentVersion[] } | null>(null)
+  const [reviewPanel, setReviewPanel] = useState<{ document: LibraryDocument; value: string } | null>(null)
   const [versionDiff, setVersionDiff] = useState<{ from: number; to: number; changes: VersionChange[] } | null>(null)
   const [members, setMembers] = useState<LibraryMember[]>([])
   const [canManageMembers, setCanManageMembers] = useState(false)
@@ -529,6 +539,22 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
       setVersionHistory({ document, items: data.items ?? [] })
     } catch {
       showNotif('Impossibile caricare lo storico versioni', 'error')
+    }
+  }
+
+  const saveReviewDue = async (event: React.FormEvent) => {
+    event.preventDefault()
+    if (!selectedLibraryId || !reviewPanel) return
+    try {
+      const response = await fetch(`/api/libraries/${selectedLibraryId}/documents/${reviewPanel.document.id}/review-due`, {
+        method: 'PUT', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ review_due: reviewPanel.value }),
+      })
+      if (!response.ok) throw new Error('review date failed')
+      await fetchDocuments(selectedLibraryId)
+      showNotif(reviewPanel.value ? `Revisione di “${reviewPanel.document.filename}” fissata al ${reviewPanel.value}` : 'Scadenza di revisione tolta')
+      setReviewPanel(null)
+    } catch {
+      showNotif('Impossibile salvare la data di revisione', 'error')
     }
   }
 
@@ -964,6 +990,11 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
                             <div className="min-w-0">
                               <h3 className="truncate text-sm font-semibold">{document.filename}</h3>
                               <p className="mt-1 text-xs text-slate-400">v{document.version} · {formatSize(document.size_bytes)}</p>
+                              {document.review_due && (() => {
+                                const days = reviewDaysLeft(document.review_due)
+                                if (days > 30) return null
+                                return <p className={`mt-1 text-xs font-medium ${days < 0 ? 'text-rose-400' : 'text-amber-400'}`}>{days < 0 ? `Revisione scaduta da ${-days} gg` : days === 0 ? 'Revisione in scadenza oggi' : `Revisione entro ${days} gg`}</p>
+                              })()}
                               {(() => {
                                 const status = documentStatus(document.status)
                                 return <span className={`mt-3 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${status.className}`}><status.Icon className={`h-3 w-3 ${document.status === 'processing' ? 'animate-spin' : ''}`} />{status.label}</span>
@@ -973,7 +1004,7 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
                               <div className="mt-3 flex flex-wrap items-center gap-3"><button onClick={() => downloadDocument(document)} className="flex items-center gap-1 text-xs text-slate-400 transition hover:text-blue-400"><Download className="h-3 w-3" />Apri</button><button onClick={() => showSummary(document)} disabled={summarizing} className="flex items-center gap-1 text-xs text-slate-400 transition hover:text-blue-400 disabled:cursor-not-allowed disabled:opacity-40"><FileText className="h-3 w-3" />{summarizing ? 'Riassumo…' : 'Riassumi'}</button><button onClick={() => { setSearchScopeDoc(current => current?.id === document.id ? null : document); setSearchQuery(''); setSearchResults(null); setRetrievalProfile(null) }} className={`flex items-center gap-1 text-xs transition hover:text-blue-400 ${searchScopeDoc?.id === document.id ? 'text-blue-300' : 'text-slate-400'}`}><Search className="h-3 w-3" />{searchScopeDoc?.id === document.id ? 'Ricerca limitata a questo' : 'Cerca qui'}</button>
                                 <details className="relative text-xs">
                                   <summary className="cursor-pointer list-none text-slate-400 transition hover:text-blue-400">Altro…</summary>
-                                  <div className="absolute left-0 z-20 mt-2 flex min-w-44 flex-col gap-2 rounded-xl border border-white/10 bg-white dark:bg-slate-900 p-3 shadow-xl">{isTabularDoc(document.filename) && <button onClick={() => setTabularDoc(document)} className="flex items-center gap-1 text-xs text-blue-400 font-semibold transition hover:text-blue-300" title="Esplora i dati della tabella"><Table className="h-3 w-3" />Esplora tabella</button>}{canManageMembers && <button onClick={() => openAclPanel(document)} className="flex items-center gap-1 text-xs text-slate-400 transition hover:text-blue-400"><ShieldCheck className="h-3 w-3" />Chi può vederlo</button>}{canEditLibrary && <button disabled={document.status === 'queued' || document.status === 'processing'} title="Rilegge il file, se le risposte sembrano non aggiornate" onClick={() => reindexDocument(document)} className="flex items-center gap-1 text-xs text-slate-400 transition hover:text-blue-400 disabled:cursor-not-allowed disabled:opacity-40"><RefreshCw className="h-3 w-3" />Rielabora</button>}<button onClick={() => showVersions(document)} className="text-xs text-slate-400 transition hover:text-blue-400">Versioni</button>{canEditLibrary && <button onClick={() => deleteDocument(document)} disabled={deletingDocumentId === document.id} aria-label={`Elimina ${document.filename}`} className="flex items-center gap-1 text-xs text-rose-400/80 transition hover:text-rose-300 disabled:cursor-not-allowed disabled:opacity-40"><Trash2 className="h-3 w-3" />{deletingDocumentId === document.id ? 'Elimino…' : 'Elimina'}</button>}</div>
+                                  <div className="absolute left-0 z-20 mt-2 flex min-w-44 flex-col gap-2 rounded-xl border border-white/10 bg-white dark:bg-slate-900 p-3 shadow-xl">{isTabularDoc(document.filename) && <button onClick={() => setTabularDoc(document)} className="flex items-center gap-1 text-xs text-blue-400 font-semibold transition hover:text-blue-300" title="Esplora i dati della tabella"><Table className="h-3 w-3" />Esplora tabella</button>}{canManageMembers && <button onClick={() => openAclPanel(document)} className="flex items-center gap-1 text-xs text-slate-400 transition hover:text-blue-400"><ShieldCheck className="h-3 w-3" />Chi può vederlo</button>}{canEditLibrary && <button disabled={document.status === 'queued' || document.status === 'processing'} title="Rilegge il file, se le risposte sembrano non aggiornate" onClick={() => reindexDocument(document)} className="flex items-center gap-1 text-xs text-slate-400 transition hover:text-blue-400 disabled:cursor-not-allowed disabled:opacity-40"><RefreshCw className="h-3 w-3" />Rielabora</button>}<button onClick={() => showVersions(document)} className="text-xs text-slate-400 transition hover:text-blue-400">Versioni</button>{canEditLibrary && <button onClick={() => setReviewPanel({ document, value: document.review_due ?? '' })} className="text-left text-xs text-slate-400 transition hover:text-blue-400">Scadenza revisione</button>}{canEditLibrary && <button onClick={() => deleteDocument(document)} disabled={deletingDocumentId === document.id} aria-label={`Elimina ${document.filename}`} className="flex items-center gap-1 text-xs text-rose-400/80 transition hover:text-rose-300 disabled:cursor-not-allowed disabled:opacity-40"><Trash2 className="h-3 w-3" />{deletingDocumentId === document.id ? 'Elimino…' : 'Elimina'}</button>}</div>
                                 </details>
                               </div>
                             </div>
@@ -1002,6 +1033,22 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
           </div>
         )}
       </section>
+      {reviewPanel && (
+        <div role="dialog" aria-modal="true" aria-label="Scadenza revisione" className="absolute inset-0 z-20 flex items-center justify-center bg-slate-950/70 p-6">
+          <form onSubmit={saveReviewDue} className={`w-full max-w-sm rounded-2xl border p-6 shadow-2xl ${t.card}`}>
+            <h2 className="font-semibold">Scadenza revisione</h2>
+            <p className="mt-1 text-sm text-slate-400">{reviewPanel.document.filename}</p>
+            <label className="mt-4 block text-sm">Da rivedere entro
+              <input type="date" aria-label="Data di revisione" value={reviewPanel.value} onChange={event => setReviewPanel({ ...reviewPanel, value: event.target.value })} className="mt-1 block w-full rounded-md border border-white/10 bg-transparent px-2 py-1" />
+            </label>
+            <p className="mt-2 text-xs text-slate-400">Lascia vuoto per togliere la scadenza. Il documento compare in elenco come da rivedere nei 30 giorni prima.</p>
+            <div className="mt-4 flex justify-end gap-2">
+              <button type="button" onClick={() => setReviewPanel(null)} className="rounded-md px-3 py-1 text-sm text-slate-400 hover:text-white">Annulla</button>
+              <button type="submit" className="rounded-md bg-blue-600 px-3 py-1 text-sm text-white hover:bg-blue-500">Salva</button>
+            </div>
+          </form>
+        </div>
+      )}
       {aclPanel && (
         <div ref={aclDialogRef} role="dialog" aria-modal="true" aria-label="Accessi documento" tabIndex={-1} className="absolute inset-0 z-20 flex items-center justify-center bg-slate-950/70 p-6 outline-hidden">
           <section className={`w-full max-w-lg rounded-2xl border p-6 shadow-2xl ${t.card}`} aria-label="Accessi documento">
