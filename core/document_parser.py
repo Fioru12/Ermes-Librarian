@@ -226,7 +226,8 @@ def _extract_eml_units(content: bytes) -> list[SourceUnit]:
         suffix = Path(name).suffix.lower()
         if not name or suffix not in _EML_ATTACHMENT_SUFFIXES:
             continue
-        payload = part.get_payload(decode=True) or b""
+        decoded = part.get_payload(decode=True)
+        payload = decoded if isinstance(decoded, bytes) else b""
         if not payload or len(payload) > _EML_ATTACHMENT_MAX_BYTES:
             _logger.warning("Allegato %s dell'email %r saltato: vuoto o troppo grande", name, subject)
             continue

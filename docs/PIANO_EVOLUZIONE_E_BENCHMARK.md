@@ -129,6 +129,7 @@ Criterio dell'ordine: prima cio' che impedisce a una PMI di usare Ermes o di fid
 - E' il primo controllo che fa un'azienda vera, ed e' cio' che Copilot, Gemini e Glean fanno di serie.
 - Obiettivo: a ogni sincronizzazione, leggere i permessi del file d'origine (ACL NTFS per le cartelle di rete, condivisioni per SharePoint/Drive) e tradurli nella allow-list per documento che esiste gia' (`document_acls`). Gli utenti si abbinano tramite l'identita' gia' gestita (OIDC/SSO, SCIM). Un permesso che non si riesce a tradurre chiude il documento invece di aprirlo.
 - Misura: test per connettore con un file visibile a un solo utente sull'origine, che in Ermes resta visibile solo a lui; un permesso tolto sull'origine sparisce alla sincronizzazione successiva.
+- **Stato (28 ottobre 2026):** fatto per Microsoft 365 (SharePoint/OneDrive) e Google Drive, con `inherit_permissions` attivo di default nel connettore e permessi scritti nella stessa transazione del documento (`core/connector_ingest.py`, `tests/test_connector_permissions.py`). **Non ancora** per le cartelle di rete Windows (permessi NTFS) ne' per Confluence, S3 e WebDAV: lì i documenti seguono ancora le regole della biblioteca. Le NTFS vanno implementate e provate su Windows; i gruppi dell'origine (non le singole persone) restano un nome che vale solo se coincide con un utente Ermes.
 
 ### Priorita' 2 — Distinguono Ermes dagli altri
 

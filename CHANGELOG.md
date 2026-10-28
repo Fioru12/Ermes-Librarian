@@ -2,6 +2,13 @@
 
 Registro leggibile del lavoro su questo progetto. Per i finding tecnici completi, [docs/AUDIT_2026-08-19.md](docs/AUDIT_2026-08-19.md) e [docs/CODE_REVIEW.md](docs/CODE_REVIEW.md). La roadmap per fasi e il registro delle sessioni (`ROADMAP_V2.md`, `WORK_PROGRESS.md`) sono stati tolti dall'albero pubblico il 18 settembre 2026: la cronologia Git li conserva.
 
+## 2026-10-28 — Permessi ereditati da SharePoint/OneDrive e Google Drive; email come documenti; domande fallite verso il gold set
+
+- **Permessi dalle fonti.** I connettori Microsoft 365 e Google Drive leggono chi vede ogni file sull'origine e lo scrivono come allow-list del documento, nella stessa transazione dell'inserimento. Un link aperto all'organizzazione non aggiunge vincoli; permessi illeggibili o nessun nome riconoscibile chiudono il documento al proprietario della biblioteca e agli amministratori. Un accesso tolto sull'origine sparisce alla sincronizzazione successiva anche se il file non cambia. I quattro cicli di importazione duplicati (API completa e incrementale, scheduler completo e incrementale) passano ora da `core/connector_ingest.py`. Cartelle di rete Windows, Confluence, S3 e WebDAV non ereditano ancora i permessi.
+- **Email.** I file `.eml` si caricano e si importano: intestazione e corpo come un'unita' citata per oggetto e data, gli allegati supportati come unita' proprie. `.msg` di Outlook non ancora: richiede una dipendenza nuova.
+- **Domande fallite.** `GET /api/analytics/gold-set-candidates` (admin) esporta le domande senza risposta o con pollice giu' nel formato del gold set, da classificare a mano.
+- **Misura.** Titolo e sezione davanti ai passaggi: +2 domande su 127 in modalita' keyword, non adottato.
+
 ## 2026-10-27 (4) — Piano di evoluzione: priorita' riviste sul target PMI
 
 `docs/PIANO_EVOLUZIONE_E_BENCHMARK.md` riscritto nelle sezioni 4 e 5. Il target dichiarato e' PMI e professionisti con installazione locale; le funzioni enterprise restano ma non ricevono nuovo lavoro senza un cliente che le chieda. Il piano parte dai numeri della suite PMI (astensione 0.178 nella configurazione predefinita), separa cio' che e' gia' fatto (pollice su/giu', PDF alla pagina citata, Studio, report stampabile, scelta del modello) da cio' che blocca l'uso (misura della verifica, installer senza prerequisiti, aggiornamenti, email e PEC, giudizi negativi verso il gold set) e da cio' che e' rimandato con il motivo (agenti, voce, multimodale, knowledge graph, SaaS). Ogni voce dice come si misura il risultato.

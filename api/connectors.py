@@ -5,7 +5,6 @@ Supports real-time webhooks, delta tokens, and cloud storage providers.
 
 from __future__ import annotations
 
-import hashlib
 import logging
 from typing import Any
 
@@ -15,11 +14,11 @@ from pydantic import BaseModel, Field
 from api.auth import _require_role
 from api.libraries import _reject_source_path_inside_app, _require_library_owner_or_admin, get_library_store
 from config import cfg
+from core.connector_ingest import import_remote_document
 from core.connectors import registry
 from core.connectors.base import BaseConnector
-from core.document_parser import extract_source_units
 from core.governance import append_audit
-from core.library_store import LibraryAccessError, LibraryNotFoundError, LibraryStore, storage_relative_path
+from core.library_store import LibraryAccessError, LibraryNotFoundError, LibraryStore
 from core.storage_provider import get_storage_provider
 
 _logger = logging.getLogger(__name__)
@@ -109,7 +108,7 @@ def sync_connector(
         errors: list[str] = []
 
         storage_provider = get_storage_provider()
-        known_hashes = store.existing_content_hashes(request.target_library_id)
+        known_hashes = store.content_hash_index(request.target_library_id)
 
         from core.antivirus import AntivirusScanError, scan_document
 
@@ -127,30 +126,9 @@ def sync_connector(
                     errors.append(f"{rdoc.name}: Servizio antivirus non disponibile ({scan_err})")
                     continue
 
-                units = extract_source_units(rdoc.name, rdoc.content)
-                chunks = [(u.text, u.locator) for u in units]
-                if not chunks or not chunks[0][0]:
-                    chunks = [(rdoc.name, "Titolo")]
-
-                digest = hashlib.sha256(rdoc.content).hexdigest()
-                if digest in known_hashes:
+                if import_remote_document(store, request.target_library_id, rdoc, known_hashes, storage_provider) == "duplicate":
                     skipped_duplicates += 1
                     continue
-
-                stored_name = f"{digest[:12]}_{rdoc.name}"
-                stored_rel = storage_relative_path(request.target_library_id, stored_name)
-                storage_provider.save(stored_rel, rdoc.content)
-
-                store.add_document(
-                    library_id=request.target_library_id,
-                    filename=rdoc.name,
-                    media_type=rdoc.media_type,
-                    content=rdoc.content,
-                    storage_path=stored_rel,
-                    status="ready",
-                    chunks=chunks,
-                )
-                known_hashes.add(digest)
                 imported += 1
 
             except Exception as e:
@@ -209,35 +187,14 @@ def sync_connector_delta(
         errors: list[str] = list(delta_res.errors)
 
         storage_provider = get_storage_provider()
-        known_hashes = store.existing_content_hashes(request.target_library_id)
+        known_hashes = store.content_hash_index(request.target_library_id)
 
         # Inserimento / Aggiornamento documenti nuovi o modificati
         for rdoc in delta_res.updated_documents:
             try:
-                units = extract_source_units(rdoc.name, rdoc.content)
-                chunks = [(u.text, u.locator) for u in units]
-                if not chunks or not chunks[0][0]:
-                    chunks = [(rdoc.name, "Titolo")]
-
-                digest = hashlib.sha256(rdoc.content).hexdigest()
-                if digest in known_hashes:
+                if import_remote_document(store, request.target_library_id, rdoc, known_hashes, storage_provider) == "duplicate":
                     skipped_duplicates += 1
                     continue
-
-                stored_name = f"{digest[:12]}_{rdoc.name}"
-                stored_rel = storage_relative_path(request.target_library_id, stored_name)
-                storage_provider.save(stored_rel, rdoc.content)
-
-                store.add_document(
-                    library_id=request.target_library_id,
-                    filename=rdoc.name,
-                    media_type=rdoc.media_type,
-                    content=rdoc.content,
-                    storage_path=stored_rel,
-                    status="ready",
-                    chunks=chunks,
-                )
-                known_hashes.add(digest)
                 imported += 1
             except Exception as e:
                 _logger.warning("Errore importazione delta documento %s: %s", rdoc.name, e)

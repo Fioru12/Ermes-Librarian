@@ -114,6 +114,15 @@ class DocumentsMixin(StoreBase):
             ).fetchall()
         return {row["content_hash"] for row in rows}
 
+    def content_hash_index(self, library_id: str) -> dict[str, str]:
+        """Impronta del contenuto -> id del documento, per aggiornare i permessi dei file gia' importati."""
+        with self._connection() as connection:
+            rows = connection.execute(
+                "SELECT id, content_hash FROM documents WHERE library_id = ?",
+                (library_id,),
+            ).fetchall()
+        return {row["content_hash"]: row["id"] for row in rows}
+
     def replace_document_index(
         self,
         library_id: str,
@@ -285,7 +294,15 @@ class DocumentsMixin(StoreBase):
         source_units: int = 0,
         status: str = "ready",
         chunks: list[tuple[str, str]] | list[str] | None = None,
+        allowed_usernames: list[str] | None = None,
     ) -> dict:
+        """Aggiunge un documento, o una nuova versione se il nome esiste gia'.
+
+        `allowed_usernames` (None = regole della biblioteca) scrive la
+        allow-list nella stessa transazione: un documento che deve nascere
+        riservato non e' mai visibile, nemmeno per un istante, a tutta la
+        biblioteca.
+        """
         self.get_library(library_id)
         now = self._timestamp()
         document = {
@@ -360,6 +377,12 @@ class DocumentsMixin(StoreBase):
                     VALUES (?, ?, ?, ?, ?, ?)
                     """,
                     (str(uuid.uuid4()), document["id"], ordinal, text, locator, now),
+                )
+            if allowed_usernames is not None:
+                connection.execute("DELETE FROM document_acls WHERE document_id = ?", (document["id"],))
+                connection.executemany(
+                    "INSERT INTO document_acls (document_id, username, created_at) VALUES (?, ?, ?)",
+                    [(document["id"], name, now) for name in sorted({n.strip() for n in allowed_usernames if n.strip()})],
                 )
             self._bump_cache_generation(connection, library_id)
         # Invalidate search cache (document count changed)
