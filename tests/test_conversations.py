@@ -4,9 +4,11 @@ import pytest
 from fastapi.testclient import TestClient
 
 import api.auth
+import api.libraries.common
 import config
 from api import app
 from core.conversation_store import conversation_store
+from tests.library_api_cfg import LIBRARIES_CFG_TARGETS
 
 PASSWORD = "StrongPassword!123"
 
@@ -22,8 +24,11 @@ def istanza(tmp_path, monkeypatch):
         ADMIN_PASSWORD=PASSWORD,
         API_KEY="",
     )
-    monkeypatch.setattr(config, "cfg", test_cfg)
-    monkeypatch.setattr(api.auth, "cfg", test_cfg)
+    # Tutti i moduli che leggono cfg, compreso il pacchetto delle biblioteche: prima solo config e
+    # api.auth, e la biblioteca "HR Test" finiva nel database vero del progetto.
+    for percorso in ("config.cfg", "api.auth.cfg", *LIBRARIES_CFG_TARGETS):
+        monkeypatch.setattr(percorso, test_cfg)
+    monkeypatch.setattr(api.libraries.common, "_store", None)
 
     # Inizializza admin
     from core.governance import ensure_default_admin
