@@ -5,6 +5,14 @@ Fixtures e configurazione pytest per il progetto Ermes.
 
 import os
 import sys
+import tempfile as _tempfile
+
+# I test non devono MAI toccare i dati veri del progetto (data/, storage/, security/, backups/).
+# Senza questa riga BASE_DIR vale "." (la cartella del progetto): un test che dimenticava di
+# spostare anche il database delle biblioteche scriveva nel database vero di chi sviluppa (sono
+# state trovate ~30 biblioteche "HR Test" create cosi', e un "disk I/O error" quando un'istanza
+# in Docker usava lo stesso file nello stesso momento). Va impostata prima di importare `config`.
+os.environ["ERMES_BASE_DIR"] = _tempfile.mkdtemp(prefix="ermes-test-")
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 

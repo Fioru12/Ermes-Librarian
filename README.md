@@ -198,6 +198,8 @@ The first start downloads about 3 GB (`qwen3.5:4b` and `embeddinggemma`); a smal
 
 Runtime documents and the SQLite library database are mounted in `storage/` and are intentionally ignored by Git. The container runs as a non-root user (UID 10001); on native Linux, Docker creates a bind-mounted host directory that doesn't exist yet as `root`, which that user then can't write into — `/health` stays `degraded` forever. Create and own the mounted directories before the first `up` on Linux (Docker Desktop on macOS/Windows doesn't need this — its VM handles the translation):
 
+> **Same folders as the local launcher.** The container mounts `data/`, `storage/` and `security/` from this directory: the same database and accounts the desktop shortcut uses. Never run both at once (they share port 8502 and the same SQLite file; on Windows concurrent access through a Docker bind mount produced `disk I/O error`), and remember that the container sets the admin password from `ERMES_ADMIN_PASSWORD` at every start. For a separate demo or test instance, point the mounts at another folder.
+
 ```bash
 mkdir -p documenti chroma_db data storage/libraries logs security backups
 sudo chown -R 10001:10001 documenti chroma_db data storage logs security backups
