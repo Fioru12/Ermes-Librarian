@@ -2,6 +2,15 @@
 
 Registro leggibile del lavoro su questo progetto. Per i finding tecnici completi, [docs/AUDIT_2026-08-19.md](docs/AUDIT_2026-08-19.md) e [docs/CODE_REVIEW.md](docs/CODE_REVIEW.md). La roadmap per fasi e il registro delle sessioni (`ROADMAP_V2.md`, `WORK_PROGRESS.md`) sono stati tolti dall'albero pubblico il 18 settembre 2026: la cronologia Git li conserva.
 
+## 2026-10-30 — Lo stato del sistema non vede un Ollama vuoto; i test scrivevano nel database vero
+
+Trovati preparando le schermate per la presentazione su un'istanza Docker reale.
+
+- **"healthy" con la ricerca semantica spenta.** Un contenitore di Ollama appena creato e' vuoto. Il controllo dei modelli considerava un modello mancante solo se la lista non era vuota, quindi con zero modelli `/health` diceva "healthy" e "Ollama raggiungibile" mentre il recupero era solo per parole chiave: domande in italiano su documenti in inglese ricevevano un rifiuto. Ora una lista vuota vuol dire "nessun modello installato" e lo stato diventa "degraded" con l'avviso. Quattro test (due falliscono senza la correzione).
+- **I test scrivevano nel database vero.** Un test (`test_ask_endpoint_persists_conversation`) spostava la configurazione in una cartella temporanea ma non il database delle biblioteche: ogni esecuzione della suite aggiungeva una biblioteca "HR Test" al database di chi sviluppa (ne sono state trovate circa trenta). Corretto il test e aggiunta una rete per tutti: `tests/conftest.py` imposta `ERMES_BASE_DIR` su una cartella temporanea prima di caricare la configurazione. Verificato: dopo l'intera suite (877 test) database e utenti veri hanno data e dimensione invariate.
+- **`disk I/O error` di SQLite** quando un'istanza in Docker e i test usavano lo stesso file del progetto nello stesso momento: il contenitore monta le stesse cartelle `data/`, `storage/` e `security/` dell'avvio locale. Il README ora lo dice, insieme al fatto che il contenitore reimposta la password dell'amministratore a ogni avvio. Il database e' risultato integro (`PRAGMA integrity_check: ok`).
+- `scripts/seed_demo_corpus.py` si fermava sulla console di Windows alla prima emoji (`UnicodeEncodeError`), prima di caricare qualunque documento.
+
 ## 2026-10-23 (4) — Le versioni precedenti dei documenti non sono file orfani
 
 Trovato rileggendo `scripts/cleanup_orphan_storage.py` (di Gemini): rimettere un file con lo stesso nome crea una nuova versione con un nuovo percorso di storage, e il vecchio resta referenziato solo da `document_versions`. La verifica di coerenza (`verify_index_consistency`) guardava soltanto `documents`, quindi dichiarava orfano lo storico: lo mostrava come problema nella scheda Stato del sistema e, soprattutto, `cleanup_orphan_storage.py --confirm` avrebbe **cancellato definitivamente le versioni precedenti**, che il prodotto presenta come originali immutabili. Ora le versioni sono considerate referenziate. Due test nuovi (uno fallisce senza la correzione; l'altro garantisce che un file davvero senza riferimenti resti orfano).

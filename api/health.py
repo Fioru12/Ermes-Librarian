@@ -47,7 +47,9 @@ def _ollama_models() -> tuple[bool, set[str], str]:
 def check_ollama(model_id: str) -> tuple[bool, str]:
     """Lightweight check that does not import the legacy RAG stack."""
     reachable, names, message = _ollama_models()
-    if reachable and model_id and names and model_id not in names:
+    # Una lista vuota vuol dire "nessun modello installato" (e' lo stato di ogni contenitore di
+    # Ollama appena creato), non "lista sconosciuta": il modello manca anche in quel caso.
+    if reachable and model_id and model_id not in names:
         return True, f"Ollama raggiungibile; modello {model_id} non installato"
     return reachable, message
 
@@ -66,7 +68,10 @@ def _model_dependent_warnings(reachable: bool, names: set[str]) -> list[str]:
     avvisi: list[str] = []
 
     def manca(model_id: str) -> bool:
-        return (not reachable) or (bool(names) and model_id not in names)
+        # Prima: `bool(names) and ...`. Con Ollama raggiungibile ma vuoto (contenitore appena
+        # creato) nessun modello risultava mancante e /health diceva "healthy" a ricerca semantica
+        # spenta. Una lista vuota e' una risposta valida: nessun modello installato.
+        return (not reachable) or (model_id not in names)
 
     verifier_model = getattr(cfg, "EVIDENCE_VERIFIER_MODEL", "") or cfg.DEFAULT_MODEL_ID
     if getattr(cfg, "EVIDENCE_VERIFIER_ENABLED", False) and manca(verifier_model):
