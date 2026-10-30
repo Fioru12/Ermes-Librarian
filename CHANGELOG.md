@@ -2,6 +2,10 @@
 
 Registro leggibile del lavoro su questo progetto. Per i finding tecnici completi, [docs/AUDIT_2026-08-19.md](docs/AUDIT_2026-08-19.md) e [docs/CODE_REVIEW.md](docs/CODE_REVIEW.md). La roadmap per fasi e il registro delle sessioni (`ROADMAP_V2.md`, `WORK_PROGRESS.md`) sono stati tolti dall'albero pubblico il 18 settembre 2026: la cronologia Git li conserva.
 
+## 2026-10-30 (5) — README con le schermate e l'animazione nuove
+
+Le immagini della pagina principale erano del 17 ottobre (stile precedente, dati in inglese). Ora vengono da un'istanza vera con documenti dimostrativi in italiano di una PMI fittizia: risposta con fonte, PDF aperto alla pagina citata, rifiuto onesto, revisioni in scadenza, confronto tra versioni, domande senza risposta, registro di audit, stato del sistema. La schermata di Studio (vuota senza IA generativa) e' sostituita dal confronto tra versioni; tolte quattro immagini non piu' usate. Animazione rifatta: 599 KB invece di 808.
+
 ## v2.5.0 — Pensato per le PMI, controllato su un'istanza vera
 
 Raccoglie le voci dal 23 al 30 ottobre qui sotto. In sintesi: scelta del modello in installazione, permessi ereditati da SharePoint/OneDrive e Google Drive, email `.eml` con allegati, confronto tra versioni dei documenti, date di revisione, una suite di 178 domande sulle PMI; dashboard di Grafana che conta nel periodo scelto, stato del sistema che vede un Ollama senza modelli, report che stampa davvero, versioni precedenti mai trattate come orfane; test isolati dai dati e dal `.env` di chi sviluppa; avvio pulito di Docker Desktop su Windows; aggiornamenti di sicurezza (0 avvisi aperti).
