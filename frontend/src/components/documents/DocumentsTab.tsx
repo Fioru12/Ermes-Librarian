@@ -25,6 +25,15 @@ interface LibraryDocument {
   size_bytes: number
   version: number
   status: string
+  review_due?: string
+}
+
+// Giorni che mancano alla revisione, contati sulla data dell'ufficio.
+function reviewDaysLeft(reviewDue: string, today = new Date()): number {
+  const [y, m, d] = reviewDue.split('-').map(Number)
+  const due = Date.UTC(y, m - 1, d)
+  const now = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate())
+  return Math.round((due - now) / 86_400_000)
 }
 
 interface SearchResult {
@@ -38,6 +47,13 @@ interface RetrievalProfile {
   mode: 'keyword' | 'hybrid_local'
   semantic_indexed_chunks: number
   semantic_used: boolean
+}
+
+interface VersionChange {
+  locator: string
+  kind: 'added' | 'removed' | 'changed'
+  before: string[]
+  after: string[]
 }
 
 interface DocumentVersion {
@@ -119,6 +135,8 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
   const [searching, setSearching] = useState(false)
   const [searchScopeDoc, setSearchScopeDoc] = useState<LibraryDocument | null>(null)
   const [versionHistory, setVersionHistory] = useState<{ document: LibraryDocument; items: DocumentVersion[] } | null>(null)
+  const [reviewPanel, setReviewPanel] = useState<{ document: LibraryDocument; value: string } | null>(null)
+  const [versionDiff, setVersionDiff] = useState<{ from: number; to: number; changes: VersionChange[] } | null>(null)
   const [members, setMembers] = useState<LibraryMember[]>([])
   const [canManageMembers, setCanManageMembers] = useState(false)
   const [showMembers, setShowMembers] = useState(false)
@@ -524,6 +542,35 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
     }
   }
 
+  const saveReviewDue = async (event: React.FormEvent) => {
+    event.preventDefault()
+    if (!selectedLibraryId || !reviewPanel) return
+    try {
+      const response = await fetch(`/api/libraries/${selectedLibraryId}/documents/${reviewPanel.document.id}/review-due`, {
+        method: 'PUT', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ review_due: reviewPanel.value }),
+      })
+      if (!response.ok) throw new Error('review date failed')
+      await fetchDocuments(selectedLibraryId)
+      showNotif(reviewPanel.value ? `Revisione di “${reviewPanel.document.filename}” fissata al ${reviewPanel.value}` : 'Scadenza di revisione tolta')
+      setReviewPanel(null)
+    } catch {
+      showNotif('Impossibile salvare la data di revisione', 'error')
+    }
+  }
+
+  const compareWithCurrent = async (version: number) => {
+    if (!selectedLibraryId || !versionHistory) return
+    const current = versionHistory.document.version
+    try {
+      const response = await fetch(`/api/libraries/${selectedLibraryId}/documents/${versionHistory.document.id}/versions/compare?from=${version}&to=${current}`, { credentials: 'include' })
+      if (!response.ok) throw new Error('compare failed')
+      const data = await response.json()
+      setVersionDiff({ from: version, to: current, changes: data.changes ?? [] })
+    } catch {
+      showNotif('Impossibile confrontare le versioni', 'error')
+    }
+  }
+
   const restoreVersion = async (version: number) => {
     if (!selectedLibraryId || !versionHistory) return
     try {
@@ -729,7 +776,7 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
                   <span className="flex items-center gap-1.5"><Upload className="w-3.5 h-3.5" />Carica documento</span>
                   {/* sr-only e non hidden: un input nascosto con display:none non
                       riceve il focus, e il pulsante non era raggiungibile da tastiera. */}
-                  <input type="file" className="sr-only" accept=".pdf,.docx,.xlsx,.csv,.rtf,.txt,.md" onChange={uploadDocument} />
+                  <input type="file" className="sr-only" accept=".pdf,.docx,.xlsx,.csv,.rtf,.txt,.md,.eml" onChange={uploadDocument} />
                 </label>}
                 {selectedLibrary.access_role && <span className={`rounded-full px-2 py-1 text-[11px] font-medium ${canEditLibrary ? 'bg-emerald-500/10 text-emerald-300' : 'bg-slate-500/10 text-slate-400'}`}>
                   {selectedLibrary.access_role === 'owner' ? 'Proprietario' : selectedLibrary.access_role === 'admin' ? 'Admin' : selectedLibrary.access_role === 'editor' ? 'Editor' : 'Sola lettura'}
@@ -888,7 +935,7 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
                   <p className="max-w-md text-sm leading-6">Carica un PDF, DOCX, TXT o Markdown. Ermes lo indicizza e manterrà il collegamento all'originale e alla sua versione.</p>
                   {canEditLibrary ? <label className="mt-2 cursor-pointer rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-500">
                     Carica il primo documento
-                    <input type="file" className="hidden" accept=".pdf,.docx,.xlsx,.txt,.md" onChange={uploadDocument} />
+                    <input type="file" className="hidden" accept=".pdf,.docx,.xlsx,.csv,.rtf,.txt,.md,.eml" onChange={uploadDocument} />
                   </label> : <p className="text-xs text-slate-400">Chiedi a un editor di caricare un documento.</p>}
                   <p className="text-xs text-slate-500">Per impostazione predefinita, i documenti restano locali.</p>
                 </div>
@@ -943,6 +990,11 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
                             <div className="min-w-0">
                               <h3 className="truncate text-sm font-semibold">{document.filename}</h3>
                               <p className="mt-1 text-xs text-slate-400">v{document.version} · {formatSize(document.size_bytes)}</p>
+                              {document.review_due && (() => {
+                                const days = reviewDaysLeft(document.review_due)
+                                if (days > 30) return null
+                                return <p className={`mt-1 text-xs font-medium ${days < 0 ? 'text-rose-400' : 'text-amber-400'}`}>{days < 0 ? `Revisione scaduta da ${-days} gg` : days === 0 ? 'Revisione in scadenza oggi' : `Revisione entro ${days} gg`}</p>
+                              })()}
                               {(() => {
                                 const status = documentStatus(document.status)
                                 return <span className={`mt-3 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${status.className}`}><status.Icon className={`h-3 w-3 ${document.status === 'processing' ? 'animate-spin' : ''}`} />{status.label}</span>
@@ -952,7 +1004,7 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
                               <div className="mt-3 flex flex-wrap items-center gap-3"><button onClick={() => downloadDocument(document)} className="flex items-center gap-1 text-xs text-slate-400 transition hover:text-blue-400"><Download className="h-3 w-3" />Apri</button><button onClick={() => showSummary(document)} disabled={summarizing} className="flex items-center gap-1 text-xs text-slate-400 transition hover:text-blue-400 disabled:cursor-not-allowed disabled:opacity-40"><FileText className="h-3 w-3" />{summarizing ? 'Riassumo…' : 'Riassumi'}</button><button onClick={() => { setSearchScopeDoc(current => current?.id === document.id ? null : document); setSearchQuery(''); setSearchResults(null); setRetrievalProfile(null) }} className={`flex items-center gap-1 text-xs transition hover:text-blue-400 ${searchScopeDoc?.id === document.id ? 'text-blue-300' : 'text-slate-400'}`}><Search className="h-3 w-3" />{searchScopeDoc?.id === document.id ? 'Ricerca limitata a questo' : 'Cerca qui'}</button>
                                 <details className="relative text-xs">
                                   <summary className="cursor-pointer list-none text-slate-400 transition hover:text-blue-400">Altro…</summary>
-                                  <div className="absolute left-0 z-20 mt-2 flex min-w-44 flex-col gap-2 rounded-xl border border-white/10 bg-white dark:bg-slate-900 p-3 shadow-xl">{isTabularDoc(document.filename) && <button onClick={() => setTabularDoc(document)} className="flex items-center gap-1 text-xs text-blue-400 font-semibold transition hover:text-blue-300" title="Esplora i dati della tabella"><Table className="h-3 w-3" />Esplora tabella</button>}{canManageMembers && <button onClick={() => openAclPanel(document)} className="flex items-center gap-1 text-xs text-slate-400 transition hover:text-blue-400"><ShieldCheck className="h-3 w-3" />Chi può vederlo</button>}{canEditLibrary && <button disabled={document.status === 'queued' || document.status === 'processing'} title="Rilegge il file, se le risposte sembrano non aggiornate" onClick={() => reindexDocument(document)} className="flex items-center gap-1 text-xs text-slate-400 transition hover:text-blue-400 disabled:cursor-not-allowed disabled:opacity-40"><RefreshCw className="h-3 w-3" />Rielabora</button>}<button onClick={() => showVersions(document)} className="text-xs text-slate-400 transition hover:text-blue-400">Versioni</button>{canEditLibrary && <button onClick={() => deleteDocument(document)} disabled={deletingDocumentId === document.id} aria-label={`Elimina ${document.filename}`} className="flex items-center gap-1 text-xs text-rose-400/80 transition hover:text-rose-300 disabled:cursor-not-allowed disabled:opacity-40"><Trash2 className="h-3 w-3" />{deletingDocumentId === document.id ? 'Elimino…' : 'Elimina'}</button>}</div>
+                                  <div className="absolute left-0 z-20 mt-2 flex min-w-44 flex-col gap-2 rounded-xl border border-white/10 bg-white dark:bg-slate-900 p-3 shadow-xl">{isTabularDoc(document.filename) && <button onClick={() => setTabularDoc(document)} className="flex items-center gap-1 text-xs text-blue-400 font-semibold transition hover:text-blue-300" title="Esplora i dati della tabella"><Table className="h-3 w-3" />Esplora tabella</button>}{canManageMembers && <button onClick={() => openAclPanel(document)} className="flex items-center gap-1 text-xs text-slate-400 transition hover:text-blue-400"><ShieldCheck className="h-3 w-3" />Chi può vederlo</button>}{canEditLibrary && <button disabled={document.status === 'queued' || document.status === 'processing'} title="Rilegge il file, se le risposte sembrano non aggiornate" onClick={() => reindexDocument(document)} className="flex items-center gap-1 text-xs text-slate-400 transition hover:text-blue-400 disabled:cursor-not-allowed disabled:opacity-40"><RefreshCw className="h-3 w-3" />Rielabora</button>}<button onClick={() => showVersions(document)} className="text-xs text-slate-400 transition hover:text-blue-400">Versioni</button>{canEditLibrary && <button onClick={() => setReviewPanel({ document, value: document.review_due ?? '' })} className="text-left text-xs text-slate-400 transition hover:text-blue-400">Scadenza revisione</button>}{canEditLibrary && <button onClick={() => deleteDocument(document)} disabled={deletingDocumentId === document.id} aria-label={`Elimina ${document.filename}`} className="flex items-center gap-1 text-xs text-rose-400/80 transition hover:text-rose-300 disabled:cursor-not-allowed disabled:opacity-40"><Trash2 className="h-3 w-3" />{deletingDocumentId === document.id ? 'Elimino…' : 'Elimina'}</button>}</div>
                                 </details>
                               </div>
                             </div>
@@ -981,6 +1033,22 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
           </div>
         )}
       </section>
+      {reviewPanel && (
+        <div role="dialog" aria-modal="true" aria-label="Scadenza revisione" className="absolute inset-0 z-20 flex items-center justify-center bg-slate-950/70 p-6">
+          <form onSubmit={saveReviewDue} className={`w-full max-w-sm rounded-2xl border p-6 shadow-2xl ${t.card}`}>
+            <h2 className="font-semibold">Scadenza revisione</h2>
+            <p className="mt-1 text-sm text-slate-400">{reviewPanel.document.filename}</p>
+            <label className="mt-4 block text-sm">Da rivedere entro
+              <input type="date" aria-label="Data di revisione" value={reviewPanel.value} onChange={event => setReviewPanel({ ...reviewPanel, value: event.target.value })} className="mt-1 block w-full rounded-md border border-white/10 bg-transparent px-2 py-1" />
+            </label>
+            <p className="mt-2 text-xs text-slate-400">Lascia vuoto per togliere la scadenza. Il documento compare in elenco come da rivedere nei 30 giorni prima.</p>
+            <div className="mt-4 flex justify-end gap-2">
+              <button type="button" onClick={() => setReviewPanel(null)} className="rounded-md px-3 py-1 text-sm text-slate-400 hover:text-white">Annulla</button>
+              <button type="submit" className="rounded-md bg-blue-600 px-3 py-1 text-sm text-white hover:bg-blue-500">Salva</button>
+            </div>
+          </form>
+        </div>
+      )}
       {aclPanel && (
         <div ref={aclDialogRef} role="dialog" aria-modal="true" aria-label="Accessi documento" tabIndex={-1} className="absolute inset-0 z-20 flex items-center justify-center bg-slate-950/70 p-6 outline-hidden">
           <section className={`w-full max-w-lg rounded-2xl border p-6 shadow-2xl ${t.card}`} aria-label="Accessi documento">
@@ -1036,8 +1104,22 @@ export default function DocumentsTab({ showNotif }: DocumentsTabProps) {
       {versionHistory && (
         <div ref={versionsDialogRef} role="dialog" aria-modal="true" aria-label="Storico versioni" tabIndex={-1} className="absolute inset-0 z-20 flex items-center justify-center bg-slate-950/70 p-6 outline-hidden">
           <section className={`w-full max-w-lg rounded-2xl border p-6 shadow-2xl ${t.card}`}>
-            <div className="flex items-start justify-between gap-4"><div><h2 className="font-semibold">Storico versioni</h2><p className="mt-1 text-sm text-slate-400">{versionHistory.document.filename}</p></div><button onClick={() => setVersionHistory(null)} className="text-slate-400 hover:text-white">Chiudi</button></div>
-            <div className="mt-5 space-y-2">{versionHistory.items.map(item => <article key={item.version} className="flex items-center justify-between rounded-lg border border-white/10 p-3"><div><p className="text-sm font-medium">Versione {item.version}{item.version === versionHistory.document.version ? ' · corrente' : ''}</p><p className="text-xs text-slate-400">{formatSize(item.size_bytes)} · {new Date(item.created_at).toLocaleString()}</p></div>{item.version !== versionHistory.document.version && <button onClick={() => restoreVersion(item.version)} className="rounded-md border border-blue-500/40 px-2 py-1 text-xs text-blue-300 hover:bg-blue-500/10">Ripristina</button>}</article>)}</div>
+            <div className="flex items-start justify-between gap-4"><div><h2 className="font-semibold">Storico versioni</h2><p className="mt-1 text-sm text-slate-400">{versionHistory.document.filename}</p></div><button onClick={() => { setVersionHistory(null); setVersionDiff(null) }} className="text-slate-400 hover:text-white">Chiudi</button></div>
+            <div className="mt-5 space-y-2">{versionHistory.items.map(item => <article key={item.version} className="flex items-center justify-between rounded-lg border border-white/10 p-3"><div><p className="text-sm font-medium">Versione {item.version}{item.version === versionHistory.document.version ? ' · corrente' : ''}</p><p className="text-xs text-slate-400">{formatSize(item.size_bytes)} · {new Date(item.created_at).toLocaleString()}</p></div>{item.version !== versionHistory.document.version && <div className="flex gap-2"><button onClick={() => compareWithCurrent(item.version)} className="rounded-md border border-white/20 px-2 py-1 text-xs text-slate-300 hover:bg-white/10">Confronta con la corrente</button><button onClick={() => restoreVersion(item.version)} className="rounded-md border border-blue-500/40 px-2 py-1 text-xs text-blue-300 hover:bg-blue-500/10">Ripristina</button></div>}</article>)}</div>
+            {versionDiff && (
+              <div className="mt-5 max-h-72 overflow-y-auto" aria-live="polite">
+                <h3 className="text-sm font-semibold">Dalla versione {versionDiff.from} alla {versionDiff.to}</h3>
+                {versionDiff.changes.length === 0 ? <p className="mt-2 text-sm text-slate-400">Nessuna differenza nel testo.</p> : (
+                  <ul className="mt-2 space-y-3">{versionDiff.changes.map(change => (
+                    <li key={`${change.kind}-${change.locator}`} className="rounded-lg border border-white/10 p-3 text-sm">
+                      <p className="font-medium">{change.locator} <span className="text-xs text-slate-400">· {change.kind === 'added' ? 'aggiunta' : change.kind === 'removed' ? 'tolta' : 'modificata'}</span></p>
+                      {change.before.map(frase => <p key={`-${frase}`} className="mt-1 text-red-300"><span className="sr-only">Prima: </span>− {frase}</p>)}
+                      {change.after.map(frase => <p key={`+${frase}`} className="mt-1 text-emerald-300"><span className="sr-only">Dopo: </span>+ {frase}</p>)}
+                    </li>
+                  ))}</ul>
+                )}
+              </div>
+            )}
           </section>
         </div>
       )}

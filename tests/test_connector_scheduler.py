@@ -91,6 +91,7 @@ def test_run_schedule_sync_full(temp_sched_store):
     mock_connector.fetch_documents.return_value = [mock_doc]
 
     mock_store = MagicMock()
+    mock_store.content_hash_index.return_value = {}
     mock_store.add_document.return_value = {"id": "doc1", "job_id": "job_123"}
 
     with (
@@ -142,6 +143,7 @@ def test_run_schedule_sync_delta(temp_sched_store):
     mock_connector.fetch_delta.return_value = mock_delta
 
     mock_store = MagicMock()
+    mock_store.content_hash_index.return_value = {}
     mock_store.add_document.return_value = {"id": "doc2", "job_id": None}
 
     with (
@@ -169,6 +171,7 @@ def test_sync_due_schedules(temp_sched_store):
         interval_minutes=10,
     )
     mock_store = MagicMock()
+    mock_store.content_hash_index.return_value = {}
 
     with (
         patch("core.connector_scheduler.get_schedule_store", return_value=temp_sched_store),
@@ -197,6 +200,7 @@ def test_api_connector_schedules(client, temp_sched_store):
     from api.libraries import get_library_store
 
     mock_store = MagicMock()
+    mock_store.content_hash_index.return_value = {}
     mock_store.get_library.return_value = {"id": "lib_cloud", "name": "Cloud"}
     app.dependency_overrides[get_library_store] = lambda: mock_store
 

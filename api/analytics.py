@@ -151,6 +151,51 @@ async def export_knowledge_gaps_csv(
     )
 
 
+@router.get(
+    "/api/analytics/gold-set-candidates",
+    summary="Domande senza risposta o giudicate male, nel formato del gold set di valutazione",
+    dependencies=[Depends(rate_limited)],
+)
+async def export_gold_set_candidates(
+    days: int = Query(default=30, ge=1, le=3650),
+    limit: int = Query(default=100, ge=1, le=500),
+    _auth: dict = Depends(_require_role("admin")),
+    store: LibraryStore = Depends(get_library_store),
+):
+    """Le domande vere degli utenti come casi di test da rivedere a mano.
+
+    Il gold set e' scritto da noi; queste sono le domande su cui Ermes ha
+    deluso chi lo usa. Ogni voce esce con `type` e risposta attesa vuoti:
+    solo chi conosce i documenti sa se la risposta c'era (allora e' un errore
+    di recupero, `direct` o `paraphrase` con sezione attesa) o non c'era
+    (allora l'astensione era giusta e il caso diventa `abstention`). Esce solo
+    cio' che l'utente ha scritto e la sua motivazione, mai testo dei documenti.
+    """
+    visibili = _biblioteche_visibili(store, _auth)
+    nomi = {lib["id"]: lib["name"] for lib in store.list_libraries(_auth)}
+    candidati = []
+    for gap in get_knowledge_gaps(days=days, limit=limit, library_ids=visibili):
+        candidati.append(
+            {
+                "id": "",
+                "library": nomi.get(gap.get("library_id", ""), gap.get("library_id", "")),
+                "type": None,
+                "query": gap["query"],
+                "expected_filename": None,
+                "expected_locator": None,
+                "tags": ["utente"],
+                "origin": {
+                    "times_asked": gap.get("count", 0),
+                    "negative_feedback": gap.get("negative_feedback", 0),
+                    "feedback_reasons": gap.get("feedback_reasons", []),
+                    "outcome": gap.get("reason", ""),
+                    "last_seen": gap.get("last_seen", ""),
+                },
+            }
+        )
+    return {"candidates": candidati, "total": len(candidati), "period_days": days}
+
+
 def _cella_csv(valore: object) -> str:
     testo = str(valore)
     return "'" + testo if testo[:1] in ("=", "+", "-", "@", "\t", "\r") else testo

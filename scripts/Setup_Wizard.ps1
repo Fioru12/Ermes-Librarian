@@ -116,9 +116,10 @@ Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBase
                 <StackPanel VerticalAlignment="Center">
                     <TextBlock x:Name="StepInd1" Text="1. Benvenuto" FontSize="13" Foreground="#38BDF8" FontWeight="Bold" Margin="0,8"/>
                     <TextBlock x:Name="StepInd2" Text="2. Modalita' Setup" FontSize="13" Foreground="#64748B" Margin="0,8"/>
-                    <TextBlock x:Name="StepInd3" Text="3. Controllo Requisiti" FontSize="13" Foreground="#64748B" Margin="0,8"/>
-                    <TextBlock x:Name="StepInd4" Text="4. Installazione" FontSize="13" Foreground="#64748B" Margin="0,8"/>
-                    <TextBlock x:Name="StepInd5" Text="5. Completamento" FontSize="13" Foreground="#64748B" Margin="0,8"/>
+                    <TextBlock x:Name="StepIndAi" Text="3. Intelligenza artificiale" FontSize="13" Foreground="#64748B" Margin="0,8"/>
+                    <TextBlock x:Name="StepInd3" Text="4. Controllo Requisiti" FontSize="13" Foreground="#64748B" Margin="0,8"/>
+                    <TextBlock x:Name="StepInd4" Text="5. Installazione" FontSize="13" Foreground="#64748B" Margin="0,8"/>
+                    <TextBlock x:Name="StepInd5" Text="6. Completamento" FontSize="13" Foreground="#64748B" Margin="0,8"/>
                 </StackPanel>
 
                 <!-- Footer Laterale -->
@@ -178,6 +179,56 @@ Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBase
                     <TextBlock Text="Crea un'icona di avvio rapido sul Desktop di Windows" Margin="4,0,0,0"/>
                 </CheckBox>
             </StackPanel>
+
+            <!-- PAGINA AI: SCELTA DEL MODELLO (scripts/configure_ai.py) -->
+            <ScrollViewer x:Name="PageAi" Visibility="Collapsed" Grid.Row="0" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <TextBlock Text="Come deve rispondere Ermes?" FontSize="20" FontWeight="Bold" Foreground="White" Margin="0,0,0,6"/>
+                <TextBlock Text="Scegli tu: nessuna opzione e' preselezionata. Potrai cambiarla in seguito, anche biblioteca per biblioteca." FontSize="13" Foreground="#94A3B8" Margin="0,0,0,12" TextWrapping="Wrap"/>
+
+                <Border Background="#1E293B" CornerRadius="8" Padding="12" Margin="0,0,0,8">
+                    <StackPanel>
+                        <RadioButton x:Name="RadioAiExcerpts" GroupName="Ai" Foreground="White" FontSize="14" FontWeight="SemiBold">
+                            <TextBlock Text="Solo estratti (nessun modello)" Margin="6,0,0,0"/>
+                        </RadioButton>
+                        <TextBlock Text="Mostra i passaggi pertinenti con la fonte, senza generare testo. Funziona su qualunque computer e nessun dato esce." FontSize="12" Foreground="#94A3B8" Margin="26,4,0,0" TextWrapping="Wrap"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Background="#1E293B" CornerRadius="8" Padding="12" Margin="0,0,0,8">
+                    <StackPanel>
+                        <RadioButton x:Name="RadioAiLocal" GroupName="Ai" Foreground="White" FontSize="14" FontWeight="SemiBold">
+                            <TextBlock Text="Modello locale con Ollama" Margin="6,0,0,0"/>
+                        </RadioButton>
+                        <TextBlock Text="Risposte scritte da un modello che gira su questo computer: nessun dato esce, ma serve memoria." FontSize="12" Foreground="#94A3B8" Margin="26,4,0,0" TextWrapping="Wrap"/>
+                        <TextBlock x:Name="TxtAiHardware" Text="" FontSize="12" Foreground="#EAB308" Margin="26,4,0,0" TextWrapping="Wrap"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Background="#1E293B" CornerRadius="8" Padding="12" Margin="0,0,0,8">
+                    <StackPanel>
+                        <RadioButton x:Name="RadioAiCloud" GroupName="Ai" Foreground="White" FontSize="14" FontWeight="SemiBold">
+                            <TextBlock Text="API pubblica (OpenRouter)" Margin="6,0,0,0"/>
+                        </RadioButton>
+                        <TextBlock Text="Funziona anche su un computer modesto. I passaggi dei documenti pertinenti a ogni domanda vengono inviati al provider." FontSize="12" Foreground="#94A3B8" Margin="26,4,0,0" TextWrapping="Wrap"/>
+                        <StackPanel x:Name="PanelAiCloud" Margin="26,8,0,0" Visibility="Collapsed">
+                            <TextBlock Text="Chiave OpenRouter (openrouter.ai/keys)" FontSize="12" Foreground="White"/>
+                            <PasswordBox x:Name="PwdAiKey" Margin="0,2,0,6" Padding="4"/>
+                            <TextBlock Text="ID del modello (copialo dalla pagina del modello su openrouter.ai/models)" FontSize="12" Foreground="White" TextWrapping="Wrap"/>
+                            <TextBox x:Name="TxtAiModel" Margin="0,2,0,6" Padding="4"/>
+                            <CheckBox x:Name="CheckAiConsent" Foreground="White" FontSize="12">
+                                <TextBlock Text="Acconsento a inviare a OpenRouter i passaggi dei documenti pertinenti alle domande." TextWrapping="Wrap" Margin="4,0,0,0"/>
+                            </CheckBox>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <CheckBox x:Name="CheckAiVerify" IsEnabled="False" Foreground="White" FontSize="13" Margin="4,4,0,0">
+                    <TextBlock Text="Attiva la verifica dell'evidenza: scarta i passaggi che non rispondono davvero alla domanda. Costa una chiamata al modello per passaggio e su domande realistiche non e' ancora misurata." TextWrapping="Wrap" Margin="4,0,0,0"/>
+                </CheckBox>
+                <TextBlock x:Name="TxtAiAdvice" Text="Scegli una delle tre opzioni per continuare." FontSize="12" Foreground="#38BDF8" Margin="4,8,0,0" TextWrapping="Wrap"/>
+            </StackPanel>
+            </ScrollViewer>
 
             <!-- PAGINA 3: CONTROLLO REQUISITI -->
             <StackPanel x:Name="Page3" Visibility="Collapsed" Grid.Row="0">
@@ -298,17 +349,20 @@ function Update-WizardUI {
     # Reset indicatori laterali
     $StepInd1.Foreground = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#64748B")
     $StepInd2.Foreground = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#64748B")
+    $StepIndAi.Foreground = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#64748B")
     $StepInd3.Foreground = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#64748B")
     $StepInd4.Foreground = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#64748B")
     $StepInd5.Foreground = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#64748B")
     $StepInd1.FontWeight = [System.Windows.FontWeights]::Normal
     $StepInd2.FontWeight = [System.Windows.FontWeights]::Normal
+    $StepIndAi.FontWeight = [System.Windows.FontWeights]::Normal
     $StepInd3.FontWeight = [System.Windows.FontWeights]::Normal
     $StepInd4.FontWeight = [System.Windows.FontWeights]::Normal
     $StepInd5.FontWeight = [System.Windows.FontWeights]::Normal
 
     $Page1.Visibility = [System.Windows.Visibility]::Collapsed
     $Page2.Visibility = [System.Windows.Visibility]::Collapsed
+    $PageAi.Visibility = [System.Windows.Visibility]::Collapsed
     $Page3.Visibility = [System.Windows.Visibility]::Collapsed
     $Page4.Visibility = [System.Windows.Visibility]::Collapsed
     $Page5.Visibility = [System.Windows.Visibility]::Collapsed
@@ -333,6 +387,14 @@ function Update-WizardUI {
             $BtnNext.IsEnabled = $true
         }
         3 {
+            $PageAi.Visibility = [System.Windows.Visibility]::Visible
+            $StepIndAi.Foreground = $activeBrush
+            $StepIndAi.FontWeight = [System.Windows.FontWeights]::Bold
+            $BtnBack.Visibility = [System.Windows.Visibility]::Visible
+            $BtnNext.Content = "Avanti >"
+            Update-AiChoice
+        }
+        4 {
             $Page3.Visibility = [System.Windows.Visibility]::Visible
             $StepInd3.Foreground = $activeBrush
             $StepInd3.FontWeight = [System.Windows.FontWeights]::Bold
@@ -340,7 +402,7 @@ function Update-WizardUI {
             $BtnNext.Content = "Installa Ora"
             Run-PrereqCheck
         }
-        4 {
+        5 {
             $Page4.Visibility = [System.Windows.Visibility]::Visible
             $StepInd4.Foreground = $activeBrush
             $StepInd4.FontWeight = [System.Windows.FontWeights]::Bold
@@ -348,7 +410,7 @@ function Update-WizardUI {
             $BtnNext.Visibility = [System.Windows.Visibility]::Collapsed
             $BtnCancel.IsEnabled = $false
         }
-        5 {
+        6 {
             $Page5.Visibility = [System.Windows.Visibility]::Visible
             $StepInd5.Foreground = [System.Windows.Media.BrushConverter]::new().ConvertFromString("#4ADE80")
             $StepInd5.FontWeight = [System.Windows.FontWeights]::Bold
@@ -359,6 +421,58 @@ function Update-WizardUI {
             $BtnCancel.Visibility = [System.Windows.Visibility]::Collapsed
         }
     }
+}
+
+# Scelta del modello: le regole (RAM, consenso, chiave) stanno in
+# scripts/configure_ai.py, che e' testato; qui solo la raccolta dei dati.
+function Get-RamGb {
+    try {
+        $bytes = (Get-CimInstance -ClassName Win32_ComputerSystem).TotalPhysicalMemory
+        return [math]::Round($bytes / 1GB, 1)
+    } catch {
+        return $null
+    }
+}
+
+function Update-AiChoice {
+    $cloud = [bool]$RadioAiCloud.IsChecked
+    $local = [bool]$RadioAiLocal.IsChecked
+    $chosen = $cloud -or $local -or [bool]$RadioAiExcerpts.IsChecked
+    $PanelAiCloud.Visibility = if ($cloud) { [System.Windows.Visibility]::Visible } else { [System.Windows.Visibility]::Collapsed }
+    # La verifica richiede un modello: con "solo estratti" non c'e'.
+    $CheckAiVerify.IsEnabled = ($cloud -or $local)
+    if (-not ($cloud -or $local)) { $CheckAiVerify.IsChecked = $false }
+
+    if ($local) {
+        $ram = Get-RamGb
+        $ollama = if (Test-CommandExists "ollama") { "Ollama trovato." } else { "Ollama non trovato: installalo da ollama.com, il modello verra' scaricato dopo." }
+        if ($null -eq $ram) {
+            $TxtAiHardware.Text = "Memoria non rilevata. $ollama"
+        } elseif ($ram -lt 8) {
+            $TxtAiHardware.Text = "$ram GB di RAM: un modello locale sara' molto lento. Valuta l'API pubblica. $ollama"
+        } elseif ($ram -lt 15) {
+            $TxtAiHardware.Text = "$ram GB di RAM: verra' usato il modello piu' leggero. $ollama"
+        } else {
+            $TxtAiHardware.Text = "$ram GB di RAM: sufficienti. $ollama"
+        }
+    } else {
+        $TxtAiHardware.Text = ""
+    }
+
+    $ok = $chosen
+    $advice = "Scegli una delle tre opzioni per continuare."
+    if ($cloud) {
+        if (-not $PwdAiKey.Password.Trim() -or -not $TxtAiModel.Text.Trim()) {
+            $ok = $false
+            $advice = "Inserisci chiave e ID del modello."
+        } elseif (-not $CheckAiConsent.IsChecked) {
+            $ok = $false
+            $advice = "Serve il consenso esplicito all'invio dei passaggi."
+        }
+    }
+    if ($ok) { $advice = "Scelta pronta. Potrai cambiarla rilanciando scripts\configure_ai.py." }
+    $TxtAiAdvice.Text = $advice
+    if ($script:CurrentStep -eq 3) { $BtnNext.IsEnabled = $ok }
 }
 
 function Run-PrereqCheck {
@@ -410,13 +524,34 @@ function Run-PrereqCheck {
     }
 }
 
+function Invoke-ConfigureAi {
+    param([string]$PythonCmd, [string[]]$Arguments, [string]$Key)
+    # La chiave passa da una variabile d'ambiente del solo processo figlio,
+    # non dalla riga di comando, visibile agli altri utenti della macchina.
+    $env:ERMES_SETUP_OPENROUTER_KEY = $Key
+    try {
+        $output = & $PythonCmd "$projectRoot\scripts\configure_ai.py" @Arguments 2>&1
+    } finally {
+        Remove-Item Env:\ERMES_SETUP_OPENROUTER_KEY -ErrorAction SilentlyContinue
+    }
+    return ($output | ForEach-Object { "$_" })
+}
+
 # Esecuzione Installazione
 function Start-InstallationProcess {
-    $script:CurrentStep = 4
+    $script:CurrentStep = 5
     Update-WizardUI
 
     $useDocker = $RadioDocker.IsChecked
     $createShortcut = $CheckDesktopShortcut.IsChecked
+    # Letti qui, nel thread dell'interfaccia: il lavoro in background non
+    # puo' toccare i controlli.
+    $aiMode = if ($RadioAiCloud.IsChecked) { "cloud" } elseif ($RadioAiLocal.IsChecked) { "locale" } else { "estratti" }
+    $aiArgs = @("--modo", $aiMode)
+    if ($CheckAiVerify.IsChecked) { $aiArgs += "--verifica" }
+    if ($aiMode -eq "cloud") { $aiArgs += @("--modello", $TxtAiModel.Text.Trim(), "--consenso-cloud") }
+    if ($useDocker) { $aiArgs += "--senza-download" }
+    $aiKey = if ($aiMode -eq "cloud") { $PwdAiKey.Password.Trim() } else { "" }
 
     $worker = [System.ComponentModel.BackgroundWorker]::new()
     $worker.WorkerReportsProgress = $true
@@ -425,6 +560,16 @@ function Start-InstallationProcess {
         param($sender, $e)
 
         if ($useDocker) {
+            $sender.ReportProgress(10, "Configurazione del modello ($aiMode)...")
+            if (-not (Test-Path "$projectRoot\.env") -and (Test-Path "$projectRoot\.env.example")) {
+                Copy-Item "$projectRoot\.env.example" "$projectRoot\.env"
+            }
+            $py = Get-PythonStatus
+            if ($py.Found) {
+                Invoke-ConfigureAi -PythonCmd $py.Cmd -Arguments $aiArgs -Key $aiKey | ForEach-Object { $sender.ReportProgress(15, $_) }
+            } else {
+                $sender.ReportProgress(15, "Python non trovato: scelta del modello non salvata. Lanciala poi con scripts\configure_ai.py.")
+            }
             $sender.ReportProgress(20, "Avvio configurazione Docker Compose...")
             Start-Sleep -Seconds 1
             $sender.ReportProgress(50, "Creazione container e build immagini...")
@@ -462,6 +607,9 @@ function Start-InstallationProcess {
             }
             & "$projectRoot\.venv-ermes\Scripts\python.exe" "$projectRoot\scripts\provision_local_demo_auth.py" --write 2>&1 | Out-Null
 
+            $sender.ReportProgress(92, "Configurazione del modello ($aiMode)...")
+            Invoke-ConfigureAi -PythonCmd "$projectRoot\.venv-ermes\Scripts\python.exe" -Arguments $aiArgs -Key $aiKey | ForEach-Object { $sender.ReportProgress(93, $_) }
+
             if ($createShortcut) {
                 $sender.ReportProgress(95, "Creazione icona Desktop Ermes Knowledge...")
                 & powershell.exe -ExecutionPolicy Bypass -File "$projectRoot\scripts\CREA_COLLEGAMENTO_DESKTOP.ps1" 2>&1 | Out-Null
@@ -481,7 +629,7 @@ function Start-InstallationProcess {
 
     $worker.RunWorkerCompleted += {
         param($sender, $e)
-        $script:CurrentStep = 5
+        $script:CurrentStep = 6
         Update-WizardUI
     }
 
@@ -497,8 +645,11 @@ $BtnNext.Add_Click({
         $script:CurrentStep = 3
         Update-WizardUI
     } elseif ($script:CurrentStep -eq 3) {
+        $script:CurrentStep = 4
+        Update-WizardUI
+    } elseif ($script:CurrentStep -eq 4) {
         Start-InstallationProcess
-    } elseif ($script:CurrentStep -eq 5) {
+    } elseif ($script:CurrentStep -eq 6) {
         if ($CheckLaunchNow.IsChecked) {
             if ($RadioDocker.IsChecked) {
                 Start-Process "$projectRoot\AVVIA_DOCKER.bat"
@@ -520,6 +671,14 @@ $BtnBack.Add_Click({
 $BtnCancel.Add_Click({
     $window.Close()
 })
+
+# La scelta del modello si ricontrolla a ogni modifica dei suoi campi.
+foreach ($control in @($RadioAiExcerpts, $RadioAiLocal, $RadioAiCloud, $CheckAiConsent)) {
+    $control.Add_Checked({ Update-AiChoice })
+    $control.Add_Unchecked({ Update-AiChoice })
+}
+$PwdAiKey.Add_PasswordChanged({ Update-AiChoice })
+$TxtAiModel.Add_TextChanged({ Update-AiChoice })
 
 # Avvio finestra
 Update-WizardUI

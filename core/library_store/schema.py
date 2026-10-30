@@ -210,6 +210,11 @@ def initialize_sqlite_schema(connection) -> None:
         )
     if "assistant_provider" not in library_columns:
         connection.execute("ALTER TABLE libraries ADD COLUMN assistant_provider TEXT NOT NULL DEFAULT ''")
+    # Data entro cui il documento va rivisto (procedure ISO, DVR, certificati):
+    # ISO 8601, vuota se il documento non ne ha una.
+    document_columns = {row[1] for row in connection.execute("PRAGMA table_info(documents)")}
+    if "review_due" not in document_columns:
+        connection.execute("ALTER TABLE documents ADD COLUMN review_due TEXT NOT NULL DEFAULT ''")
     # Backfill the immutable snapshot for databases created before
     # version history existed. The current document is version 1 there.
     connection.execute(

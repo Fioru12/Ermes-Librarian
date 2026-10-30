@@ -8,7 +8,6 @@ mantenendo lo stato dei token delta e registrando telemetria e audit.
 
 from __future__ import annotations
 
-import hashlib
 import json
 import logging
 import sqlite3
@@ -241,43 +240,21 @@ def run_schedule_sync(schedule_id: str, store: LibraryStore) -> dict[str, Any]:
         raise ValueError(f"Schedule {schedule_id} non trovato")
 
     from api.connectors import _build_connector
-    from core.document_parser import extract_source_units
-    from core.library_store import storage_relative_path
+    from core.connector_ingest import import_remote_document
     from core.storage_provider import get_storage_provider
 
     _logger.info("Avvio sincronizzazione schedulata per %s (%s)", schedule.name, schedule.connector_type)
     connector = _build_connector(schedule.connector_type, schedule.config)
     storage_provider = get_storage_provider()
-    known_hashes = store.existing_content_hashes(schedule.target_library_id)
+    known_hashes = store.content_hash_index(schedule.target_library_id)
 
     try:
         if schedule.next_delta_token:
             delta_res = connector.fetch_delta(schedule.next_delta_token)
             imported_count = 0
             for doc in delta_res.updated_documents:
-                units = extract_source_units(doc.name, doc.content)
-                chunks = [(u.text, u.locator) for u in units]
-                if not chunks or not chunks[0][0]:
-                    chunks = [(doc.name, "Titolo")]
-
-                digest = hashlib.sha256(doc.content).hexdigest()
-                if digest in known_hashes:
+                if import_remote_document(store, schedule.target_library_id, doc, known_hashes, storage_provider) == "duplicate":
                     continue
-
-                stored_name = f"{digest[:12]}_{doc.name}"
-                stored_rel = storage_relative_path(schedule.target_library_id, stored_name)
-                storage_provider.save(stored_rel, doc.content)
-
-                store.add_document(
-                    library_id=schedule.target_library_id,
-                    filename=doc.name,
-                    media_type=doc.media_type,
-                    content=doc.content,
-                    storage_path=stored_rel,
-                    status="ready",
-                    chunks=chunks,
-                )
-                known_hashes.add(digest)
                 imported_count += 1
 
             for del_id in delta_res.deleted_document_ids:
@@ -301,29 +278,8 @@ def run_schedule_sync(schedule_id: str, store: LibraryStore) -> dict[str, Any]:
             docs = connector.fetch_documents()
             imported_count = 0
             for doc in docs:
-                units = extract_source_units(doc.name, doc.content)
-                chunks = [(u.text, u.locator) for u in units]
-                if not chunks or not chunks[0][0]:
-                    chunks = [(doc.name, "Titolo")]
-
-                digest = hashlib.sha256(doc.content).hexdigest()
-                if digest in known_hashes:
+                if import_remote_document(store, schedule.target_library_id, doc, known_hashes, storage_provider) == "duplicate":
                     continue
-
-                stored_name = f"{digest[:12]}_{doc.name}"
-                stored_rel = storage_relative_path(schedule.target_library_id, stored_name)
-                storage_provider.save(stored_rel, doc.content)
-
-                store.add_document(
-                    library_id=schedule.target_library_id,
-                    filename=doc.name,
-                    media_type=doc.media_type,
-                    content=doc.content,
-                    storage_path=stored_rel,
-                    status="ready",
-                    chunks=chunks,
-                )
-                known_hashes.add(digest)
                 imported_count += 1
 
             sched_store.update_sync_result(

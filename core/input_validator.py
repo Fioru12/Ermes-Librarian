@@ -20,7 +20,7 @@ def sanitize_upload_name(name: str) -> str | None:
     if not re.fullmatch(r"[A-Za-z0-9._ -]{1,120}", safe_name):
         return None
     ext = os.path.splitext(safe_name)[1].lower()
-    if ext not in {".txt", ".md", ".pdf", ".docx", ".xlsx", ".pptx", ".csv", ".rtf"}:
+    if ext not in {".txt", ".md", ".pdf", ".docx", ".xlsx", ".pptx", ".csv", ".rtf", ".eml"}:
         return None
     return safe_name
 
@@ -32,7 +32,7 @@ def matches_expected_file_signature(uploaded_file, safe_name: str) -> bool:
         return header.startswith(b"%PDF-")
     if ext in {".docx", ".xlsx", ".pptx"}:
         return header.startswith(b"PK\x03\x04")
-    if ext in {".txt", ".md", ".csv"}:
+    if ext in {".txt", ".md", ".csv", ".eml"}:
         return b"\x00" not in bytes(uploaded_file.getbuffer()[:1024])
     if ext == ".rtf":
         return header.startswith(b"{\\rtf") or b"\x00" not in bytes(uploaded_file.getbuffer()[:1024])
@@ -58,7 +58,7 @@ def validate_and_scan_document(name: str, content: bytes) -> tuple[bool, str]:
         return False, "Il file non corrisponde alla firma di un documento PDF valido"
     if ext in {".docx", ".xlsx", ".pptx"} and not header.startswith(b"PK\x03\x04"):
         return False, "Il file non corrisponde alla firma di un archivio Office valido"
-    if ext in {".txt", ".md", ".csv"} and b"\x00" in content[:1024]:
+    if ext in {".txt", ".md", ".csv", ".eml"} and b"\x00" in content[:1024]:
         return False, "Il file contiene caratteri nulli non consentiti per file di testo"
     if ext == ".rtf" and not (header.startswith(b"{\\rtf") or b"\x00" not in content[:1024]):
         return False, "Il file non corrisponde alla firma di un documento RTF valido"

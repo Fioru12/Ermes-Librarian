@@ -10,9 +10,29 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+import config
 from core.database_backend import SqliteBackend
 from core.library_store.common import LibraryAccessError, LibraryNotFoundError, _resolve_backend
 from core.library_store.schema import initialize_sqlite_schema
+
+
+def default_assistant_mode() -> str:
+    """Modalita' assistente di una biblioteca appena creata.
+
+    La sceglie chi installa (ERMES_LIBRARY_ASSISTANT_MODE, scritta dal setup
+    guidato); l'amministratore la cambia poi biblioteca per biblioteca. Si
+    chiude sul sicuro: la modalita' cloud vale solo se l'istanza ha consenso
+    e chiave, altrimenti una biblioteca nuova prometterebbe una generazione che
+    non puo' avvenire. `approved_provider` non e' ammessa come predefinita
+    perche' richiede di scegliere un provider per nome, biblioteca per
+    biblioteca.
+    """
+    mode = str(config.cfg.LIBRARY_ASSISTANT_MODE)
+    if mode == "local_ollama":
+        return mode
+    if mode == "approved_openrouter" and config.cfg.LIBRARY_CLOUD_CONSENT and config.cfg.OPENROUTER_API_KEY:
+        return mode
+    return "evidence_only"
 
 
 class StoreBase:
@@ -243,9 +263,10 @@ class StoreBase:
             "name": normalized_name,
             "description": description.strip()[:500],
             "visibility": visibility,
-            # Cloud generation is opt-in per library, even if an instance has
-            # credentials configured for it.
-            "assistant_mode": "evidence_only",
+            # Cloud generation stays an explicit choice: of whoever installed
+            # the instance (with consent and key, see default_assistant_mode),
+            # then of the administrator for each library.
+            "assistant_mode": default_assistant_mode(),
             "assistant_provider": "",
             "owner_id": owner_id,
             "created_at": now,
