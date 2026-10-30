@@ -2,7 +2,7 @@
 # Python 3.11+ required (tested on 3.14)
 
 # API Framework
-fastapi==0.146.0
+fastapi==0.162.0
 uvicorn[standard]==0.54.0
 pydantic==2.14.1
 # 0.0.22 fino all'11 settembre 2026: pip-audit segnalava 10 vulnerabilita'
@@ -21,7 +21,7 @@ python-docx==1.2.0
 # totale segnalato da pip-audit. pypdf legge i PDF caricati dagli utenti, cioe'
 # ingresso non fidato per definizione: e' il posto peggiore dove restare
 # indietro di sei versioni correttive.
-pypdf==6.21.1
+pypdf==6.21.2
 # OCR delle pagine PDF senza livello testo (scansioni): pypdfium2 rasterizza
 # la pagina (pdfium incluso nella wheel, nessuna dipendenza di sistema),
 # pytesseract la passa al binario Tesseract, che sta nel Dockerfile. Senza
@@ -32,7 +32,7 @@ pytesseract==0.3.13
 # RTF: core/document_parser.py la importa con un fallback interno; fino al
 # 21 settembre 2026 non era dichiarata, quindi su un'installazione pulita
 # il ramo RTF usava sempre il fallback senza dirlo.
-striprtf==0.0.33
+striprtf==0.0.35
 # core/connectors/webdav.py analizza le risposte XML del server WebDAV con
 # defusedxml invece di xml.etree diretto (giusto: e' input di rete non
 # fidato). Il commit che l'ha introdotto non l'ha aggiunta qui: funzionava
@@ -72,7 +72,7 @@ langfuse==4.18.0
 # Testing
 pytest==9.1.1
 pytest-timeout==2.4.0
-pytest-asyncio==1.4.0
+pytest-asyncio==1.4.1
 # Richiesto da tests/test_performance.py, che usa la fixture `benchmark`.
 # Mancava: la CI installa solo questo file e poi lancia tutta la suite, quindi
 # test_search_latency finiva in "fixture 'benchmark' not found" — un errore
