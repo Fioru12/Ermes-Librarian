@@ -15,6 +15,17 @@ from core.connectors.base import BaseConnector, DeltaSyncResult, RemoteDocument
 _logger = logging.getLogger(__name__)
 
 
+def drive_permissions_to_principals(permissions: list[dict]) -> tuple[str, ...] | None:
+    """Traduce i permessi Drive di un file. "Chiunque" o "tutto il dominio": None."""
+    principals: set[str] = set()
+    for permission in permissions:
+        if permission.get("type") in {"anyone", "domain"}:
+            return None
+        if permission.get("emailAddress"):
+            principals.add(str(permission["emailAddress"]))
+    return tuple(sorted(principals))
+
+
 class GoogleDriveConnector(BaseConnector):
     """Connettore enterprise per Google Drive con supporto a token incrementale."""
 
@@ -22,6 +33,25 @@ class GoogleDriveConnector(BaseConnector):
         super().__init__(config)
         self.access_token = config.get("access_token", "").strip()
         self.folder_id = config.get("folder_id", "root").strip()
+        self.inherit_permissions = bool(config.get("inherit_permissions", True))
+
+    def _file_principals(self, client: httpx.Client, headers: dict[str, str], file_id: str) -> tuple[str, ...] | None:
+        """Chi vede il file su Drive. Illeggibile = nessuno (chiude)."""
+        if not self.inherit_permissions:
+            return None
+        url = (
+            f"https://www.googleapis.com/drive/v3/files/{file_id}/permissions"
+            "?fields=permissions(type,emailAddress,role,domain)&supportsAllDrives=true"
+        )
+        try:
+            res = client.get(url, headers=headers)
+        except Exception as error:
+            _logger.warning("Permessi del file %s non leggibili: %s", file_id, error)
+            return ()
+        if res.status_code != 200:
+            _logger.warning("Permessi del file %s non leggibili (HTTP %s)", file_id, res.status_code)
+            return ()
+        return drive_permissions_to_principals(res.json().get("permissions", []))
 
     def _get_headers(self) -> dict[str, str]:
         if not self.access_token:
@@ -84,6 +114,7 @@ class GoogleDriveConnector(BaseConnector):
                                     source_url=str(f.get("webViewLink", "")),
                                     last_modified=str(f.get("modifiedTime", "")),
                                     metadata={"size": f.get("size", 0)},
+                                    allowed_principals=self._file_principals(client, headers, str(file_id)),
                                 )
                             )
                     except Exception as err:
@@ -176,6 +207,7 @@ class GoogleDriveConnector(BaseConnector):
                                     source_url=str(f_info.get("webViewLink", "")),
                                     last_modified=str(f_info.get("modifiedTime", "")),
                                     metadata={"size": f_info.get("size", 0)},
+                                    allowed_principals=self._file_principals(client, headers, file_id),
                                 )
                             )
                     except Exception as err:

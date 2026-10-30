@@ -316,3 +316,38 @@ def test_a_negative_feedback_without_reason_adds_no_empty_entry(istanza, due_bib
     gap = next(g for g in gaps if g["negative_feedback"] > 0)
     assert gap["feedback_reasons"] == []
 
+
+def test_gold_set_candidates_carry_the_user_question_and_reason_not_document_text(istanza, due_biblioteche):
+    """Voce 1.5 del piano: le domande giudicate male diventano casi di test.
+    Escono senza risposta attesa (la decide chi conosce i documenti) e senza
+    alcun testo dei documenti."""
+    capo, _ospite, _riservata = due_biblioteche
+    evento = next(e for e in _eventi(istanza) if e.get("type") == "query")
+    capo.post(
+        "/api/analytics/feedback",
+        json={"event_id": evento["event_id"], "rating": -1, "comment": "risposta sbagliata"},
+    )
+
+    esito = capo.get("/api/analytics/gold-set-candidates")
+
+    assert esito.status_code == 200
+    candidato = next(c for c in esito.json()["candidates"] if c["query"] == evento["query"])
+    assert candidato["type"] is None and candidato["expected_filename"] is None
+    assert candidato["origin"]["negative_feedback"] == 1
+    assert candidato["origin"]["feedback_reasons"] == ["risposta sbagliata"]
+    assert set(candidato) == {
+        "id",
+        "library",
+        "type",
+        "query",
+        "expected_filename",
+        "expected_locator",
+        "tags",
+        "origin",
+    }
+
+
+def test_gold_set_candidates_are_admin_only(due_biblioteche):
+    _capo, ospite, _riservata = due_biblioteche
+
+    assert ospite.get("/api/analytics/gold-set-candidates").status_code == 403

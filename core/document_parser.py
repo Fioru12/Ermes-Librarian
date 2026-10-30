@@ -105,6 +105,8 @@ def extract_source_units(filename: str, content: bytes) -> list[SourceUnit]:
             return _extract_text_units(content.decode("utf-8-sig", errors="replace"), suffix)
         if suffix in {".html", ".htm"}:
             return _extract_html_units(content)
+        if suffix == ".eml":
+            return _extract_eml_units(content)
         if suffix in {".json", ".jsonl"}:
             return _extract_json_units(content, suffix)
         if suffix == ".pdf":
@@ -174,6 +176,73 @@ def extract_source_units(filename: str, content: bytes) -> list[SourceUnit]:
     except Exception as error:
         raise DocumentParseError(f"Impossibile leggere il documento: {error}") from error
     raise DocumentParseError("Formato documento non supportato")
+
+
+# Allegati letti dentro un'email: un livello solo (un .eml allegato a un .eml
+# non viene aperto) e con un tetto di dimensione, perche' un messaggio puo'
+# portarsi dietro archivi interi.
+_EML_ATTACHMENT_SUFFIXES = {".pdf", ".docx", ".xlsx", ".pptx", ".txt", ".md", ".csv", ".rtf", ".html", ".htm"}
+_EML_ATTACHMENT_MAX_BYTES = 20 * 1024 * 1024
+
+
+def _extract_eml_units(content: bytes) -> list[SourceUnit]:
+    """Un'email salvata (.eml): intestazione, corpo e allegati leggibili.
+
+    Il riferimento della citazione e' l'email stessa (oggetto e data), cosi'
+    chi legge sa da quale messaggio viene un accordo o una condizione. Gli
+    allegati supportati diventano unita' con il loro riferimento interno
+    (pagina, sezione) preceduto dal nome dell'allegato.
+    """
+    import email
+    from email import policy
+
+    message = email.message_from_bytes(content, policy=policy.default)
+    subject = str(message.get("Subject", "") or "(senza oggetto)").strip()
+    date = str(message.get("Date", "") or "").strip()
+    where = f"Email: {subject}" + (f" ({date})" if date else "")
+    header = "\n".join(
+        f"{label}: {value}"
+        for label, value in (
+            ("Da", message.get("From", "")),
+            ("A", message.get("To", "")),
+            ("Cc", message.get("Cc", "")),
+            ("Data", date),
+            ("Oggetto", subject),
+        )
+        if value
+    )
+
+    body_part = message.get_body(preferencelist=("plain", "html"))  # type: ignore[attr-defined]
+    body = ""
+    if body_part is not None:
+        body = str(body_part.get_content() or "")
+        if body_part.get_content_subtype() == "html":
+            body = "\n\n".join(unit.text for unit in _extract_html_units(body.encode("utf-8")))
+    body = body.replace("\r\n", "\n").strip()
+
+    units = [SourceUnit(f"{header}\n\n{body}".strip(), where)]
+    for part in message.iter_attachments():  # type: ignore[attr-defined]
+        name = Path(str(part.get_filename() or "")).name
+        suffix = Path(name).suffix.lower()
+        if not name or suffix not in _EML_ATTACHMENT_SUFFIXES:
+            continue
+        decoded = part.get_payload(decode=True)
+        payload = decoded if isinstance(decoded, bytes) else b""
+        if not payload or len(payload) > _EML_ATTACHMENT_MAX_BYTES:
+            _logger.warning("Allegato %s dell'email %r saltato: vuoto o troppo grande", name, subject)
+            continue
+        try:
+            inner = extract_source_units(name, payload)
+        except DocumentParseError as error:
+            _logger.warning("Allegato %s dell'email %r non leggibile: %s", name, subject, error)
+            continue
+        # Il testo di un allegato da solo non dice a cosa si riferisce (un
+        # listino che non nomina il prodotto, un modulo senza destinatario):
+        # nome e oggetto davanti lo rendono trovabile. Misurato sulla suite
+        # PMI: senza, le domande sul listino allegato fallivano.
+        context = f"Allegato {name} all'email «{subject}»:\n"
+        units += [SourceUnit(context + unit.text, f"{where}, allegato {name} — {unit.locator}") for unit in inner]
+    return [unit for unit in units if unit.text.strip()]
 
 
 class _OcrSession:

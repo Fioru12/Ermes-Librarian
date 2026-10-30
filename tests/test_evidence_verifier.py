@@ -30,13 +30,18 @@ def attivo(monkeypatch):
 
 
 def _risponde(monkeypatch, verdetti):
-    """Simula il modello: un verdetto per ogni passaggio, in ordine."""
-    coda = list(verdetti)
+    """Simula il modello: un verdetto per passaggio.
+
+    Con piu' passaggi i verdetti vanno dati per testo (dict): la verifica li
+    esamina in parallelo, quindi l'ordine delle chiamate non e' quello delle
+    citazioni, e una coda in ordine rendeva i test casuali.
+    """
+    coda = list(verdetti) if not isinstance(verdetti, dict) else []
     chiamate = []
 
     def finto(domanda, passaggio):
         chiamate.append((domanda, passaggio))
-        return coda.pop(0)
+        return verdetti[passaggio] if isinstance(verdetti, dict) else coda.pop(0)
 
     monkeypatch.setattr(verificatore, "_passaggio_risponde", finto)
     return chiamate
@@ -69,7 +74,7 @@ def test_a_passage_the_model_accepts_survives(attivo, monkeypatch):
 def test_only_the_relevant_passages_survive(attivo, monkeypatch):
     buona = _citazione("Le ferie si richiedono con quindici giorni di anticipo.")
     citazioni = [_citazione("Procedura di backup"), buona, _citazione("Non conformita'")]
-    _risponde(monkeypatch, [False, True, False])
+    _risponde(monkeypatch, {"Procedura di backup": False, buona["excerpt"]: True, "Non conformita'": False})
 
     superstiti, _ = verify_citations("come chiedo le ferie?", citazioni)
 
@@ -78,7 +83,7 @@ def test_only_the_relevant_passages_survive(attivo, monkeypatch):
 
 def test_every_candidate_is_examined(attivo, monkeypatch):
     """Fermarsi al primo SI lascerebbe passare gli altri due senza controllo."""
-    chiamate = _risponde(monkeypatch, [True, True, False])
+    chiamate = _risponde(monkeypatch, {"uno": True, "due": True, "tre": False})
 
     verify_citations("domanda", [_citazione("uno"), _citazione("due"), _citazione("tre")])
 
@@ -140,8 +145,8 @@ def test_an_unreachable_model_leaves_the_citations_untouched(attivo, monkeypatch
 def test_a_failure_partway_through_does_not_drop_earlier_passages(attivo, monkeypatch):
     """Altrimenti un guasto a meta' produrrebbe una risposta amputata che
     sembra il risultato di un giudizio."""
-    coda = [False, None]
-    monkeypatch.setattr(verificatore, "_passaggio_risponde", lambda d, p: coda.pop(0))
+    verdetti = {"uno": False, "due": None}
+    monkeypatch.setattr(verificatore, "_passaggio_risponde", lambda d, p: verdetti[p])
     citazioni = [_citazione("uno"), _citazione("due")]
 
     superstiti, verificata = verify_citations("domanda", citazioni)
@@ -328,3 +333,124 @@ def test_the_text_sent_to_the_model_is_pii_filtered(attivo, monkeypatch):
 
     assert "RSSMRA85M01H501Z" not in visto["domanda"], "la domanda arriva al modello non filtrata"
     assert "RSSMRA85M01H501Z" not in visto["passaggio"], "il passaggio arriva al modello non filtrato"
+
+
+# ============================================================
+# Chi verifica: la politica della biblioteca
+# ============================================================
+
+
+def _cloud(monkeypatch, consenso: bool = True, chiave: str = "sk-test"):
+    """Configurazione con verifica attiva e, se richiesto, consenso cloud."""
+    import core.evidence_assistant as assistente
+
+    nuova = config.cfg.replace(
+        EVIDENCE_VERIFIER_ENABLED=True, LIBRARY_CLOUD_CONSENT=consenso, OPENROUTER_API_KEY=chiave
+    )
+    monkeypatch.setattr(config, "cfg", nuova)
+    monkeypatch.setattr(assistente, "cfg", nuova)
+    # Il percorso cloud non deve mai cadere su Ollama.
+    monkeypatch.setattr(verificatore, "_passaggio_risponde", lambda d, p: pytest.fail("verifica finita su Ollama"))
+    return assistente
+
+
+def test_a_cloud_library_is_verified_by_its_approved_openrouter_model(monkeypatch):
+    """Chi non ha un modello locale ottiene la verifica dallo stesso provider
+    a cui la biblioteca manda gia' i passaggi per la risposta."""
+    assistente = _cloud(monkeypatch)
+    chiamate = []
+
+    def finto(system_prompt, prompt, temperature):
+        chiamate.append((system_prompt, prompt, temperature))
+        return "SI" if "quindici giorni" in prompt else "NO"
+
+    monkeypatch.setattr(assistente, "openrouter_chat", finto)
+    buona = _citazione("Le ferie si richiedono con quindici giorni di anticipo.")
+    fuori_tema = _citazione("Il parcheggio est e' riservato ai visitatori.")
+
+    superstiti, verificata = verify_citations("come chiedo le ferie?", [buona, fuori_tema], "approved_openrouter")
+
+    assert superstiti == [buona]
+    assert verificata is True
+    assert len(chiamate) == 2
+    assert all(temperatura == 0 for _, _, temperatura in chiamate), "il verdetto deve essere ripetibile"
+
+
+def test_an_approved_provider_library_is_verified_by_that_provider(monkeypatch):
+    assistente = _cloud(monkeypatch)
+    nomi = []
+
+    def finto(provider_name, system_prompt, prompt, temperature):
+        nomi.append(provider_name)
+        return "SI"
+
+    monkeypatch.setattr(assistente, "approved_provider_chat", finto)
+
+    _, verificata = verify_citations("domanda", [_citazione("uno")], "approved_provider", "Azienda Claude")
+
+    assert verificata is True
+    assert nomi == ["Azienda Claude"]
+
+
+def test_without_cloud_consent_a_cloud_library_is_not_verified_and_says_so(monkeypatch):
+    """Il consenso si controlla nel trasporto condiviso con la generazione:
+    senza, niente parte e la risposta dichiara che la verifica non c'e' stata."""
+    _cloud(monkeypatch, consenso=False)
+    import core.evidence_assistant as assistente
+
+    monkeypatch.setattr(assistente, "_get_http_client", lambda: pytest.fail("chiamata di rete senza consenso cloud"))
+    citazioni = [_citazione("uno"), _citazione("due")]
+
+    superstiti, verificata = verify_citations("domanda", citazioni, "approved_openrouter")
+
+    assert superstiti == citazioni
+    assert verificata is False
+
+
+def test_a_local_library_keeps_using_the_local_model(attivo, monkeypatch):
+    import core.evidence_assistant as assistente
+
+    monkeypatch.setattr(assistente, "openrouter_chat", lambda *a: pytest.fail("biblioteca locale verificata nel cloud"))
+    _risponde(monkeypatch, [True])
+
+    _, verificata = verify_citations("domanda", [_citazione("uno")], "local_ollama")
+
+    assert verificata is True
+
+
+@pytest.mark.parametrize("stream", [False, True])
+def test_the_answer_endpoints_hand_the_library_policy_to_the_verifier(tmp_path, monkeypatch, stream):
+    """Senza questo passaggio la scelta cloud della biblioteca non arriverebbe
+    al verificatore, che resterebbe su Ollama anche dove Ollama non c'e'."""
+    import core.evidence_verifier
+    from api.libraries import ask
+    from core.library_store import LibraryStore
+
+    store = LibraryStore(tmp_path / "ermes.sqlite3")
+    library = store.create_library("Amministrazione", "", "private", owner_id="alice")
+    store.add_document(
+        library["id"],
+        "spese.md",
+        "text/markdown",
+        b"x",
+        "x/spese.md",
+        chunks=[("La nota spese va consegnata entro il quinto giorno lavorativo.", "Sezione: Scadenze")],
+    )
+    store.set_assistant_policy(library["id"], "approved_provider", "Azienda Claude")
+    visto = []
+
+    def cattura(question, citations, mode="evidence_only", provider_name=""):
+        visto.append((mode, provider_name))
+        return citations, True
+
+    monkeypatch.setattr(core.evidence_verifier, "verify_citations", cattura)
+    monkeypatch.setattr(ask, "answer_from_evidence", lambda *a, **k: ("Entro il quinto giorno [1]", "supported", None))
+    monkeypatch.setattr(ask, "append_audit", lambda *a, **k: None)
+    alice = {"username": "alice", "role": "viewer"}
+
+    if stream:
+        list(ask._answer_question_stream(store, library["id"], "entro quando la nota spese?", 3, alice))
+    else:
+        ask._answer_question(store, library["id"], "entro quando la nota spese?", 3, alice)
+
+    assert visto == [("approved_provider", "Azienda Claude")]
