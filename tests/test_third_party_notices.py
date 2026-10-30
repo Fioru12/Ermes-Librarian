@@ -134,3 +134,16 @@ def test_the_project_license_and_the_notice_agree():
     assert "Version 3" in licenza
     assert "GNU General Public License v3.0" in notice
     assert re.search(r"Copyright \(c\) \d{4} \S+", notice), "manca la riga di copyright in NOTICE"
+
+
+def test_the_license_file_is_the_complete_unaltered_gpl3_text():
+    """LICENSE era una GPL-3.0 tagliata e modificata: 264 righe invece di 674, le sezioni 7-17 con il
+    solo titolo, parole cambiate e il copyright della FSF sostituito. Un testo alterato non e' la
+    GPL (e GitHub non la riconosceva). Il titolare del copyright va in NOTICE, non qui."""
+    licenza = (RADICE / "LICENSE").read_text(encoding="utf-8").replace("\r\n", "\n")
+    assert "Copyright (C) 2007 Free Software Foundation, Inc. <https://fsf.org/>" in licenza
+    for sezione in range(18):
+        assert re.search(rf"^  {sezione}\. \S", licenza, re.M), f"manca la sezione {sezione}"
+    assert "15. Disclaimer of Warranty.\n\n  THERE IS NO WARRANTY FOR THE PROGRAM" in licenza
+    assert len(licenza.splitlines()) >= 670, "testo della licenza incompleto"
+    assert "How to Apply These Terms to Your New Programs" in licenza
