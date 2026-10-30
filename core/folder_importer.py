@@ -14,7 +14,7 @@ from pathlib import Path
 
 from core.library_store import storage_relative_path
 
-SUPPORTED_EXTENSIONS = {".txt", ".md", ".markdown", ".pdf", ".docx", ".xlsx", ".pptx", ".csv", ".rtf"}
+SUPPORTED_EXTENSIONS = {".txt", ".md", ".markdown", ".pdf", ".docx", ".xlsx", ".pptx", ".csv", ".rtf", ".eml"}
 
 MEDIA_TYPES = {
     ".pdf": "application/pdf",
@@ -26,6 +26,7 @@ MEDIA_TYPES = {
     ".pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
     ".csv": "text/csv",
     ".rtf": "application/rtf",
+    ".eml": "message/rfc822",
 }
 
 MAX_IMPORT_FILE_BYTES = 50 * 1024 * 1024  # allineato a un limite prudenziale

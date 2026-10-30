@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import uuid
+from datetime import UTC, datetime
 from pathlib import Path
 from urllib.parse import quote
 
@@ -399,6 +400,58 @@ def summarize_library_document(
     }
 
 
+class ReviewDueRequest(BaseModel):
+    # Data ISO (AAAA-MM-GG); vuota per togliere la scadenza.
+    review_due: str = Field(default="", max_length=10, pattern=r"^(\d{4}-\d{2}-\d{2})?$")
+
+
+@router.put("/{library_id}/documents/{document_id}/review-due")
+def set_document_review_due(
+    library_id: str,
+    document_id: str,
+    request: ReviewDueRequest,
+    _auth: dict = Depends(_require_role("editor")),
+    store: LibraryStore = Depends(get_library_store),
+):
+    """Data entro cui il documento va rivisto (procedura, DVR, certificato)."""
+    try:
+        store.get_library(library_id, _auth, write=True)
+        store.get_document(library_id, document_id, _auth)
+        document = store.set_review_due(library_id, document_id, request.review_due)
+    except (LibraryNotFoundError, LibraryAccessError) as error:
+        raise HTTPException(status_code=404, detail="Documento non trovato") from error
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail="Data non valida") from error
+    append_audit(
+        cfg.AUDIT_FILE,
+        "document_review_due_changed",
+        _auth["username"],
+        {"library_id": library_id, "document_id": document_id, "review_due": request.review_due},
+    )
+    return {"id": document["id"], "review_due": document.get("review_due", "")}
+
+
+@router.get("/{library_id}/reviews-due")
+def list_documents_due_for_review(
+    library_id: str,
+    within_days: int = Query(default=30, ge=0, le=365),
+    today: str | None = Query(default=None, pattern=r"^\d{4}-\d{2}-\d{2}$"),
+    _auth: dict = Depends(_verify_api_key),
+    store: LibraryStore = Depends(get_library_store),
+):
+    """Documenti con revisione scaduta o in scadenza, dal piu' urgente.
+
+    `today` e' la data dell'ufficio mandata dall'interfaccia: il server puo'
+    stare in un altro fuso orario. Rispetta i permessi per documento.
+    """
+    riferimento = today or datetime.now(UTC).date().isoformat()
+    try:
+        items = store.documents_due_for_review(library_id, _auth, riferimento, within_days)
+    except (LibraryNotFoundError, LibraryAccessError) as error:
+        raise HTTPException(status_code=404, detail="Biblioteca non trovata") from error
+    return {"items": items, "today": riferimento, "within_days": within_days}
+
+
 @router.get("/{library_id}/documents/{document_id}/acl")
 def get_document_acl(
     library_id: str,
@@ -499,6 +552,56 @@ def reindex_library_document(
         store.store_chunk_embeddings(library_id, document_id, embeddings, cfg.EMBED_MODEL_ID)
 
     return result
+
+
+def _version_content(source: dict) -> bytes:
+    """L'originale di una versione, dallo storage o dal disco locale."""
+    try:
+        return bytes(get_storage_provider().get(source["storage_path"]))
+    except Exception:
+        source_path = resolve_storage_path(source["storage_path"], cfg.LIBRARY_STORAGE_DIR)
+        if not source_path.is_file():
+            raise HTTPException(status_code=409, detail="Originale della versione non disponibile") from None
+        return source_path.read_bytes()
+
+
+@router.get("/{library_id}/documents/{document_id}/versions/compare")
+def compare_document_versions(
+    library_id: str,
+    document_id: str,
+    from_version: int = Query(alias="from", ge=1),
+    to_version: int = Query(alias="to", ge=1),
+    _auth: dict = Depends(_verify_api_key),
+    store: LibraryStore = Depends(get_library_store),
+):
+    """Cosa e' cambiato fra due versioni, sezione per sezione (core/version_diff.py).
+
+    Stessi controlli di accesso della lettura del documento, allow-list per
+    documento compresa: chi non puo' aprire il documento non ne vede le
+    differenze.
+    """
+    from core.version_diff import compare_units
+
+    try:
+        versions = store.list_document_versions(library_id, document_id, _auth)
+    except (LibraryNotFoundError, LibraryAccessError) as error:
+        raise HTTPException(status_code=404, detail="Documento non trovato") from error
+    by_number = {item["version"]: item for item in versions}
+    if from_version not in by_number or to_version not in by_number:
+        raise HTTPException(status_code=404, detail="Versione non trovata")
+    try:
+        before = extract_source_units(by_number[from_version]["filename"], _version_content(by_number[from_version]))
+        after = extract_source_units(by_number[to_version]["filename"], _version_content(by_number[to_version]))
+    except DocumentParseError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+    changes = compare_units(before, after)
+    return {
+        "document_id": document_id,
+        "from": {"version": from_version, "created_at": by_number[from_version]["created_at"]},
+        "to": {"version": to_version, "created_at": by_number[to_version]["created_at"]},
+        "identical": not changes,
+        "changes": [change.as_dict() for change in changes],
+    }
 
 
 @router.post("/{library_id}/documents/{document_id}/versions/{version}/restore")

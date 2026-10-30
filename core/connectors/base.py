@@ -20,6 +20,12 @@ class RemoteDocument:
     source_url: str
     last_modified: str
     metadata: dict[str, Any] = field(default_factory=dict)
+    # Chi vede il file sull'origine (email, DOMINIO\\utente, nome utente).
+    # None: il connettore non lo sa, o l'origine dice "tutti" — il documento
+    # segue le regole della biblioteca. Vuoto: nessuno e' traducibile, il
+    # documento resta al proprietario e agli amministratori. Vedi
+    # core/connector_ingest.py.
+    allowed_principals: tuple[str, ...] | None = None
 
 
 @dataclass(frozen=True)

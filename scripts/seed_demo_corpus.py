@@ -122,6 +122,10 @@ def seed_library(client: httpx.Client, name: str, description: str, folder: Path
 
 
 def main() -> int:
+    # La console di Windows usa cp1252 e si bloccava sulla prima emoji (UnicodeEncodeError):
+    # lo script si fermava prima di caricare qualunque documento.
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     load_env()
     default_url = os.environ.get("ERMES_DEMO_URL", "http://127.0.0.1:8502").rstrip("/")
     default_user = os.environ.get("ERMES_ADMIN_USERNAME", "admin")
