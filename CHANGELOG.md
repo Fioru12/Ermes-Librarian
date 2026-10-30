@@ -2,6 +2,10 @@
 
 Registro leggibile del lavoro su questo progetto. Per i finding tecnici completi, [docs/AUDIT_2026-08-19.md](docs/AUDIT_2026-08-19.md) e [docs/CODE_REVIEW.md](docs/CODE_REVIEW.md). La roadmap per fasi e il registro delle sessioni (`ROADMAP_V2.md`, `WORK_PROGRESS.md`) sono stati tolti dall'albero pubblico il 18 settembre 2026: la cronologia Git li conserva.
 
+## 2026-10-30 (2) — I test non leggono piu' il .env di chi sviluppa
+
+Lo stesso test passava o falliva a seconda del `.env` del PC: con `ERMES_LIBRARY_ASSISTANT_MODE=local_ollama` (scritto da `configure_ai.py`) quattro test fallivano, senza nessun difetto nel codice. La configurazione accetta ora `ERMES_ENV_FILE` (un altro file, oppure vuota per non caricarne nessuno) e `tests/conftest.py` la svuota, fornendo i valori che servono ai test (gli stessi che la CI scriveva nel suo `.env`). Verificato: la suite intera passa senza variabili esterne (933 test) e i dati veri del progetto restano invariati.
+
 ## 2026-10-28 — Permessi ereditati da SharePoint/OneDrive e Google Drive; email come documenti; domande fallite verso il gold set
 
 - **Permessi dalle fonti.** I connettori Microsoft 365 e Google Drive leggono chi vede ogni file sull'origine e lo scrivono come allow-list del documento, nella stessa transazione dell'inserimento. Un link aperto all'organizzazione non aggiunge vincoli; permessi illeggibili o nessun nome riconoscibile chiudono il documento al proprietario della biblioteca e agli amministratori. Un accesso tolto sull'origine sparisce alla sincronizzazione successiva anche se il file non cambia. I quattro cicli di importazione duplicati (API completa e incrementale, scheduler completo e incrementale) passano ora da `core/connector_ingest.py`. Cartelle di rete Windows, Confluence, S3 e WebDAV non ereditano ancora i permessi.

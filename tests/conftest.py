@@ -13,6 +13,18 @@ import tempfile as _tempfile
 # state trovate ~30 biblioteche "HR Test" create cosi', e un "disk I/O error" quando un'istanza
 # in Docker usava lo stesso file nello stesso momento). Va impostata prima di importare `config`.
 os.environ["ERMES_BASE_DIR"] = _tempfile.mkdtemp(prefix="ermes-test-")
+# Ne' il .env di chi sviluppa: lo stesso test passava o falliva a seconda della configurazione del
+# PC (per esempio ERMES_LIBRARY_ASSISTANT_MODE=local_ollama). I valori che servono ai test sono
+# questi, gli stessi che la CI scriveva nel suo .env.
+os.environ["ERMES_ENV_FILE"] = ""
+for _chiave, _valore in {
+    "ERMES_API_KEY": "test-key-123",
+    "ERMES_DEFAULT_MODEL_ID": "test-model",
+    "ERMES_BACKUP_ENABLED": "0",
+    "ERMES_HOST": "127.0.0.1",
+    "ERMES_PORT": "8502",
+}.items():
+    os.environ.setdefault(_chiave, _valore)
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
