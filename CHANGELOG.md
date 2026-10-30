@@ -9,6 +9,9 @@ Trovati guardando la dashboard con dati veri, preparando la presentazione.
 - I quattro numeri in alto (richieste, domande, tasso di astensione, prompt injection) contavano dall'ultimo riavvio di Ermes: si azzeravano a ogni restart e ignoravano il periodo scelto in alto a destra. Ora contano nel periodo scelto (`increase(...[$__range])`). Provate sul Prometheus vero: 320 richieste, 36 domande, 44,2% di astensioni nell'ultima ora.
 - I due grafici delle latenze univano i vuoti (`spanNulls: true`): un'ora senza richieste diventava una linea continua, come se ci fossero misure. Ora un vuoto resta un vuoto.
 - Tre test nuovi: i numeri devono dipendere dal periodo, nessun grafico unisce i vuoti, un rapporto mostrato in percentuale va moltiplicato per 100 (riscrivendo la formula il `* 100` era andato perso e il pannello mostrava 0,44%: preso prima del merge).
+## 2026-10-30 (2) — I test non leggono piu' il .env di chi sviluppa
+
+Lo stesso test passava o falliva a seconda del `.env` del PC: con `ERMES_LIBRARY_ASSISTANT_MODE=local_ollama` (scritto da `configure_ai.py`) quattro test fallivano, senza nessun difetto nel codice. La configurazione accetta ora `ERMES_ENV_FILE` (un altro file, oppure vuota per non caricarne nessuno) e `tests/conftest.py` la svuota, fornendo i valori che servono ai test (gli stessi che la CI scriveva nel suo `.env`). Verificato: la suite intera passa senza variabili esterne (933 test) e i dati veri del progetto restano invariati.
 
 ## 2026-10-28 — Permessi ereditati da SharePoint/OneDrive e Google Drive; email come documenti; domande fallite verso il gold set
 

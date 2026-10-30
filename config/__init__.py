@@ -24,8 +24,12 @@ from config.storage import StorageConfig
 try:
     from dotenv import load_dotenv as _load_dotenv
 
-    _env_path = _os.path.join(_os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))), ".env")
-    if _os.path.exists(_env_path):
+    # ERMES_ENV_FILE sceglie un altro file; vuota = non caricarne nessuno (i test la usano per
+    # non dipendere dal .env di chi sviluppa).
+    _env_path = _os.environ.get(
+        "ERMES_ENV_FILE", _os.path.join(_os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))), ".env")
+    )
+    if _env_path and _os.path.exists(_env_path):
         _load_dotenv(_env_path, encoding="utf-8")
         _load_dotenv(_env_path)  # fallback senza encoding specifico
 except ImportError:
