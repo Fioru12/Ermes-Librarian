@@ -16,6 +16,29 @@ from core.connectors.base import BaseConnector, DeltaSyncResult, RemoteDocument
 _logger = logging.getLogger(__name__)
 
 
+def graph_permissions_to_principals(permissions: list[dict]) -> tuple[str, ...] | None:
+    """Traduce i permessi Graph di un file in un elenco di identita'.
+
+    Un link aperto a chiunque o a tutta l'organizzazione vuol dire che chi e'
+    nella biblioteca lo vedrebbe comunque: None, nessun vincolo aggiuntivo.
+    """
+    principals: set[str] = set()
+    for permission in permissions:
+        if (permission.get("link") or {}).get("scope") in {"anonymous", "organization"}:
+            return None
+        granted = [permission.get("grantedToV2"), permission.get("grantedTo")]
+        granted += list(permission.get("grantedToIdentitiesV2") or []) + list(
+            permission.get("grantedToIdentities") or []
+        )
+        for identity in granted:
+            for kind in ("user", "siteUser", "group", "siteGroup"):
+                entity = (identity or {}).get(kind) or {}
+                name = entity.get("email") or entity.get("userPrincipalName") or entity.get("loginName")
+                if name:
+                    principals.add(str(name))
+    return tuple(sorted(principals))
+
+
 class MicrosoftGraphConnector(BaseConnector):
     """
     Connettore per Microsoft SharePoint & OneDrive tramite Microsoft Graph API.
@@ -34,6 +57,30 @@ class MicrosoftGraphConnector(BaseConnector):
         self.client_secret = config.get("client_secret", "")
         self.drive_id = config.get("drive_id", "")
         self.folder_path = config.get("folder_path", "/")
+        # Spento solo su richiesta esplicita: senza, un file riservato su
+        # SharePoint diventa visibile a tutta la biblioteca.
+        self.inherit_permissions = bool(config.get("inherit_permissions", True))
+
+    def _drive_base(self) -> str:
+        return (
+            f"https://graph.microsoft.com/v1.0/drives/{self.drive_id}"
+            if self.drive_id
+            else "https://graph.microsoft.com/v1.0/me/drive"
+        )
+
+    def _item_principals(self, client: httpx.Client, headers: dict[str, str], item_id: str) -> tuple[str, ...] | None:
+        """Chi vede il file su SharePoint/OneDrive. Illeggibile = nessuno (chiude)."""
+        if not self.inherit_permissions:
+            return None
+        try:
+            res = client.get(f"{self._drive_base()}/items/{item_id}/permissions", headers=headers)
+        except Exception as error:
+            _logger.warning("Permessi del file %s non leggibili: %s", item_id, error)
+            return ()
+        if res.status_code != 200:
+            _logger.warning("Permessi del file %s non leggibili (HTTP %s)", item_id, res.status_code)
+            return ()
+        return graph_permissions_to_principals(res.json().get("value", []))
 
     def _get_access_token(self) -> str:
         if not self.tenant_id or not self.client_id or not self.client_secret:
@@ -99,6 +146,7 @@ class MicrosoftGraphConnector(BaseConnector):
                                     source_url=str(item.get("webUrl", "")),
                                     last_modified=str(item.get("lastModifiedDateTime", "")),
                                     metadata={"size": item.get("size", 0), "etag": item.get("eTag", "")},
+                                    allowed_principals=self._item_principals(client, headers, str(item.get("id", ""))),
                                 )
                             )
         return documents
@@ -163,6 +211,7 @@ class MicrosoftGraphConnector(BaseConnector):
                                             source_url=str(item.get("webUrl", "")),
                                             last_modified=str(item.get("lastModifiedDateTime", "")),
                                             metadata={"size": item.get("size", 0), "etag": item.get("eTag", "")},
+                                            allowed_principals=self._item_principals(client, headers, item_id),
                                         )
                                     )
                             except Exception as dl_err:

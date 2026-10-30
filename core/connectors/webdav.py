@@ -19,7 +19,7 @@ from core.connectors.base import BaseConnector, RemoteDocument
 
 _logger = logging.getLogger(__name__)
 
-SUPPORTED_EXTENSIONS = {".pdf", ".docx", ".txt", ".md", ".markdown", ".xlsx", ".pptx", ".csv", ".rtf"}
+SUPPORTED_EXTENSIONS = {".pdf", ".docx", ".txt", ".md", ".markdown", ".xlsx", ".pptx", ".csv", ".rtf", ".eml"}
 
 MEDIA_TYPES = {
     ".pdf": "application/pdf",
@@ -31,6 +31,7 @@ MEDIA_TYPES = {
     ".pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
     ".csv": "text/csv",
     ".rtf": "application/rtf",
+    ".eml": "message/rfc822",
 }
 
 

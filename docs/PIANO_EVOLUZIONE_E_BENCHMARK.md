@@ -1,14 +1,14 @@
 # 🚀 Ermes Knowledge — Benchmark Competitivo e Piano di Evoluzione (2026)
 
 > **Documento:** Analisi di Posizionamento Tecnologico e Roadmap di Innovazione  
-> **Versione Progetto:** 2.4.0  
-> **Data:** Ottobre 2026  
+> **Versione Progetto:** 2.4.1  
+> **Data:** Ottobre 2026 (priorita' riviste il 27 ottobre 2026, vedi sezione 4)  
 > **Stato:** Strategico / Architettura  
 > **Natura:** documento di lavoro. Le colonne "Gap" del confronto sono ipotesi non verificate; il confronto controllato con gli altri progetti e' nel README. Le date della roadmap sono indicative.  
 
 ---
 
-## 1. Executive Assessment dello Stato Attuale (v2.4.0)
+## 1. Executive Assessment dello Stato Attuale (v2.4.1)
 
 Ermes Knowledge e' un prodotto funzionante e ben testato, ma **non ancora provato in produzione da utenti esterni**. Cio' che e' verificato (test, CI, monitoraggio su Docker) e cio' che non lo e' (carico reale, consegna degli avvisi su Slack/Teams, prova con screen reader) e' elencato in [`CHANGELOG.md`](../CHANGELOG.md) e [`docs/BENCHMARKS.md`](BENCHMARKS.md). Punti di forza dell'architettura:
 
@@ -23,6 +23,17 @@ Ermes Knowledge e' un prodotto funzionante e ben testato, ma **non ancora provat
 - **Integrazioni e Canali Estesi:** Connettori cartelle NAS/SMB, Microsoft Graph (SharePoint/OneDrive), Confluence, S3, WebDAV, server nativo Model Context Protocol (MCP), webhook per n8n/Zapier e bot per Slack, Teams e Telegram.
 - **Esperienza Desktop:** un lanciatore Windows in C# (`scripts/launcher/ErmesLauncher.cs`, si compila con `scripts/build_exe.ps1`; il binario non e' nel repository) con istanza unica, icona nell'area di notifica e apertura in finestra propria tramite Edge o Chrome in modalita' app.
 - **Affidabilità e qualità del codice:** oltre 850 test backend, oltre 110 test frontend, suite E2E in CI, Tailwind 4 (0 avvisi npm) e backend dati SQLite o PostgreSQL + pgvector.
+
+**Punti deboli misurati (27 ottobre 2026).** La suite PMI (`python evaluation/run_library_eval.py --suite pmi`: 10 documenti realistici, 172 domande) mostra che la configurazione predefinita non mantiene ancora la promessa principale. Dettagli in [`docs/RETRIEVAL_EVALUATION.md`](RETRIEVAL_EVALUATION.md):
+
+| Configurazione predefinita (solo parole, nessun modello) | Valore |
+|---|---|
+| Domande dirette | 0.952 |
+| Parafrasi | 0.569 (scende a 0.35-0.40 con ~25 documenti estranei per biblioteca) |
+| Astensione | 0.178 (2 su 45 con documenti estranei) |
+| Trappole (argomento presente, risposta assente) | 2 su 20 |
+
+La verifica dell'evidenza e' l'unico rimedio misurato (16/16 astensioni sul gold set storico), ma sulla suite PMI non e' ancora misurata.
 
 ---
 
@@ -69,71 +80,107 @@ Ermes Knowledge possiede caratteristiche uniche che i software concorrenti gener
 
 ---
 
-## 4. Piano di Innovazione e Roadmap Dettagliata
+## 4. Priorita' riviste (27 ottobre 2026)
 
-Sulla base del benchmark, sono state identificate 6 iniziative strategiche per estendere il valore del prodotto.
+Target scelto: **PMI e professionisti con vincoli di riservatezza** (studi, uffici qualita', amministrazione), installazione locale. Le funzioni enterprise gia' presenti (Helm, worker distribuito, SCIM, PostgreSQL) restano nel codice ma non ricevono nuovo lavoro finche' un cliente reale non le chiede.
 
-### Iniziativa 1: Visual Document Viewer & Evidenziazione Fonte (UX "Effetto Wow")
-- **Problema:** Attualmente l'utente vede la citazione come testo estratto `[1] procedura.pdf — pag. 14`.
-- **Soluzione:**
-  - Integrare un visualizzatore PDF compatto (es. PDF.js) in un drawer/modal a comparsa.
-  - Al clic su `[1]`, il drawer apre istantaneamente il documento originale a **pagina 14** con la frase o la sezione evidenziata in giallo.
-  - **Impatto:** Fornisce una prova visiva immediata e rassicurante per revisori, legali e personale non tecnico.
+Criterio dell'ordine: prima cio' che impedisce a una PMI di usare Ermes o di fidarsi delle risposte, poi cio' che lo distingue dagli altri. Ogni voce indica come si misura il risultato.
 
-### Iniziativa 2: Deep Research & Query Decomposition (Agentic Multi-Hop RAG)
-- **Problema:** Se l'utente pone domande comparative (es. *"Quali differenze ci sono tra il contratto di locazione del 2024 e quello del 2025?"*), una singola ricerca vettoriale recupera frammenti disomogenei.
-- **Soluzione:**
-  - Aggiungere una modalità toggle **"Ricerca approfondita"** (Deep Research).
-  - Un router analizza la query: se è complessa/comparativa, la scompone in 2-3 sotto-domande mirate eseguite in parallelo.
-  - Sintesi comparativa strutturata (es. tabella Markdown con colonne "Aspetto", "2024", "2025", "Citazioni").
+### Gia' fatto (non riproporre)
 
-### Iniziativa 3: Contextual Chunking & Ingestion Avanzata Tabelle
-- **Problema:** Un paragrafo come *"La penale per ritardo è del 5% su base mensile"* estratto a pagina 20 non contiene il nome del fornitore o il tipo di servizio.
-- **Soluzione:**
-  - **Contextual Retrieval:** Durante l'ingestion in background, il modello locale genera un breve prefisso contestuale (es. *"Contratto Fornitore Acme 2024 - Clausola 8 Penali:"*) che viene unito al chunk prima di calcolare l'embedding e il full-text.
-  - **Preservazione Tabelle PDF/Excel:** Riconoscimento intelligente delle tabelle con conversione in Markdown strutturato, conservando la riga di intestazione associata a ciascuna riga dati.
+| Voce | Dove |
+|---|---|
+| Pollice su/giu' con motivazione sulle risposte | `frontend/src/components/chat/ChatArea.tsx`, statistiche in Analytics |
+| Visualizzatore PDF che apre la pagina citata | `ChatArea.tsx` (vista "PDF Pag. N") |
+| Studio: briefing, FAQ, guida di studio, domande suggerite (ex Iniziativa 4) | `core/library_studio.py` |
+| Report stampabile in PDF della conversazione (ex Iniziativa 6, in parte) | pulsante "Report PDF" |
+| Verifica dell'evidenza con modello locale o con l'API cloud approvata per la biblioteca | `core/evidence_verifier.py` |
+| Scelta esplicita del modello all'installazione: solo estratti, Ollama, API pubblica | `scripts/configure_ai.py`, `SETUP_WIZARD.bat` |
+| Suite di valutazione PMI con trappole e domande colloquiali | `evaluation/pmi_corpus/`, `evaluation/pmi_gold_set.json` |
 
-### Iniziativa 4: Studio Documentale Enterprise (Stile NotebookLM Offline)
-- **Problema:** Spesso l'utente non vuole fare una domanda specifica, ma desidera comprendere rapidamente un nuovo fascicolo documentale.
-- **Soluzione:**
-  - Potenziare la scheda **Studio** (`core/library_studio.py`):
-    - **Executive Summary:** Generazione di una sintesi esecutiva in 1 pagina dell'intera biblioteca.
-    - **FAQ della Biblioteca:** Estrazione automatica delle 10 domande e risposte più importanti.
-    - **Formazione & Onboarding:** Generazione di schede didattiche e quiz a risposta multipla con riferimenti per formare il personale sui regolamenti interni.
+### Priorita' 1 — Bloccano l'uso o la fiducia
 
-### Iniziativa 5: Interazione Vocale Locale (Whisper STT + Piper TTS)
-- **Problema:** L'inserimento da tastiera può essere limitante in contesti di produzione, magazzino o mobilità aziendale.
-- **Soluzione:**
-  - **Speech-to-Text (Input):** Icona microfono per dettatura vocale della query elaborata in locale con Whisper (CPU/GPU-friendly).
-  - **Text-to-Speech (Output):** Pulsante "Ascolta risposta" che legge l'estratto con voce naturale (es. tramite Piper TTS, 100% offline e ultra-leggero).
+**1.1 Misurare la verifica dell'evidenza sulla suite PMI, poi decidere il default.**
+- Comando: `run_library_eval.py --suite pmi --semantic --verify` (Ollama) oppure `--verify --verifier openrouter`.
+- Se l'astensione sale a 0.9 o piu' senza perdere le dirette: ricerca a vettori + verifica diventano il default delle modalita' locale e cloud nel setup, e il numero va nel README.
+- Se no: si lavora sul verificatore (prompt, modello) prima di qualsiasi altra voce.
 
-### Iniziativa 6: Esportazione formattata (PDF / DOCX aziendale)
-- **Problema:** L'esportazione attuale produce un file Markdown (`.md`), che richiede formattazione manuale prima di essere allegato a pratiche ufficiali.
-- **Soluzione:**
-  - Generazione di report in formato **PDF/Word con layout istituzionale**:
-    - Frontespizio con logo aziendale Ermes, data/ora e utente che ha eseguito l'interrogazione.
-    - Testo della risposta con numerazione progressiva delle citazioni.
-    - Tabella conclusiva di conformità con elenco dei documenti consultati, relative pagine, data di modifica e digest crittografici SHA-256.
+**1.2 Installer senza prerequisiti.**
+- Oggi servono Python 3.11 e Node.js installati a mano (`scripts/installer/ermes_setup.iss` lo dichiara: "non include Python").
+- Obiettivo: un `.exe` che contiene Python embedded e il frontend gia' compilato. Chi installa non apre mai un terminale.
+- Misura: installazione su un PC Windows pulito, senza Python ne' Node, in meno di 10 minuti.
 
----
+**1.3 Aggiornamento in un clic.**
+- Senza, ogni installazione resta ferma alla versione del giorno in cui e' stata fatta, comprese le correzioni di sicurezza.
+- Obiettivo: controllo della versione all'avvio e aggiornamento con backup automatico prima e ritorno alla versione precedente se l'avvio fallisce.
 
-## 5. Ordine di Priorità e Fasi di Implementazione Suggerite
+**1.4 Email e PEC come documenti.**
+- In una PMI italiana gran parte degli accordi sta nelle email (ordini, PEC, condizioni concordate con i fornitori).
+- Obiettivo: lettura di `.eml` e `.msg` (mittente, data, oggetto come riferimento della citazione; allegati come documenti collegati), poi un connettore IMAP in sola lettura.
+- Misura: domande sulle email aggiunte alla suite PMI.
 
-```mermaid
-gantt
-    title Roadmap Evolutiva Ermes Knowledge
-    dateFormat  YYYY-MM-DD
-    section Fase 1 (UX & Immediate Value)
-    Visual PDF Viewer con Bounding Box        :active, 2026-11-01, 20d
-    Esportazione formattata PDF/Word          :2026-11-15, 15d
-    section Fase 2 (Retrieval Intelligence)
-    Contextual Chunking & Ingestion Tabelle   :2026-12-01, 25d
-    Modalità Deep Research / Multi-Hop RAG    :2026-12-15, 25d
-    section Fase 3 (Advanced Studio & Voice)
-    Studio Documentale (Executive & FAQ)      :2027-01-10, 20d
-    Input/Output Vocale Locale (Whisper/TTS)  :2027-01-25, 20d
-```
+**1.5 Dai giudizi negativi al gold set.**
+- Il pollice giu' esiste, ma i giudizi restano nelle statistiche.
+- Obiettivo: esportare le domande con giudizio negativo (testo della domanda, biblioteca, motivazione; mai il contenuto dei documenti) come candidati per il gold set, da rivedere a mano.
+- Misura: il gold set cresce con domande vere degli utenti pilota.
 
-1. **Fase 1 (Quick Win ad Alto Impatto Visivo):** Visual PDF Viewer con evidenziazione ed esportazione report aziendali.
-2. **Fase 2 (Precisione Algoritmica):** Contextual Retrieval e modalità Deep Research per interrogazioni complesse.
-3. **Fase 3 (Esperienza Avanzata):** Moduli Studio completi e supporto vocale locale.
+**1.6 Permessi ereditati dalle fonti collegate.**
+- Oggi i connettori (cartelle di rete, SharePoint/OneDrive, Google Drive, Confluence) importano i documenti ma non i loro permessi: chi puo' vedere cosa va rifatto a mano, biblioteca per biblioteca. Collegare una cartella condivisa reale puo' quindi mostrare a tutti i membri della biblioteca un file che sull'origine vedevano in pochi.
+- E' il primo controllo che fa un'azienda vera, ed e' cio' che Copilot, Gemini e Glean fanno di serie.
+- Obiettivo: a ogni sincronizzazione, leggere i permessi del file d'origine (ACL NTFS per le cartelle di rete, condivisioni per SharePoint/Drive) e tradurli nella allow-list per documento che esiste gia' (`document_acls`). Gli utenti si abbinano tramite l'identita' gia' gestita (OIDC/SSO, SCIM). Un permesso che non si riesce a tradurre chiude il documento invece di aprirlo.
+- Misura: test per connettore con un file visibile a un solo utente sull'origine, che in Ermes resta visibile solo a lui; un permesso tolto sull'origine sparisce alla sincronizzazione successiva.
+- **Stato (28 ottobre 2026):** fatto per Microsoft 365 (SharePoint/OneDrive) e Google Drive, con `inherit_permissions` attivo di default nel connettore e permessi scritti nella stessa transazione del documento (`core/connector_ingest.py`, `tests/test_connector_permissions.py`). **Non ancora** per le cartelle di rete Windows (permessi NTFS) ne' per Confluence, S3 e WebDAV: lì i documenti seguono ancora le regole della biblioteca. Le NTFS vanno implementate e provate su Windows; i gruppi dell'origine (non le singole persone) restano un nome che vale solo se coincide con un utente Ermes.
+
+### Priorita' 2 — Distinguono Ermes dagli altri
+
+**2.1 Evidenziazione del passaggio nel PDF** (ex Iniziativa 1, completamento).
+- Il PDF si apre gia' alla pagina giusta; manca il passaggio evidenziato. Serve conservare, in ingestione, la posizione del testo nella pagina.
+
+**2.2 Confronto tra versioni di un documento.**
+- Lo storico delle versioni esiste gia'. Rispondere a "cosa e' cambiato tra la revisione 3 e la 4 della procedura?" con le differenze citate per sezione e' raro negli altri prodotti ed e' molto richiesto da qualita', ISO e uffici legali.
+- **Stato (28 ottobre 2026):** fatto. `GET .../versions/compare?from=N&to=M` (`core/version_diff.py`) e pulsante "Confronta con la corrente" nello storico versioni. Confronta i testi estratti dagli originali, sezione per sezione; una sezione rinominata appare come tolta e aggiunta. Manca ancora la risposta in linguaggio naturale ("cosa e' cambiato?" chiesto in chat).
+
+**2.3 Scadenze e revisioni dei documenti.**
+- Data di revisione o scadenza per documento (procedure ISO, DVR, certificati), avviso a chi ne e' responsabile, elenco dei documenti scaduti nella scheda Stato.
+- **Stato (28 ottobre 2026):** fatta la parte centrale: data di revisione per documento ("Scadenza revisione" nel menu del documento), avviso nella lista nei 30 giorni prima e dopo la scadenza, `GET /api/libraries/{id}/reviews-due` con i documenti scaduti o in scadenza, nel rispetto dei permessi per documento. Mancano l'avviso via email o chat al responsabile e l'elenco nella scheda Stato.
+
+**2.4 Domande su piu' documenti** (ex Iniziativa 2).
+- "Elenca tutte le scadenze nelle procedure" oggi fallisce: la ricerca restituisce tre passaggi. Serve scomporre la domanda in sotto-domande o raccogliere i dati in forma strutturata, con le stesse regole di citazione e astensione.
+
+**2.5 Passaggi con il loro contesto** (ex Iniziativa 3).
+- Prima, la versione gratuita: anteporre a ogni passaggio titolo del documento e della sezione prima dell'indicizzazione. Poi, solo se la misura lo giustifica, il prefisso generato dal modello.
+- Misura: parafrasi e trappole sulla suite PMI, prima e dopo.
+
+**2.6 Un reranker multilingue.**
+- Quello provato peggiorava ogni configurazione, ma era addestrato quasi solo sull'inglese. Va provato un modello multilingue sulla suite PMI prima di scartare l'idea.
+
+### Rimandato — Lo hanno altri, oggi non serve al target
+
+| Voce | Perche' aspettare |
+|---|---|
+| Agenti che compiono azioni (compilare moduli, inviare email) | Aumenta i rischi e contraddice il principio "solo evidenze". |
+| Voce: dettatura e lettura delle risposte (ex Iniziativa 5) | Gradevole, non decide l'adozione in una PMI. |
+| Altri connettori (Notion, Jira, Salesforce...) | Le PMI usano soprattutto cartelle di rete, email, Google Drive e SharePoint: gli ultimi tre ci sono, l'email e' la 1.4. |
+| Immagini e grafici nelle risposte (multimodale) | Costo alto, valore basso su regolamenti e procedure. |
+| Knowledge graph (LightRAG / GraphRAG) | Costoso da indicizzare; da valutare solo se la 2.4 non basta. |
+| Versione cloud gestita (SaaS) | Scelta di business, da fare dopo i primi utenti pilota. |
+
+### Fuori dal codice, ma necessario
+
+- **2-3 utenti pilota** (commercialista, piccola azienda, associazione) dopo la 1.1: due settimane d'uso osservato, le loro domande vere entrano nel gold set.
+- **Guida per l'utente non tecnico**: installazione, prima biblioteca, cosa significa "non ho trovato evidenza".
+- **Chi ne risponde**: contratto di assistenza con tempi di intervento e un ripristino da backup provato su un'installazione reale, non solo nei test.
+- **Documenti per l'acquisto**: contratto di trattamento dati (art. 28 GDPR) se l'assistenza da' accesso ai dati, termini di licenza chiari (con GPL-3 il valore venduto e' installazione e supporto, non il codice), almeno un test di intrusione fatto da terzi. Obblighi dell'AI Act e del GDPR da verificare con un consulente.
+- **Piu' di una persona**: un socio o un partner tecnico. Un'azienda non si lega a un fornitore che dipende da una persona sola.
+
+## 5. Ordine di esecuzione
+
+1. **1.1** Misura della verifica sulla suite PMI e scelta del default.
+2. **1.2** e **1.3** Installer senza prerequisiti con aggiornamento.
+3. Utenti pilota, con **1.5** attivo per raccogliere le loro domande.
+4. **1.6** Permessi ereditati dalle fonti: prima di collegare cartelle o SharePoint reali di un'azienda.
+5. **1.4** Email e PEC.
+6. **2.1** e **2.2** Evidenziazione nel PDF e confronto tra versioni.
+7. Il resto della priorita' 2, nell'ordine indicato dalle misure.
+
+Le date non sono indicate: dipendono dall'esito della 1.1 e dal tempo disponibile. Il piano precedente (Iniziative 1-6 con diagramma di Gantt) resta nella cronologia Git.

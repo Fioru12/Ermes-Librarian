@@ -132,8 +132,18 @@ py -3.11 -m venv .venv-ermes
 pip install -r requirements.txt
 npm.cmd --prefix frontend install
 .\.venv-ermes\Scripts\python.exe scripts\provision_local_demo_auth.py --write
+.\.venv-ermes\Scripts\python.exe scripts\configure_ai.py
 .\scripts\avvia_ermes.ps1
 ```
+
+`configure_ai.py` asks how Ermes should answer — nothing is preselected:
+**excerpts only** (no model, nothing leaves the machine), **local model**
+with Ollama (it checks RAM and downloads the model), or a **public API**
+(OpenRouter: asks for the key and an explicit consent to send the relevant
+passages). Evidence verification is a separate opt-in and stays off until it
+is measured on realistic questions. The graphical setup (`SETUP_WIZARD.bat`)
+and `INSTALLA_ERMES.bat` ask the same question; run the script again to change
+the answer. It applies to new libraries; existing ones are changed per library.
 
 > **Avvio rapido con un click (Desktop)**: esegui `CREA_COLLEGAMENTO_DESKTOP.bat`: crea sul Desktop un'icona di Ermes che avvia tutti i componenti e apre l'interfaccia in una finestra propria (Edge o Chrome in modalita' app), senza finestre di terminale. In alternativa, `.\scriptsuild_exe.ps1` compila un lanciatore `Ermes.exe` dai sorgenti in `scripts/launcher/` (il binario non e' nel repository: lo compili tu e sai cosa esegui).
 
@@ -213,7 +223,7 @@ docker build --secret id=corporate_ca,src=company-ca.crt -t ermes-knowledge .
 
 ## Cloud AI policy
 
-Cloud AI is optional. Before enabling it, set `ERMES_LIBRARY_CLOUD_CONSENT=1` in the local environment and configure a provider through the admin interface using a secret manager or untracked `.env`. A library owner explicitly selects either the dedicated OpenRouter setup or one enabled approved provider; Ermes sends only the retrieved, authorized excerpts to that exact provider. There is no automatic local-to-cloud or provider-to-provider fallback.
+Cloud AI is optional. The setup choice above writes the settings below for OpenRouter. Before enabling it, set `ERMES_LIBRARY_CLOUD_CONSENT=1` in the local environment and configure a provider through the admin interface using a secret manager or untracked `.env`. A library owner explicitly selects either the dedicated OpenRouter setup or one enabled approved provider; Ermes sends only the retrieved, authorized excerpts to that exact provider. There is no automatic local-to-cloud or provider-to-provider fallback.
 
 Never commit `.env`, document uploads, storage data, API keys or customer content. Rotate any key that may have been exposed in terminal history or source control.
 
@@ -239,7 +249,7 @@ With the local application running and an administrator password or API key conf
 - ✅ **Real-time SSE Streaming**: Direct token-by-token streaming on `/api/libraries/{id}/ask/stream` with live UI feedback.
 - ✅ **UI & Governance Polish**: Tamper-evident SHA-256 audit log, Markdown chat export, instant chat reset, and citation modal.
 - ✅ **Native Desktop Launcher**: Single-instance Windows launcher (`Ermes.exe`, built from source with `scripts/build_exe.ps1`; no binary is committed) with silent background service management and system tray integration.
-- 📋 **2026 Strategic Evolution & Benchmark**: Detailed competitive analysis vs RAGFlow, AnythingLLM, NotebookLM, and strategic roadmap ([docs/PIANO_EVOLUZIONE_E_BENCHMARK.md](docs/PIANO_EVOLUZIONE_E_BENCHMARK.md)).
+- 📋 **Next (revised 27 October 2026)**: target is small businesses and professionals installing locally. First measure evidence verification on the realistic PMI suite and decide the default, then an installer with no prerequisites plus one-click updates, email/PEC ingestion, and turning negative feedback into gold-set candidates. Priorities, what is already done and what is deliberately postponed: [docs/PIANO_EVOLUZIONE_E_BENCHMARK.md](docs/PIANO_EVOLUZIONE_E_BENCHMARK.md).
 
 The historical WinSarp formula engine, kept frozen under `legacy_winsarp/` behind a dev-only flag since August 2026, was removed from the repository on 18 September 2026: its flag path imported routers that no longer existed, so it could not have been switched on. Git history keeps it. `tests/test_legacy_packages_stay_out.py` still fails the build if LlamaIndex, ChromaDB or the Ollama client come back into the product requirements — the reason they were removed in the first place (150 packages instead of 56) has not changed.
 

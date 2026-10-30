@@ -1,0 +1,1922 @@
+[
+  {
+    "id": "pmi-hr-dir-qual-e-l-orario-di-lavoro-degli-uffici",
+    "library": "HR",
+    "type": "direct",
+    "query": "Qual è l'orario di lavoro degli uffici?",
+    "expected_filename": "regolamento-interno.md",
+    "expected_locator": "Sezione: Orario di lavoro",
+    "tags": []
+  },
+  {
+    "id": "pmi-hr-dir-quanto-dura-la-pausa-pranzo-negli-uffici",
+    "library": "HR",
+    "type": "direct",
+    "query": "Quanto dura la pausa pranzo negli uffici?",
+    "expected_filename": "regolamento-interno.md",
+    "expected_locator": "Sezione: Pausa pranzo",
+    "tags": []
+  },
+  {
+    "id": "pmi-hr-dir-entro-quando-va-segnalata-una-timbratura-dimenti",
+    "library": "HR",
+    "type": "direct",
+    "query": "Entro quando va segnalata una timbratura dimenticata?",
+    "expected_filename": "regolamento-interno.md",
+    "expected_locator": "Sezione: Timbratura",
+    "tags": []
+  },
+  {
+    "id": "pmi-hr-dir-con-quanto-anticipo-si-richiedono-le-ferie",
+    "library": "HR",
+    "type": "direct",
+    "query": "Con quanto anticipo si richiedono le ferie?",
+    "expected_filename": "regolamento-interno.md",
+    "expected_locator": "Sezione: Ferie",
+    "tags": []
+  },
+  {
+    "id": "pmi-hr-dir-con-quanto-preavviso-si-chiede-un-permesso-orari",
+    "library": "HR",
+    "type": "direct",
+    "query": "Con quanto preavviso si chiede un permesso orario?",
+    "expected_filename": "regolamento-interno.md",
+    "expected_locator": "Sezione: Permessi retribuiti",
+    "tags": []
+  },
+  {
+    "id": "pmi-hr-dir-cosa-devo-fare-in-caso-di-malattia",
+    "library": "HR",
+    "type": "direct",
+    "query": "Cosa devo fare in caso di malattia?",
+    "expected_filename": "regolamento-interno.md",
+    "expected_locator": "Sezione: Malattia",
+    "tags": []
+  },
+  {
+    "id": "pmi-hr-dir-chi-autorizza-il-lavoro-straordinario",
+    "library": "HR",
+    "type": "direct",
+    "query": "Chi autorizza il lavoro straordinario?",
+    "expected_filename": "regolamento-interno.md",
+    "expected_locator": "Sezione: Lavoro straordinario",
+    "tags": []
+  },
+  {
+    "id": "pmi-hr-dir-quanti-giorni-a-settimana-posso-fare-lavoro-agil",
+    "library": "HR",
+    "type": "direct",
+    "query": "Quanti giorni a settimana posso fare lavoro agile?",
+    "expected_filename": "regolamento-interno.md",
+    "expected_locator": "Sezione: Lavoro agile",
+    "tags": []
+  },
+  {
+    "id": "pmi-hr-dir-si-puo-usare-il-telefono-personale-in-reparto-pr",
+    "library": "HR",
+    "type": "direct",
+    "query": "Si può usare il telefono personale in reparto produzione?",
+    "expected_filename": "regolamento-interno.md",
+    "expected_locator": "Sezione: Uso del telefono personale",
+    "tags": []
+  },
+  {
+    "id": "pmi-hr-dir-di-quanto-e-il-buono-pasto-giornaliero",
+    "library": "HR",
+    "type": "direct",
+    "query": "Di quanto è il buono pasto giornaliero?",
+    "expected_filename": "welfare-aziendale.md",
+    "expected_locator": "Sezione: Buoni pasto",
+    "tags": [
+      "multi_doc"
+    ]
+  },
+  {
+    "id": "pmi-hr-dir-a-quanto-ammonta-il-credito-welfare-annuo",
+    "library": "HR",
+    "type": "direct",
+    "query": "A quanto ammonta il credito welfare annuo?",
+    "expected_filename": "welfare-aziendale.md",
+    "expected_locator": "Sezione: Credito welfare",
+    "tags": [
+      "multi_doc"
+    ]
+  },
+  {
+    "id": "pmi-hr-dir-che-percentuale-dell-abbonamento-ai-mezzi-pubbli",
+    "library": "HR",
+    "type": "direct",
+    "query": "Che percentuale dell'abbonamento ai mezzi pubblici viene rimborsata?",
+    "expected_filename": "welfare-aziendale.md",
+    "expected_locator": "Sezione: Abbonamento ai trasporti",
+    "tags": [
+      "multi_doc"
+    ]
+  },
+  {
+    "id": "pmi-hr-dir-entro-quando-si-iscrivono-i-familiari-al-fondo-s",
+    "library": "HR",
+    "type": "direct",
+    "query": "Entro quando si iscrivono i familiari al fondo sanitario integrativo?",
+    "expected_filename": "welfare-aziendale.md",
+    "expected_locator": "Sezione: Assistenza sanitaria integrativa",
+    "tags": [
+      "multi_doc"
+    ]
+  },
+  {
+    "id": "pmi-hr-dir-quante-ore-di-formazione-individuale-posso-chied",
+    "library": "HR",
+    "type": "direct",
+    "query": "Quante ore di formazione individuale posso chiedere all'anno?",
+    "expected_filename": "welfare-aziendale.md",
+    "expected_locator": "Sezione: Formazione individuale",
+    "tags": [
+      "multi_doc"
+    ]
+  },
+  {
+    "id": "pmi-hr-par-a-che-ora-devo-arrivare-in-ufficio-la-mattina",
+    "library": "HR",
+    "type": "paraphrase",
+    "query": "A che ora devo arrivare in ufficio la mattina?",
+    "expected_filename": "regolamento-interno.md",
+    "expected_locator": "Sezione: Orario di lavoro",
+    "tags": [
+      "colloquial"
+    ]
+  },
+  {
+    "id": "pmi-hr-par-se-faccio-il-turno-del-pomeriggio-a-che-ora-stac",
+    "library": "HR",
+    "type": "paraphrase",
+    "query": "Se faccio il turno del pomeriggio a che ora stacco?",
+    "expected_filename": "regolamento-interno.md",
+    "expected_locator": "Sezione: Orario di lavoro",
+    "tags": [
+      "colloquial"
+    ]
+  },
+  {
+    "id": "pmi-hr-par-quanto-tempo-ho-per-mangiare-a-mezzogiorno",
+    "library": "HR",
+    "type": "paraphrase",
+    "query": "Quanto tempo ho per mangiare a mezzogiorno?",
+    "expected_filename": "regolamento-interno.md",
+    "expected_locator": "Sezione: Pausa pranzo",
+    "tags": [
+      "colloquial"
+    ]
+  },
+  {
+    "id": "pmi-hr-par-stamattina-mi-sono-scordato-di-passare-il-badge",
+    "library": "HR",
+    "type": "paraphrase",
+    "query": "Stamattina mi sono scordato di passare il badge, cosa faccio?",
+    "expected_filename": "regolamento-interno.md",
+    "expected_locator": "Sezione: Timbratura",
+    "tags": [
+      "colloquial"
+    ]
+  },
+  {
+    "id": "pmi-hr-par-voglio-andare-in-vacanza-tre-settimane-a-settemb",
+    "library": "HR",
+    "type": "paraphrase",
+    "query": "Voglio andare in vacanza tre settimane a settembre, quando devo chiederlo?",
+    "expected_filename": "regolamento-interno.md",
+    "expected_locator": "Sezione: Ferie",
+    "tags": [
+      "colloquial",
+      "numeric"
+    ]
+  },
+  {
+    "id": "pmi-hr-par-quando-chiude-l-azienda-d-estate",
+    "library": "HR",
+    "type": "paraphrase",
+    "query": "Quando chiude l'azienda d'estate?",
+    "expected_filename": "regolamento-interno.md",
+    "expected_locator": "Sezione: Ferie",
+    "tags": []
+  },
+  {
+    "id": "pmi-hr-par-domani-devo-uscire-due-ore-prima-per-una-visita",
+    "library": "HR",
+    "type": "paraphrase",
+    "query": "Domani devo uscire due ore prima per una visita, come faccio?",
+    "expected_filename": "regolamento-interno.md",
+    "expected_locator": "Sezione: Permessi retribuiti",
+    "tags": [
+      "colloquial"
+    ]
+  },
+  {
+    "id": "pmi-hr-par-ho-la-febbre-e-non-riesco-a-venire-chi-devo-avvi",
+    "library": "HR",
+    "type": "paraphrase",
+    "query": "Ho la febbre e non riesco a venire, chi devo avvisare?",
+    "expected_filename": "regolamento-interno.md",
+    "expected_locator": "Sezione: Malattia",
+    "tags": [
+      "colloquial"
+    ]
+  },
+  {
+    "id": "pmi-hr-par-se-resto-oltre-l-orario-per-finire-un-lavoro-me",
+    "library": "HR",
+    "type": "paraphrase",
+    "query": "Se resto oltre l'orario per finire un lavoro me lo pagano?",
+    "expected_filename": "regolamento-interno.md",
+    "expected_locator": "Sezione: Lavoro straordinario",
+    "tags": [
+      "colloquial"
+    ]
+  },
+  {
+    "id": "pmi-hr-par-posso-lavorare-da-casa-qualche-giorno",
+    "library": "HR",
+    "type": "paraphrase",
+    "query": "Posso lavorare da casa qualche giorno?",
+    "expected_filename": "regolamento-interno.md",
+    "expected_locator": "Sezione: Lavoro agile",
+    "tags": [
+      "colloquial"
+    ]
+  },
+  {
+    "id": "pmi-hr-par-durante-il-turno-posso-rispondere-al-cellulare",
+    "library": "HR",
+    "type": "paraphrase",
+    "query": "Durante il turno posso rispondere al cellulare?",
+    "expected_filename": "regolamento-interno.md",
+    "expected_locator": "Sezione: Uso del telefono personale",
+    "tags": [
+      "colloquial"
+    ]
+  },
+  {
+    "id": "pmi-hr-par-nei-giorni-in-smart-working-mi-spetta-il-ticket",
+    "library": "HR",
+    "type": "paraphrase",
+    "query": "Nei giorni in smart working mi spetta il ticket?",
+    "expected_filename": "welfare-aziendale.md",
+    "expected_locator": "Sezione: Buoni pasto",
+    "tags": [
+      "multi_doc"
+    ]
+  },
+  {
+    "id": "pmi-hr-par-posso-usare-i-soldi-del-welfare-per-la-retta-del",
+    "library": "HR",
+    "type": "paraphrase",
+    "query": "Posso usare i soldi del welfare per la retta dell'asilo di mio figlio?",
+    "expected_filename": "welfare-aziendale.md",
+    "expected_locator": "Sezione: Credito welfare",
+    "tags": [
+      "multi_doc"
+    ]
+  },
+  {
+    "id": "pmi-hr-par-l-azienda-mi-aiuta-a-pagare-il-treno-per-venire",
+    "library": "HR",
+    "type": "paraphrase",
+    "query": "L'azienda mi aiuta a pagare il treno per venire al lavoro?",
+    "expected_filename": "welfare-aziendale.md",
+    "expected_locator": "Sezione: Abbonamento ai trasporti",
+    "tags": [
+      "multi_doc",
+      "colloquial"
+    ]
+  },
+  {
+    "id": "pmi-hr-par-posso-mettere-mia-moglie-sotto-la-copertura-sani",
+    "library": "HR",
+    "type": "paraphrase",
+    "query": "Posso mettere mia moglie sotto la copertura sanitaria aziendale?",
+    "expected_filename": "welfare-aziendale.md",
+    "expected_locator": "Sezione: Assistenza sanitaria integrativa",
+    "tags": [
+      "multi_doc"
+    ]
+  },
+  {
+    "id": "pmi-hr-par-l-azienda-mi-paga-un-corso-di-excel-avanzato",
+    "library": "HR",
+    "type": "paraphrase",
+    "query": "L'azienda mi paga un corso di Excel avanzato?",
+    "expected_filename": "welfare-aziendale.md",
+    "expected_locator": "Sezione: Formazione individuale",
+    "tags": [
+      "multi_doc"
+    ]
+  },
+  {
+    "id": "pmi-hr-abs-quanti-giorni-di-ferie-maturo-ogni-anno",
+    "library": "HR",
+    "type": "abstention",
+    "query": "Quanti giorni di ferie maturo ogni anno?",
+    "expected_filename": null,
+    "expected_locator": null,
+    "tags": [
+      "trap"
+    ]
+  },
+  {
+    "id": "pmi-hr-abs-come-si-calcola-la-tredicesima",
+    "library": "HR",
+    "type": "abstention",
+    "query": "Come si calcola la tredicesima?",
+    "expected_filename": null,
+    "expected_locator": null,
+    "tags": [
+      "out_of_domain"
+    ]
+  },
+  {
+    "id": "pmi-hr-abs-quanto-viene-pagata-un-ora-di-straordinario-nott",
+    "library": "HR",
+    "type": "abstention",
+    "query": "Quanto viene pagata un'ora di straordinario notturno?",
+    "expected_filename": null,
+    "expected_locator": null,
+    "tags": [
+      "trap"
+    ]
+  },
+  {
+    "id": "pmi-hr-abs-come-funziona-il-congedo-di-paternita",
+    "library": "HR",
+    "type": "abstention",
+    "query": "Come funziona il congedo di paternità?",
+    "expected_filename": null,
+    "expected_locator": null,
+    "tags": [
+      "out_of_domain"
+    ]
+  },
+  {
+    "id": "pmi-hr-abs-posso-fare-lavoro-agile-dall-estero",
+    "library": "HR",
+    "type": "abstention",
+    "query": "Posso fare lavoro agile dall'estero?",
+    "expected_filename": null,
+    "expected_locator": null,
+    "tags": [
+      "trap"
+    ]
+  },
+  {
+    "id": "pmi-hr-abs-quanto-rimborsano-al-chilometro-se-uso-la-mia-au",
+    "library": "HR",
+    "type": "abstention",
+    "query": "Quanto rimborsano al chilometro se uso la mia auto?",
+    "expected_filename": null,
+    "expected_locator": null,
+    "tags": [
+      "cross_library"
+    ]
+  },
+  {
+    "id": "pmi-hr-abs-chi-approva-uno-sconto-del-dieci-per-cento-a-un",
+    "library": "HR",
+    "type": "abstention",
+    "query": "Chi approva uno sconto del dieci per cento a un cliente?",
+    "expected_filename": null,
+    "expected_locator": null,
+    "tags": [
+      "cross_library"
+    ]
+  },
+  {
+    "id": "pmi-hr-abs-ogni-quanto-devo-cambiare-la-password",
+    "library": "HR",
+    "type": "abstention",
+    "query": "Ogni quanto devo cambiare la password?",
+    "expected_filename": null,
+    "expected_locator": null,
+    "tags": [
+      "cross_library"
+    ]
+  },
+  {
+    "id": "pmi-hr-abs-quali-sono-i-criteri-per-una-promozione",
+    "library": "HR",
+    "type": "abstention",
+    "query": "Quali sono i criteri per una promozione?",
+    "expected_filename": null,
+    "expected_locator": null,
+    "tags": [
+      "out_of_domain"
+    ]
+  },
+  {
+    "id": "pmi-hr-abs-il-credito-welfare-si-puo-trasferire-a-un-colleg",
+    "library": "HR",
+    "type": "abstention",
+    "query": "Il credito welfare si può trasferire a un collega?",
+    "expected_filename": null,
+    "expected_locator": null,
+    "tags": [
+      "trap"
+    ]
+  },
+  {
+    "id": "pmi-amm-dir-entro-quando-va-presentata-la-nota-spese",
+    "library": "Amministrazione",
+    "type": "direct",
+    "query": "Entro quando va presentata la nota spese?",
+    "expected_filename": "nota-spese-trasferte.md",
+    "expected_locator": "Sezione: Scadenza di presentazione",
+    "tags": []
+  },
+  {
+    "id": "pmi-amm-dir-quali-giustificativi-servono-per-la-nota-spese",
+    "library": "Amministrazione",
+    "type": "direct",
+    "query": "Quali giustificativi servono per la nota spese?",
+    "expected_filename": "nota-spese-trasferte.md",
+    "expected_locator": "Sezione: Giustificativi",
+    "tags": []
+  },
+  {
+    "id": "pmi-amm-dir-quanto-e-il-rimborso-chilometrico-per-l-auto-pro",
+    "library": "Amministrazione",
+    "type": "direct",
+    "query": "Quanto è il rimborso chilometrico per l'auto propria?",
+    "expected_filename": "nota-spese-trasferte.md",
+    "expected_locator": "Sezione: Rimborso chilometrico",
+    "tags": []
+  },
+  {
+    "id": "pmi-amm-dir-qual-e-il-massimo-rimborsabile-per-un-pasto-in-t",
+    "library": "Amministrazione",
+    "type": "direct",
+    "query": "Qual è il massimo rimborsabile per un pasto in trasferta?",
+    "expected_filename": "nota-spese-trasferte.md",
+    "expected_locator": "Sezione: Pasti in trasferta",
+    "tags": []
+  },
+  {
+    "id": "pmi-amm-dir-qual-e-il-tetto-per-l-albergo-in-italia",
+    "library": "Amministrazione",
+    "type": "direct",
+    "query": "Qual è il tetto per l'albergo in Italia?",
+    "expected_filename": "nota-spese-trasferte.md",
+    "expected_locator": "Sezione: Alloggio",
+    "tags": []
+  },
+  {
+    "id": "pmi-amm-dir-come-si-chiede-un-anticipo-per-una-trasferta-all",
+    "library": "Amministrazione",
+    "type": "direct",
+    "query": "Come si chiede un anticipo per una trasferta all'estero?",
+    "expected_filename": "nota-spese-trasferte.md",
+    "expected_locator": "Sezione: Anticipi di cassa",
+    "tags": []
+  },
+  {
+    "id": "pmi-amm-dir-a-chi-viene-assegnata-la-carta-di-credito-aziend",
+    "library": "Amministrazione",
+    "type": "direct",
+    "query": "A chi viene assegnata la carta di credito aziendale?",
+    "expected_filename": "nota-spese-trasferte.md",
+    "expected_locator": "Sezione: Carta di credito aziendale",
+    "tags": []
+  },
+  {
+    "id": "pmi-amm-dir-sopra-quale-importo-serve-un-ordine-di-acquisto",
+    "library": "Amministrazione",
+    "type": "direct",
+    "query": "Sopra quale importo serve un ordine di acquisto?",
+    "expected_filename": "ciclo-passivo.md",
+    "expected_locator": "Sezione: Ordini di acquisto",
+    "tags": [
+      "multi_doc"
+    ]
+  },
+  {
+    "id": "pmi-amm-dir-come-arrivano-le-fatture-elettroniche-dei-fornit",
+    "library": "Amministrazione",
+    "type": "direct",
+    "query": "Come arrivano le fatture elettroniche dei fornitori?",
+    "expected_filename": "ciclo-passivo.md",
+    "expected_locator": "Sezione: Ricezione delle fatture",
+    "tags": [
+      "multi_doc"
+    ]
+  },
+  {
+    "id": "pmi-amm-dir-cosa-succede-se-la-fattura-non-corrisponde-all-o",
+    "library": "Amministrazione",
+    "type": "direct",
+    "query": "Cosa succede se la fattura non corrisponde all'ordine?",
+    "expected_filename": "ciclo-passivo.md",
+    "expected_locator": "Sezione: Approvazione delle fatture",
+    "tags": [
+      "multi_doc"
+    ]
+  },
+  {
+    "id": "pmi-amm-dir-quali-sono-i-termini-di-pagamento-dei-fornitori",
+    "library": "Amministrazione",
+    "type": "direct",
+    "query": "Quali sono i termini di pagamento dei fornitori?",
+    "expected_filename": "ciclo-passivo.md",
+    "expected_locator": "Sezione: Termini di pagamento",
+    "tags": [
+      "multi_doc"
+    ]
+  },
+  {
+    "id": "pmi-amm-dir-come-si-richiede-un-pagamento-urgente-a-un-forni",
+    "library": "Amministrazione",
+    "type": "direct",
+    "query": "Come si richiede un pagamento urgente a un fornitore?",
+    "expected_filename": "ciclo-passivo.md",
+    "expected_locator": "Sezione: Pagamenti urgenti",
+    "tags": [
+      "multi_doc"
+    ]
+  },
+  {
+    "id": "pmi-amm-dir-quali-documenti-servono-per-inserire-un-nuovo-fo",
+    "library": "Amministrazione",
+    "type": "direct",
+    "query": "Quali documenti servono per inserire un nuovo fornitore in anagrafica?",
+    "expected_filename": "ciclo-passivo.md",
+    "expected_locator": "Sezione: Anagrafica fornitori",
+    "tags": [
+      "multi_doc"
+    ]
+  },
+  {
+    "id": "pmi-amm-par-sono-tornato-da-milano-il-20-fino-a-quando-ho-te",
+    "library": "Amministrazione",
+    "type": "paraphrase",
+    "query": "Sono tornato da Milano il 20, fino a quando ho tempo per caricare le spese?",
+    "expected_filename": "nota-spese-trasferte.md",
+    "expected_locator": "Sezione: Scadenza di presentazione",
+    "tags": [
+      "colloquial"
+    ]
+  },
+  {
+    "id": "pmi-amm-par-ho-perso-lo-scontrino-del-ristorante-me-lo-rimbo",
+    "library": "Amministrazione",
+    "type": "paraphrase",
+    "query": "Ho perso lo scontrino del ristorante, me lo rimborsano lo stesso?",
+    "expected_filename": "nota-spese-trasferte.md",
+    "expected_locator": "Sezione: Giustificativi",
+    "tags": [
+      "colloquial"
+    ]
+  },
+  {
+    "id": "pmi-amm-par-vado-dal-cliente-con-la-mia-macchina-quanto-mi-d",
+    "library": "Amministrazione",
+    "type": "paraphrase",
+    "query": "Vado dal cliente con la mia macchina, quanto mi danno per i chilometri?",
+    "expected_filename": "nota-spese-trasferte.md",
+    "expected_locator": "Sezione: Rimborso chilometrico",
+    "tags": [
+      "colloquial"
+    ]
+  },
+  {
+    "id": "pmi-amm-par-il-vino-a-cena-con-il-cliente-in-trasferta-e-rim",
+    "library": "Amministrazione",
+    "type": "paraphrase",
+    "query": "Il vino a cena con il cliente in trasferta è rimborsabile?",
+    "expected_filename": "nota-spese-trasferte.md",
+    "expected_locator": "Sezione: Pasti in trasferta",
+    "tags": [
+      "colloquial"
+    ]
+  },
+  {
+    "id": "pmi-amm-par-quanto-posso-spendere-per-dormire-a-parigi",
+    "library": "Amministrazione",
+    "type": "paraphrase",
+    "query": "Quanto posso spendere per dormire a Parigi?",
+    "expected_filename": "nota-spese-trasferte.md",
+    "expected_locator": "Sezione: Alloggio",
+    "tags": [
+      "numeric"
+    ]
+  },
+  {
+    "id": "pmi-amm-par-parto-per-la-germania-tra-un-mese-posso-avere-de",
+    "library": "Amministrazione",
+    "type": "paraphrase",
+    "query": "Parto per la Germania tra un mese, posso avere dei contanti prima?",
+    "expected_filename": "nota-spese-trasferte.md",
+    "expected_locator": "Sezione: Anticipi di cassa",
+    "tags": [
+      "colloquial"
+    ]
+  },
+  {
+    "id": "pmi-amm-par-ho-pagato-per-sbaglio-la-benzina-della-mia-auto",
+    "library": "Amministrazione",
+    "type": "paraphrase",
+    "query": "Ho pagato per sbaglio la benzina della mia auto privata con la carta della ditta, cosa faccio?",
+    "expected_filename": "nota-spese-trasferte.md",
+    "expected_locator": "Sezione: Carta di credito aziendale",
+    "tags": [
+      "colloquial"
+    ]
+  },
+  {
+    "id": "pmi-amm-par-devo-comprare-un-monitor-da-400-euro-cosa-devo-f",
+    "library": "Amministrazione",
+    "type": "paraphrase",
+    "query": "Devo comprare un monitor da 400 euro, cosa devo fare?",
+    "expected_filename": "ciclo-passivo.md",
+    "expected_locator": "Sezione: Ordini di acquisto",
+    "tags": [
+      "multi_doc",
+      "numeric"
+    ]
+  },
+  {
+    "id": "pmi-amm-par-per-una-macchina-da-12-000-euro-bastano-due-offe",
+    "library": "Amministrazione",
+    "type": "paraphrase",
+    "query": "Per una macchina da 12.000 euro bastano due offerte?",
+    "expected_filename": "ciclo-passivo.md",
+    "expected_locator": "Sezione: Ordini di acquisto",
+    "tags": [
+      "multi_doc",
+      "numeric"
+    ]
+  },
+  {
+    "id": "pmi-amm-par-il-fornitore-ha-fatturato-piu-pezzi-di-quelli-ar",
+    "library": "Amministrazione",
+    "type": "paraphrase",
+    "query": "Il fornitore ha fatturato più pezzi di quelli arrivati, che succede?",
+    "expected_filename": "ciclo-passivo.md",
+    "expected_locator": "Sezione: Approvazione delle fatture",
+    "tags": [
+      "multi_doc",
+      "colloquial"
+    ]
+  },
+  {
+    "id": "pmi-amm-par-un-fornitore-chiede-quando-ricevera-il-bonifico",
+    "library": "Amministrazione",
+    "type": "paraphrase",
+    "query": "Un fornitore chiede quando riceverà il bonifico, cosa gli rispondo?",
+    "expected_filename": "ciclo-passivo.md",
+    "expected_locator": "Sezione: Termini di pagamento",
+    "tags": [
+      "multi_doc",
+      "colloquial"
+    ]
+  },
+  {
+    "id": "pmi-amm-par-un-fornitore-deve-essere-pagato-subito-altriment",
+    "library": "Amministrazione",
+    "type": "paraphrase",
+    "query": "Un fornitore deve essere pagato subito altrimenti blocca le consegne, come faccio?",
+    "expected_filename": "ciclo-passivo.md",
+    "expected_locator": "Sezione: Pagamenti urgenti",
+    "tags": [
+      "multi_doc",
+      "colloquial"
+    ]
+  },
+  {
+    "id": "pmi-amm-par-abbiamo-trovato-un-nuovo-fornitore-di-acciaio-co",
+    "library": "Amministrazione",
+    "type": "paraphrase",
+    "query": "Abbiamo trovato un nuovo fornitore di acciaio, cosa serve per poterlo usare?",
+    "expected_filename": "ciclo-passivo.md",
+    "expected_locator": "Sezione: Anagrafica fornitori",
+    "tags": [
+      "multi_doc"
+    ]
+  },
+  {
+    "id": "pmi-amm-abs-quanto-viene-rimborsato-un-pasto-in-italia-se-la",
+    "library": "Amministrazione",
+    "type": "abstention",
+    "query": "Quanto viene rimborsato un pasto in Italia se la trasferta dura meno di quattro ore?",
+    "expected_filename": null,
+    "expected_locator": null,
+    "tags": [
+      "trap"
+    ]
+  },
+  {
+    "id": "pmi-amm-abs-si-puo-rimborsare-il-taxi-dall-aeroporto",
+    "library": "Amministrazione",
+    "type": "abstention",
+    "query": "Si può rimborsare il taxi dall'aeroporto?",
+    "expected_filename": null,
+    "expected_locator": null,
+    "tags": [
+      "trap"
+    ]
+  },
+  {
+    "id": "pmi-amm-abs-qual-e-l-iban-dell-azienda-per-i-pagamenti-dei-c",
+    "library": "Amministrazione",
+    "type": "abstention",
+    "query": "Qual è l'IBAN dell'azienda per i pagamenti dei clienti?",
+    "expected_filename": null,
+    "expected_locator": null,
+    "tags": [
+      "out_of_domain"
+    ]
+  },
+  {
+    "id": "pmi-amm-abs-quando-viene-pagato-lo-stipendio",
+    "library": "Amministrazione",
+    "type": "abstention",
+    "query": "Quando viene pagato lo stipendio?",
+    "expected_filename": null,
+    "expected_locator": null,
+    "tags": [
+      "out_of_domain"
+    ]
+  },
+  {
+    "id": "pmi-amm-abs-quanto-vale-il-buono-pasto",
+    "library": "Amministrazione",
+    "type": "abstention",
+    "query": "Quanto vale il buono pasto?",
+    "expected_filename": null,
+    "expected_locator": null,
+    "tags": [
+      "cross_library"
+    ]
+  },
+  {
+    "id": "pmi-amm-abs-entro-quanti-giorni-si-paga-un-cliente-nuovo",
+    "library": "Amministrazione",
+    "type": "abstention",
+    "query": "Entro quanti giorni si paga un cliente nuovo?",
+    "expected_filename": null,
+    "expected_locator": null,
+    "tags": [
+      "cross_library"
+    ]
+  },
+  {
+    "id": "pmi-amm-abs-che-limite-di-spesa-ha-la-carta-aziendale",
+    "library": "Amministrazione",
+    "type": "abstention",
+    "query": "Che limite di spesa ha la carta aziendale?",
+    "expected_filename": null,
+    "expected_locator": null,
+    "tags": [
+      "trap"
+    ]
+  },
+  {
+    "id": "pmi-amm-abs-come-si-registra-una-fattura-di-acconto",
+    "library": "Amministrazione",
+    "type": "abstention",
+    "query": "Come si registra una fattura di acconto?",
+    "expected_filename": null,
+    "expected_locator": null,
+    "tags": [
+      "trap"
+    ]
+  },
+  {
+    "id": "pmi-amm-abs-quali-spese-di-rappresentanza-sono-deducibili",
+    "library": "Amministrazione",
+    "type": "abstention",
+    "query": "Quali spese di rappresentanza sono deducibili?",
+    "expected_filename": null,
+    "expected_locator": null,
+    "tags": [
+      "out_of_domain"
+    ]
+  },
+  {
+    "id": "pmi-amm-dir-fino-a-quando-e-bloccato-il-prezzo-delle-barre-i",
+    "library": "Amministrazione",
+    "type": "direct",
+    "query": "Fino a quando è bloccato il prezzo delle barre in acciaio C45?",
+    "expected_filename": "conferma-condizioni-acciaio.eml",
+    "expected_locator": "Email: Conferma condizioni di fornitura acciaio 2026 (Tue, 14 Apr 2026 10:12:00 +0200)",
+    "tags": [
+      "email"
+    ]
+  },
+  {
+    "id": "pmi-amm-dir-quali-termini-di-pagamento-abbiamo-concordato-pe",
+    "library": "Amministrazione",
+    "type": "direct",
+    "query": "Quali termini di pagamento abbiamo concordato per le barre C45?",
+    "expected_filename": "conferma-condizioni-acciaio.eml",
+    "expected_locator": "Email: Conferma condizioni di fornitura acciaio 2026 (Tue, 14 Apr 2026 10:12:00 +0200)",
+    "tags": [
+      "email"
+    ]
+  },
+  {
+    "id": "pmi-amm-par-se-ordiniamo-25-tonnellate-di-barre-chi-paga-il",
+    "library": "Amministrazione",
+    "type": "paraphrase",
+    "query": "Se ordiniamo 25 tonnellate di barre, chi paga il trasporto?",
+    "expected_filename": "conferma-condizioni-acciaio.eml",
+    "expected_locator": "Email: Conferma condizioni di fornitura acciaio 2026 (Tue, 14 Apr 2026 10:12:00 +0200)",
+    "tags": [
+      "email",
+      "numeric"
+    ]
+  },
+  {
+    "id": "pmi-amm-par-quanto-costa-al-chilo-la-barra-c45-da-40-millime",
+    "library": "Amministrazione",
+    "type": "paraphrase",
+    "query": "Quanto costa al chilo la barra C45 da 40 millimetri?",
+    "expected_filename": "conferma-condizioni-acciaio.eml",
+    "expected_locator": "Email: Conferma condizioni di fornitura acciaio 2026 (Tue, 14 Apr 2026 10:12:00 +0200), allegato listino-c45-2026.md — Sezione: Diametri e prezzi",
+    "tags": [
+      "email"
+    ]
+  },
+  {
+    "id": "pmi-amm-par-in-quanti-giorni-arrivano-le-barre-c45-dopo-l-or",
+    "library": "Amministrazione",
+    "type": "paraphrase",
+    "query": "In quanti giorni arrivano le barre C45 dopo l'ordine?",
+    "expected_filename": "conferma-condizioni-acciaio.eml",
+    "expected_locator": "Email: Conferma condizioni di fornitura acciaio 2026 (Tue, 14 Apr 2026 10:12:00 +0200), allegato listino-c45-2026.md — Sezione: Tempi di consegna",
+    "tags": [
+      "email"
+    ]
+  },
+  {
+    "id": "pmi-amm-abs-qual-e-il-prezzo-della-barra-c45-da-30-millimetr",
+    "library": "Amministrazione",
+    "type": "abstention",
+    "query": "Qual è il prezzo della barra C45 da 30 millimetri?",
+    "expected_filename": null,
+    "expected_locator": null,
+    "tags": [
+      "email",
+      "trap"
+    ]
+  },
+  {
+    "id": "pmi-com-dir-per-quanto-tempo-e-valida-un-offerta",
+    "library": "Commerciale",
+    "type": "direct",
+    "query": "Per quanto tempo è valida un'offerta?",
+    "expected_filename": "condizioni-generali-vendita.md",
+    "expected_locator": "Sezione: Offerte",
+    "tags": []
+  },
+  {
+    "id": "pmi-com-dir-quando-un-ordine-si-considera-accettato",
+    "library": "Commerciale",
+    "type": "direct",
+    "query": "Quando un ordine si considera accettato?",
+    "expected_filename": "condizioni-generali-vendita.md",
+    "expected_locator": "Sezione: Conferma d'ordine",
+    "tags": []
+  },
+  {
+    "id": "pmi-com-dir-cosa-succede-se-la-consegna-e-in-ritardo-di-piu",
+    "library": "Commerciale",
+    "type": "direct",
+    "query": "Cosa succede se la consegna è in ritardo di più di quindici giorni?",
+    "expected_filename": "condizioni-generali-vendita.md",
+    "expected_locator": "Sezione: Termini di consegna",
+    "tags": []
+  },
+  {
+    "id": "pmi-com-dir-qual-e-il-termine-di-pagamento-standard-per-i-cl",
+    "library": "Commerciale",
+    "type": "direct",
+    "query": "Qual è il termine di pagamento standard per i clienti?",
+    "expected_filename": "condizioni-generali-vendita.md",
+    "expected_locator": "Sezione: Pagamento dei clienti",
+    "tags": []
+  },
+  {
+    "id": "pmi-com-dir-come-si-autorizza-un-reso",
+    "library": "Commerciale",
+    "type": "direct",
+    "query": "Come si autorizza un reso?",
+    "expected_filename": "condizioni-generali-vendita.md",
+    "expected_locator": "Sezione: Resi",
+    "tags": []
+  },
+  {
+    "id": "pmi-com-dir-quanto-dura-la-garanzia-sui-prodotti",
+    "library": "Commerciale",
+    "type": "direct",
+    "query": "Quanto dura la garanzia sui prodotti?",
+    "expected_filename": "condizioni-generali-vendita.md",
+    "expected_locator": "Sezione: Garanzia",
+    "tags": []
+  },
+  {
+    "id": "pmi-com-dir-entro-quanti-giorni-va-fatto-un-reclamo-per-dife",
+    "library": "Commerciale",
+    "type": "direct",
+    "query": "Entro quanti giorni va fatto un reclamo per difetti visibili?",
+    "expected_filename": "condizioni-generali-vendita.md",
+    "expected_locator": "Sezione: Reclami",
+    "tags": []
+  },
+  {
+    "id": "pmi-com-dir-fino-a-che-sconto-puo-arrivare-un-commerciale-in",
+    "library": "Commerciale",
+    "type": "direct",
+    "query": "Fino a che sconto può arrivare un commerciale in autonomia?",
+    "expected_filename": "politica-sconti.md",
+    "expected_locator": "Sezione: Sconto standard",
+    "tags": [
+      "multi_doc"
+    ]
+  },
+  {
+    "id": "pmi-com-dir-chi-approva-uno-sconto-superiore-al-12",
+    "library": "Commerciale",
+    "type": "direct",
+    "query": "Chi approva uno sconto superiore al 12%?",
+    "expected_filename": "politica-sconti.md",
+    "expected_locator": "Sezione: Sconti oltre soglia",
+    "tags": [
+      "multi_doc",
+      "numeric"
+    ]
+  },
+  {
+    "id": "pmi-com-dir-qual-e-il-valore-massimo-delle-campionature-grat",
+    "library": "Commerciale",
+    "type": "direct",
+    "query": "Qual è il valore massimo delle campionature gratuite?",
+    "expected_filename": "politica-sconti.md",
+    "expected_locator": "Sezione: Campionature gratuite",
+    "tags": [
+      "multi_doc"
+    ]
+  },
+  {
+    "id": "pmi-com-dir-chi-approva-il-fido-per-un-nuovo-cliente",
+    "library": "Commerciale",
+    "type": "direct",
+    "query": "Chi approva il fido per un nuovo cliente?",
+    "expected_filename": "politica-sconti.md",
+    "expected_locator": "Sezione: Fido ai nuovi clienti",
+    "tags": [
+      "multi_doc"
+    ]
+  },
+  {
+    "id": "pmi-com-par-il-cliente-vuole-accettare-un-preventivo-di-due",
+    "library": "Commerciale",
+    "type": "paraphrase",
+    "query": "Il cliente vuole accettare un preventivo di due mesi fa, il prezzo vale ancora?",
+    "expected_filename": "condizioni-generali-vendita.md",
+    "expected_locator": "Sezione: Offerte",
+    "tags": [
+      "colloquial",
+      "numeric"
+    ]
+  },
+  {
+    "id": "pmi-com-par-il-cliente-vuole-cambiare-le-quantita-dopo-che-a",
+    "library": "Commerciale",
+    "type": "paraphrase",
+    "query": "Il cliente vuole cambiare le quantità dopo che abbiamo confermato, si può?",
+    "expected_filename": "condizioni-generali-vendita.md",
+    "expected_locator": "Sezione: Conferma d'ordine",
+    "tags": [
+      "colloquial"
+    ]
+  },
+  {
+    "id": "pmi-com-par-siamo-in-ritardo-di-tre-settimane-il-cliente-puo",
+    "library": "Commerciale",
+    "type": "paraphrase",
+    "query": "Siamo in ritardo di tre settimane, il cliente può cancellare l'ordine?",
+    "expected_filename": "condizioni-generali-vendita.md",
+    "expected_locator": "Sezione: Termini di consegna",
+    "tags": [
+      "colloquial",
+      "numeric"
+    ]
+  },
+  {
+    "id": "pmi-com-par-un-cliente-mai-servito-prima-vuole-pagare-a-90-g",
+    "library": "Commerciale",
+    "type": "paraphrase",
+    "query": "Un cliente mai servito prima vuole pagare a 90 giorni, va bene?",
+    "expected_filename": "condizioni-generali-vendita.md",
+    "expected_locator": "Sezione: Pagamento dei clienti",
+    "tags": [
+      "colloquial"
+    ],
+    "also_acceptable": [
+      {
+        "filename": "politica-sconti.md",
+        "locator": "Sezione: Fido ai nuovi clienti"
+      }
+    ]
+  },
+  {
+    "id": "pmi-com-par-il-cliente-ci-rimanda-dei-pezzi-fatti-su-suo-dis",
+    "library": "Commerciale",
+    "type": "paraphrase",
+    "query": "Il cliente ci rimanda dei pezzi fatti su suo disegno, li accettiamo?",
+    "expected_filename": "condizioni-generali-vendita.md",
+    "expected_locator": "Sezione: Resi",
+    "tags": [
+      "colloquial"
+    ]
+  },
+  {
+    "id": "pmi-com-par-un-pezzo-si-e-rotto-dopo-otto-mesi-e-il-cliente",
+    "library": "Commerciale",
+    "type": "paraphrase",
+    "query": "Un pezzo si è rotto dopo otto mesi e il cliente vuole che paghiamo la linea ferma, è coperto?",
+    "expected_filename": "condizioni-generali-vendita.md",
+    "expected_locator": "Sezione: Garanzia",
+    "tags": [
+      "colloquial"
+    ]
+  },
+  {
+    "id": "pmi-com-par-il-cliente-ha-scoperto-una-crepa-interna-dopo-un",
+    "library": "Commerciale",
+    "type": "paraphrase",
+    "query": "Il cliente ha scoperto una crepa interna dopo un mese di uso, può ancora contestare?",
+    "expected_filename": "condizioni-generali-vendita.md",
+    "expected_locator": "Sezione: Reclami",
+    "tags": [
+      "colloquial"
+    ]
+  },
+  {
+    "id": "pmi-com-par-posso-fare-il-3-al-cliente-senza-chiedere-a-ness",
+    "library": "Commerciale",
+    "type": "paraphrase",
+    "query": "Posso fare il 3% al cliente senza chiedere a nessuno?",
+    "expected_filename": "politica-sconti.md",
+    "expected_locator": "Sezione: Sconto standard",
+    "tags": [
+      "multi_doc",
+      "colloquial"
+    ]
+  },
+  {
+    "id": "pmi-com-par-per-chiudere-l-ordine-dovrei-dare-il-10-chi-deve",
+    "library": "Commerciale",
+    "type": "paraphrase",
+    "query": "Per chiudere l'ordine dovrei dare il 10%, chi deve dare l'ok?",
+    "expected_filename": "politica-sconti.md",
+    "expected_locator": "Sezione: Sconti oltre soglia",
+    "tags": [
+      "multi_doc",
+      "numeric"
+    ]
+  },
+  {
+    "id": "pmi-com-par-il-cliente-ha-gia-avuto-450-euro-di-campioni-que",
+    "library": "Commerciale",
+    "type": "paraphrase",
+    "query": "Il cliente ha già avuto 450 euro di campioni quest'anno e ne vuole altri 200, sono gratis?",
+    "expected_filename": "politica-sconti.md",
+    "expected_locator": "Sezione: Campionature gratuite",
+    "tags": [
+      "multi_doc",
+      "numeric"
+    ]
+  },
+  {
+    "id": "pmi-com-par-un-cliente-nuovo-puo-pagare-a-fine-mese-da-subit",
+    "library": "Commerciale",
+    "type": "paraphrase",
+    "query": "Un cliente nuovo può pagare a fine mese da subito?",
+    "expected_filename": "politica-sconti.md",
+    "expected_locator": "Sezione: Fido ai nuovi clienti",
+    "tags": [
+      "multi_doc"
+    ],
+    "also_acceptable": [
+      {
+        "filename": "condizioni-generali-vendita.md",
+        "locator": "Sezione: Pagamento dei clienti"
+      }
+    ]
+  },
+  {
+    "id": "pmi-com-abs-qual-e-il-prezzo-di-listino-della-flangia-dn50",
+    "library": "Commerciale",
+    "type": "abstention",
+    "query": "Qual è il prezzo di listino della flangia DN50?",
+    "expected_filename": null,
+    "expected_locator": null,
+    "tags": [
+      "out_of_domain"
+    ]
+  },
+  {
+    "id": "pmi-com-abs-chi-paga-il-trasporto-dei-resi",
+    "library": "Commerciale",
+    "type": "abstention",
+    "query": "Chi paga il trasporto dei resi?",
+    "expected_filename": null,
+    "expected_locator": null,
+    "tags": [
+      "trap"
+    ]
+  },
+  {
+    "id": "pmi-com-abs-la-garanzia-si-puo-estendere-a-ventiquattro-mesi",
+    "library": "Commerciale",
+    "type": "abstention",
+    "query": "La garanzia si può estendere a ventiquattro mesi pagando un supplemento?",
+    "expected_filename": null,
+    "expected_locator": null,
+    "tags": [
+      "trap"
+    ]
+  },
+  {
+    "id": "pmi-com-abs-quali-sono-le-provvigioni-dei-commerciali",
+    "library": "Commerciale",
+    "type": "abstention",
+    "query": "Quali sono le provvigioni dei commerciali?",
+    "expected_filename": null,
+    "expected_locator": null,
+    "tags": [
+      "out_of_domain"
+    ]
+  },
+  {
+    "id": "pmi-com-abs-spediamo-anche-fuori-dall-unione-europea",
+    "library": "Commerciale",
+    "type": "abstention",
+    "query": "Spediamo anche fuori dall'Unione Europea?",
+    "expected_filename": null,
+    "expected_locator": null,
+    "tags": [
+      "out_of_domain"
+    ]
+  },
+  {
+    "id": "pmi-com-abs-chi-puo-firmare-un-contratto-quadro-con-un-clien",
+    "library": "Commerciale",
+    "type": "abstention",
+    "query": "Chi può firmare un contratto quadro con un cliente?",
+    "expected_filename": null,
+    "expected_locator": null,
+    "tags": [
+      "trap"
+    ]
+  },
+  {
+    "id": "pmi-com-abs-con-quanto-anticipo-vanno-chieste-le-ferie",
+    "library": "Commerciale",
+    "type": "abstention",
+    "query": "Con quanto anticipo vanno chieste le ferie?",
+    "expected_filename": null,
+    "expected_locator": null,
+    "tags": [
+      "cross_library"
+    ]
+  },
+  {
+    "id": "pmi-com-abs-quali-documenti-servono-per-qualificare-un-forni",
+    "library": "Commerciale",
+    "type": "abstention",
+    "query": "Quali documenti servono per qualificare un fornitore?",
+    "expected_filename": null,
+    "expected_locator": null,
+    "tags": [
+      "cross_library"
+    ]
+  },
+  {
+    "id": "pmi-com-par-che-penale-paghiamo-se-consegniamo-in-ritardo",
+    "library": "Commerciale",
+    "type": "paraphrase",
+    "query": "Che penale paghiamo se consegniamo in ritardo?",
+    "expected_filename": "condizioni-generali-vendita.md",
+    "expected_locator": "Sezione: Termini di consegna",
+    "tags": [
+      "trap"
+    ]
+  },
+  {
+    "id": "pmi-qs-dir-cosa-si-fa-quando-si-rileva-un-pezzo-non-conform",
+    "library": "Qualita-Sicurezza",
+    "type": "direct",
+    "query": "Cosa si fa quando si rileva un pezzo non conforme?",
+    "expected_filename": "procedura-non-conformita.md",
+    "expected_locator": "Sezione: Rilevazione",
+    "tags": []
+  },
+  {
+    "id": "pmi-qs-dir-entro-quanto-va-registrata-una-non-conformita",
+    "library": "Qualita-Sicurezza",
+    "type": "direct",
+    "query": "Entro quanto va registrata una non conformità?",
+    "expected_filename": "procedura-non-conformita.md",
+    "expected_locator": "Sezione: Registrazione",
+    "tags": []
+  },
+  {
+    "id": "pmi-qs-dir-quale-metodo-si-usa-per-l-analisi-delle-cause",
+    "library": "Qualita-Sicurezza",
+    "type": "direct",
+    "query": "Quale metodo si usa per l'analisi delle cause?",
+    "expected_filename": "procedura-non-conformita.md",
+    "expected_locator": "Sezione: Analisi delle cause",
+    "tags": []
+  },
+  {
+    "id": "pmi-qs-dir-dopo-quanto-tempo-si-verifica-l-efficacia-delle",
+    "library": "Qualita-Sicurezza",
+    "type": "direct",
+    "query": "Dopo quanto tempo si verifica l'efficacia delle azioni correttive?",
+    "expected_filename": "procedura-non-conformita.md",
+    "expected_locator": "Sezione: Azioni correttive",
+    "tags": []
+  },
+  {
+    "id": "pmi-qs-dir-chi-firma-la-chiusura-di-una-non-conformita",
+    "library": "Qualita-Sicurezza",
+    "type": "direct",
+    "query": "Chi firma la chiusura di una non conformità?",
+    "expected_filename": "procedura-non-conformita.md",
+    "expected_locator": "Sezione: Chiusura",
+    "tags": []
+  },
+  {
+    "id": "pmi-qs-dir-come-si-gestisce-il-materiale-non-conforme-di-un",
+    "library": "Qualita-Sicurezza",
+    "type": "direct",
+    "query": "Come si gestisce il materiale non conforme di un fornitore?",
+    "expected_filename": "procedura-non-conformita.md",
+    "expected_locator": "Sezione: Non conformità del fornitore",
+    "tags": []
+  },
+  {
+    "id": "pmi-qs-dir-quali-dpi-sono-obbligatori-in-reparto",
+    "library": "Qualita-Sicurezza",
+    "type": "direct",
+    "query": "Quali DPI sono obbligatori in reparto?",
+    "expected_filename": "sicurezza-reparto.md",
+    "expected_locator": "Sezione: Dispositivi di protezione individuale",
+    "tags": [
+      "multi_doc"
+    ]
+  },
+  {
+    "id": "pmi-qs-dir-come-entrano-i-visitatori-in-reparto",
+    "library": "Qualita-Sicurezza",
+    "type": "direct",
+    "query": "Come entrano i visitatori in reparto?",
+    "expected_filename": "sicurezza-reparto.md",
+    "expected_locator": "Sezione: Visitatori in reparto",
+    "tags": [
+      "multi_doc"
+    ]
+  },
+  {
+    "id": "pmi-qs-dir-cosa-si-fa-in-caso-di-infortunio",
+    "library": "Qualita-Sicurezza",
+    "type": "direct",
+    "query": "Cosa si fa in caso di infortunio?",
+    "expected_filename": "sicurezza-reparto.md",
+    "expected_locator": "Sezione: Infortuni",
+    "tags": [
+      "multi_doc"
+    ]
+  },
+  {
+    "id": "pmi-qs-dir-dov-e-il-punto-di-raccolta-in-caso-di-incendio",
+    "library": "Qualita-Sicurezza",
+    "type": "direct",
+    "query": "Dov'è il punto di raccolta in caso di incendio?",
+    "expected_filename": "sicurezza-reparto.md",
+    "expected_locator": "Sezione: Emergenza incendio",
+    "tags": [
+      "multi_doc"
+    ]
+  },
+  {
+    "id": "pmi-qs-dir-chi-puo-guidare-i-carrelli-elevatori",
+    "library": "Qualita-Sicurezza",
+    "type": "direct",
+    "query": "Chi può guidare i carrelli elevatori?",
+    "expected_filename": "sicurezza-reparto.md",
+    "expected_locator": "Sezione: Carrelli elevatori",
+    "tags": [
+      "multi_doc"
+    ]
+  },
+  {
+    "id": "pmi-qs-dir-ogni-quanto-si-aggiorna-la-formazione-sulla-sicu",
+    "library": "Qualita-Sicurezza",
+    "type": "direct",
+    "query": "Ogni quanto si aggiorna la formazione sulla sicurezza?",
+    "expected_filename": "sicurezza-reparto.md",
+    "expected_locator": "Sezione: Formazione sulla sicurezza",
+    "tags": [
+      "multi_doc"
+    ]
+  },
+  {
+    "id": "pmi-qs-par-ho-visto-un-pezzo-con-una-bava-fuori-tolleranza",
+    "library": "Qualita-Sicurezza",
+    "type": "paraphrase",
+    "query": "Ho visto un pezzo con una bava fuori tolleranza sulla linea, cosa faccio subito?",
+    "expected_filename": "procedura-non-conformita.md",
+    "expected_locator": "Sezione: Rilevazione",
+    "tags": [
+      "colloquial"
+    ]
+  },
+  {
+    "id": "pmi-qs-par-ho-trovato-dei-pezzi-difettosi-ieri-pomeriggio-s",
+    "library": "Qualita-Sicurezza",
+    "type": "paraphrase",
+    "query": "Ho trovato dei pezzi difettosi ieri pomeriggio, sono ancora in tempo a segnarli?",
+    "expected_filename": "procedura-non-conformita.md",
+    "expected_locator": "Sezione: Registrazione",
+    "tags": [
+      "colloquial"
+    ]
+  },
+  {
+    "id": "pmi-qs-par-lo-stesso-difetto-si-ripresenta-ogni-settimana-c",
+    "library": "Qualita-Sicurezza",
+    "type": "paraphrase",
+    "query": "Lo stesso difetto si ripresenta ogni settimana, chi deve capire perché?",
+    "expected_filename": "procedura-non-conformita.md",
+    "expected_locator": "Sezione: Analisi delle cause",
+    "tags": [
+      "colloquial"
+    ]
+  },
+  {
+    "id": "pmi-qs-par-come-facciamo-a-sapere-se-il-rimedio-che-abbiamo",
+    "library": "Qualita-Sicurezza",
+    "type": "paraphrase",
+    "query": "Come facciamo a sapere se il rimedio che abbiamo messo funziona davvero?",
+    "expected_filename": "procedura-non-conformita.md",
+    "expected_locator": "Sezione: Azioni correttive",
+    "tags": [
+      "colloquial"
+    ]
+  },
+  {
+    "id": "pmi-qs-par-i-pezzi-difettosi-sono-stati-rilavorati-posso-ar",
+    "library": "Qualita-Sicurezza",
+    "type": "paraphrase",
+    "query": "I pezzi difettosi sono stati rilavorati, posso archiviare la pratica?",
+    "expected_filename": "procedura-non-conformita.md",
+    "expected_locator": "Sezione: Chiusura",
+    "tags": [
+      "colloquial"
+    ]
+  },
+  {
+    "id": "pmi-qs-par-il-fornitore-di-viti-ci-ha-mandato-il-terzo-lott",
+    "library": "Qualita-Sicurezza",
+    "type": "paraphrase",
+    "query": "Il fornitore di viti ci ha mandato il terzo lotto sbagliato quest'anno, cosa succede?",
+    "expected_filename": "procedura-non-conformita.md",
+    "expected_locator": "Sezione: Non conformità del fornitore",
+    "tags": [
+      "colloquial",
+      "numeric"
+    ]
+  },
+  {
+    "id": "pmi-qs-par-ho-gli-occhiali-di-protezione-graffiati-dove-ne",
+    "library": "Qualita-Sicurezza",
+    "type": "paraphrase",
+    "query": "Ho gli occhiali di protezione graffiati, dove ne prendo di nuovi?",
+    "expected_filename": "sicurezza-reparto.md",
+    "expected_locator": "Sezione: Dispositivi di protezione individuale",
+    "tags": [
+      "multi_doc",
+      "colloquial"
+    ]
+  },
+  {
+    "id": "pmi-qs-par-domani-viene-un-cliente-a-vedere-la-produzione-c",
+    "library": "Qualita-Sicurezza",
+    "type": "paraphrase",
+    "query": "Domani viene un cliente a vedere la produzione, cosa deve fare?",
+    "expected_filename": "sicurezza-reparto.md",
+    "expected_locator": "Sezione: Visitatori in reparto",
+    "tags": [
+      "multi_doc",
+      "colloquial"
+    ]
+  },
+  {
+    "id": "pmi-qs-par-mi-sono-tagliato-un-dito-e-una-cosa-da-niente-de",
+    "library": "Qualita-Sicurezza",
+    "type": "paraphrase",
+    "query": "Mi sono tagliato un dito, è una cosa da niente, devo dirlo a qualcuno?",
+    "expected_filename": "sicurezza-reparto.md",
+    "expected_locator": "Sezione: Infortuni",
+    "tags": [
+      "multi_doc",
+      "colloquial"
+    ]
+  },
+  {
+    "id": "pmi-qs-par-suona-l-allarme-antincendio-dove-devo-andare",
+    "library": "Qualita-Sicurezza",
+    "type": "paraphrase",
+    "query": "Suona l'allarme antincendio, dove devo andare?",
+    "expected_filename": "sicurezza-reparto.md",
+    "expected_locator": "Sezione: Emergenza incendio",
+    "tags": [
+      "multi_doc",
+      "colloquial"
+    ]
+  },
+  {
+    "id": "pmi-qs-par-il-mio-collega-puo-spostare-il-muletto-anche-se",
+    "library": "Qualita-Sicurezza",
+    "type": "paraphrase",
+    "query": "Il mio collega può spostare il muletto anche se non ha il patentino?",
+    "expected_filename": "sicurezza-reparto.md",
+    "expected_locator": "Sezione: Carrelli elevatori",
+    "tags": [
+      "multi_doc",
+      "colloquial"
+    ]
+  },
+  {
+    "id": "pmi-qs-par-un-nuovo-operaio-puo-iniziare-in-linea-il-primo",
+    "library": "Qualita-Sicurezza",
+    "type": "paraphrase",
+    "query": "Un nuovo operaio può iniziare in linea il primo giorno?",
+    "expected_filename": "sicurezza-reparto.md",
+    "expected_locator": "Sezione: Formazione sulla sicurezza",
+    "tags": [
+      "multi_doc"
+    ]
+  },
+  {
+    "id": "pmi-qs-abs-quando-e-il-prossimo-audit-di-certificazione-iso",
+    "library": "Qualita-Sicurezza",
+    "type": "abstention",
+    "query": "Quando è il prossimo audit di certificazione ISO 9001?",
+    "expected_filename": null,
+    "expected_locator": null,
+    "tags": [
+      "out_of_domain"
+    ]
+  },
+  {
+    "id": "pmi-qs-abs-chi-e-il-responsabile-del-servizio-di-prevenzion",
+    "library": "Qualita-Sicurezza",
+    "type": "abstention",
+    "query": "Chi è il responsabile del servizio di prevenzione e protezione?",
+    "expected_filename": null,
+    "expected_locator": null,
+    "tags": [
+      "trap"
+    ]
+  },
+  {
+    "id": "pmi-qs-abs-ogni-quanto-si-fanno-le-prove-di-evacuazione",
+    "library": "Qualita-Sicurezza",
+    "type": "abstention",
+    "query": "Ogni quanto si fanno le prove di evacuazione?",
+    "expected_filename": null,
+    "expected_locator": null,
+    "tags": [
+      "trap"
+    ]
+  },
+  {
+    "id": "pmi-qs-abs-quali-sono-le-tolleranze-di-lavorazione-ammesse",
+    "library": "Qualita-Sicurezza",
+    "type": "abstention",
+    "query": "Quali sono le tolleranze di lavorazione ammesse sui pezzi torniti?",
+    "expected_filename": null,
+    "expected_locator": null,
+    "tags": [
+      "out_of_domain"
+    ]
+  },
+  {
+    "id": "pmi-qs-abs-i-guanti-antitaglio-sono-obbligatori-in-reparto",
+    "library": "Qualita-Sicurezza",
+    "type": "abstention",
+    "query": "I guanti antitaglio sono obbligatori in reparto?",
+    "expected_filename": null,
+    "expected_locator": null,
+    "tags": [
+      "trap"
+    ]
+  },
+  {
+    "id": "pmi-qs-abs-quanto-costa-smaltire-un-lotto-scartato",
+    "library": "Qualita-Sicurezza",
+    "type": "abstention",
+    "query": "Quanto costa smaltire un lotto scartato?",
+    "expected_filename": null,
+    "expected_locator": null,
+    "tags": [
+      "trap"
+    ]
+  },
+  {
+    "id": "pmi-qs-abs-entro-quanti-giorni-va-fatto-un-reclamo-del-clie",
+    "library": "Qualita-Sicurezza",
+    "type": "abstention",
+    "query": "Entro quanti giorni va fatto un reclamo del cliente?",
+    "expected_filename": null,
+    "expected_locator": null,
+    "tags": [
+      "cross_library"
+    ]
+  },
+  {
+    "id": "pmi-qs-abs-cosa-faccio-se-perdo-il-telefono-aziendale",
+    "library": "Qualita-Sicurezza",
+    "type": "abstention",
+    "query": "Cosa faccio se perdo il telefono aziendale?",
+    "expected_filename": null,
+    "expected_locator": null,
+    "tags": [
+      "cross_library"
+    ]
+  },
+  {
+    "id": "pmi-qs-abs-quando-e-la-prossima-visita-medica-periodica",
+    "library": "Qualita-Sicurezza",
+    "type": "abstention",
+    "query": "Quando è la prossima visita medica periodica?",
+    "expected_filename": null,
+    "expected_locator": null,
+    "tags": [
+      "out_of_domain"
+    ]
+  },
+  {
+    "id": "pmi-it-dir-quanto-deve-essere-lunga-una-password",
+    "library": "IT-Privacy",
+    "type": "direct",
+    "query": "Quanto deve essere lunga una password?",
+    "expected_filename": "uso-strumenti-informatici.md",
+    "expected_locator": "Sezione: Password",
+    "tags": []
+  },
+  {
+    "id": "pmi-it-dir-cosa-faccio-con-un-allegato-email-sospetto",
+    "library": "IT-Privacy",
+    "type": "direct",
+    "query": "Cosa faccio con un allegato email sospetto?",
+    "expected_filename": "uso-strumenti-informatici.md",
+    "expected_locator": "Sezione: Posta elettronica",
+    "tags": []
+  },
+  {
+    "id": "pmi-it-dir-posso-collegare-una-chiavetta-usb-al-computer-az",
+    "library": "IT-Privacy",
+    "type": "direct",
+    "query": "Posso collegare una chiavetta USB al computer aziendale?",
+    "expected_filename": "uso-strumenti-informatici.md",
+    "expected_locator": "Sezione: Dispositivi personali",
+    "tags": []
+  },
+  {
+    "id": "pmi-it-dir-per-quanto-tempo-e-conservato-il-backup-delle-ca",
+    "library": "IT-Privacy",
+    "type": "direct",
+    "query": "Per quanto tempo è conservato il backup delle cartelle condivise?",
+    "expected_filename": "uso-strumenti-informatici.md",
+    "expected_locator": "Sezione: Salvataggio dei dati",
+    "tags": []
+  },
+  {
+    "id": "pmi-it-dir-come-si-installa-un-nuovo-software",
+    "library": "IT-Privacy",
+    "type": "direct",
+    "query": "Come si installa un nuovo software?",
+    "expected_filename": "uso-strumenti-informatici.md",
+    "expected_locator": "Sezione: Installazione di software",
+    "tags": []
+  },
+  {
+    "id": "pmi-it-dir-entro-quanto-va-comunicato-lo-smarrimento-di-un",
+    "library": "IT-Privacy",
+    "type": "direct",
+    "query": "Entro quanto va comunicato lo smarrimento di un computer aziendale?",
+    "expected_filename": "uso-strumenti-informatici.md",
+    "expected_locator": "Sezione: Smarrimento o furto di un dispositivo",
+    "tags": []
+  },
+  {
+    "id": "pmi-it-dir-come-ci-si-collega-ai-sistemi-aziendali-da-fuori",
+    "library": "IT-Privacy",
+    "type": "direct",
+    "query": "Come ci si collega ai sistemi aziendali da fuori sede?",
+    "expected_filename": "uso-strumenti-informatici.md",
+    "expected_locator": "Sezione: Accesso da remoto",
+    "tags": []
+  },
+  {
+    "id": "pmi-it-dir-entro-quanto-si-risponde-a-una-richiesta-di-canc",
+    "library": "IT-Privacy",
+    "type": "direct",
+    "query": "Entro quanto si risponde a una richiesta di cancellazione dei dati?",
+    "expected_filename": "privacy-dati-personali.md",
+    "expected_locator": "Sezione: Richieste degli interessati",
+    "tags": [
+      "multi_doc"
+    ]
+  },
+  {
+    "id": "pmi-it-dir-entro-quanto-si-notifica-una-violazione-di-dati",
+    "library": "IT-Privacy",
+    "type": "direct",
+    "query": "Entro quanto si notifica una violazione di dati al Garante?",
+    "expected_filename": "privacy-dati-personali.md",
+    "expected_locator": "Sezione: Violazione dei dati",
+    "tags": [
+      "multi_doc"
+    ]
+  },
+  {
+    "id": "pmi-it-dir-per-quanto-tempo-si-conservano-i-curriculum-dei",
+    "library": "IT-Privacy",
+    "type": "direct",
+    "query": "Per quanto tempo si conservano i curriculum dei candidati?",
+    "expected_filename": "privacy-dati-personali.md",
+    "expected_locator": "Sezione: Curriculum dei candidati",
+    "tags": [
+      "multi_doc"
+    ]
+  },
+  {
+    "id": "pmi-it-dir-per-quanto-tempo-sono-conservate-le-immagini-del",
+    "library": "IT-Privacy",
+    "type": "direct",
+    "query": "Per quanto tempo sono conservate le immagini della videosorveglianza?",
+    "expected_filename": "privacy-dati-personali.md",
+    "expected_locator": "Sezione: Videosorveglianza",
+    "tags": [
+      "multi_doc"
+    ]
+  },
+  {
+    "id": "pmi-it-dir-quando-si-possono-comunicare-dati-dei-clienti-a",
+    "library": "IT-Privacy",
+    "type": "direct",
+    "query": "Quando si possono comunicare dati dei clienti a un fornitore esterno?",
+    "expected_filename": "privacy-dati-personali.md",
+    "expected_locator": "Sezione: Comunicazione di dati a terzi",
+    "tags": [
+      "multi_doc"
+    ]
+  },
+  {
+    "id": "pmi-it-par-il-tecnico-al-telefono-mi-chiede-la-password-per",
+    "library": "IT-Privacy",
+    "type": "paraphrase",
+    "query": "Il tecnico al telefono mi chiede la password per sistemare il PC, gliela do?",
+    "expected_filename": "uso-strumenti-informatici.md",
+    "expected_locator": "Sezione: Password",
+    "tags": [
+      "colloquial"
+    ]
+  },
+  {
+    "id": "pmi-it-par-mi-e-arrivata-una-mail-della-banca-con-un-file-z",
+    "library": "IT-Privacy",
+    "type": "paraphrase",
+    "query": "Mi è arrivata una mail della banca con un file zip strano, che faccio?",
+    "expected_filename": "uso-strumenti-informatici.md",
+    "expected_locator": "Sezione: Posta elettronica",
+    "tags": [
+      "colloquial"
+    ]
+  },
+  {
+    "id": "pmi-it-par-posso-leggere-la-posta-di-lavoro-sul-mio-cellula",
+    "library": "IT-Privacy",
+    "type": "paraphrase",
+    "query": "Posso leggere la posta di lavoro sul mio cellulare?",
+    "expected_filename": "uso-strumenti-informatici.md",
+    "expected_locator": "Sezione: Dispositivi personali",
+    "tags": [
+      "colloquial"
+    ]
+  },
+  {
+    "id": "pmi-it-par-avevo-un-file-importante-solo-sul-desktop-e-il-p",
+    "library": "IT-Privacy",
+    "type": "paraphrase",
+    "query": "Avevo un file importante solo sul desktop e il PC si è rotto, si recupera?",
+    "expected_filename": "uso-strumenti-informatici.md",
+    "expected_locator": "Sezione: Salvataggio dei dati",
+    "tags": [
+      "colloquial"
+    ]
+  },
+  {
+    "id": "pmi-it-par-mi-serve-un-programma-per-aprire-i-file-cad-me-l",
+    "library": "IT-Privacy",
+    "type": "paraphrase",
+    "query": "Mi serve un programma per aprire i file CAD, me lo installo da solo?",
+    "expected_filename": "uso-strumenti-informatici.md",
+    "expected_locator": "Sezione: Installazione di software",
+    "tags": [
+      "colloquial"
+    ]
+  },
+  {
+    "id": "pmi-it-par-mi-hanno-rubato-il-portatile-dalla-macchina-cosa",
+    "library": "IT-Privacy",
+    "type": "paraphrase",
+    "query": "Mi hanno rubato il portatile dalla macchina, cosa devo fare?",
+    "expected_filename": "uso-strumenti-informatici.md",
+    "expected_locator": "Sezione: Smarrimento o furto di un dispositivo",
+    "tags": [
+      "colloquial"
+    ]
+  },
+  {
+    "id": "pmi-it-par-dal-computer-di-casa-posso-entrare-nel-gestional",
+    "library": "IT-Privacy",
+    "type": "paraphrase",
+    "query": "Dal computer di casa posso entrare nel gestionale?",
+    "expected_filename": "uso-strumenti-informatici.md",
+    "expected_locator": "Sezione: Accesso da remoto",
+    "tags": [
+      "colloquial"
+    ]
+  },
+  {
+    "id": "pmi-it-par-un-ex-cliente-ci-chiede-di-cancellare-tutti-i-su",
+    "library": "IT-Privacy",
+    "type": "paraphrase",
+    "query": "Un ex cliente ci chiede di cancellare tutti i suoi dati, a chi lo giro?",
+    "expected_filename": "privacy-dati-personali.md",
+    "expected_locator": "Sezione: Richieste degli interessati",
+    "tags": [
+      "multi_doc",
+      "colloquial"
+    ]
+  },
+  {
+    "id": "pmi-it-par-ho-mandato-per-errore-il-file-delle-buste-paga-a",
+    "library": "IT-Privacy",
+    "type": "paraphrase",
+    "query": "Ho mandato per errore il file delle buste paga al fornitore sbagliato, cosa faccio?",
+    "expected_filename": "privacy-dati-personali.md",
+    "expected_locator": "Sezione: Violazione dei dati",
+    "tags": [
+      "multi_doc",
+      "colloquial"
+    ]
+  },
+  {
+    "id": "pmi-it-par-possiamo-tenere-i-cv-di-chi-si-e-candidato-l-ann",
+    "library": "IT-Privacy",
+    "type": "paraphrase",
+    "query": "Possiamo tenere i CV di chi si è candidato l'anno scorso per una posizione futura?",
+    "expected_filename": "privacy-dati-personali.md",
+    "expected_locator": "Sezione: Curriculum dei candidati",
+    "tags": [
+      "multi_doc"
+    ]
+  },
+  {
+    "id": "pmi-it-par-un-collega-vuole-vedere-le-registrazioni-delle-t",
+    "library": "IT-Privacy",
+    "type": "paraphrase",
+    "query": "Un collega vuole vedere le registrazioni delle telecamere di ieri, può?",
+    "expected_filename": "privacy-dati-personali.md",
+    "expected_locator": "Sezione: Videosorveglianza",
+    "tags": [
+      "multi_doc",
+      "colloquial"
+    ]
+  },
+  {
+    "id": "pmi-it-par-il-consulente-del-lavoro-vuole-l-elenco-dei-dipe",
+    "library": "IT-Privacy",
+    "type": "paraphrase",
+    "query": "Il consulente del lavoro vuole l'elenco dei dipendenti, possiamo mandarglielo?",
+    "expected_filename": "privacy-dati-personali.md",
+    "expected_locator": "Sezione: Comunicazione di dati a terzi",
+    "tags": [
+      "multi_doc"
+    ]
+  },
+  {
+    "id": "pmi-it-abs-qual-e-la-password-del-wi-fi-ospiti",
+    "library": "IT-Privacy",
+    "type": "abstention",
+    "query": "Qual è la password del Wi-Fi ospiti?",
+    "expected_filename": null,
+    "expected_locator": null,
+    "tags": [
+      "out_of_domain"
+    ]
+  },
+  {
+    "id": "pmi-it-abs-quale-antivirus-usa-l-azienda",
+    "library": "IT-Privacy",
+    "type": "abstention",
+    "query": "Quale antivirus usa l'azienda?",
+    "expected_filename": null,
+    "expected_locator": null,
+    "tags": [
+      "out_of_domain"
+    ]
+  },
+  {
+    "id": "pmi-it-abs-per-quanto-tempo-si-conservano-i-backup-mensili",
+    "library": "IT-Privacy",
+    "type": "abstention",
+    "query": "Per quanto tempo si conservano i backup mensili?",
+    "expected_filename": null,
+    "expected_locator": null,
+    "tags": [
+      "trap"
+    ]
+  },
+  {
+    "id": "pmi-it-abs-dopo-quanti-tentativi-sbagliati-si-blocca-l-acco",
+    "library": "IT-Privacy",
+    "type": "abstention",
+    "query": "Dopo quanti tentativi sbagliati si blocca l'account?",
+    "expected_filename": null,
+    "expected_locator": null,
+    "tags": [
+      "trap"
+    ]
+  },
+  {
+    "id": "pmi-it-abs-chi-e-il-responsabile-della-protezione-dei-dati",
+    "library": "IT-Privacy",
+    "type": "abstention",
+    "query": "Chi è il responsabile della protezione dei dati (DPO)?",
+    "expected_filename": null,
+    "expected_locator": null,
+    "tags": [
+      "trap"
+    ]
+  },
+  {
+    "id": "pmi-it-abs-per-quanto-tempo-si-conservano-i-dati-dei-dipend",
+    "library": "IT-Privacy",
+    "type": "abstention",
+    "query": "Per quanto tempo si conservano i dati dei dipendenti cessati?",
+    "expected_filename": null,
+    "expected_locator": null,
+    "tags": [
+      "trap"
+    ]
+  },
+  {
+    "id": "pmi-it-abs-quanti-giorni-di-lavoro-agile-posso-fare",
+    "library": "IT-Privacy",
+    "type": "abstention",
+    "query": "Quanti giorni di lavoro agile posso fare?",
+    "expected_filename": null,
+    "expected_locator": null,
+    "tags": [
+      "cross_library"
+    ]
+  },
+  {
+    "id": "pmi-it-abs-cosa-devo-fare-se-trovo-un-pezzo-non-conforme",
+    "library": "IT-Privacy",
+    "type": "abstention",
+    "query": "Cosa devo fare se trovo un pezzo non conforme?",
+    "expected_filename": null,
+    "expected_locator": null,
+    "tags": [
+      "cross_library"
+    ]
+  },
+  {
+    "id": "pmi-it-abs-come-si-configura-la-stampante-di-rete",
+    "library": "IT-Privacy",
+    "type": "abstention",
+    "query": "Come si configura la stampante di rete?",
+    "expected_filename": null,
+    "expected_locator": null,
+    "tags": [
+      "out_of_domain"
+    ]
+  }
+]

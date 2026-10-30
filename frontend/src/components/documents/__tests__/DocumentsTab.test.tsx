@@ -107,4 +107,44 @@ describe('DocumentsTab', () => {
     expect(screen.queryByText('Carica documento')).not.toBeInTheDocument()
     expect(screen.queryByText('Rielabora')).not.toBeInTheDocument()
   })
+
+  it('compares an older version with the current one, section by section', async () => {
+    vi.mocked(fetch).mockImplementation(async (input) => {
+      const url = String(input)
+      if (url === '/api/libraries') return { ok: true, json: async () => ({ items: [{ id: 'library-1', name: 'Qualita', description: '', visibility: 'private', document_count: 1, access_role: 'owner' }] }) } as Response
+      if (url === '/api/libraries/library-1/documents') return { ok: true, json: async () => ({ items: [{ id: 'document-1', filename: 'pq07.md', size_bytes: 1200, version: 2, status: 'ready' }] }) } as Response
+      if (url.endsWith('/versions')) return { ok: true, json: async () => ({ items: [{ version: 2, size_bytes: 1200, created_at: '2026-10-28T10:00:00Z' }, { version: 1, size_bytes: 1100, created_at: '2026-10-01T10:00:00Z' }] }) } as Response
+      if (url.includes('/versions/compare?from=1&to=2')) return { ok: true, json: async () => ({ changes: [{ locator: 'Sezione: Registrazione', kind: 'changed', before: ['Entro un giorno.'], after: ['Entro due giorni.'] }] }) } as Response
+      return { ok: true, json: async () => ({ items: [] }) } as Response
+    })
+
+    renderWithTheme(<DocumentsTab showNotif={showNotif} />)
+
+    await screen.findByText('pq07.md')
+    for (const button of screen.getAllByRole('button')) {
+      if (button.getAttribute('aria-haspopup') || /azioni|altre/i.test(button.getAttribute('aria-label') ?? '')) fireEvent.click(button)
+    }
+    fireEvent.click(await screen.findByRole('button', { name: 'Versioni' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Confronta con la corrente' }))
+
+    expect(await screen.findByText('Dalla versione 1 alla 2')).toBeInTheDocument()
+    expect(screen.getByText(/Entro un giorno\./)).toBeInTheDocument()
+    expect(screen.getByText(/Entro due giorni\./)).toBeInTheDocument()
+  })
+
+  it('flags documents whose review is overdue', async () => {
+    const passed = new Date()
+    passed.setDate(passed.getDate() - 5)
+    const iso = `${passed.getFullYear()}-${String(passed.getMonth() + 1).padStart(2, '0')}-${String(passed.getDate()).padStart(2, '0')}`
+    vi.mocked(fetch).mockImplementation(async (input) => {
+      const url = String(input)
+      if (url === '/api/libraries') return { ok: true, json: async () => ({ items: [{ id: 'library-1', name: 'Qualita', description: '', visibility: 'private', document_count: 1 }] }) } as Response
+      if (url === '/api/libraries/library-1/documents') return { ok: true, json: async () => ({ items: [{ id: 'document-1', filename: 'dvr.md', size_bytes: 1200, version: 1, status: 'ready', review_due: iso }] }) } as Response
+      return { ok: true, json: async () => ({ items: [] }) } as Response
+    })
+
+    renderWithTheme(<DocumentsTab showNotif={showNotif} />)
+
+    expect(await screen.findByText('Revisione scaduta da 5 gg')).toBeInTheDocument()
+  })
 })

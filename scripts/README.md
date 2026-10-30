@@ -44,6 +44,7 @@ introdurrebbe più rischio di quanto valga la coerenza cosmetica.
 | `test_all.bat` | Esegue la suite pytest escludendo i test di integrazione. |
 | `run_demo_validation.py` | Valida il flusso demo completo, incluso il controllo di isolamento fra biblioteche. |
 | `provision_local_demo_auth.py` | Genera le credenziali di primo avvio in `.env` e `LOCAL_LOGIN.txt` (entrambi non versionati). |
+| `configure_ai.py` | Scelta del modello: solo estratti, Ollama locale o API pubblica (con consenso), piu' la verifica dell'evidenza come opzione separata. Usato da `Setup_Wizard.ps1` e `INSTALLA_ERMES.bat`; rilanciabile per cambiare scelta. |
 | `setup_openrouter.py` | Configura OpenRouter come provider cloud approvato. |
 | `backup.py` | Backup di database, documenti e configurazione. |
 

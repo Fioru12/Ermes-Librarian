@@ -2,6 +2,44 @@
 
 Registro leggibile del lavoro su questo progetto. Per i finding tecnici completi, [docs/AUDIT_2026-08-19.md](docs/AUDIT_2026-08-19.md) e [docs/CODE_REVIEW.md](docs/CODE_REVIEW.md). La roadmap per fasi e il registro delle sessioni (`ROADMAP_V2.md`, `WORK_PROGRESS.md`) sono stati tolti dall'albero pubblico il 18 settembre 2026: la cronologia Git li conserva.
 
+## 2026-10-28 — Permessi ereditati da SharePoint/OneDrive e Google Drive; email come documenti; domande fallite verso il gold set
+
+- **Permessi dalle fonti.** I connettori Microsoft 365 e Google Drive leggono chi vede ogni file sull'origine e lo scrivono come allow-list del documento, nella stessa transazione dell'inserimento. Un link aperto all'organizzazione non aggiunge vincoli; permessi illeggibili o nessun nome riconoscibile chiudono il documento al proprietario della biblioteca e agli amministratori. Un accesso tolto sull'origine sparisce alla sincronizzazione successiva anche se il file non cambia. I quattro cicli di importazione duplicati (API completa e incrementale, scheduler completo e incrementale) passano ora da `core/connector_ingest.py`. Cartelle di rete Windows, Confluence, S3 e WebDAV non ereditano ancora i permessi.
+- **Email.** I file `.eml` si caricano e si importano: intestazione e corpo come un'unita' citata per oggetto e data, gli allegati supportati come unita' proprie. `.msg` di Outlook non ancora: richiede una dipendenza nuova.
+- **Domande fallite.** `GET /api/analytics/gold-set-candidates` (admin) esporta le domande senza risposta o con pollice giu' nel formato del gold set, da classificare a mano.
+- **Scadenze di revisione.** Ogni documento puo' avere una data entro cui va rivisto (procedure ISO, DVR, certificati). La lista dei documenti segnala in giallo quelli in scadenza nei 30 giorni e in rosso quelli scaduti; `GET /api/libraries/{id}/reviews-due` li elenca dal piu' urgente, rispettando chi puo' vedere ogni documento. Colonna `review_due` aggiunta con migrazione per SQLite e PostgreSQL.
+- **Confronto tra versioni.** Nello storico versioni, "Confronta con la corrente" mostra cosa e' cambiato sezione per sezione: frasi tolte e aggiunte, sezioni nuove e sezioni rimosse. Stessi permessi della lettura del documento.
+- **Misura.** Titolo e sezione davanti ai passaggi: +2 domande su 127 in modalita' keyword, non adottato.
+
+## 2026-10-27 (4) — Piano di evoluzione: priorita' riviste sul target PMI
+
+`docs/PIANO_EVOLUZIONE_E_BENCHMARK.md` riscritto nelle sezioni 4 e 5. Il target dichiarato e' PMI e professionisti con installazione locale; le funzioni enterprise restano ma non ricevono nuovo lavoro senza un cliente che le chieda. Il piano parte dai numeri della suite PMI (astensione 0.178 nella configurazione predefinita), separa cio' che e' gia' fatto (pollice su/giu', PDF alla pagina citata, Studio, report stampabile, scelta del modello) da cio' che blocca l'uso (misura della verifica, installer senza prerequisiti, aggiornamenti, email e PEC, giudizi negativi verso il gold set) e da cio' che e' rimandato con il motivo (agenti, voce, multimodale, knowledge graph, SaaS). Ogni voce dice come si misura il risultato.
+
+Aggiunte il 28 ottobre: la voce 1.6 (i connettori importano i documenti ma non i loro permessi, che vanno ereditati dall'origine prima di collegare fonti aziendali reali) e, fuori dal codice, assistenza, documenti per l'acquisto e una seconda persona.
+
+## 2026-10-27 (3) — Il setup chiede come deve rispondere Ermes
+
+Il setup grafico (`SETUP_WIZARD.bat`), l'installer da console (`INSTALLA_ERMES.bat`) e il nuovo `scripts/configure_ai.py` chiedono una scelta esplicita, senza opzione preselezionata:
+
+- **solo estratti**: nessun modello, nessun dato esce;
+- **modello locale con Ollama**: controlla la RAM (sotto i 15 GB usa il modello piu' leggero, sotto gli 8 avvisa), scarica il modello e avvisa se Ollama manca;
+- **API pubblica (OpenRouter)**: chiede chiave, modello e il consenso esplicito all'invio dei passaggi. La chiave passa da una variabile d'ambiente, mai dalla riga di comando, e non viene stampata.
+
+La verifica dell'evidenza e' una casella separata e spenta: su domande realistiche non e' ancora misurata.
+
+Trovato strada facendo: `ERMES_LIBRARY_ASSISTANT_MODE` era dichiarata e documentata ma nessuna biblioteca la usava, quindi ogni biblioteca nasceva "solo estratti" qualunque cosa ci fosse nel `.env`. Ora e' la modalita' delle biblioteche nuove, con chiusura sul sicuro: il cloud vale solo con consenso e chiave, e `approved_provider` (che richiede un provider per nome) non puo' essere il default. Le biblioteche esistenti non cambiano. `docker-compose.yml` passa ora anche `OPENROUTER_MODEL`, che prima non arrivava al container.
+
+## 2026-10-27 (2) — La verifica dell'evidenza funziona anche senza un modello locale
+
+La verifica dell'evidenza (il controllo che tiene la promessa "cito o mi astengo") chiamava solo Ollama: chi non ha un PC adatto a un modello locale non poteva averla. Ora usa il modello a cui la biblioteca e' gia' autorizzata a mandare i passaggi: Ollama per le biblioteche locali, lo stesso provider cloud approvato (OpenRouter o un provider configurato dall'amministratore) per quelle con politica cloud. Nessun nuovo flusso di dati: consenso cloud, filtro dei dati personali e quarantena dei passaggi sospetti sono gli stessi della generazione, e il trasporto e' condiviso con essa. Se il provider non risponde, la risposta dichiara `evidence_verified: false` come prima.
+
+La valutazione si puo' ora misurare anche con un'API pubblica: `python evaluation/run_library_eval.py --suite pmi --verify --verifier openrouter`. Cinque test nuovi, fra cui uno che fallisce se gli endpoint di risposta smettono di passare la politica della biblioteca al verificatore.
+
+## 2026-10-27 — Suite di valutazione PMI: 172 domande su un corpus realistico
+
+Il gold set storico (52 domande su 16 passaggi scritti a mano) resta invariato, con i suoi numeri pubblicati. Accanto c'e' una seconda suite, `python evaluation/run_library_eval.py --suite pmi`: dieci documenti di una piccola azienda fittizia in cinque biblioteche, caricati dal parser reale, e 172 domande (62 dirette, 65 parafrasi, 45 di astensione) etichettate per tipo di difficolta': trappole con l'argomento presente ma la risposta assente, domande la cui risposta e' in un'altra biblioteca, linguaggio colloquiale, scelta fra due documenti, soglie numeriche. Il report ora riporta l'esito per etichetta.
+
+Il primo numero e' poco lusinghiero, ed e' il motivo per misurarlo: in modalita' keyword le dirette sono 0.952, ma l'astensione scende a 0.178 e le trappole sono 2 su 20. Dettagli e lettura in [docs/RETRIEVAL_EVALUATION.md](docs/RETRIEVAL_EVALUATION.md). La misura con verifica dell'evidenza richiede Ollama ed e' il prossimo numero da pubblicare. I test verificano che ogni riferimento atteso esista davvero nel corpus e fissano le soglie keyword al valore misurato.
 ## 2026-10-30 — Lo stato del sistema non vede un Ollama vuoto; i test scrivevano nel database vero
 
 Trovati preparando le schermate per la presentazione su un'istanza Docker reale.

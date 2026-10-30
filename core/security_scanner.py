@@ -177,7 +177,7 @@ def scan_document(filename: str, content: bytes) -> SecurityScanResult:
     if ext == ".csv":
         return scan_csv(content)
 
-    if ext in {".txt", ".md", ".markdown", ".rtf"}:
+    if ext in {".txt", ".md", ".markdown", ".rtf", ".eml"}:
         if b"\x00" in content:
             return SecurityScanResult(
                 is_safe=False,

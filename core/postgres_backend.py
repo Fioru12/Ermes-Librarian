@@ -138,6 +138,7 @@ ALTER TABLE ingestion_jobs ADD COLUMN IF NOT EXISTS attempts INTEGER NOT NULL DE
 ALTER TABLE ingestion_jobs ADD COLUMN IF NOT EXISTS total_chunks INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE ingestion_jobs ADD COLUMN IF NOT EXISTS processed_chunks INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE ingestion_jobs ADD COLUMN IF NOT EXISTS dead_letter_reason TEXT NOT NULL DEFAULT '';
+ALTER TABLE documents ADD COLUMN IF NOT EXISTS review_due TEXT NOT NULL DEFAULT '';
 CREATE INDEX IF NOT EXISTS jobs_by_library
     ON ingestion_jobs(library_id, created_at DESC);
 

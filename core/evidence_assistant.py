@@ -143,7 +143,13 @@ def openrouter_model_id() -> str:
     return _map_to_openrouter_model(cfg.DEFAULT_MODEL_ID)
 
 
-def _call_approved_openrouter(prompt: str) -> str:
+def openrouter_chat(system_prompt: str, prompt: str, temperature: float) -> str:
+    """Una chiamata a OpenRouter, solo con consenso cloud e chiave configurata.
+
+    Condivisa da generazione e verifica dell'evidenza: entrambe mandano gli
+    stessi passaggi allo stesso provider, quindi devono passare dagli stessi
+    controlli.
+    """
     if not cfg.LIBRARY_CLOUD_CONSENT or not cfg.OPENROUTER_API_KEY:
         raise RuntimeError("Provider cloud non autorizzato o non configurato")
     client = _get_http_client()
@@ -152,8 +158,8 @@ def _call_approved_openrouter(prompt: str) -> str:
         headers={"Authorization": f"Bearer {cfg.OPENROUTER_API_KEY}", "Content-Type": "application/json"},
         json={
             "model": openrouter_model_id(),
-            "messages": [{"role": "system", "content": _SYSTEM_PROMPT}, {"role": "user", "content": prompt}],
-            "temperature": 0.1,
+            "messages": [{"role": "system", "content": system_prompt}, {"role": "user", "content": prompt}],
+            "temperature": temperature,
         },
         timeout=cfg.LIBRARY_ASSISTANT_TIMEOUT_SEC,
     )
@@ -161,7 +167,7 @@ def _call_approved_openrouter(prompt: str) -> str:
     return str(response.json()["choices"][0]["message"].get("content", "")).strip()
 
 
-def _call_approved_provider(prompt: str, provider_name: str) -> str:
+def approved_provider_chat(provider_name: str, system_prompt: str, prompt: str, temperature: float) -> str:
     """Call exactly one administrator-approved cloud provider.
 
     The generic registry has fallback for the legacy formula assistant. Library
@@ -183,10 +189,18 @@ def _call_approved_provider(prompt: str, provider_name: str) -> str:
     return provider.complete(
         prompt=prompt,
         model=provider.config.default_model,
-        system_prompt=_SYSTEM_PROMPT,
-        temp=0.1,
+        system_prompt=system_prompt,
+        temp=temperature,
         timeout=cfg.LIBRARY_ASSISTANT_TIMEOUT_SEC,
     ).strip()
+
+
+def _call_approved_openrouter(prompt: str) -> str:
+    return openrouter_chat(_SYSTEM_PROMPT, prompt, 0.1)
+
+
+def _call_approved_provider(prompt: str, provider_name: str) -> str:
+    return approved_provider_chat(provider_name, _SYSTEM_PROMPT, prompt, 0.1)
 
 
 def answer_from_evidence(
