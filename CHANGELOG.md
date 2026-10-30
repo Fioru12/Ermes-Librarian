@@ -2,6 +2,10 @@
 
 Registro leggibile del lavoro su questo progetto. Per i finding tecnici completi, [docs/AUDIT_2026-08-19.md](docs/AUDIT_2026-08-19.md) e [docs/CODE_REVIEW.md](docs/CODE_REVIEW.md). La roadmap per fasi e il registro delle sessioni (`ROADMAP_V2.md`, `WORK_PROGRESS.md`) sono stati tolti dall'albero pubblico il 18 settembre 2026: la cronologia Git li conserva.
 
+## 2026-10-30 (6) — LICENSE: il testo GPL-3.0 completo e ufficiale
+
+Il file `LICENSE` non era la GPL-3.0: era una versione tagliata e modificata (264 righe invece di 674, le sezioni 7-17 con il solo titolo, alcune parole cambiate, il copyright della Free Software Foundation sostituito). La GPL non si puo' alterare, e GitHub infatti non la riconosceva (mostrava "Other"). Ora e' il testo ufficiale di gnu.org, integro. Il titolare del copyright resta in `NOTICE`, che dichiara "GPL v3.0 or later". La licenza e' dichiarata anche in `pyproject.toml` e `frontend/package.json` (`GPL-3.0-or-later`). Il test precedente controllava solo il titolo; quello nuovo controlla le 18 sezioni, il copyright FSF e la lunghezza, e fallisce con il testo vecchio.
+
 ## 2026-10-30 (5) — README con le schermate e l'animazione nuove
 
 Le immagini della pagina principale erano del 17 ottobre (stile precedente, dati in inglese). Ora vengono da un'istanza vera con documenti dimostrativi in italiano di una PMI fittizia: risposta con fonte, PDF aperto alla pagina citata, rifiuto onesto, revisioni in scadenza, confronto tra versioni, domande senza risposta, registro di audit, stato del sistema. La schermata di Studio (vuota senza IA generativa) e' sostituita dal confronto tra versioni; tolte quattro immagini non piu' usate. Animazione rifatta: 599 KB invece di 808.
