@@ -97,3 +97,35 @@ def test_slack_teams_example_is_valid_and_keeps_secrets_out_of_the_yaml():
     assert receiver["msteamsv2_configs"][0]["webhook_url_file"]
     codice = [r for r in path.read_text(encoding="utf-8").splitlines() if not r.lstrip().startswith("#")]
     assert not any("https://" in riga for riga in codice), "un indirizzo di webhook e' finito nel YAML"
+
+
+def test_the_dashboard_follows_the_chosen_period_and_never_draws_through_gaps():
+    """I numeri in alto valgono per il periodo scelto (non "dall'ultimo riavvio", che azzerava tutto
+    a ogni restart) e i grafici non uniscono i vuoti con una linea, come se ci fossero misure."""
+    dashboard = json.loads((MONITORING / "grafana-dashboard.json").read_text(encoding="utf-8"))
+    pannelli = []
+
+    def raccogli(elenco):
+        for p in elenco:
+            pannelli.append(p)
+            raccogli(p.get("panels", []))
+
+    raccogli(dashboard.get("panels", []))
+    for p in pannelli:
+        if p.get("type") == "stat":
+            for t in p.get("targets", []):
+                assert "$__range" in t.get("expr", ""), f"{p['title']}: deve contare nel periodo scelto"
+        custom = p.get("fieldConfig", {}).get("defaults", {}).get("custom", {})
+        assert custom.get("spanNulls") is not True, f"{p.get('title')}: unisce i vuoti"
+
+
+def test_a_percent_panel_is_scaled_to_percent():
+    """Un pannello con unita' "percent" mostra 0-100: un rapporto 0-1 va moltiplicato per 100.
+    Riscrivendo la formula del tasso di astensione il "* 100" era andato perso (mostrava 0,44%)."""
+    dashboard = json.loads((MONITORING / "grafana-dashboard.json").read_text(encoding="utf-8"))
+    for p in dashboard.get("panels", []):
+        if p.get("fieldConfig", {}).get("defaults", {}).get("unit") == "percent":
+            for t in p.get("targets", []):
+                expr = t.get("expr", "")
+                if " / " in expr:
+                    assert expr.rstrip().endswith("* 100"), f"{p['title']}: rapporto non scalato a percentuale"
