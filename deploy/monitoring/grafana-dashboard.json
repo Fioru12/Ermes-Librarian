@@ -54,7 +54,7 @@
       "pluginVersion": "10.0.0",
       "targets": [
         {
-          "expr": "sum(ermes_http_requests_total)",
+          "expr": "round(sum(increase(ermes_http_requests_total[$__range])))",
           "instant": true,
           "refId": "A"
         }
@@ -89,7 +89,7 @@
       },
       "targets": [
         {
-          "expr": "sum(ermes_rag_questions_total)",
+          "expr": "round(sum(increase(ermes_rag_questions_total[$__range])))",
           "instant": true,
           "refId": "A"
         }
@@ -126,7 +126,7 @@
       },
       "targets": [
         {
-          "expr": "(sum(ermes_rag_questions_total{outcome=\"abstained\"}) or vector(0)) / (sum(ermes_rag_questions_total) or vector(1)) * 100",
+          "expr": "(sum(increase(ermes_rag_questions_total{outcome=\"abstained\"}[$__range])) or vector(0)) / (sum(increase(ermes_rag_questions_total[$__range])) > 0) * 100",
           "instant": true,
           "refId": "A"
         }
@@ -162,7 +162,7 @@
       },
       "targets": [
         {
-          "expr": "sum(ermes_prompt_injection_flagged_total) or vector(0)",
+          "expr": "round(sum(increase(ermes_prompt_injection_flagged_total[$__range]))) or vector(0)",
           "instant": true,
           "refId": "A"
         }
@@ -194,7 +194,7 @@
             "lineWidth": 2,
             "pointSize": 5,
             "showPoints": "never",
-            "spanNulls": true
+            "spanNulls": false
           },
           "unit": "s"
         }
@@ -241,7 +241,7 @@
             "gradientMode": "opacity",
             "lineWidth": 2,
             "showPoints": "never",
-            "spanNulls": true
+            "spanNulls": false
           },
           "unit": "s"
         }

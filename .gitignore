@@ -114,3 +114,6 @@ release/
 
 # Lanciatore Windows: si compila da scripts/launcher con scripts/build_exe.ps1
 /Ermes.exe
+
+# Materiale per presentazioni: schermate e dati di un'istanza dimostrativa (mai nel repository)
+presentazione/
