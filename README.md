@@ -24,7 +24,7 @@
   <a href="docs/DESCRIZIONE_PROGETTO.md"><b>Italiano</b></a>
 </p>
 
-<img src="docs/assets/demo.gif" alt="Ermes in use: sign in, ask a question that is answered with a cited source, ask one the documents cannot answer and get an honest refusal, browse libraries, switch to the light theme" width="860" />
+<img src="docs/assets/demo.gif" alt="Ermes in use with sample company documents in Italian: sign in, an answer with its cited source, the original PDF at the cited page, an honest refusal, review dates, a version comparison and the questions no document could answer" width="860" />
 
 </div>
 
@@ -55,12 +55,12 @@ passage it relied on. When the documents do not support an answer, Ermes **says 
 <td width="50%"><img src="docs/screenshots/abstention-dark.png" alt="Honest refusal when the documents do not contain the answer" /><br/><sub><b>Honest refusal</b> — no passage supports it, so Ermes says so and suggests what to do.</sub></td>
 </tr>
 <tr>
-<td><img src="docs/screenshots/citation-dark.png" alt="Citation inspector" /><br/><sub><b>Citation inspector</b> — the supporting passage, copy or download the original.</sub></td>
+<td><img src="docs/screenshots/citation-dark.png" alt="Citation opened in the original PDF at the cited page" /><br/><sub><b>Citation inspector</b> — the supporting passage, and the original PDF opened at the cited page.</sub></td>
 <td><img src="docs/screenshots/knowledge-gaps-dark.png" alt="Questions the documents could not answer" /><br/><sub><b>Knowledge gaps</b> — the questions nobody could answer show you which documents are missing.</sub></td>
 </tr>
 <tr>
-<td><img src="docs/screenshots/libraries-light.png" alt="Libraries and documents, light theme" /><br/><sub><b>Libraries</b> — separate boundaries, each with its own collaborators and assistant policy. Light theme shown.</sub></td>
-<td><img src="docs/screenshots/studio-dark.png" alt="Studio: briefing, FAQ, study guide" /><br/><sub><b>Studio</b> — briefing, FAQ, study guide and suggested questions, every point tied to a source.</sub></td>
+<td><img src="docs/screenshots/libraries-light.png" alt="Libraries of a small company, with review dates" /><br/><sub><b>Libraries and review dates</b> — one library per department; procedures and certificates show when their review is overdue (red) or due soon (amber).</sub></td>
+<td><img src="docs/screenshots/versions-light.png" alt="Comparing two versions of a document" /><br/><sub><b>Version history</b> — every upload is a new version; compare any two section by section and restore an old one.</sub></td>
 </tr>
 <tr>
 <td><img src="docs/screenshots/audit-light.png" alt="Audit log with verified hash chain" /><br/><sub><b>Audit log</b> — every entry is hash-chained and signed; the interface verifies the chain and reports tampering.</sub></td>
