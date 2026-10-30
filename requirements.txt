@@ -58,7 +58,7 @@ PyJWT[crypto]==2.15.1
 psycopg[binary]==3.3.6
 
 # File Locking (cross-process safe)
-filelock==3.32.7
+filelock==4.2.1
 # Argon2id per le password locali (core/governance.py). Gli hash SHA-256
 # salati precedenti restano verificabili e vengono riscritti al primo login.
 argon2-cffi==25.1.0
