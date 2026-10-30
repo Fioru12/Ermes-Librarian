@@ -2,6 +2,10 @@
 
 Registro leggibile del lavoro su questo progetto. Per i finding tecnici completi, [docs/AUDIT_2026-08-19.md](docs/AUDIT_2026-08-19.md) e [docs/CODE_REVIEW.md](docs/CODE_REVIEW.md). La roadmap per fasi e il registro delle sessioni (`ROADMAP_V2.md`, `WORK_PROGRESS.md`) sono stati tolti dall'albero pubblico il 18 settembre 2026: la cronologia Git li conserva.
 
+## 2026-10-30 (4) — Docker Desktop su Windows: uno script che lo avvia pulito
+
+Il runbook diceva che i file bloccati di Docker Desktop venivano da una chiusura brusca. Provato: restano anche chiudendolo nel modo corretto (`docker desktop stop`), quindi l'errore all'avvio torna ogni volta. `scripts/avvia_docker.ps1` toglie i file rimasti (tramite il sottosistema Linux di Docker, l'unico che ci riesce), rinomina la cartella del secrets engine e avvia Docker, aspettando che il motore risponda. Non tocca immagini, contenitori ne' volumi. Runbook corretto.
+
 ## 2026-10-30 (3) — Dashboard di Grafana: numeri del periodo scelto, niente linee nei vuoti
 
 Trovati guardando la dashboard con dati veri, preparando la presentazione.

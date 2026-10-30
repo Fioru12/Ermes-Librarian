@@ -306,7 +306,9 @@ Se la finestra di errore dice `starting services: initializing Inference manager
 1. Chiudi Docker Desktop dalla barra delle applicazioni (Quit) e, se serve, esegui `wsl --shutdown`.
 2. Cartella `%LOCALAPPDATA%\Docker\run`: i file lì dentro si cancellano dal sottosistema Linux di Docker, che la vede. **Ne possono essere rimasti più d'uno** (`dockerInference`, `dockerEthernetVfkit`, `userAnalyticsOtlpHttp.sock`, tutti della stessa chiusura brusca): se ne togli uno solo, Docker si ferma sul successivo e l'errore sembra tornare. Toglili tutti insieme: `wsl -d docker-desktop -e sh -c 'rm -f /mnt/host/c/Users/<utente>/AppData/Local/Docker/run/*'`.
 3. Cartella `%LOCALAPPDATA%\docker-secrets-engine`: non è visibile da lì. Rinomina l'intera cartella (per esempio in `docker-secrets-engine.old`): Docker ne crea una nuova e quella vecchia resta, intatta.
-4. Riavvia Docker Desktop e **non chiuderlo forzatamente**: un arresto brusco ricrea il problema. Chiudilo con *Quit* dall'icona nella barra delle applicazioni prima di spegnere o riavviare il PC.
+4. Riavvia Docker Desktop.
+
+**Correzione (30 ottobre 2026):** qui era scritto che bastava non chiudere Docker forzatamente. Non e' vero: i file restano anche chiudendolo nel modo corretto (`docker desktop stop`), quindi l'errore si ripresenta a ogni riavvio. La soluzione pratica e' toglierli sempre prima di avviarlo: **`.\scriptsvvia_docker.ps1`** fa i passi 2-4 da solo e poi aspetta che il motore sia pronto.
 5. Se dopo il riavvio compare ancora un errore, leggi l'ultima riga di `%LOCALAPPDATA%\Docker\log\host\com.docker.backend.exe.log` che contiene `removing existing ... socket`: indica il file rimasto, e va tolto come sopra.
 
 
