@@ -25,7 +25,7 @@ router = APIRouter(prefix="/api/mcp", tags=["Model Context Protocol (MCP)"])
 
 MCP_SERVER_INFO = {
     "name": "ermes-knowledge-mcp",
-    "version": "2.4.1",
+    "version": "2.5.0",
     "description": "Ermes Knowledge Local-First Governed RAG & Evidence Engine",
 }
 

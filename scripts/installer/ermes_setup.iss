@@ -15,7 +15,7 @@
 ; aziende la strada supportata e' CREA_COLLEGAMENTO_DESKTOP.bat dal repository.
 
 #define MyAppName "Ermes Knowledge"
-#define MyAppVersion "2.4.1"
+#define MyAppVersion "2.5.0"
 #define MyAppPublisher "Ermes Team"
 #define MyAppExeName "Ermes.exe"
 
