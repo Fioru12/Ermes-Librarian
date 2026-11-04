@@ -4,11 +4,11 @@
 # API Framework
 fastapi==0.162.0
 uvicorn[standard]==0.54.0
-pydantic==2.14.1
+pydantic==2.14.2
 # 0.0.22 fino all'11 settembre 2026: pip-audit segnalava 10 vulnerabilita'
 # note su questa versione (denial of service nel parsing multipart, cioe'
 # esattamente il percorso del caricamento documenti).
-python-multipart==0.0.32
+python-multipart==0.0.33
 
 # LlamaIndex, ChromaDB e il client Ollama NON sono dipendenze del prodotto:
 # servivano al motore storico WinSarp, rimosso dal repository il 18 settembre
@@ -21,7 +21,7 @@ python-docx==1.2.0
 # totale segnalato da pip-audit. pypdf legge i PDF caricati dagli utenti, cioe'
 # ingresso non fidato per definizione: e' il posto peggiore dove restare
 # indietro di sei versioni correttive.
-pypdf==6.21.2
+pypdf==6.21.4
 # OCR delle pagine PDF senza livello testo (scansioni): pypdfium2 rasterizza
 # la pagina (pdfium incluso nella wheel, nessuna dipendenza di sistema),
 # pytesseract la passa al binario Tesseract, che sta nel Dockerfile. Senza
@@ -58,7 +58,7 @@ PyJWT[crypto]==2.15.1
 psycopg[binary]==3.3.6
 
 # File Locking (cross-process safe)
-filelock==4.2.1
+filelock==4.2.6
 # Argon2id per le password locali (core/governance.py). Gli hash SHA-256
 # salati precedenti restano verificabili e vengono riscritti al primo login.
 argon2-cffi==25.1.0
@@ -70,7 +70,7 @@ argon2-cffi==25.1.0
 langfuse==4.18.0
 
 # Testing
-pytest==9.1.1
+pytest==9.2.0
 pytest-timeout==2.4.0
 pytest-asyncio==1.4.1
 # Richiesto da tests/test_performance.py, che usa la fixture `benchmark`.
@@ -78,5 +78,5 @@ pytest-asyncio==1.4.1
 # test_search_latency finiva in "fixture 'benchmark' not found" — un errore
 # invisibile a chi lavora con un interprete dove il pacchetto c'e' per altre
 # ragioni. Trovato installando il venv del progetto da zero.
-pytest-benchmark==5.3.0
+pytest-benchmark==5.3.1
 prometheus-client==0.26.0
