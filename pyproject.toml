@@ -11,16 +11,16 @@ license-files = ["LICENSE", "NOTICE"]
 description = "Enterprise Knowledge Hub — RAG locale per documentazione aziendale"
 requires-python = ">=3.11"
 dependencies = [
-    "fastapi>=0.162.0",
-    "python-multipart>=0.0.32",
+    "fastapi>=0.162.2",
+    "python-multipart>=0.0.33",
     "uvicorn[standard]>=0.54.0",
-    "pydantic>=2.14.1",
+    "pydantic>=2.14.3",
     "python-docx>=1.1",
     # Il pavimento sale a 6.16.1: le versioni precedenti hanno vulnerabilita'
     # note, e pypdf legge file caricati dagli utenti.
-    "pypdf>=6.21.2",
+    "pypdf>=6.21.4",
     "python-dotenv>=1.2.4",
-    "filelock>=4.2.1",
+    "filelock>=4.2.9",
     "prometheus-client>=0.20",
 ]
 
@@ -34,7 +34,7 @@ neural = [
 # Backend PostgreSQL multi-utente (ERMES_DATABASE_URL). Vedi
 # docs/POSTGRES_MIGRATION_PLAN.md per lo stato della migrazione.
 postgres = [
-    "psycopg[binary]>=3.3.6",
+    "psycopg[binary]>=3.3.8",
 ]
 # Metriche Prometheus native (/metrics). L'extra resta per compatibilita' con
 # chi lo installava, ma prometheus-client e' una dipendenza obbligatoria sopra:
@@ -46,7 +46,7 @@ metrics = [
 ]
 # Benchmark di performance (pytest per i test in tests/test_performance.py).
 benchmark = [
-    "pytest-benchmark>=4.0",
+    "pytest-benchmark>=5.3.1",
 ]
 
 [tool.ruff]
